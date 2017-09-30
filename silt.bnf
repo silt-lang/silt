@@ -43,10 +43,10 @@ import-decl ::= 'open'? 'import' <qualified-name>
 
 ## Functions
 
-# TODO: Generalize to operators as well.
 function-decl ::= <ascription> <function-clause-list>
 function-clause-list ::= <function-clause>
                        | <function-clause> <function-clause-list>
-function-clause ::= <id> <pattern-clause-list> '=' <expr>
+function-clause ::= <id> <pattern-clause-list>? with <expr> '|' <pattern-clause-list>? '=' <expr>
+                  | <id> <pattern-clause-list>? '=' <expr>
 
 # Patterns
