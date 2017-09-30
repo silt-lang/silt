@@ -1,4 +1,5 @@
 id ::= <a group of non-space unicode characters>
+id-list ::= <id> | <id-list>
 
 # Declarations
 
@@ -10,19 +11,19 @@ decl ::= <data-decl>
 
 ## Data types
 
-data-decl ::= 'data' <id> <type-parameter-list>? <type-indices>? 'where' <constructor-list>
+data-decl ::= 'data' <id> <typed-parameter-list>? <type-indices>? 'where' <constructor-list>
 type-indices ::= ':' <expr>
-type-parameter-list ::= <type-parameter>
-                      | <type-parameter> <type-parameter-list>
-ascription ::= <id> ':' <expr>
-type-parameter ::= '(' <ascription> ')'
+typed-parameter-list ::= <typed-parameter>
+                      | <typed-parameter> <typed-parameter-list>
+ascription ::= <id-list> ':' <expr>
+typed-parameter ::= '(' <ascription> ')'
 constructor-list ::= <constructor-decl>
                    | <constructor-decl> <constructor-decl-list>
 constructor-decl ::= '|' <ascription>
 
 ## Records
 
-record-decl ::= 'record' <id> <type-parameter-list>? <type-indices>? 'where' <record-element-list>?
+record-decl ::= 'record' <id> <typed-parameter-list>? <type-indices>? 'where' <record-element-list>?
 record-element-list ::= <record-element>
                       | <record-element> <record-element-list>
 record-element ::= <field-decl>
@@ -31,10 +32,10 @@ field-decl ::= 'field' <ascription>
 
 ## Modules
 
-module-decl ::= 'module' <id> <type-parameter-list>? 'where' <decl-list>
+module-decl ::= 'module' <id> <typed-parameter-list>? 'where' <decl-list>
 decl-list ::= <decl>
             | <decl> <decl-list>
-            
+
 ## Imports
 
 qualified-name ::= <id> | <id> '.' <qualified-name>
