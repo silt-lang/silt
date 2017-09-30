@@ -30,6 +30,11 @@ record-element ::= <field-decl>
                  | <function-decl>
 field-decl ::= 'field' <ascription>
 
+record-field-assignment-list ::= <record-field-assignment>
+                               | <record-field-assignment> ';' <record-field-assignment-list>
+
+record-field-assignment ::= <id> '=' <expr>
+
 ## Modules
 
 module-decl ::= 'module' <id> <typed-parameter-list>? 'where' <decl-list>
@@ -50,3 +55,35 @@ function-clause ::= <id> <pattern-clause-list>? with <expr> '|' <pattern-clause-
                   | <id> <pattern-clause-list>? '=' <expr>
 
 # Patterns
+
+pattern-clause-list ::= <pattern-clause>
+                      | <pattern-clause> <patter-clause-list>
+
+pattern-clause ::= <expr>
+
+# Expressions
+
+expr ::= <typed-parameter> '->' <expr>
+       | <basic-expr-list> '->' <expr>
+       | '\' <binding-list> <expr>
+       | 'forall' <binding-list> '->' <expr>
+       | 'let' <decl-list> 'in' <expr>
+       | <application>
+       | <basic-expr>
+
+application ::= <basic-expr> <application>
+
+binding-list ::= <qualified-name>
+               | <typed-parameter>
+               | <qualified-name> <binding-list>
+               | <typed-parameter> <binding-list>
+
+basic-expr-list ::= <basic-expr>
+                  | <basic-expr> <basic-expr-list>
+
+
+basic-expr ::= <qualified-name>
+             | '_'
+             | 'Type'
+             | '(' <expr> ')'
+             | 'record' <basic-expr>? '{' <record-field-assignment-list>? '}'
