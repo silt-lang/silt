@@ -1,4 +1,5 @@
 id ::= <a group of non-space unicode characters>
+id-list ::= <id> | <id-list>
 
 # Declarations
 
@@ -10,31 +11,36 @@ decl ::= <data-decl>
 
 ## Data types
 
-data-decl ::= 'data' <id> <type-parameter-list>? <type-indices>? 'where' <constructor-list>
+data-decl ::= 'data' <id> <typed-parameter-list>? <type-indices>? 'where' <constructor-list>
 type-indices ::= ':' <expr>
-type-parameter-list ::= <type-parameter>
-                      | <type-parameter> <type-parameter-list>
-ascription ::= <id> ':' <expr>
-type-parameter ::= '(' <ascription> ')'
+typed-parameter-list ::= <typed-parameter>
+                      | <typed-parameter> <typed-parameter-list>
+ascription ::= <id-list> ':' <expr>
+typed-parameter ::= '(' <ascription> ')'
 constructor-list ::= <constructor-decl>
                    | <constructor-decl> <constructor-decl-list>
 constructor-decl ::= '|' <ascription>
 
 ## Records
 
-record-decl ::= 'record' <id> <type-parameter-list>? <type-indices>? 'where' <record-element-list>?
+record-decl ::= 'record' <id> <typed-parameter-list>? <type-indices>? 'where' <record-element-list>?
 record-element-list ::= <record-element>
                       | <record-element> <record-element-list>
 record-element ::= <field-decl>
                  | <function-decl>
 field-decl ::= 'field' <ascription>
 
+record-field-assignment-list ::= <record-field-assignment>
+                               | <record-field-assignment> ';' <record-field-assignment-list>
+
+record-field-assignment ::= <id> '=' <expr>
+
 ## Modules
 
-module-decl ::= 'module' <id> <type-parameter-list>? 'where' <decl-list>
+module-decl ::= 'module' <id> <typed-parameter-list>? 'where' <decl-list>
 decl-list ::= <decl>
             | <decl> <decl-list>
-            
+
 ## Imports
 
 qualified-name ::= <id> | <id> '.' <qualified-name>
@@ -42,10 +48,42 @@ import-decl ::= 'open'? 'import' <qualified-name>
 
 ## Functions
 
-# TODO: Generalize to operators as well.
 function-decl ::= <ascription> <function-clause-list>
 function-clause-list ::= <function-clause>
                        | <function-clause> <function-clause-list>
-function-clause ::= <id> <pattern-clause-list> '=' <expr>
+function-clause ::= <id> <pattern-clause-list>? with <expr> '|' <pattern-clause-list>? '=' <expr>
+                  | <id> <pattern-clause-list>? '=' <expr>
 
 # Patterns
+
+pattern-clause-list ::= <pattern-clause>
+                      | <pattern-clause> <patter-clause-list>
+
+pattern-clause ::= <expr>
+
+# Expressions
+
+expr ::= <typed-parameter> '->' <expr>
+       | <basic-expr-list> '->' <expr>
+       | '\' <binding-list> <expr>
+       | 'forall' <binding-list> '->' <expr>
+       | 'let' <decl-list> 'in' <expr>
+       | <application>
+       | <basic-expr>
+
+application ::= <basic-expr> <application>
+
+binding-list ::= <qualified-name>
+               | <typed-parameter>
+               | <qualified-name> <binding-list>
+               | <typed-parameter> <binding-list>
+
+basic-expr-list ::= <basic-expr>
+                  | <basic-expr> <basic-expr-list>
+
+
+basic-expr ::= <qualified-name>
+             | '_'
+             | 'Type'
+             | '(' <expr> ')'
+             | 'record' <basic-expr>? '{' <record-field-assignment-list>? '}'
