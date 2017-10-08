@@ -158,6 +158,9 @@ class SwiftGenerator {
     line("""
       public class ExprSyntax: Syntax {}
       """)
+    line("""
+      public class DeclSyntax: Syntax {}
+      """)
     for node in nodes {
       generateStruct(node)
     }
@@ -176,12 +179,14 @@ class SwiftGenerator {
       line()
       return
     }
-    line("class \(node.typeName)Syntax: \(node.kind)Syntax {")
-    line("  public enum Cursor: Int {")
-    for child in node.children {
-      line("    case \(child.name.asStandaloneIdentifier)")
+    line("public class \(node.typeName)Syntax: \(node.kind)Syntax {")
+    if !node.children.isEmpty {
+      line("  public enum Cursor: Int {")
+      for child in node.children {
+        line("    case \(child.name.asStandaloneIdentifier)")
+      }
+      line("  }")
     }
-    line("  }")
     line()
 
     write("  public convenience init(")

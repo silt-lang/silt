@@ -8,23 +8,99 @@
 public enum SyntaxKind {
   case token
   case unknown
-  case funcApplicationExpr
+  case identifierList
+  case namedBinding
+  case recordFieldAssignment
+  case functionClauseList
+  case openImportDecl
+  case dataDecl
+  case binding
+  case functionClause
+  case recordDecl
+  case typeIndices
+  case normalFunctionClause
+  case typedBinding
+  case constructorList
+  case functionDecl
+  case recordElement
+  case constructorDecl
+  case moduleDecl
+  case typedParameter
+  case quantifiedExpr
+  case recordFieldAssignmentList
+  case typedParameterArrowExpr
+  case qualifiedName
+  case ascription
+  case recordElementList
+  case applicationExprList
+  case fieldDecl
+  case importDecl
+  case patternClauseList
+  case qualifiedNamePiece
+  case basicExpr
+  case typedParameterList
+  case declList
+  case letExpr
+  case bindingList
+  case basicExprList
+  case underscoreExpr
+  case namedBasicExpr
+  case typeBasicExpr
+  case basicExprListArrowExpr
+  case parenthesizedExpr
+  case applicationExpr
+  case recordExpr
   case lambdaExpr
-  case parenExpr
-  case integerLiteralExpr
-  case parameterList
-  case exprList
+  case withRuleFunctionClause
 
   public var syntaxType: Syntax.Type {
     switch self {
     case .token: return TokenSyntax.self
     case .unknown: return Syntax.self
-    case .funcApplicationExpr: return FuncApplicationExprSyntax.self
+    case .identifierList: return IdentifierListSyntax.self
+    case .namedBinding: return NamedBindingSyntax.self
+    case .recordFieldAssignment: return RecordFieldAssignmentSyntax.self
+    case .functionClauseList: return FunctionClauseListSyntax.self
+    case .openImportDecl: return OpenImportDeclSyntax.self
+    case .dataDecl: return DataDeclSyntax.self
+    case .binding: return BindingSyntax.self
+    case .functionClause: return FunctionClauseSyntax.self
+    case .recordDecl: return RecordDeclSyntax.self
+    case .typeIndices: return TypeIndicesSyntax.self
+    case .normalFunctionClause: return NormalFunctionClauseSyntax.self
+    case .typedBinding: return TypedBindingSyntax.self
+    case .constructorList: return ConstructorListSyntax.self
+    case .functionDecl: return FunctionDeclSyntax.self
+    case .recordElement: return RecordElementSyntax.self
+    case .constructorDecl: return ConstructorDeclSyntax.self
+    case .moduleDecl: return ModuleDeclSyntax.self
+    case .typedParameter: return TypedParameterSyntax.self
+    case .quantifiedExpr: return QuantifiedExprSyntax.self
+    case .recordFieldAssignmentList: return RecordFieldAssignmentListSyntax.self
+    case .typedParameterArrowExpr: return TypedParameterArrowExprSyntax.self
+    case .qualifiedName: return QualifiedNameSyntax.self
+    case .ascription: return AscriptionSyntax.self
+    case .recordElementList: return RecordElementListSyntax.self
+    case .applicationExprList: return ApplicationExprListSyntax.self
+    case .fieldDecl: return FieldDeclSyntax.self
+    case .importDecl: return ImportDeclSyntax.self
+    case .patternClauseList: return PatternClauseListSyntax.self
+    case .qualifiedNamePiece: return QualifiedNamePieceSyntax.self
+    case .basicExpr: return BasicExprSyntax.self
+    case .typedParameterList: return TypedParameterListSyntax.self
+    case .declList: return DeclListSyntax.self
+    case .letExpr: return LetExprSyntax.self
+    case .bindingList: return BindingListSyntax.self
+    case .basicExprList: return BasicExprListSyntax.self
+    case .underscoreExpr: return UnderscoreExprSyntax.self
+    case .namedBasicExpr: return NamedBasicExprSyntax.self
+    case .typeBasicExpr: return TypeBasicExprSyntax.self
+    case .basicExprListArrowExpr: return BasicExprListArrowExprSyntax.self
+    case .parenthesizedExpr: return ParenthesizedExprSyntax.self
+    case .applicationExpr: return ApplicationExprSyntax.self
+    case .recordExpr: return RecordExprSyntax.self
     case .lambdaExpr: return LambdaExprSyntax.self
-    case .parenExpr: return ParenExprSyntax.self
-    case .integerLiteralExpr: return IntegerLiteralExprSyntax.self
-    case .parameterList: return ParameterListSyntax.self
-    case .exprList: return ExprListSyntax.self
+    case .withRuleFunctionClause: return WithRuleFunctionClauseSyntax.self
     }
   }
 }

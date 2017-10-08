@@ -2,11 +2,11 @@ public indirect enum RawSyntax {
   case node(SyntaxKind, [RawSyntax], SourcePresence)
   case token(TokenKind, Trivia, Trivia, SourcePresence, SourceRange?)
 
-  static func missing(_ kind: SyntaxKind) -> RawSyntax {
+  public static func missing(_ kind: SyntaxKind) -> RawSyntax {
     return .node(kind, [], .missing)
   }
 
-  static func missingToken(_ kind: TokenKind) -> RawSyntax {
+  public static func missingToken(_ kind: TokenKind) -> RawSyntax {
     return .token(kind, [], [], .missing, nil)
   }
 
@@ -16,14 +16,14 @@ public indirect enum RawSyntax {
     return s
   }
 
-  var layout: [RawSyntax] {
+  public var layout: [RawSyntax] {
     switch self {
     case .node(_, let children, _): return children
     case .token(_, _, _, _, _): return []
     }
   }
 
-  var sourceRange: SourceRange? {
+  public var sourceRange: SourceRange? {
     switch self {
     case .node(_, _, .missing): return nil
     case .node(_, let children, _):

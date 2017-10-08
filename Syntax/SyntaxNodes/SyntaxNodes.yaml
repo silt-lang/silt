@@ -1,39 +1,417 @@
-IntegerLiteralExpr:
-  kind: Expr
-  children:
-    - integerLiteral:
-        kind: IntegerLiteralToken
+## Identifiers
 
-ExprList:
-  kind: SyntaxCollection
-  element: Expr
-
-ParameterList:
+IdentifierList:
   kind: SyntaxCollection
   element: IdentifierToken
 
-FuncApplicationExpr:
+# qualified-name ::= <id> | <id> '.' <qualified-name>
+QualifiedName:
+  kind: SyntaxCollection
+  element: QualifiedNamePiece
+
+QualifiedNamePiece:
+  kind: Syntax
+  children:
+    - name:
+        kind: IdentifierToken
+    - trailingPeriod:
+        kind: PeriodToken
+        is_optional: true
+
+
+## Modules
+
+# module-decl ::= 'module' <id> <typed-parameter-list>? 'where' <decl-list>
+# decl-list ::= <decl>
+#             | <decl> <decl-list>
+
+ModuleDecl:
+  kind: Decl
+  children:
+    - moduleToken:
+        kind: ModuleToken
+    - moduleIdentifier:
+        kind: IdentifierToken
+    - typedParameterList:
+        kind: TypedParameterList
+    - whereToken:
+        kind: WhereToken
+    - declList:
+        kind: DeclList
+
+DeclList:
+  kind: SyntaxCollection
+  element: Decl
+
+## Imports
+
+# qualified-name ::= <id> | <id> '.' <qualified-name>
+# import-decl ::= 'open'? 'import' <qualified-name>
+
+OpenImportDecl:
+  kind: Decl
+  children:
+    - openToken:
+        kind: OpenToken
+    - importToken:
+        kind: ImportToken
+    - importIdentifier:
+        kind: IdentifierToken
+
+ImportDecl:
+  kind: Decl
+  children:
+    - importToken:
+        kind: ImportToken
+    - importIdentifier:
+        kind: IdentifierToken
+
+## Data types
+
+# data-decl ::= 'data' <id> <typed-parameter-list>? <type-indices>? 'where' <constructor-list>
+
+DataDecl:
+  kind: Decl
+  children:
+    - dataToken:
+        kind: DataToken
+    - dataIdentifier:
+        kind: IdentifierToken
+    - typedParameterList:
+        kind: TypedParameterList
+    - typeIndices:
+        kind: TypeIndices
+    - whereToken:
+        kind: WhereToken
+    - constructorList:
+        kind: ConstructorList
+
+# type-indices ::= ':' <expr>
+
+TypeIndices:
+  kind: Syntax
+  children:
+    - colonToken:
+        kind: ColonToken
+    - indexExpr:
+        kind: Expr
+
+
+# typed-parameter-list ::= <typed-parameter>
+#                       | <typed-parameter> <typed-parameter-list>
+
+TypedParameterList:
+  kind: SyntaxCollection
+  element: TypedParameter
+
+# ascription ::= <id-list> ':' <expr>
+
+Ascription:
+  kind: Syntax
+  children:
+    - boundNames:
+        kind: IdentifierList
+    - colonToken:
+        kind: ColonToken
+    - typeExpr:
+        kind: Expr
+
+# typed-parameter ::= '(' <ascription> ')'
+
+TypedParameter:
+  kind: Syntax
+  children:
+    - leftParenToken:
+        kind: LeftParenToken
+    - ascription:
+        kind: Ascription
+    - rightParenToken:
+        kind: RightParenToken
+
+# constructor-list ::= <constructor-decl>
+#                    | <constructor-decl> <constructor-decl-list>
+
+ConstructorList:
+  kind: SyntaxCollection
+  element: ConstructorDecl
+
+# constructor-decl ::= '|' <ascription>
+
+ConstructorDecl:
+  kind: Decl
+  children:
+    - pipeToken:
+        kind: PipeToken
+    - ascription:
+        kind: Ascription
+
+## Records
+
+# record-decl ::= 'record' <id> <typed-parameter-list>? <type-indices>? 'where' <record-element-list>?
+
+RecordDecl:
+  kind: Decl
+  children:
+    - recordToken:
+        kind: RecordToken
+    - recordName:
+        kind: IdentifierToken
+    - parameterList:
+        kind: TypedParameterList
+    - typeIndices:
+        kind: TypeIndices
+    - whereToken:
+        kind: whereToken
+    - recordElementList:
+        kind: RecordElementList
+
+# record-element-list ::= <record-element>
+#                       | <record-element> <record-element-list>
+
+RecordElementList:
+  kind: SyntaxCollection
+  element: RecordElement
+
+# record-element ::= <field-decl>
+#                  | <function-decl>
+
+RecordElement:
+  kind: Syntax
+
+# field-decl ::= 'field' <ascription>
+
+FieldDecl:
+  kind: RecordElement
+  children:
+    - fieldToken:
+        kind: FieldToken
+    - ascription:
+        kind: Ascription
+
+# record-field-assignment-list ::= <record-field-assignment>
+#                                | <record-field-assignment> ';' <record-field-assignment-list>
+
+RecordFieldAssignmentList:
+  kind: SyntaxCollection
+  element: RecordFieldAssignment
+
+# record-field-assignment ::= <id> '=' <expr>
+
+RecordFieldAssignment:
+  kind: Syntax
+  children:
+    - fieldName:
+        kind: IdentifierToken
+    - equalsToken:
+        kind: EqualsToken
+    - fieldInitExpr:
+        kind: Expr
+    - trailingSemicolon:
+        kind: SemicolonToken
+        is_optional: true
+
+## Functions
+
+# function-decl ::= <ascription> <function-clause-list>
+
+FunctionDecl:
+  kind: Decl
+  children:
+    - ascription:
+        kind: Ascription
+    - clauseList:
+        kind: FunctionClauseList
+
+# function-clause-list ::= <function-clause>
+#                        | <function-clause> <function-clause-list>
+
+FunctionClauseList:
+  kind: SyntaxCollection
+  element: FunctionClause
+
+# function-clause ::= <id> <pattern-clause-list>? with <expr> '|' <pattern-clause-list>? '=' <expr>
+#                   | <id> <pattern-clause-list>? '=' <expr>
+
+FunctionClause:
+  kind: Syntax
+
+NormalFunctionClause:
+  kind: FunctionClause
+  children:
+    - functionName:
+        kind: IdentifierToken
+    - patternClauseList:
+        kind: PatternClauseList
+    - withToken:
+        kind: WithToken
+    - withExpr:
+        kind: Expr
+    - withPatternClause:
+        kind: PatternClauseList
+    - equalsToken:
+        kind: EqualsToken
+    - rhsExpr:
+        kind: Expr
+
+WithRuleFunctionClause:
+  kind: FunctionClause
+  children:
+    - functionName:
+        kind: IdentifierToken
+    - patternClauseList:
+        kind: PatternClauseList
+    - equalsToken:
+        kind: EqualsToken
+    - rhsExpr:
+        kind: Expr
+
+
+# Patterns
+
+# pattern-clause-list ::= <pattern-clause>
+#                       | <pattern-clause> <patter-clause-list>
+# pattern-clause ::= <expr>
+
+PatternClauseList:
+  kind: SyntaxCollection
+  element: Expr
+
+# Expressions
+
+# expr ::= <typed-parameter> '->' <expr>
+#        | <basic-expr-list> '->' <expr>
+#        | '\' <binding-list> <expr>
+#        | 'forall' <binding-list> '->' <expr>
+#        | 'let' <decl-list> 'in' <expr>
+#        | <application>
+#        | <basic-expr>
+
+TypedParameterArrowExpr:
   kind: Expr
   children:
-    - calleeExpr:
+    - parameter:
+        kind: TypedParameter
+    - arrowToken:
+        kind: ArrowToken
+    - outputExpr:
         kind: Expr
-    - arguments:
-        kind: ExprList
+
+BasicExprListArrowExpr:
+  kind: Expr
+  children:
+    - exprList:
+        kind: BasicExprList
+    - arrowToken:
+        kind: ArrowToken
+    - outputExpr:
+        kind: Expr
 
 LambdaExpr:
   kind: Expr
   children:
-    - forwardSlashToken:
+    - slashToken:
         kind: ForwardSlashToken
-    - parameterList:
-        kind: ParameterList
-    - arrowToken:
-        kind: ArrowToken
+    - bindingList:
+        kind: BindingList
     - bodyExpr:
         kind: Expr
 
-ParenExpr:
+QuantifiedExpr:
   kind: Expr
+  children:
+    - forallToken:
+        kind: ForallToken
+    - bindingList:
+        kind: BindingList
+    - arrowToken:
+        kind: ArrowToken
+    - outputExpr:
+        kind: Expr
+
+LetExpr:
+  kind: Expr
+  children:
+    - letToken:
+        kind: LetToken
+    - declList:
+        kind: DeclList
+    - inToken:
+        kind: InToken
+    - outputExpr:
+        kind: Expr
+
+ApplicationExpr:
+  kind: Expr
+  children:
+    - exprs:
+        kind: ApplicationExprList
+
+BasicExpr:
+  kind: Expr
+
+# application ::= <basic-expr> <application>
+
+ApplicationExprList:
+  kind: SyntaxCollection
+  element: BasicExpr
+
+# binding-list ::= <qualified-name>
+#               | <typed-parameter>
+#               | <qualified-name> <binding-list>
+#               | <typed-parameter> <binding-list>
+
+BindingList:
+  kind: SyntaxCollection
+  element: Binding
+
+Binding:
+  kind: Syntax
+
+NamedBinding:
+  kind: Binding
+  children:
+    - name:
+        kind: QualifiedName
+
+TypedBinding:
+  kind: Binding
+  children:
+    - parameter:
+        kind: TypedParameter
+
+# basic-expr-list ::= <basic-expr>
+#                  | <basic-expr> <basic-expr-list>
+
+BasicExprList:
+  kind: SyntaxCollection
+  element: BasicExpr
+
+# basic-expr ::= <qualified-name>
+#              | '_'
+#              | 'Type'
+#              | '(' <expr> ')'
+#              | 'record' <basic-expr>? '{' <record-field-assignment-list>? '}'
+
+NamedBasicExpr:
+  kind: BasicExpr
+  children:
+    - name:
+        kind: QualifiedName
+
+UnderscoreExpr:
+  kind: BasicExpr
+  children:
+    - underscoreToken:
+        kind: UnderscoreToken
+
+TypeBasicExpr:
+  kind: BasicExpr
+  children:
+    - typeToken:
+        kind: TypeToken
+
+ParenthesizedExpr:
+  kind: BasicExpr
   children:
     - leftParenToken:
         kind: LeftParenToken
@@ -42,3 +420,16 @@ ParenExpr:
     - rightParenToken:
         kind: RightParenToken
 
+RecordExpr:
+  kind: BasicExpr
+  children:
+    - recordToken:
+        kind: recordToken
+    - parameterExpr:
+        kind: BasicExpr
+    - leftBraceToken:
+        kind: LeftBraceToken
+    - fieldAssignments:
+        kind: RecordFieldAssignmentList
+    - rightBraceToken:
+        kind: RightBraceToken

@@ -11,7 +11,7 @@ struct Node {
       fatalError("invalid node")
     }
     self.typeName = name
-    self.kind = kind
+    self.kind = kind == "Syntax" ? "" : kind
     if let childArray = props["children"]?.array {
       self.children = childArray.map { childNode in
         guard let dict = childNode.dictionary else {

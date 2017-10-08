@@ -61,6 +61,9 @@ func describe(_ input: String) {
 }
 
 describe("""
-  {- A type -}
-Foo.Bar.Baz -> (Int, Bool) -> [Int]
+{- A type -}
+module Prelude where
+
+id : forall (k : Level) . forall (X : Type k) -> X -> X
+id x = x
 """)

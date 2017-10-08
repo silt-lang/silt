@@ -75,14 +75,15 @@ Field:
   text: field
   keyword: true
 
-IntegerLiteral:
-  associated: String
-
-FloatingLiteral:
-  associated: String
+Forall:
+  text: forall
+  keyword: true
 
 Identifier:
   associated: String
+
+Underscore:
+  associated: Character
 
 Unknown:
   associated: Character

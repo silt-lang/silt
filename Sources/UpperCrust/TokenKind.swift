@@ -12,6 +12,7 @@ public enum TokenKind: Equatable {
   case letKeyword
   case pipe
   case semicolon
+  case underscore(Character)
   case forwardSlash
   case fieldKeyword
   case importKeyword
@@ -19,10 +20,10 @@ public enum TokenKind: Equatable {
   case rightParen
   case colon
   case openKeyword
-  case floatingLiteral(String)
   case unknown(Character)
   case equals
   case dataKeyword
+  case forallKeyword
   case leftBrace
   case typeKeyword
   case withKeyword
@@ -32,7 +33,6 @@ public enum TokenKind: Equatable {
   case inKeyword
   case whereKeyword
   case period
-  case integerLiteral(String)
 
   public init(punctuation: String) {
     switch punctuation {
@@ -60,6 +60,7 @@ public enum TokenKind: Equatable {
     case "record": self = .recordKeyword
     case "open": self = .openKeyword
     case "data": self = .dataKeyword
+    case "forall": self = .forallKeyword
     case "type": self = .typeKeyword
     case "with": self = .withKeyword
     case "in": self = .inKeyword
@@ -75,6 +76,7 @@ public enum TokenKind: Equatable {
     case .letKeyword: return "let"
     case .pipe: return "|"
     case .semicolon: return ";"
+    case .underscore(let text): return text.description
     case .forwardSlash: return "\\"
     case .fieldKeyword: return "field"
     case .importKeyword: return "import"
@@ -82,10 +84,10 @@ public enum TokenKind: Equatable {
     case .rightParen: return ")"
     case .colon: return ":"
     case .openKeyword: return "open"
-    case .floatingLiteral(let text): return text.description
     case .unknown(let text): return text.description
     case .equals: return "="
     case .dataKeyword: return "data"
+    case .forallKeyword: return "forall"
     case .leftBrace: return "{"
     case .typeKeyword: return "type"
     case .withKeyword: return "with"
@@ -95,7 +97,6 @@ public enum TokenKind: Equatable {
     case .inKeyword: return "in"
     case .whereKeyword: return "where"
     case .period: return "."
-    case .integerLiteral(let text): return text.description
     }
   }
   public static func == (lhs: TokenKind, rhs: TokenKind) -> Bool {
@@ -106,6 +107,7 @@ public enum TokenKind: Equatable {
     case (.letKeyword, .letKeyword): return true
     case (.pipe, .pipe): return true
     case (.semicolon, .semicolon): return true
+    case (.underscore(let l), .underscore(let r)): return l == r
     case (.forwardSlash, .forwardSlash): return true
     case (.fieldKeyword, .fieldKeyword): return true
     case (.importKeyword, .importKeyword): return true
@@ -113,10 +115,10 @@ public enum TokenKind: Equatable {
     case (.rightParen, .rightParen): return true
     case (.colon, .colon): return true
     case (.openKeyword, .openKeyword): return true
-    case (.floatingLiteral(let l), .floatingLiteral(let r)): return l == r
     case (.unknown(let l), .unknown(let r)): return l == r
     case (.equals, .equals): return true
     case (.dataKeyword, .dataKeyword): return true
+    case (.forallKeyword, .forallKeyword): return true
     case (.leftBrace, .leftBrace): return true
     case (.typeKeyword, .typeKeyword): return true
     case (.withKeyword, .withKeyword): return true
@@ -126,7 +128,6 @@ public enum TokenKind: Equatable {
     case (.inKeyword, .inKeyword): return true
     case (.whereKeyword, .whereKeyword): return true
     case (.period, .period): return true
-    case (.integerLiteral(let l), .integerLiteral(let r)): return l == r
     default: return false
     }
   }

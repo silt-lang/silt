@@ -144,13 +144,7 @@ public class Lexer {
       advance()
     } else {
       let id = collectWhile { !$0.isWhitespace }
-      if Int(id) != nil {
-        tokenKind = .integerLiteral(id)
-      } else if Double(id) != nil {
-        tokenKind = .floatingLiteral(id)
-      } else {
-        tokenKind = TokenKind(identifier: id)
-      }
+      tokenKind = TokenKind(identifier: id)
     }
 
     let trailingTrivia = collectTrivia(includeNewlines: false)
