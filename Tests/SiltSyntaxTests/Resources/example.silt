@@ -1,0 +1,5 @@
+{- A type -}
+module Prelude where
+
+id : forall (k : Level) . forall (X : Type k) -> X -> X
+id x = x

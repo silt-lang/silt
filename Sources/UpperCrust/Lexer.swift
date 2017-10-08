@@ -143,7 +143,7 @@ public class Lexer {
       tokenKind = kind
       advance()
     } else {
-      let id = collectWhile { !$0.isWhitespace }
+      let id = collectWhile { !$0.isWhitespace && singleTokMap[$0] == nil }
       tokenKind = TokenKind(identifier: id)
     }
 
