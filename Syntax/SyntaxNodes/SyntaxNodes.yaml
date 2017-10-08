@@ -1,0 +1,44 @@
+IntegerLiteralExpr:
+  kind: Expr
+  children:
+    - integerLiteral:
+        kind: IntegerLiteralToken
+
+ExprList:
+  kind: SyntaxCollection
+  element: Expr
+
+ParameterList:
+  kind: SyntaxCollection
+  element: IdentifierToken
+
+FuncApplicationExpr:
+  kind: Expr
+  children:
+    - calleeExpr:
+        kind: Expr
+    - arguments:
+        kind: ExprList
+
+LambdaExpr:
+  kind: Expr
+  children:
+    - forwardSlashToken:
+        kind: ForwardSlashToken
+    - parameterList:
+        kind: ParameterList
+    - arrowToken:
+        kind: ArrowToken
+    - bodyExpr:
+        kind: Expr
+
+ParenExpr:
+  kind: Expr
+  children:
+    - leftParenToken:
+        kind: LeftParenToken
+    - expr:
+        kind: Expr
+    - rightParenToken:
+        kind: RightParenToken
+
