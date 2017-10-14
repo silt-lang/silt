@@ -166,7 +166,8 @@ class SwiftGenerator {
   }
 
   func generateStruct(_ node: Node) {
-    if let element = node.collectionElement {
+    switch node.kind {
+    case let .collection(element):
       let elementKind = element.contains("Token") ? "Token" : element
       line("""
         public class \(node.typeName)Syntax: SyntaxCollection<\(elementKind)Syntax> {
@@ -176,49 +177,49 @@ class SwiftGenerator {
         }
         """)
       line()
-      return
-    }
-    line("public class \(node.typeName)Syntax: \(node.kind)Syntax {")
-    if !node.children.isEmpty {
-      line("  public enum Cursor: Int {")
-      for child in node.children {
-        line("    case \(child.name.asStandaloneIdentifier)")
+    case let .node(kind, children):
+      line("public class \(node.typeName)Syntax: \(kind)Syntax {")
+      if !children.isEmpty {
+        line("  public enum Cursor: Int {")
+        for child in children {
+          line("    case \(child.name.asStandaloneIdentifier)")
+        }
+        line("  }")
       }
+      line()
+
+      write("  public convenience init(")
+      let childParams = children
+        .map {
+          let childKind = $0.kind.contains("Token") ? "Token" : $0.kind
+          return "\($0.name): \(childKind)Syntax"
+        }
+        .joined(separator: ", ")
+      write(childParams)
+      line(") {")
+      line("    let raw = RawSyntax.node(.\(node.typeName.lowercaseFirstLetter), [")
+      for child in  children {
+        line("      \(child.name).raw,")
+      }
+      line("    ], .present)")
+      line("    let data = SyntaxData(raw: raw, parent: nil, indexInParent: 0)")
+      line("    self.init(root: data, data: data)")
       line("  }")
-    }
-    line()
 
-    write("  public convenience init(")
-    let childParams = node.children
-      .map {
-        let childKind = $0.kind.contains("Token") ? "Token" : $0.kind
-        return "\($0.name): \(childKind)Syntax"
+      for child in  children {
+        let childKind = child.kind.contains("Token") ? "Token" : child.kind
+        line("""
+            public var \(child.name): \(childKind)Syntax {
+              return child(at: Cursor.\(child.name)) as! \(childKind)Syntax
+            }
+            public func with\(child.name.uppercaseFirstLetter)(_ syntax: \(childKind)Syntax) -> \(node.typeName)Syntax {
+              return data.replacingChild(syntax.raw, at: Cursor.\(child.name))
+            }
+
+          """)
       }
-      .joined(separator: ", ")
-    write(childParams)
-    line(") {")
-    line("    let raw = RawSyntax.node(.\(node.typeName.lowercaseFirstLetter), [")
-    for child in node.children {
-      line("      \(child.name).raw,")
+      line("}")
+      line()
     }
-    line("    ], .present)")
-    line("    let data = SyntaxData(raw: raw, parent: nil, indexInParent: 0)")
-    line("    self.init(root: data, data: data)")
-    line("  }")
-
-    for child in node.children {
-      let childKind = child.kind.contains("Token") ? "Token" : child.kind
-      line("""
-          public var \(child.name): \(childKind)Syntax {
-            return child(at: Cursor.\(child.name)) as! \(childKind)Syntax
-          }
-          public func with\(child.name.uppercaseFirstLetter)(_ syntax: \(childKind)Syntax) -> \(node.typeName)Syntax {
-            return data.replacingChild(syntax.raw, at: Cursor.\(child.name))
-          }
-
-        """)
-    }
-    line("}")
-    line()
   }
 }

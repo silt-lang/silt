@@ -1,10 +1,10 @@
 let syntaxNodes = [
   /// MARK: Identifiers
 
-  Node("IdentifierList", kind: "SyntaxCollection", element: "IdentifierToken"),
+  Node("IdentifierList", element: "IdentifierToken"),
 
   // qualified-name ::= <id> | <id> '.' <qualified-name>
-  Node("QualifiedName", kind: "SyntaxCollection", element: "QualifiedNamePiece"),
+  Node("QualifiedName", element: "QualifiedNamePiece"),
 
   Node("QualifiedNamePiece", kind: "Syntax", children: [
     Child("name", kind: "IdentifierToken"),
@@ -26,7 +26,7 @@ let syntaxNodes = [
     Child("declList", kind: "DeclList")
   ]),
 
-  Node("DeclList", kind: "SyntaxCollection", element: "Decl"),
+  Node("DeclList", element: "Decl"),
 
   /// MARK: Imports
 
@@ -68,8 +68,7 @@ let syntaxNodes = [
   // typed-parameter-list ::= <typed-parameter>
   //                       | <typed-parameter> <typed-parameter-list>
 
-  Node("TypedParameterList", kind: "SyntaxCollection",
-       element: "TypedParameter"),
+  Node("TypedParameterList", element: "TypedParameter"),
 
   // ascription ::= <id-list> ':' <expr>
 
@@ -90,7 +89,7 @@ let syntaxNodes = [
   // constructor-list ::= <constructor-decl>
   //                    | <constructor-decl> <constructor-decl-list>
 
-  Node("ConstructorList", kind: "SyntaxCollection", element: "ConstructorDecl"),
+  Node("ConstructorList", element: "ConstructorDecl"),
 
   // constructor-decl ::= '|' <ascription>
 
@@ -115,12 +114,12 @@ let syntaxNodes = [
   // record-element-list ::= <record-element>
   //                       | <record-element> <record-element-list>
 
-  Node("RecordElementList", kind: "SyntaxCollection", element: "RecordElement"),
+  Node("RecordElementList", element: "RecordElement"),
 
   // record-element ::= <field-decl>
   //                  | <function-decl>
 
-  Node("RecordElement", kind: "Syntax"),
+  Node("RecordElement", kind: "Syntax", children: []),
 
   // field-decl ::= 'field' <ascription>
 
@@ -132,7 +131,7 @@ let syntaxNodes = [
   // record-field-assignment-list ::= <record-field-assignment>
   //                                | <record-field-assignment> ';' <record-field-assignment-list>
 
-  Node("RecordFieldAssignmentList", kind: "SyntaxCollection", element: "RecordFieldAssignment"),
+  Node("RecordFieldAssignmentList", element: "RecordFieldAssignment"),
 
   // record-field-assignment ::= <id> '=' <expr>
 
@@ -155,12 +154,12 @@ let syntaxNodes = [
   // function-clause-list ::= <function-clause>
   //                        | <function-clause> <function-clause-list>
 
-  Node("FunctionClauseList", kind: "SyntaxCollection", element: "FunctionClause"),
+  Node("FunctionClauseList", element: "FunctionClause"),
 
   // function-clause ::= <id> <pattern-clause-list>? with <expr> '|' <pattern-clause-list>? '=' <expr>
   //                   | <id> <pattern-clause-list>? '=' <expr>
 
-  Node("FunctionClause", kind: "Syntax"),
+  Node("FunctionClause", kind: "Syntax", children: []),
 
   Node("NormalFunctionClause", kind: "FunctionClause", children: [
     Child("functionName", kind: "IdentifierToken"),
@@ -186,7 +185,7 @@ let syntaxNodes = [
   //                       | <pattern-clause> <patter-clause-list>
   // pattern-clause ::= <expr>
 
-  Node("PatternClauseList", kind: "SyntaxCollection", element: "Expr"),
+  Node("PatternClauseList", element: "Expr"),
 
   // Expressions
 
@@ -234,20 +233,20 @@ let syntaxNodes = [
     Child("exprs", kind: "ApplicationExprList")
   ]),
 
-  Node("BasicExpr", kind: "Expr"),
+  Node("BasicExpr", kind: "Expr", children: []),
 
   // application ::= <basic-expr> <application>
 
-  Node("ApplicationExprList", kind: "SyntaxCollection", element: "BasicExpr"),
+  Node("ApplicationExprList", element: "BasicExpr"),
 
   // binding-list ::= <qualified-name>
   //               | <typed-parameter>
   //               | <qualified-name> <binding-list>
   //               | <typed-parameter> <binding-list>
 
-  Node("BindingList", kind: "SyntaxCollection", element: "Binding"),
+  Node("BindingList", element: "Binding"),
 
-  Node("Binding", kind: "Syntax"),
+  Node("Binding", kind: "Syntax", children: []),
 
   Node("NamedBinding", kind: "Binding", children: [
     Child("name", kind: "QualifiedName")
@@ -260,7 +259,7 @@ let syntaxNodes = [
   // basic-expr-list ::= <basic-expr>
   //                  | <basic-expr> <basic-expr-list>
 
-  Node("BasicExprList", kind: "SyntaxCollection", element: "BasicExpr"),
+  Node("BasicExprList", element: "BasicExpr"),
 
   // basic-expr ::= <qualified-name>
   //              | '_'

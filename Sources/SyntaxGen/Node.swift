@@ -5,16 +5,21 @@
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 struct Node {
+  enum Kind {
+    case collection(element: String)
+    case node(kind: String, children: [Child])
+  }
   let typeName: String
-  let kind: String
-  let collectionElement: String?
-  let children: [Child]
+  let kind: Kind
 
-  init(_ name: String, kind: String, element: String? = nil,
-       children: [Child] = []) {
-    self.typeName = name
-    self.kind = kind == "Syntax" ? "" : kind
-    self.collectionElement = element
-    self.children = children
+  init(_ typeName: String, element: String) {
+    self.typeName = typeName
+    self.kind = .collection(element: element)
+  }
+
+  init(_ typeName: String, kind: String, children: [Child]) {
+    self.typeName = typeName
+    self.kind = .node(kind: kind == "Syntax" ? "" : kind,
+                      children: children)
   }
 }
