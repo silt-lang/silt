@@ -21,7 +21,7 @@ let syntaxNodes = [
   Node("ModuleDecl", kind: "Decl", children: [
     Child("moduleToken", kind: "ModuleToken"),
     Child("moduleIdentifier", kind: "IdentifierToken"),
-    Child("typedParameterList", kind: "TypedParameterList"),
+    Child("typedParameterList", kind: "TypedParameterList", isOptional: true),
     Child("whereToken", kind: "WhereToken"),
     Child("declList", kind: "DeclList")
   ]),
@@ -34,7 +34,7 @@ let syntaxNodes = [
   // import-decl ::= 'open'? 'import' <qualified-name>
 
   Node("OpenImportDecl", kind: "Decl", children: [
-    Child("openToken", kind: "OpenToken"),
+    Child("openToken", kind: "OpenToken", isOptional: true),
     Child("importToken", kind: "ImportToken"),
     Child("importIdentifier", kind: "IdentifierToken")
   ]),
@@ -51,7 +51,7 @@ let syntaxNodes = [
   Node("DataDecl", kind: "Decl", children: [
     Child("dataToken", kind: "DataToken"),
     Child("dataIdentifier", kind: "IdentifierToken"),
-    Child("typedParameterList", kind: "TypedParameterList"),
+    Child("typedParameterList", kind: "TypedParameterList", isOptional: true),
     Child("typeIndices", kind: "TypeIndices"),
     Child("whereToken", kind: "WhereToken"),
     Child("constructorList", kind: "ConstructorList")
@@ -105,9 +105,9 @@ let syntaxNodes = [
   Node("RecordDecl", kind: "Decl", children: [
     Child("recordToken", kind: "RecordToken"),
     Child("recordName", kind: "IdentifierToken"),
-    Child("parameterList", kind: "TypedParameterList"),
-    Child("typeIndices", kind: "TypeIndices"),
-    Child("whereToken", kind: "whereToken"),
+    Child("parameterList", kind: "TypedParameterList", isOptional: true),
+    Child("typeIndices", kind: "TypeIndices", isOptional: true),
+    Child("whereToken", kind: "WhereToken", isOptional: true),
     Child("recordElementList", kind: "RecordElementList")
   ]),
 
@@ -163,17 +163,17 @@ let syntaxNodes = [
 
   Node("NormalFunctionClause", kind: "FunctionClause", children: [
     Child("functionName", kind: "IdentifierToken"),
-    Child("patternClauseList", kind: "PatternClauseList"),
+    Child("patternClauseList", kind: "PatternClauseList", isOptional: true),
     Child("withToken", kind: "WithToken"),
     Child("withExpr", kind: "Expr"),
-    Child("withPatternClause", kind: "PatternClauseList"),
+    Child("withPatternClause", kind: "PatternClauseList", isOptional: true),
     Child("equalsToken", kind: "EqualsToken"),
     Child("rhsExpr", kind: "Expr")
   ]),
 
   Node("WithRuleFunctionClause", kind: "FunctionClause", children: [
     Child("functionName", kind: "IdentifierToken"),
-    Child("patternClauseList", kind: "PatternClauseList"),
+    Child("patternClauseList", kind: "PatternClauseList", isOptional: true),
     Child("equalsToken", kind: "EqualsToken"),
     Child("rhsExpr", kind: "Expr")
   ]),
@@ -240,9 +240,9 @@ let syntaxNodes = [
   Node("ApplicationExprList", element: "BasicExpr"),
 
   // binding-list ::= <qualified-name>
-  //               | <typed-parameter>
-  //               | <qualified-name> <binding-list>
-  //               | <typed-parameter> <binding-list>
+  //                | <typed-parameter>
+  //                | <qualified-name> <binding-list>
+  //                | <typed-parameter> <binding-list>
 
   Node("BindingList", element: "Binding"),
 
@@ -289,7 +289,7 @@ let syntaxNodes = [
     Child("recordToken", kind: "recordToken"),
     Child("parameterExpr", kind: "BasicExpr"),
     Child("leftBraceToken", kind: "LeftBraceToken"),
-    Child("fieldAssignments", kind: "RecordFieldAssignmentList"),
+    Child("fieldAssignments", kind: "RecordFieldAssignmentList", isOptional: true),
     Child("rightBraceToken", kind: "RightBraceToken")
   ]),
 ]

@@ -22,7 +22,7 @@ class SwiftGenerator {
     self.outputDir = URL(fileURLWithPath: outputDir)
     var tokenMap = [String: Token]()
     for token in tokenNodes {
-      tokenMap[token.name] = token
+      tokenMap[token.name + "Token"] = token
     }
     self.tokenMap = tokenMap
   }
@@ -165,6 +165,17 @@ class SwiftGenerator {
     }
   }
 
+  func makeMissing(child: Child) -> String {
+    if child.isToken {
+      guard let token = tokenMap[child.kind] else {
+        fatalError("unknown token kind '\(child.kind)'")
+      }
+      return "RawSyntax.missingToken(.\(token.caseName))"
+    } else {
+      return "RawSyntax.missing(.\(child.kindCaseName))"
+    }
+  }
+
   func generateStruct(_ node: Node) {
     switch node.kind {
     case let .collection(element):
@@ -191,15 +202,20 @@ class SwiftGenerator {
       write("  public convenience init(")
       let childParams = children
         .map {
-          let childKind = $0.kind.contains("Token") ? "Token" : $0.kind
-          return "\($0.name): \(childKind)Syntax"
+          let childKind = $0.isToken ? "Token" : $0.kind
+          let optional = $0.isOptional ? "?" : ""
+          return "\($0.name): \(childKind)Syntax\(optional)"
         }
         .joined(separator: ", ")
       write(childParams)
       line(") {")
       line("    let raw = RawSyntax.node(.\(node.typeName.lowercaseFirstLetter), [")
       for child in  children {
-        line("      \(child.name).raw,")
+        if child.isOptional {
+          line("      \(child.name)?.raw ?? \(makeMissing(child: child)),")
+        } else {
+          line("      \(child.name).raw,")
+        }
       }
       line("    ], .present)")
       line("    let data = SyntaxData(raw: raw, parent: nil, indexInParent: 0)")
@@ -208,9 +224,11 @@ class SwiftGenerator {
 
       for child in  children {
         let childKind = child.kind.contains("Token") ? "Token" : child.kind
+        let optional = child.isOptional ? "?" : ""
+        let castKeyword = child.isOptional ? "as?" : "as!"
         line("""
-            public var \(child.name): \(childKind)Syntax {
-              return child(at: Cursor.\(child.name)) as! \(childKind)Syntax
+            public var \(child.name): \(childKind)Syntax\(optional) {
+              return child(at: Cursor.\(child.name)) \(castKeyword) \(childKind)Syntax
             }
             public func with\(child.name.uppercaseFirstLetter)(_ syntax: \(childKind)Syntax) -> \(node.typeName)Syntax {
               return data.replacingChild(syntax.raw, at: Cursor.\(child.name))

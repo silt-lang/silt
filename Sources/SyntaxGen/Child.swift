@@ -9,6 +9,14 @@ struct Child {
   let kind: String
   let isOptional: Bool
 
+  var isToken: Bool {
+    return kind.contains("Token")
+  }
+
+  var kindCaseName: String {
+    return kind.lowercaseFirstLetter
+  }
+
   init(_ name: String, kind: String, isOptional: Bool = false) {
     self.kind = kind
     self.name = name
