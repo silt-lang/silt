@@ -44,7 +44,12 @@ func main() throws {
                      The mode in which to execute the compiler. This
                      """)
   cli.addOptions(modeOption)
-  try cli.parse()
+  do {
+    try cli.parse()
+  } catch {
+    cli.printUsage()
+    exit(EXIT_FAILURE)
+  }
 
   try run(mode: modeOption.value!, paths: cli.unparsedArguments)
 }
