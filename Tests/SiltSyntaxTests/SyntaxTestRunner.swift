@@ -1,4 +1,4 @@
-import UpperCrust
+@testable import UpperCrust
 import XCTest
 import Foundation
 import FileCheck
@@ -16,7 +16,7 @@ class SyntaxTestRunner: XCTestCase {
         XCTFail("Could not read silt file at path \(file.absoluteString)")
         return
       }
-      
+
       XCTAssert(fileCheckOutput(against: file.appendingPathExtension("syntax").path, options: [.disableColors]) {
         describe(siltFile, at: file.absoluteString)
       })

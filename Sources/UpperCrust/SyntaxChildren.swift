@@ -1,33 +1,36 @@
-/// A sequence over the children of a Syntax node.
+//===------------- SyntaxChildren.swift - Syntax Child Iterator -----------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+
 public struct SyntaxChildren: Sequence {
+  public struct Iterator: IteratorProtocol {
+    let node: Syntax
+    var indexIterator: Syntax.PresentChildIndicesSequence.Iterator
+
+    init(node: Syntax) {
+      self.indexIterator = node.presentChildIndices.makeIterator()
+      self.node = node
+    }
+
+    public mutating func next() -> Syntax? {
+      guard let index = indexIterator.next() else { return nil }
+      return node.child(at: index)
+    }
+  }
+
   let node: Syntax
 
-  public func makeIterator() -> AnyIterator<Syntax> {
-    var index = 0
-    return AnyIterator {
-      defer { index += 1 }
-      return self.node.child(at: index)
-    }
-  }
-}
-
-extension SyntaxChildren: Collection {
-  public subscript(_ index: Int) -> Syntax {
-    guard let child = node.child(at: index) else {
-      fatalError("index \(index) out of bounds for node with \(node.numberOfChildren) children ")
-    }
-    return child
-  }
-
-  public var startIndex: Int {
-    return 0
-  }
-
-  public var endIndex: Int {
-    return node.raw.layout.count
-  }
-
-  public func index(after i: Int) -> Int {
-    return i + 1
+  public func makeIterator() -> SyntaxChildren.Iterator {
+    return Iterator(node: node)
   }
 }

@@ -1,52 +1,33 @@
-public indirect enum RawSyntax {
+//===------------------ RawSyntax.swift - Raw Syntax nodes ----------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+//
+// This file contains modifications from the Silt Langauge project.
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+
+/// Represents the raw tree structure underlying the syntax tree. These nodes
+/// have no notion of identity and only provide structure to the tree. They
+/// are immutable and can be freely shared between syntax nodes.
+indirect enum RawSyntax {
+  /// A tree node with a kind, an array of children, and a source presence.
   case node(SyntaxKind, [RawSyntax], SourcePresence)
+
+  /// A token with a token kind, leading trivia, trailing trivia, and a source
+  /// presence.
   case token(TokenKind, Trivia, Trivia, SourcePresence, SourceRange?)
 
-  public static func missing(_ kind: SyntaxKind) -> RawSyntax {
-    return .node(kind, [], .missing)
-  }
-
-  public static func missingToken(_ kind: TokenKind) -> RawSyntax {
-    return .token(kind, [], [], .missing, nil)
-  }
-
-  var sourceText: String {
-    var s = ""
-    print(to: &s)
-    return s
-  }
-
-  public var layout: [RawSyntax] {
-    switch self {
-    case .node(_, let children, _): return children
-    case .token(_, _, _, _, _): return []
-    }
-  }
-
-  public var sourceRange: SourceRange? {
-    switch self {
-    case .node(_, _, .missing): return nil
-    case .node(_, let children, _):
-      var start: SourceLocation?
-      var end: SourceLocation?
-      for child in children {
-        if start == nil, let range = child.sourceRange {
-          start = range.start
-          break
-        }
-      }
-      for child in children.reversed() {
-        if end == nil, let range = child.sourceRange {
-          end = range.end
-          break
-        }
-      }
-      guard let _start = start, let _end = end else { return nil }
-      return SourceRange(start: _start, end: _end)
-    case .token(_, _, _, _, let range): return range
-    }
-  }
-
+  /// The syntax kind of this raw syntax.
   var kind: SyntaxKind {
     switch self {
     case .node(let kind, _, _): return kind
@@ -54,53 +35,123 @@ public indirect enum RawSyntax {
     }
   }
 
-  var presence: SourcePresence {
+  var tokenKind: TokenKind? {
     switch self {
-    case let .node(_, _, presence): return presence
-    case let .token(_, _, _, presence, _): return presence
+    case .node(_, _, _): return nil
+    case .token(let kind, _, _, _, _): return kind
     }
   }
 
-  /// Creates a Syntax node from this RawSyntax using the appropriate Syntax
-  /// type, as specified by its kind.
-  func makeRootSyntax() -> Syntax {
-    return makeSyntax(root: nil, indexInParent: 0, parent: nil)
-  }
-
-  /// Creates a Syntax node from this RawSyntax using the appropriate Syntax
-  /// type, as specified by its kind.
-  /// - Parameters:
-  ///   - root: The root of this tree, or `nil` if the new node is the root.
-  ///   - indexInParent: The index of this node in the parent. Ignored if
-  ///                    the parent provided is `nil`.
-  ///   - parent: The parent data for this new node, or `nil` if this node is
-  ///             the root.
-  func makeSyntax(root: SyntaxData?, indexInParent: Int,
-                  parent: SyntaxData?) -> Syntax {
-    let data = parent?.cachedChild(at: indexInParent) ??
-      SyntaxData(raw: self, parent: parent,
-                 indexInParent: indexInParent)
-    return kind.syntaxType.init(root: root ?? data, data: data)
-  }
-
-  func replacingChild(_ index: Int, with child: RawSyntax) -> RawSyntax {
-    guard case let .node(kind, layout, presence) = self else { return self }
-    var newLayout = layout
-    newLayout[index] = child
-    return .node(kind, newLayout, presence)
-  }
-  
-  func print<StreamType: TextOutputStream>(to stream: inout StreamType) {
+  /// The layout of the children of this Raw syntax node.
+  var layout: [RawSyntax] {
     switch self {
-    case let .node(_, children, _):
-      for child in children {
-        child.print(to: &stream)
+    case .node(_, let layout, _): return layout
+    case .token(_, _, _, _, _): return []
+    }
+  }
+
+  /// The source presence of this node.
+  var presence: SourcePresence {
+    switch self {
+    case .node(_, _, let presence): return presence
+    case .token(_, _, _, let presence, _): return presence
+    }
+  }
+
+  /// Whether this node is present in the original source.
+  var isPresent: Bool {
+    return presence == .present
+  }
+
+  /// Whether this node is missing from the original source.
+  var isMissing: Bool {
+    return presence == .missing
+  }
+
+  /// Creates a RawSyntax node that's marked missing in the source with the
+  /// provided kind and layout.
+  /// - Parameters:
+  ///   - kind: The syntax kind underlying this node.
+  ///   - layout: The children of this node.
+  /// - Returns: A new RawSyntax `.node` with the provided kind and layout, with
+  ///            `.missing` source presence.
+  static func missing(_ kind: SyntaxKind) -> RawSyntax {
+    return .node(kind, [], .missing)
+  }
+
+  /// Creates a RawSyntax token that's marked missing in the source with the
+  /// provided kind and no leading/trailing trivia.
+  /// - Parameter kind: The token kind.
+  /// - Returns: A new RawSyntax `.token` with the provided kind, no
+  ///            leading/trailing trivia, and `.missing` source presence.
+  static func missingToken(_ kind: TokenKind) -> RawSyntax {
+    return .token(kind, [], [], .missing, nil)
+  }
+
+  /// Returns a new RawSyntax node with the provided layout instead of the
+  /// existing layout.
+  /// - Note: This function does nothing with `.token` nodes --- the same token
+  ///         is returned.
+  /// - Parameter newLayout: The children of the new node you're creating.
+  func replacingLayout(_ newLayout: [RawSyntax]) -> RawSyntax {
+    switch self {
+    case let .node(kind, _, presence): return .node(kind, newLayout, presence)
+    case .token(_, _, _, _, _): return self
+    }
+  }
+
+  /// Creates a new RawSyntax with the provided child appended to its layout.
+  /// - Parameter child: The child to append
+  /// - Note: This function does nothing with `.token` nodes --- the same token
+  ///         is returned.
+  /// - Return: A new RawSyntax node with the provided child at the end.
+  func appending(_ child: RawSyntax) -> RawSyntax {
+    var newLayout = layout
+    newLayout.append(child)
+    return replacingLayout(newLayout)
+  }
+
+  /// Returns the child at the provided cursor in the layout.
+  /// - Parameter index: The index of the child you're accessing.
+  /// - Returns: The child at the provided index.
+  subscript<CursorType: RawRepresentable>(_ index: CursorType) -> RawSyntax
+    where CursorType.RawValue == Int {
+      return layout[index.rawValue]
+  }
+
+  /// Replaces the child at the provided index in this node with the provided
+  /// child.
+  /// - Parameters:
+  ///   - index: The index of the child to replace.
+  ///   - newChild: The new child that should occupy that index in the node.
+  func replacingChild(_ index: Int,
+                      with newChild: RawSyntax) -> RawSyntax {
+    precondition(index < layout.count, "Cursor \(index) reached past layout")
+    var newLayout = layout
+    newLayout[index] = newChild
+    return replacingLayout(newLayout)
+  }
+}
+
+extension RawSyntax {
+  /// Prints the RawSyntax node, and all of its children, to the provided
+  /// stream. This implementation must be source-accurate.
+  /// - Parameter stream: The stream on which to output this node.
+  func writeSourceText<Target: TextOutputStream>(to target: inout Target) {
+    switch self {
+    case .node(_, let layout, _):
+      for child in layout {
+        child.writeSourceText(to: &target)
       }
     case let .token(kind, leadingTrivia, trailingTrivia, presence, _):
-      guard presence != .missing else { return }
-      leadingTrivia.print(to: &stream)
-      stream.write(kind.text)
-      trailingTrivia.print(to: &stream)
+      guard case .present = presence else { return }
+      for piece in leadingTrivia {
+        piece.writeSourceText(to: &target)
+      }
+      target.write(kind.text)
+      for piece in trailingTrivia {
+        piece.writeSourceText(to: &target)
+      }
     }
   }
 }
