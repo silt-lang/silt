@@ -52,55 +52,117 @@ public enum SyntaxKind {
   case typeBasicExpr
   case parenthesizedExpr
   case recordExpr
+}
 
-  public var syntaxType: Syntax.Type {
-    switch self {
-    case .token: return TokenSyntax.self
-    case .unknown: return Syntax.self
-    case .identifierList: return IdentifierListSyntax.self
-    case .qualifiedName: return QualifiedNameSyntax.self
-    case .qualifiedNamePiece: return QualifiedNamePieceSyntax.self
-    case .moduleDecl: return ModuleDeclSyntax.self
-    case .declList: return DeclListSyntax.self
-    case .openImportDecl: return OpenImportDeclSyntax.self
-    case .importDecl: return ImportDeclSyntax.self
-    case .dataDecl: return DataDeclSyntax.self
-    case .typeIndices: return TypeIndicesSyntax.self
-    case .typedParameterList: return TypedParameterListSyntax.self
-    case .ascription: return AscriptionSyntax.self
-    case .typedParameter: return TypedParameterSyntax.self
-    case .constructorList: return ConstructorListSyntax.self
-    case .constructorDecl: return ConstructorDeclSyntax.self
-    case .recordDecl: return RecordDeclSyntax.self
-    case .recordElementList: return RecordElementListSyntax.self
-    case .recordElement: return RecordElementSyntax.self
-    case .fieldDecl: return FieldDeclSyntax.self
-    case .recordFieldAssignmentList: return RecordFieldAssignmentListSyntax.self
-    case .recordFieldAssignment: return RecordFieldAssignmentSyntax.self
-    case .functionDecl: return FunctionDeclSyntax.self
-    case .functionClauseList: return FunctionClauseListSyntax.self
-    case .functionClause: return FunctionClauseSyntax.self
-    case .normalFunctionClause: return NormalFunctionClauseSyntax.self
-    case .withRuleFunctionClause: return WithRuleFunctionClauseSyntax.self
-    case .patternClauseList: return PatternClauseListSyntax.self
-    case .typedParameterArrowExpr: return TypedParameterArrowExprSyntax.self
-    case .basicExprListArrowExpr: return BasicExprListArrowExprSyntax.self
-    case .lambdaExpr: return LambdaExprSyntax.self
-    case .quantifiedExpr: return QuantifiedExprSyntax.self
-    case .letExpr: return LetExprSyntax.self
-    case .applicationExpr: return ApplicationExprSyntax.self
-    case .basicExpr: return BasicExprSyntax.self
-    case .applicationExprList: return ApplicationExprListSyntax.self
-    case .bindingList: return BindingListSyntax.self
-    case .binding: return BindingSyntax.self
-    case .namedBinding: return NamedBindingSyntax.self
-    case .typedBinding: return TypedBindingSyntax.self
-    case .basicExprList: return BasicExprListSyntax.self
-    case .namedBasicExpr: return NamedBasicExprSyntax.self
-    case .underscoreExpr: return UnderscoreExprSyntax.self
-    case .typeBasicExpr: return TypeBasicExprSyntax.self
-    case .parenthesizedExpr: return ParenthesizedExprSyntax.self
-    case .recordExpr: return RecordExprSyntax.self
+extension Syntax {
+  /// Creates a Syntax node from the provided RawSyntax using the appropriate
+  /// Syntax type, as specified by its kind.
+  /// - Parameters:
+  ///   - raw: The raw syntax with which to create this node.
+  ///   - root: The root of this tree, or `nil` if the new node is the root.
+  static func fromRaw(_ raw: RawSyntax) -> Syntax {
+    let data = SyntaxData(raw: raw)
+    return make(root: nil, data: data)
+  }
+
+  /// Creates a Syntax node from the provided SyntaxData using the appropriate
+  /// Syntax type, as specified by its kind.
+  /// - Parameters:
+  ///   - root: The root of this tree, or `nil` if the new node is the root.
+  ///   - data: The data for this new node.
+  static func make(root: SyntaxData?, data: SyntaxData) -> Syntax {
+    let root = root ?? data
+    switch data.raw.kind {
+    case .token: return TokenSyntax(root: root, data: data)
+    case .unknown: return Syntax(root: root, data: data)
+    case .identifierList:
+      return IdentifierListSyntax(root: root, data: data)
+    case .qualifiedName:
+      return QualifiedNameSyntax(root: root, data: data)
+    case .qualifiedNamePiece:
+      return QualifiedNamePieceSyntax(root: root, data: data)
+    case .moduleDecl:
+      return ModuleDeclSyntax(root: root, data: data)
+    case .declList:
+      return DeclListSyntax(root: root, data: data)
+    case .openImportDecl:
+      return OpenImportDeclSyntax(root: root, data: data)
+    case .importDecl:
+      return ImportDeclSyntax(root: root, data: data)
+    case .dataDecl:
+      return DataDeclSyntax(root: root, data: data)
+    case .typeIndices:
+      return TypeIndicesSyntax(root: root, data: data)
+    case .typedParameterList:
+      return TypedParameterListSyntax(root: root, data: data)
+    case .ascription:
+      return AscriptionSyntax(root: root, data: data)
+    case .typedParameter:
+      return TypedParameterSyntax(root: root, data: data)
+    case .constructorList:
+      return ConstructorListSyntax(root: root, data: data)
+    case .constructorDecl:
+      return ConstructorDeclSyntax(root: root, data: data)
+    case .recordDecl:
+      return RecordDeclSyntax(root: root, data: data)
+    case .recordElementList:
+      return RecordElementListSyntax(root: root, data: data)
+    case .recordElement:
+      return RecordElementSyntax(root: root, data: data)
+    case .fieldDecl:
+      return FieldDeclSyntax(root: root, data: data)
+    case .recordFieldAssignmentList:
+      return RecordFieldAssignmentListSyntax(root: root, data: data)
+    case .recordFieldAssignment:
+      return RecordFieldAssignmentSyntax(root: root, data: data)
+    case .functionDecl:
+      return FunctionDeclSyntax(root: root, data: data)
+    case .functionClauseList:
+      return FunctionClauseListSyntax(root: root, data: data)
+    case .functionClause:
+      return FunctionClauseSyntax(root: root, data: data)
+    case .normalFunctionClause:
+      return NormalFunctionClauseSyntax(root: root, data: data)
+    case .withRuleFunctionClause:
+      return WithRuleFunctionClauseSyntax(root: root, data: data)
+    case .patternClauseList:
+      return PatternClauseListSyntax(root: root, data: data)
+    case .typedParameterArrowExpr:
+      return TypedParameterArrowExprSyntax(root: root, data: data)
+    case .basicExprListArrowExpr:
+      return BasicExprListArrowExprSyntax(root: root, data: data)
+    case .lambdaExpr:
+      return LambdaExprSyntax(root: root, data: data)
+    case .quantifiedExpr:
+      return QuantifiedExprSyntax(root: root, data: data)
+    case .letExpr:
+      return LetExprSyntax(root: root, data: data)
+    case .applicationExpr:
+      return ApplicationExprSyntax(root: root, data: data)
+    case .basicExpr:
+      return BasicExprSyntax(root: root, data: data)
+    case .applicationExprList:
+      return ApplicationExprListSyntax(root: root, data: data)
+    case .bindingList:
+      return BindingListSyntax(root: root, data: data)
+    case .binding:
+      return BindingSyntax(root: root, data: data)
+    case .namedBinding:
+      return NamedBindingSyntax(root: root, data: data)
+    case .typedBinding:
+      return TypedBindingSyntax(root: root, data: data)
+    case .basicExprList:
+      return BasicExprListSyntax(root: root, data: data)
+    case .namedBasicExpr:
+      return NamedBasicExprSyntax(root: root, data: data)
+    case .underscoreExpr:
+      return UnderscoreExprSyntax(root: root, data: data)
+    case .typeBasicExpr:
+      return TypeBasicExprSyntax(root: root, data: data)
+    case .parenthesizedExpr:
+      return ParenthesizedExprSyntax(root: root, data: data)
+    case .recordExpr:
+      return RecordExprSyntax(root: root, data: data)
     }
   }
 }

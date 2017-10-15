@@ -27,7 +27,7 @@ public class SyntaxDumper<StreamType: TextOutputStream> {
     case let node as TokenSyntax:
       write("(token .\(node.tokenKind))")
     default:
-      write("(\(node.kind)")
+      write("(\(node.raw.kind)")
       withIndent {
         for child in node.children {
           line()

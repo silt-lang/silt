@@ -139,17 +139,40 @@ class SwiftGenerator {
     for node in syntaxNodes {
       line("  case \(node.typeName.asStandaloneIdentifier)")
     }
-    line()
-    line("  public var syntaxType: Syntax.Type {")
-    line("    switch self {")
-    line("    case .token: return TokenSyntax.self")
-    line("    case .unknown: return Syntax.self")
-    for node in syntaxNodes {
-      line("    case .\(node.typeName.lowercaseFirstLetter): return \(node.typeName)Syntax.self")
-    }
-    line("    }")
-    line("  }")
     line("}")
+    line()
+    line("""
+    extension Syntax {
+      /// Creates a Syntax node from the provided RawSyntax using the appropriate
+      /// Syntax type, as specified by its kind.
+      /// - Parameters:
+      ///   - raw: The raw syntax with which to create this node.
+      ///   - root: The root of this tree, or `nil` if the new node is the root.
+      static func fromRaw(_ raw: RawSyntax) -> Syntax {
+        let data = SyntaxData(raw: raw)
+        return make(root: nil, data: data)
+      }
+
+      /// Creates a Syntax node from the provided SyntaxData using the appropriate
+      /// Syntax type, as specified by its kind.
+      /// - Parameters:
+      ///   - root: The root of this tree, or `nil` if the new node is the root.
+      ///   - data: The data for this new node.
+      static func make(root: SyntaxData?, data: SyntaxData) -> Syntax {
+        let root = root ?? data
+        switch data.raw.kind {
+        case .token: return TokenSyntax(root: root, data: data)
+        case .unknown: return Syntax(root: root, data: data)
+    """)
+    for node in syntaxNodes {
+        line("    case .\(node.typeName.lowercaseFirstLetter):")
+        line("      return \(node.typeName)Syntax(root: root, data: data)")
+    }
+    line("""
+        }
+      }
+    }
+    """)
   }
 
   func generateStructs() {
@@ -180,13 +203,7 @@ class SwiftGenerator {
     switch node.kind {
     case let .collection(element):
       let elementKind = element.contains("Token") ? "Token" : element
-      line("""
-        public class \(node.typeName)Syntax: SyntaxCollection<\(elementKind)Syntax> {
-          public override class var kind: SyntaxKind {
-            return .\(node.typeName.lowercaseFirstLetter)
-          }
-        }
-        """)
+      line("public typealias \(node.typeName)Syntax = SyntaxCollection<\(elementKind)Syntax>")
       line()
     case let .node(kind, children):
       line("public class \(node.typeName)Syntax: \(kind)Syntax {")
@@ -218,7 +235,7 @@ class SwiftGenerator {
         }
       }
       line("    ], .present)")
-      line("    let data = SyntaxData(raw: raw, parent: nil, indexInParent: 0)")
+      line("    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)")
       line("    self.init(root: data, data: data)")
       line("  }")
 
@@ -231,7 +248,8 @@ class SwiftGenerator {
               return child(at: Cursor.\(child.name)) \(castKeyword) \(childKind)Syntax
             }
             public func with\(child.name.uppercaseFirstLetter)(_ syntax: \(childKind)Syntax) -> \(node.typeName)Syntax {
-              return data.replacingChild(syntax.raw, at: Cursor.\(child.name))
+              let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.\(child.name))
+              return \(node.typeName)Syntax(root: newRoot, data: newData)
             }
 
           """)

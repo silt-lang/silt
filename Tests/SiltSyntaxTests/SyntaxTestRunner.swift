@@ -1,4 +1,4 @@
-import UpperCrust
+@testable import UpperCrust
 import XCTest
 import Foundation
 import FileCheck
@@ -42,7 +42,7 @@ class SyntaxTestRunner: XCTestCase {
       }
     }
 
-    XCTAssert(tokens.map { $0.sourceText }.joined() == input)
+    XCTAssert(tokens.map { $0.description }.joined() == input)
 
     //  do {
     //    var stdout = FileHandle.standardOutput
