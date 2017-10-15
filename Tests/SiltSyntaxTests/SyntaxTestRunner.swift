@@ -27,20 +27,7 @@ class SyntaxTestRunner: XCTestCase {
     let lexer = Lexer(input: input, filePath: path)
     let tokens = lexer.tokenize()
 
-    for token in tokens {
-      print("Token:", "\(token.tokenKind)", terminator: "")
-      if let loc = token.sourceRange?.start {
-        print("<\(loc.file):\(loc.line):\(loc.column)>")
-      }
-      print("  Leading Trivia:")
-      for piece in token.leadingTrivia.pieces {
-        print("    \(piece)")
-      }
-      print("  Trailing Trivia:")
-      for piece in token.trailingTrivia.pieces {
-        print("    \(piece)")
-      }
-    }
+    SyntaxDescriber(tokens: tokens).describe()
 
     XCTAssert(tokens.map { $0.sourceText }.joined() == input)
 

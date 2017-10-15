@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file contains modifications from the Silt Langauge project.
+// This file contains modifications from the Silt Langauge project. These
+// modifications are released under the MIT license, a copy of which is
+// available in the repository.
 //
 //===----------------------------------------------------------------------===//
 

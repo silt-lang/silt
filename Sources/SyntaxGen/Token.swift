@@ -4,6 +4,7 @@
 ///
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
+
 struct Token {
   enum Kind {
     case associated(String)
