@@ -9,7 +9,6 @@ let package = Package(
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
       .package(url: "https://github.com/jatoben/CommandLine.git", .branch("master")),
-      .package(url: "https://github.com/silt-lang/YamlSwift.git", .branch("master")),
       .package(url: "https://github.com/trill-lang/FileCheck.git", .branch("master")),
     ],
     targets: [
@@ -23,7 +22,7 @@ let package = Package(
           dependencies: []),
         .target(
           name: "SyntaxGen",
-          dependencies: ["CommandLine", "Yaml"]),
+          dependencies: ["CommandLine"]),
 
         .testTarget(
           name: "SiltSyntaxTests",

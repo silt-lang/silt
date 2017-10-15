@@ -1,31 +1,25 @@
-import Yaml
-
+/// Node.swift
+///
+/// Copyright 2017, The Silt Language Project.
+///
+/// This project is released under the MIT license, a copy of which is
+/// available in the repository.
 struct Node {
+  enum Kind {
+    case collection(element: String)
+    case node(kind: String, children: [Child])
+  }
   let typeName: String
-  let kind: String
-  let collectionElement: String?
-  let children: [Child]
+  let kind: Kind
 
-  init(name: String, props: [Yaml: Yaml]) {
-    guard let kind = props["kind"]?.string else {
-      fatalError("invalid node")
-    }
-    self.typeName = name
-    self.kind = kind == "Syntax" ? "" : kind
-    if let childArray = props["children"]?.array {
-      self.children = childArray.map { childNode in
-        guard let dict = childNode.dictionary else {
-          fatalError()
-        }
-        return Child(name: dict.keys.first!.string!, props: dict.values.first!.dictionary ?? [:])
-      }
-    } else {
-      self.children = []
-    }
-    if let element = props["element"]?.string {
-      self.collectionElement = element
-    } else {
-      self.collectionElement = nil
-    }
+  init(_ typeName: String, element: String) {
+    self.typeName = typeName
+    self.kind = .collection(element: element)
+  }
+
+  init(_ typeName: String, kind: String, children: [Child]) {
+    self.typeName = typeName
+    self.kind = .node(kind: kind == "Syntax" ? "" : kind,
+                      children: children)
   }
 }
