@@ -27,7 +27,7 @@ class SyntaxTestRunner: XCTestCase {
     let lexer = Lexer(input: input, filePath: path)
     let tokens = lexer.tokenize()
 
-    SyntaxDescriber(tokens: tokens).describe()
+    TokenDescriber.describe(tokens)
 
     XCTAssert(tokens.map { $0.sourceText }.joined() == input)
 
