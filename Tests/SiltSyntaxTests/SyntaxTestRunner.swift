@@ -16,7 +16,7 @@ class SyntaxTestRunner: XCTestCase {
         XCTFail("Could not read silt file at path \(file.absoluteString)")
         return
       }
-      
+
       XCTAssert(fileCheckOutput(against: file.appendingPathExtension("syntax").path, options: [.disableColors]) {
         describe(siltFile, at: file.absoluteString)
       })
@@ -42,7 +42,7 @@ class SyntaxTestRunner: XCTestCase {
       }
     }
 
-    XCTAssert(tokens.map { $0.description }.joined() == input)
+    XCTAssert(tokens.map { $0.sourceText }.joined() == input)
 
     //  do {
     //    var stdout = FileHandle.standardOutput

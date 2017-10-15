@@ -19,7 +19,7 @@ import Foundation
 /// A Syntax node represents a tree of nodes with tokens at the leaves.
 /// Each node has accessors for its known children, and allows efficient
 /// iteration over the children through its `children` property.
-public class Syntax: CustomStringConvertible {
+public class Syntax {
   /// The type of sequence containing the indices of present children.
   internal typealias PresentChildIndicesSequence =
     LazyFilterSequence<CountableRange<Int>>
@@ -109,19 +109,18 @@ public class Syntax: CustomStringConvertible {
   }
 
   /// A source-accurate description of this node.
-  public var description: String {
+  public var sourceText: String {
     var s = ""
-    self.write(to: &s)
+    self.writeSourceText(to: &s)
     return s
   }
 }
 
-extension Syntax: TextOutputStreamable {
+extension Syntax {
   /// Prints the raw value of this node to the provided stream.
   /// - Parameter stream: The stream to which to print the raw tree.
-  public func write<Target>(to target: inout Target)
-    where Target: TextOutputStream {
-    data.raw.write(to: &target)
+  public func writeSourceText<Target: TextOutputStream>(to target: inout Target) {
+    data.raw.writeSourceText(to: &target)
   }
 }
 

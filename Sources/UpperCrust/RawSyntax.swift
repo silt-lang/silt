@@ -133,25 +133,24 @@ indirect enum RawSyntax {
   }
 }
 
-extension RawSyntax: TextOutputStreamable {
+extension RawSyntax {
   /// Prints the RawSyntax node, and all of its children, to the provided
   /// stream. This implementation must be source-accurate.
   /// - Parameter stream: The stream on which to output this node.
-  func write<Target>(to target: inout Target)
-    where Target: TextOutputStream {
+  func writeSourceText<Target: TextOutputStream>(to target: inout Target) {
     switch self {
     case .node(_, let layout, _):
       for child in layout {
-        child.write(to: &target)
+        child.writeSourceText(to: &target)
       }
     case let .token(kind, leadingTrivia, trailingTrivia, presence, _):
       guard case .present = presence else { return }
       for piece in leadingTrivia {
-        piece.write(to: &target)
+        piece.writeSourceText(to: &target)
       }
       target.write(kind.text)
       for piece in trailingTrivia {
-        piece.write(to: &target)
+        piece.writeSourceText(to: &target)
       }
     }
   }
