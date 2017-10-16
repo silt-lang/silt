@@ -40,17 +40,8 @@ public enum TriviaPiece {
   /// A newline '\n' character.
   case newlines(Int)
 
-  /// A developer line comment, starting with '//'
-  case lineComment(String)
-
-  /// A developer block comment, starting with '/*' and ending with '*/'.
-  case blockComment(String)
-
-  /// A documentation line comment, starting with '///'.
-  case docLineComment(String)
-
-  /// A documentation block comment, starting with '/**' and ending with '*/.
-  case docBlockComment(String)
+  /// A developer line comment, starting with '--'
+  case comment(String)
 }
 
 extension TriviaPiece {
@@ -67,11 +58,7 @@ extension TriviaPiece {
     case let .verticalTabs(count): printRepeated("\u{2B7F}", count: count)
     case let .formfeeds(count): printRepeated("\u{240C}", count: count)
     case let .newlines(count): printRepeated("\n", count: count)
-    case let .lineComment(text),
-         let .blockComment(text),
-         let .docLineComment(text),
-         let .docBlockComment(text):
-      target.write(text)
+    case let .comment(text): target.write(text)
     }
   }
 }
@@ -124,24 +111,9 @@ public struct Trivia {
     return [.newlines(count)]
   }
 
-  /// Return a piece of trivia for a single line of ('//') developer comment.
-  public static func lineComment(_ text: String) -> Trivia {
-    return [.lineComment(text)]
-  }
-
-  /// Return a piece of trivia for a block comment ('/* ... */')
-  public static func blockComment(_ text: String) -> Trivia {
-    return [.blockComment(text)]
-  }
-
-  /// Return a piece of trivia for a single line of ('///') doc comment.
-  public static func docLineComment(_ text: String) -> Trivia {
-    return [.docLineComment(text)]
-  }
-
-  /// Return a piece of trivia for a documentation block comment ('/** ... */')
-  public static func docBlockComment(_ text: String) -> Trivia {
-    return [.docBlockComment(text)]
+  /// Return a piece of trivia for a single line of ('--') developer comment.
+  public static func comment(_ text: String) -> Trivia {
+    return [.comment(text)]
   }
 }
 

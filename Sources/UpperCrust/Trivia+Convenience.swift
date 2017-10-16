@@ -34,8 +34,7 @@ extension TriviaPiece {
         case .spaces(let n), .tabs(let n), .newlines(let n),
              .verticalTabs(let n), .formfeeds(let n):
             return n
-        case .blockComment(let s), .lineComment(let s),
-             .docLineComment(let s), .docBlockComment(let s):
+        case .comment(let s):
             return s.count
         }
     }

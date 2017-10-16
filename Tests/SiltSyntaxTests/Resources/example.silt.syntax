@@ -1,8 +1,8 @@
 -- CHECK: Token: moduleKeyword
 -- CHECK-NEXT: Leading Trivia:
--- CHECK-NEXT: blockComment("{- A type -}")
+-- CHECK-NEXT: comment("-- A type")
 -- CHECK-NEXT: newlines(1)
-{- A type -}
+-- A type
 
 -- CHECK-NEXT: Trailing Trivia:
 -- CHECK-NEXT: spaces(1)
