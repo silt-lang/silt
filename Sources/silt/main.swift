@@ -40,9 +40,7 @@ func main() throws {
   let modeOption =
     EnumOption<Mode>(longFlag: "mode",
                      required: true,
-                     helpMessage: """
-                     The mode in which to execute the compiler. This
-                     """)
+                     helpMessage: "The mode in which to execute the compiler.")
   cli.addOptions(modeOption)
   do {
     try cli.parse()
