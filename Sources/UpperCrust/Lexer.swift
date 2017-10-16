@@ -53,29 +53,6 @@ public class Lexer {
     return comment
   }
 
-  func collectBlockComment() -> String {
-    var comment = "{-"
-    advance()
-    advance()
-    while let char = peek(), let next = peek(ahead: 1) {
-      // End of the comment */
-      if char == "-" && next == "}" {
-        comment += "-}"
-        advance()
-        advance()
-        break
-        // Beginning of a nested comment
-      } else if char == "{" && next == "-" {
-        comment += collectBlockComment()
-        // Any other character
-      } else {
-        comment.append(char)
-        advance()
-      }
-    }
-    return comment
-  }
-
   // Collects all trivia ahead of the current
   func collectTrivia(includeNewlines: Bool) -> Trivia {
     var trivia: Trivia = []
@@ -92,13 +69,7 @@ public class Lexer {
         advance()
       case "-":
         if peek(ahead: 1) == "-" {
-          trivia.append(.lineComment(collectLineComment()))
-        } else {
-          return trivia
-        }
-      case "{":
-        if peek(ahead: 1) == "-" {
-          trivia.append(.blockComment(collectBlockComment()))
+          trivia.append(.comment(collectLineComment()))
         } else {
           return trivia
         }
