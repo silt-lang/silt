@@ -21,6 +21,13 @@ let tokenNodes = [
   Token(name: "Arrow", .punctuation("->")),
   Token(name: "Period", .punctuation(".")),
   Token(name: "Pipe", .punctuation("|")),
+  Token(name: "Underscore", .punctuation("_")),
+
+  // Interchangeable with the "forall" keyword.
+  Token(name: "ForallSymbol", .punctuation("∀")),
+
+  // Interchangeable with the "->" punctuation.
+  Token(name: "ArrowSymbol", .punctuation("→")),
 
   Token(name: "Module", .keyword("module")),
   Token(name: "Open", .keyword("open")),
@@ -36,6 +43,5 @@ let tokenNodes = [
   Token(name: "Forall", .keyword("forall")),
 
   Token(name: "Identifier", .associated("String")),
-  Token(name: "Underscore", .associated("Character")),
   Token(name: "Unknown", .associated("Character"))
 ]

@@ -7,12 +7,13 @@
 /// available in the repository.
 public enum TokenKind: Equatable {
   case eof
+  case forallSymbol
   case moduleKeyword
   case arrow
   case pipe
-  case letKeyword
+  case underscore
   case semicolon
-  case underscore(Character)
+  case letKeyword
   case forwardSlash
   case importKeyword
   case recordKeyword
@@ -22,6 +23,7 @@ public enum TokenKind: Equatable {
   case openKeyword
   case unknown(Character)
   case equals
+  case arrowSymbol
   case dataKeyword
   case forallKeyword
   case leftBrace
@@ -36,13 +38,16 @@ public enum TokenKind: Equatable {
 
   public init(punctuation: String) {
     switch punctuation {
+    case "∀": self = .forallSymbol
     case "->": self = .arrow
     case "|": self = .pipe
+    case "_": self = .underscore
     case ";": self = .semicolon
     case "\\": self = .forwardSlash
     case ")": self = .rightParen
     case ":": self = .colon
     case "=": self = .equals
+    case "→": self = .arrowSymbol
     case "{": self = .leftBrace
     case "}": self = .rightBrace
     case "(": self = .leftParen
@@ -71,12 +76,13 @@ public enum TokenKind: Equatable {
   public var text: String {
     switch self {
     case .eof: return ""
+    case .forallSymbol: return "∀"
     case .moduleKeyword: return "module"
     case .arrow: return "->"
     case .pipe: return "|"
-    case .letKeyword: return "let"
+    case .underscore: return "_"
     case .semicolon: return ";"
-    case .underscore(let text): return text.description
+    case .letKeyword: return "let"
     case .forwardSlash: return "\\"
     case .importKeyword: return "import"
     case .recordKeyword: return "record"
@@ -86,6 +92,7 @@ public enum TokenKind: Equatable {
     case .openKeyword: return "open"
     case .unknown(let text): return text.description
     case .equals: return "="
+    case .arrowSymbol: return "→"
     case .dataKeyword: return "data"
     case .forallKeyword: return "forall"
     case .leftBrace: return "{"
@@ -102,12 +109,13 @@ public enum TokenKind: Equatable {
   public static func == (lhs: TokenKind, rhs: TokenKind) -> Bool {
     switch (lhs, rhs) {
     case (.eof, .eof): return true
+    case (.forallSymbol, .forallSymbol): return true
     case (.moduleKeyword, .moduleKeyword): return true
     case (.arrow, .arrow): return true
     case (.pipe, .pipe): return true
-    case (.letKeyword, .letKeyword): return true
+    case (.underscore, .underscore): return true
     case (.semicolon, .semicolon): return true
-    case (.underscore(let l), .underscore(let r)): return l == r
+    case (.letKeyword, .letKeyword): return true
     case (.forwardSlash, .forwardSlash): return true
     case (.importKeyword, .importKeyword): return true
     case (.recordKeyword, .recordKeyword): return true
@@ -117,6 +125,7 @@ public enum TokenKind: Equatable {
     case (.openKeyword, .openKeyword): return true
     case (.unknown(let l), .unknown(let r)): return l == r
     case (.equals, .equals): return true
+    case (.arrowSymbol, .arrowSymbol): return true
     case (.dataKeyword, .dataKeyword): return true
     case (.forallKeyword, .forallKeyword): return true
     case (.leftBrace, .leftBrace): return true
