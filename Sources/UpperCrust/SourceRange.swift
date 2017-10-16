@@ -1,3 +1,10 @@
+/// SourceRange.swift
+///
+/// Copyright 2017, The Silt Language Project.
+///
+/// This project is released under the MIT license, a copy of which is
+/// available in the repository.
+
 /// Represents a location in source code.
 public struct SourceLocation {
   /// The line on which the code lies.

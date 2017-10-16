@@ -1,3 +1,10 @@
+/// TokenSyntax.swift
+///
+/// Copyright 2017, The Silt Language Project.
+///
+/// This project is released under the MIT license, a copy of which is
+/// available in the repository.
+
 public class TokenSyntax: Syntax {
   public convenience init(_ kind: TokenKind, leadingTrivia: Trivia = [],
                           trailingTrivia: Trivia = [], presence: SourcePresence = .present,
