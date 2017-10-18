@@ -12,44 +12,36 @@ import Glibc
 #endif
 
 import Foundation
+import Drill
 import CommandLineKit
-import UpperCrust
 
-/// The mode the compiler will be executing in.
-enum Mode: String {
-  /// The compiler will describe all the tokens in the source file, along with
-  /// the leading and trailing trivia.
-  case describeTokens = "describe-tokens"
-}
 
-func run(mode: Mode, paths: [String]) throws {
-  switch mode {
-  case .describeTokens:
-    for path in paths {
-      let url = URL(fileURLWithPath: path)
-      let contents = try String(contentsOf: url, encoding: .utf8)
-      let lexer = Lexer(input: contents, filePath: path)
-      let tokens = lexer.tokenize()
-      TokenDescriber.describe(tokens)
+/// Parses the command-line options into an Options struct and a list of file
+/// paths.
+func parseOptions() -> (Options, [String]) {
+    let cli = CommandLineKit.CommandLine()
+    let modeOption =
+        EnumOption<Mode>(longFlag: "mode",
+                         required: true,
+                         helpMessage: "The mode in which to execute the compiler.")
+    let disableColors =
+        BoolOption(longFlag: "no-colors",
+                   helpMessage: "Disable ANSI colors in printed output.")
+    cli.addOptions(modeOption, disableColors)
+    do {
+        try cli.parse()
+    } catch {
+        cli.printUsage()
+        exit(EXIT_FAILURE)
     }
-  }
+    return (Options(mode: modeOption.value!,
+                    colorsEnabled: disableColors.value), cli.unparsedArguments)
 }
 
 func main() throws {
-  let cli = CommandLineKit.CommandLine()
-  let modeOption =
-    EnumOption<Mode>(longFlag: "mode",
-                     required: true,
-                     helpMessage: "The mode in which to execute the compiler.")
-  cli.addOptions(modeOption)
-  do {
-    try cli.parse()
-  } catch {
-    cli.printUsage()
-    exit(EXIT_FAILURE)
-  }
-
-  try run(mode: modeOption.value!, paths: cli.unparsedArguments)
+    let (options, paths) = parseOptions()
+    let invocation = Invocation(options: options, paths: paths)
+    try invocation.run()
 }
 
 do {

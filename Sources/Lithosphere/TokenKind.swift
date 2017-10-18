@@ -36,41 +36,35 @@ public enum TokenKind: Equatable {
   case whereKeyword
   case period
 
-  public init(punctuation: String) {
-    switch punctuation {
+  public init(text: String) {
+    switch text {
     case "∀": self = .forallSymbol
+    case "module": self = .moduleKeyword
     case "->": self = .arrow
     case "|": self = .pipe
     case "_": self = .underscore
     case ";": self = .semicolon
-    case "\\": self = .forwardSlash
-    case ")": self = .rightParen
-    case ":": self = .colon
-    case "=": self = .equals
-    case "→": self = .arrowSymbol
-    case "{": self = .leftBrace
-    case "}": self = .rightBrace
-    case "(": self = .leftParen
-    case ".": self = .period
-    default: fatalError("Not punctuation?")
-    }
-  }
-
-  public init(identifier: String) {
-    switch identifier {
-    case "module": self = .moduleKeyword
     case "let": self = .letKeyword
+    case "\\": self = .forwardSlash
     case "import": self = .importKeyword
     case "record": self = .recordKeyword
     case "field": self = .fieldKeyword
+    case ")": self = .rightParen
+    case ":": self = .colon
     case "open": self = .openKeyword
+    case "=": self = .equals
+    case "→": self = .arrowSymbol
     case "data": self = .dataKeyword
     case "forall": self = .forallKeyword
+    case "{": self = .leftBrace
     case "type": self = .typeKeyword
     case "with": self = .withKeyword
+    case "}": self = .rightBrace
+    case "(": self = .leftParen
     case "in": self = .inKeyword
     case "where": self = .whereKeyword
-    default: self = .identifier(identifier)
+    case ".": self = .period
+    default: self = .identifier(text)
     }
   }
   public var text: String {

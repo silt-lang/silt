@@ -1,9 +1,11 @@
 import XCTest
 
-@testable import SiltSyntaxTests
+@testable import SyntaxTests
+@testable import DiagnosticTests
 
 #if !os(macOS)
 XCTMain([
 	SyntaxTestRunner.allTests,
+	DiagnosticTests.allTests,
 ])
 #endif
