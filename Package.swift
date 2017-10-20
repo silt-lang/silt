@@ -26,7 +26,7 @@ let package = Package(
       dependencies: ["Lithosphere", "Crust"]),
     .target(
       name: "silt",
-      dependencies: ["Drill"]),
+      dependencies: ["Drill", "CommandLine"]),
     .target(
       name: "SyntaxGen",
       dependencies: ["CommandLine"]),
