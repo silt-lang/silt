@@ -86,7 +86,23 @@ public class Syntax {
   public var root: Syntax {
     return Syntax.make(root: _root,  data: _root)
   }
-  
+
+  public var startLoc: SourceLocation? {
+    if case .token(_, _, _, _, let range) = raw {
+      return range?.start
+    }
+    guard let firstChild = child(at: 0) else { return nil }
+    return firstChild.startLoc
+  }
+
+  public var endLoc: SourceLocation? {
+    if case .token(_, _, _, _, let range) = raw {
+      return range?.end
+    }
+    guard let lastChild = child(at: data.childCaches.count - 1) else { return nil }
+    return lastChild.endLoc
+  }
+
   /// The sequence of indices that correspond to child nodes that are not
   /// missing.
   ///

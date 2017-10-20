@@ -4,7 +4,7 @@
 ///
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
-import Foundation
+import Lithosphere
 
 extension Character {
   var isWhitespace: Bool {
@@ -121,7 +121,7 @@ public class Lexer {
       advance()
     } else {
       let id = collectWhile { !$0.isWhitespace && singleTokMap[$0] == nil }
-      tokenKind = TokenKind(identifier: id)
+      tokenKind = TokenKind(text: id)
     }
 
     let trailingTrivia = collectTrivia(includeNewlines: false)

@@ -4,6 +4,8 @@
 ///
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
+import Lithosphere
+
 enum ParseError: Error {
   case unexpectedToken(TokenSyntax)
   case unexpectedEOF

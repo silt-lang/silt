@@ -81,23 +81,16 @@ class SwiftGenerator {
       line()
     }
     line()
-    line("  public init(punctuation: String) {")
-    line("    switch punctuation {")
+    line("  public init(text: String) {")
+    line("    switch text {")
     for (_, token) in tokenMap {
-      guard case .punctuation(let text) = token.kind else { continue }
-      line("    case \"\(text)\": self = .\(token.caseName)")
+      switch token.kind {
+      case .keyword(let text), .punctuation(let text):
+        line("    case \"\(text)\": self = .\(token.caseName)")
+      default: break
+      }
     }
-    line("    default: fatalError(\"Not punctuation?\")")
-    line("    }")
-    line("  }")
-    line()
-    line("  public init(identifier: String) {")
-    line("    switch identifier {")
-    for (_, token) in tokenMap {
-      guard case .keyword(let text) = token.kind else { continue }
-      line("    case \"\(text)\": self = .\(token.caseName)")
-    }
-    line("    default: self = .identifier(identifier)")
+    line("    default: self = .identifier(text)")
     line("    }")
     line("  }")
     line("  public var text: String {")
