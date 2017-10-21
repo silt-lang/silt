@@ -9,7 +9,7 @@ let package = Package(
     // Dependencies declare other packages that this package depends on.
     // .package(url: /* package url */, from: "1.0.0"),
     .package(url: "https://github.com/jatoben/CommandLine.git", .branch("master")),
-    .package(url: "https://github.com/trill-lang/FileCheck.git", .branch("master")),
+    .package(url: "https://github.com/trill-lang/FileCheck.git", from: "0.0.3"),
     .package(url: "https://github.com/onevcat/Rainbow", from: "3.0.0"),
     ],
   targets: [
