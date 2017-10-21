@@ -28,7 +28,7 @@ record-element-list ::= <record-element>
                       | <record-element> <record-element-list>
 record-element ::= <field-decl>
                  | <function-decl>
-field-decl ::= 'field' <ascription>
+field-decl ::= 'field' '{' <ascription> '}'
 
 record-field-assignment-list ::= <record-field-assignment>
                                | <record-field-assignment> ';' <record-field-assignment-list>

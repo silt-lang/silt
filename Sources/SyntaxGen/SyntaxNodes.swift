@@ -114,27 +114,27 @@ let syntaxNodes = [
   Node("RecordDecl", kind: "Decl", children: [
     Child("recordToken", kind: "RecordToken"),
     Child("recordName", kind: "IdentifierToken"),
-    Child("parameterList", kind: "TypedParameterList", isOptional: true),
+    Child("parameterList", kind: "TypedParameterList"),
     Child("typeIndices", kind: "TypeIndices", isOptional: true),
-    Child("whereToken", kind: "WhereToken", isOptional: true),
+    Child("whereToken", kind: "WhereToken"),
     Child("recordElementList", kind: "RecordElementList")
   ]),
 
   // record-element-list ::= <record-element>
   //                       | <record-element> <record-element-list>
 
-  Node("RecordElementList", element: "RecordElement"),
+  Node("RecordElementList", element: "Decl"),
 
   // record-element ::= <field-decl>
   //                  | <function-decl>
 
-  Node("RecordElement", kind: "Syntax", children: []),
-
   // field-decl ::= 'field' <ascription>
 
-  Node("FieldDecl", kind: "RecordElement", children: [
+  Node("FieldDecl", kind: "Decl", children: [
     Child("fieldToken", kind: "FieldToken"),
-    Child("ascription", kind: "Ascription")
+    Child("leftBraceToken", kind: "LeftBraceToken"),
+    Child("ascription", kind: "Ascription"),
+    Child("rightBraceToken", kind: "RightBraceToken"),
   ]),
 
   // record-field-assignment-list ::= <record-field-assignment>
@@ -298,9 +298,9 @@ let syntaxNodes = [
 
   Node("RecordExpr", kind: "BasicExpr", children: [
     Child("recordToken", kind: "recordToken"),
-    Child("parameterExpr", kind: "BasicExpr"),
+    Child("parameterExpr", kind: "BasicExpr", isOptional: true),
     Child("leftBraceToken", kind: "LeftBraceToken"),
-    Child("fieldAssignments", kind: "RecordFieldAssignmentList", isOptional: true),
+    Child("fieldAssignments", kind: "RecordFieldAssignmentList"),
     Child("rightBraceToken", kind: "RightBraceToken")
   ]),
 ]

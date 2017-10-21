@@ -28,7 +28,7 @@ record-element-list ::= <record-element>
                       | <record-element> <record-element-list>
 record-element ::= <field-decl>
                  | <function-decl>
-field-decl ::= 'field' <ascription>
+field-decl ::= 'field' '{' <ascription> '}'
 
 record-field-assignment-list ::= <record-field-assignment>
                                | <record-field-assignment> ';' <record-field-assignment-list>
@@ -48,9 +48,9 @@ import-decl ::= 'open'? 'import' <qualified-name>
 
 ## Functions
 
-function-decl ::= <ascription> <function-clause-list>
-function-clause-list ::= <function-clause>
-                       | <function-clause> <function-clause-list>
+function-decl ::= <ascription> ';' <function-clause-list>
+function-clause-list ::= <function-clause> ';'
+                       | <function-clause> ';' <function-clause-list>
 function-clause ::= <id> <pattern-clause-list>? with <expr> '|' <pattern-clause-list>? '=' <expr>
                   | <id> <pattern-clause-list>? '=' <expr>
 

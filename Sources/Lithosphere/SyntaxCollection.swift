@@ -21,10 +21,7 @@ public class SyntaxCollection<SyntaxElement: Syntax>: Syntax {
   }
 
   internal init(kind: SyntaxKind, elements: [SyntaxElement]) {
-    var list = [RawSyntax]()
-    for elt in elements {
-      list.append(elt.raw)
-    }
+    let list = elements.map { $0.raw }
     let sd = SyntaxData(raw: .node(kind, list, .present))
     super.init(root: sd, data: sd)
   }

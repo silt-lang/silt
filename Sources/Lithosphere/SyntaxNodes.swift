@@ -470,13 +470,13 @@ public class RecordDeclSyntax: DeclSyntax {
     case recordElementList
   }
 
-  public convenience init(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax?, typeIndices: TypeIndicesSyntax?, whereToken: TokenSyntax?, recordElementList: RecordElementListSyntax) {
+  public convenience init(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax?, whereToken: TokenSyntax, recordElementList: RecordElementListSyntax) {
     let raw = RawSyntax.node(.recordDecl, [
       recordToken.raw,
       recordName.raw,
-      parameterList?.raw ?? RawSyntax.missing(.typedParameterList),
+      parameterList.raw,
       typeIndices?.raw ?? RawSyntax.missing(.typeIndices),
-      whereToken?.raw ?? RawSyntax.missingToken(.whereKeyword),
+      whereToken.raw,
       recordElementList.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
@@ -498,8 +498,8 @@ public class RecordDeclSyntax: DeclSyntax {
     return RecordDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var parameterList: TypedParameterListSyntax? {
-    return child(at: Cursor.parameterList) as? TypedParameterListSyntax
+  public var parameterList: TypedParameterListSyntax {
+    return child(at: Cursor.parameterList) as! TypedParameterListSyntax
   }
   public func withParameterList(_ syntax: TypedParameterListSyntax) -> RecordDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.parameterList)
@@ -514,8 +514,8 @@ public class RecordDeclSyntax: DeclSyntax {
     return RecordDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var whereToken: TokenSyntax? {
-    return child(at: Cursor.whereToken) as? TokenSyntax
+  public var whereToken: TokenSyntax {
+    return child(at: Cursor.whereToken) as! TokenSyntax
   }
   public func withWhereToken(_ syntax: TokenSyntax) -> RecordDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.whereToken)
@@ -532,35 +532,29 @@ public class RecordDeclSyntax: DeclSyntax {
 
 }
 
-public final class RecordElementListSyntax: SyntaxCollection<RecordElementSyntax> {
+public final class RecordElementListSyntax: SyntaxCollection<DeclSyntax> {
   internal override init(root: SyntaxData, data: SyntaxData) {
     super.init(root: root, data: data)
   }
-  public init(elements: [RecordElementSyntax]) {
+  public init(elements: [DeclSyntax]) {
     super.init(kind: .recordElementList, elements: elements)
   }
 }
 
-public class RecordElementSyntax: Syntax {
-
-  public convenience init() {
-    let raw = RawSyntax.node(.recordElement, [
-    ], .present)
-    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
-    self.init(root: data, data: data)
-  }
-}
-
-public class FieldDeclSyntax: RecordElementSyntax {
+public class FieldDeclSyntax: DeclSyntax {
   public enum Cursor: Int {
     case fieldToken
+    case leftBraceToken
     case ascription
+    case rightBraceToken
   }
 
-  public convenience init(fieldToken: TokenSyntax, ascription: AscriptionSyntax) {
+  public convenience init(fieldToken: TokenSyntax, leftBraceToken: TokenSyntax, ascription: AscriptionSyntax, rightBraceToken: TokenSyntax) {
     let raw = RawSyntax.node(.fieldDecl, [
       fieldToken.raw,
+      leftBraceToken.raw,
       ascription.raw,
+      rightBraceToken.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
@@ -573,11 +567,27 @@ public class FieldDeclSyntax: RecordElementSyntax {
     return FieldDeclSyntax(root: newRoot, data: newData)
   }
 
+  public var leftBraceToken: TokenSyntax {
+    return child(at: Cursor.leftBraceToken) as! TokenSyntax
+  }
+  public func withLeftBraceToken(_ syntax: TokenSyntax) -> FieldDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.leftBraceToken)
+    return FieldDeclSyntax(root: newRoot, data: newData)
+  }
+
   public var ascription: AscriptionSyntax {
     return child(at: Cursor.ascription) as! AscriptionSyntax
   }
   public func withAscription(_ syntax: AscriptionSyntax) -> FieldDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.ascription)
+    return FieldDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var rightBraceToken: TokenSyntax {
+    return child(at: Cursor.rightBraceToken) as! TokenSyntax
+  }
+  public func withRightBraceToken(_ syntax: TokenSyntax) -> FieldDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.rightBraceToken)
     return FieldDeclSyntax(root: newRoot, data: newData)
   }
 
@@ -1318,12 +1328,12 @@ public class RecordExprSyntax: BasicExprSyntax {
     case rightBraceToken
   }
 
-  public convenience init(recordToken: TokenSyntax, parameterExpr: BasicExprSyntax, leftBraceToken: TokenSyntax, fieldAssignments: RecordFieldAssignmentListSyntax?, rightBraceToken: TokenSyntax) {
+  public convenience init(recordToken: TokenSyntax, parameterExpr: BasicExprSyntax?, leftBraceToken: TokenSyntax, fieldAssignments: RecordFieldAssignmentListSyntax, rightBraceToken: TokenSyntax) {
     let raw = RawSyntax.node(.recordExpr, [
       recordToken.raw,
-      parameterExpr.raw,
+      parameterExpr?.raw ?? RawSyntax.missing(.basicExpr),
       leftBraceToken.raw,
-      fieldAssignments?.raw ?? RawSyntax.missing(.recordFieldAssignmentList),
+      fieldAssignments.raw,
       rightBraceToken.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
@@ -1337,8 +1347,8 @@ public class RecordExprSyntax: BasicExprSyntax {
     return RecordExprSyntax(root: newRoot, data: newData)
   }
 
-  public var parameterExpr: BasicExprSyntax {
-    return child(at: Cursor.parameterExpr) as! BasicExprSyntax
+  public var parameterExpr: BasicExprSyntax? {
+    return child(at: Cursor.parameterExpr) as? BasicExprSyntax
   }
   public func withParameterExpr(_ syntax: BasicExprSyntax) -> RecordExprSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.parameterExpr)
@@ -1353,8 +1363,8 @@ public class RecordExprSyntax: BasicExprSyntax {
     return RecordExprSyntax(root: newRoot, data: newData)
   }
 
-  public var fieldAssignments: RecordFieldAssignmentListSyntax? {
-    return child(at: Cursor.fieldAssignments) as? RecordFieldAssignmentListSyntax
+  public var fieldAssignments: RecordFieldAssignmentListSyntax {
+    return child(at: Cursor.fieldAssignments) as! RecordFieldAssignmentListSyntax
   }
   public func withFieldAssignments(_ syntax: RecordFieldAssignmentListSyntax) -> RecordExprSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.fieldAssignments)
