@@ -30,4 +30,5 @@ which can be read in this repository.
 # Authors
 
 Robert Widmann ([@CodaFi](https://github.com/codafi))
+
 Harlan Haskins ([@harlanhaskins](https://github.com/harlanhaskins))
