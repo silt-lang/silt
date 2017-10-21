@@ -91,7 +91,15 @@ extension Parser {
       pieces.append(piece)
     }
 
+    // No pieces, no qualified name.
     guard !pieces.isEmpty else {
+      throw ParseError.failedParsingName
+    }
+
+    // All the pieces except the last one should have a dot present.
+    guard pieces.dropLast().reduce(true, { (acc, p) in
+      return acc && p.trailingPeriod != nil
+    }) else {
       throw ParseError.failedParsingName
     }
 
@@ -100,7 +108,7 @@ extension Parser {
 
   func parseQualifiedNamePiece() throws -> QualifiedNamePieceSyntax {
     let name = try parseIdentifierToken()
-    let period = (peek() == .period) ? try? consume(.period) : nil
+    let period = (peek() == .period) ? try consume(.period) : nil
     return QualifiedNamePieceSyntax(name: name, trailingPeriod: period)
   }
 
@@ -474,7 +482,7 @@ extension Parser {
     while let piece = try? parseBasicExpr() {
       pieces.append(piece)
     }
-    guard !pieces.isEmpty else {
+    guard pieces.count >= 2 else {
       throw ParseError.failedParsingApplication
     }
     return ApplicationExprListSyntax(elements: pieces)

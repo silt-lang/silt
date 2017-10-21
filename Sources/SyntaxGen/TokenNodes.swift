@@ -36,7 +36,7 @@ let tokenNodes = [
   Token(name: "With", .keyword("with")),
   Token(name: "Let", .keyword("let")),
   Token(name: "In", .keyword("in")),
-  Token(name: "Type", .keyword("type")),
+  Token(name: "Type", .keyword("Type")),
   Token(name: "Data", .keyword("data")),
   Token(name: "Record", .keyword("record")),
   Token(name: "Field", .keyword("field")),
