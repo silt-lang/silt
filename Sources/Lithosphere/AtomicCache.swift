@@ -17,7 +17,7 @@ import Foundation
 /// value is guaranteed to be set exactly one time, but the provided closure
 /// may be called multiple times by threads racing to initialize the value.
 /// Do not rely on the closure being called only one time.
-class AtomicCache<Value: AnyObject> {
+final class AtomicCache<Value: AnyObject> {
   /// The cached pointer that will be filled in the first time `value` is
   /// accessed.
   private var _cachedValue: AnyObject?

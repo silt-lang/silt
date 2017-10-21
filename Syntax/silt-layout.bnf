@@ -37,7 +37,7 @@ record-field-assignment ::= <id> '=' <expr>
 
 ## Modules
 
-module-decl ::= 'module' <id> <typed-parameter-list>? 'where' <decl-list>
+module-decl ::= 'module' <id> <typed-parameter-list>? 'where' '{' <decl-list> '}'
 decl-list ::= <decl>
             | <decl> <decl-list>
 
@@ -73,8 +73,8 @@ expr ::= <typed-parameter> '->' <expr>
 
 application ::= <basic-expr> <application>
 
-binding-list ::  <qualified-name>
-               | <typed-parameter>
+binding-list ::= '(' <qualified-name> ')'
+               | '(' <typed-parameter> ')'
                | <qualified-name> <binding-list>
                | <typed-parameter> <binding-list>
 
