@@ -12,6 +12,13 @@ extension FileHandle: TextOutputStream {
     }
 }
 
+extension String {
+  func camelCased() -> String {
+    guard self.count >= 2 else { return self }
+    return self.prefix(1).lowercased() + self.suffix(from: self.index(after: self.startIndex))
+  }
+}
+
 class SwiftGenerator {
   let outputDir: URL
   private var file: FileHandle?
@@ -196,7 +203,14 @@ class SwiftGenerator {
     switch node.kind {
     case let .collection(element):
       let elementKind = element.contains("Token") ? "Token" : element
-      line("public typealias \(node.typeName)Syntax = SyntaxCollection<\(elementKind)Syntax>")
+      line("public final class \(node.typeName)Syntax: SyntaxCollection<\(elementKind)Syntax> {")
+      line("  internal override init(root: SyntaxData, data: SyntaxData) {")
+      line("    super.init(root: root, data: data)")
+      line("  }")
+      line("  public init(elements: [\(elementKind)Syntax]) {")
+      line("    super.init(kind: .\(node.typeName.camelCased()), elements: elements)")
+      line("  }")
+      line("}")
       line()
     case let .node(kind, children):
       line("public class \(node.typeName)Syntax: \(kind)Syntax {")
