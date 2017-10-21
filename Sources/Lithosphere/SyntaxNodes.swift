@@ -7,9 +7,23 @@
 /// available in the repository.
 public class ExprSyntax: Syntax {}
 public class DeclSyntax: Syntax {}
-public typealias IdentifierListSyntax = SyntaxCollection<TokenSyntax>
+public final class IdentifierListSyntax: SyntaxCollection<TokenSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [TokenSyntax]) {
+    super.init(kind: .identifierList, elements: elements)
+  }
+}
 
-public typealias QualifiedNameSyntax = SyntaxCollection<QualifiedNamePieceSyntax>
+public final class QualifiedNameSyntax: SyntaxCollection<QualifiedNamePieceSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [QualifiedNamePieceSyntax]) {
+    super.init(kind: .qualifiedName, elements: elements)
+  }
+}
 
 public class QualifiedNamePieceSyntax: Syntax {
   public enum Cursor: Int {
@@ -49,16 +63,20 @@ public class ModuleDeclSyntax: DeclSyntax {
     case moduleIdentifier
     case typedParameterList
     case whereToken
+    case leftBraceToken
     case declList
+    case rightBraceToken
   }
 
-  public convenience init(moduleToken: TokenSyntax, moduleIdentifier: TokenSyntax, typedParameterList: TypedParameterListSyntax?, whereToken: TokenSyntax, declList: DeclListSyntax) {
+  public convenience init(moduleToken: TokenSyntax, moduleIdentifier: QualifiedNameSyntax, typedParameterList: TypedParameterListSyntax?, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax) {
     let raw = RawSyntax.node(.moduleDecl, [
       moduleToken.raw,
       moduleIdentifier.raw,
       typedParameterList?.raw ?? RawSyntax.missing(.typedParameterList),
       whereToken.raw,
+      leftBraceToken.raw,
       declList.raw,
+      rightBraceToken.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
@@ -71,10 +89,10 @@ public class ModuleDeclSyntax: DeclSyntax {
     return ModuleDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var moduleIdentifier: TokenSyntax {
-    return child(at: Cursor.moduleIdentifier) as! TokenSyntax
+  public var moduleIdentifier: QualifiedNameSyntax {
+    return child(at: Cursor.moduleIdentifier) as! QualifiedNameSyntax
   }
-  public func withModuleIdentifier(_ syntax: TokenSyntax) -> ModuleDeclSyntax {
+  public func withModuleIdentifier(_ syntax: QualifiedNameSyntax) -> ModuleDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.moduleIdentifier)
     return ModuleDeclSyntax(root: newRoot, data: newData)
   }
@@ -95,6 +113,14 @@ public class ModuleDeclSyntax: DeclSyntax {
     return ModuleDeclSyntax(root: newRoot, data: newData)
   }
 
+  public var leftBraceToken: TokenSyntax {
+    return child(at: Cursor.leftBraceToken) as! TokenSyntax
+  }
+  public func withLeftBraceToken(_ syntax: TokenSyntax) -> ModuleDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.leftBraceToken)
+    return ModuleDeclSyntax(root: newRoot, data: newData)
+  }
+
   public var declList: DeclListSyntax {
     return child(at: Cursor.declList) as! DeclListSyntax
   }
@@ -103,9 +129,24 @@ public class ModuleDeclSyntax: DeclSyntax {
     return ModuleDeclSyntax(root: newRoot, data: newData)
   }
 
+  public var rightBraceToken: TokenSyntax {
+    return child(at: Cursor.rightBraceToken) as! TokenSyntax
+  }
+  public func withRightBraceToken(_ syntax: TokenSyntax) -> ModuleDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.rightBraceToken)
+    return ModuleDeclSyntax(root: newRoot, data: newData)
+  }
+
 }
 
-public typealias DeclListSyntax = SyntaxCollection<DeclSyntax>
+public final class DeclListSyntax: SyntaxCollection<DeclSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [DeclSyntax]) {
+    super.init(kind: .declList, elements: elements)
+  }
+}
 
 public class OpenImportDeclSyntax: DeclSyntax {
   public enum Cursor: Int {
@@ -114,7 +155,7 @@ public class OpenImportDeclSyntax: DeclSyntax {
     case importIdentifier
   }
 
-  public convenience init(openToken: TokenSyntax?, importToken: TokenSyntax, importIdentifier: TokenSyntax) {
+  public convenience init(openToken: TokenSyntax?, importToken: TokenSyntax, importIdentifier: QualifiedNameSyntax) {
     let raw = RawSyntax.node(.openImportDecl, [
       openToken?.raw ?? RawSyntax.missingToken(.openKeyword),
       importToken.raw,
@@ -139,10 +180,10 @@ public class OpenImportDeclSyntax: DeclSyntax {
     return OpenImportDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var importIdentifier: TokenSyntax {
-    return child(at: Cursor.importIdentifier) as! TokenSyntax
+  public var importIdentifier: QualifiedNameSyntax {
+    return child(at: Cursor.importIdentifier) as! QualifiedNameSyntax
   }
-  public func withImportIdentifier(_ syntax: TokenSyntax) -> OpenImportDeclSyntax {
+  public func withImportIdentifier(_ syntax: QualifiedNameSyntax) -> OpenImportDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.importIdentifier)
     return OpenImportDeclSyntax(root: newRoot, data: newData)
   }
@@ -155,7 +196,7 @@ public class ImportDeclSyntax: DeclSyntax {
     case importIdentifier
   }
 
-  public convenience init(importToken: TokenSyntax, importIdentifier: TokenSyntax) {
+  public convenience init(importToken: TokenSyntax, importIdentifier: QualifiedNameSyntax) {
     let raw = RawSyntax.node(.importDecl, [
       importToken.raw,
       importIdentifier.raw,
@@ -171,10 +212,10 @@ public class ImportDeclSyntax: DeclSyntax {
     return ImportDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var importIdentifier: TokenSyntax {
-    return child(at: Cursor.importIdentifier) as! TokenSyntax
+  public var importIdentifier: QualifiedNameSyntax {
+    return child(at: Cursor.importIdentifier) as! QualifiedNameSyntax
   }
-  public func withImportIdentifier(_ syntax: TokenSyntax) -> ImportDeclSyntax {
+  public func withImportIdentifier(_ syntax: QualifiedNameSyntax) -> ImportDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.importIdentifier)
     return ImportDeclSyntax(root: newRoot, data: newData)
   }
@@ -285,7 +326,14 @@ public class TypeIndicesSyntax: Syntax {
 
 }
 
-public typealias TypedParameterListSyntax = SyntaxCollection<TypedParameterSyntax>
+public final class TypedParameterListSyntax: SyntaxCollection<TypedParameterSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [TypedParameterSyntax]) {
+    super.init(kind: .typedParameterList, elements: elements)
+  }
+}
 
 public class AscriptionSyntax: Syntax {
   public enum Cursor: Int {
@@ -371,7 +419,14 @@ public class TypedParameterSyntax: Syntax {
 
 }
 
-public typealias ConstructorListSyntax = SyntaxCollection<ConstructorDeclSyntax>
+public final class ConstructorListSyntax: SyntaxCollection<ConstructorDeclSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [ConstructorDeclSyntax]) {
+    super.init(kind: .constructorList, elements: elements)
+  }
+}
 
 public class ConstructorDeclSyntax: DeclSyntax {
   public enum Cursor: Int {
@@ -415,13 +470,13 @@ public class RecordDeclSyntax: DeclSyntax {
     case recordElementList
   }
 
-  public convenience init(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax?, typeIndices: TypeIndicesSyntax?, whereToken: TokenSyntax?, recordElementList: RecordElementListSyntax) {
+  public convenience init(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax?, whereToken: TokenSyntax, recordElementList: RecordElementListSyntax) {
     let raw = RawSyntax.node(.recordDecl, [
       recordToken.raw,
       recordName.raw,
-      parameterList?.raw ?? RawSyntax.missing(.typedParameterList),
+      parameterList.raw,
       typeIndices?.raw ?? RawSyntax.missing(.typeIndices),
-      whereToken?.raw ?? RawSyntax.missingToken(.whereKeyword),
+      whereToken.raw,
       recordElementList.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
@@ -443,8 +498,8 @@ public class RecordDeclSyntax: DeclSyntax {
     return RecordDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var parameterList: TypedParameterListSyntax? {
-    return child(at: Cursor.parameterList) as? TypedParameterListSyntax
+  public var parameterList: TypedParameterListSyntax {
+    return child(at: Cursor.parameterList) as! TypedParameterListSyntax
   }
   public func withParameterList(_ syntax: TypedParameterListSyntax) -> RecordDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.parameterList)
@@ -459,8 +514,8 @@ public class RecordDeclSyntax: DeclSyntax {
     return RecordDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var whereToken: TokenSyntax? {
-    return child(at: Cursor.whereToken) as? TokenSyntax
+  public var whereToken: TokenSyntax {
+    return child(at: Cursor.whereToken) as! TokenSyntax
   }
   public func withWhereToken(_ syntax: TokenSyntax) -> RecordDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.whereToken)
@@ -477,28 +532,29 @@ public class RecordDeclSyntax: DeclSyntax {
 
 }
 
-public typealias RecordElementListSyntax = SyntaxCollection<RecordElementSyntax>
-
-public class RecordElementSyntax: Syntax {
-
-  public convenience init() {
-    let raw = RawSyntax.node(.recordElement, [
-    ], .present)
-    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
-    self.init(root: data, data: data)
+public final class RecordElementListSyntax: SyntaxCollection<DeclSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [DeclSyntax]) {
+    super.init(kind: .recordElementList, elements: elements)
   }
 }
 
-public class FieldDeclSyntax: RecordElementSyntax {
+public class FieldDeclSyntax: DeclSyntax {
   public enum Cursor: Int {
     case fieldToken
+    case leftBraceToken
     case ascription
+    case rightBraceToken
   }
 
-  public convenience init(fieldToken: TokenSyntax, ascription: AscriptionSyntax) {
+  public convenience init(fieldToken: TokenSyntax, leftBraceToken: TokenSyntax, ascription: AscriptionSyntax, rightBraceToken: TokenSyntax) {
     let raw = RawSyntax.node(.fieldDecl, [
       fieldToken.raw,
+      leftBraceToken.raw,
       ascription.raw,
+      rightBraceToken.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
@@ -511,6 +567,14 @@ public class FieldDeclSyntax: RecordElementSyntax {
     return FieldDeclSyntax(root: newRoot, data: newData)
   }
 
+  public var leftBraceToken: TokenSyntax {
+    return child(at: Cursor.leftBraceToken) as! TokenSyntax
+  }
+  public func withLeftBraceToken(_ syntax: TokenSyntax) -> FieldDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.leftBraceToken)
+    return FieldDeclSyntax(root: newRoot, data: newData)
+  }
+
   public var ascription: AscriptionSyntax {
     return child(at: Cursor.ascription) as! AscriptionSyntax
   }
@@ -519,9 +583,24 @@ public class FieldDeclSyntax: RecordElementSyntax {
     return FieldDeclSyntax(root: newRoot, data: newData)
   }
 
+  public var rightBraceToken: TokenSyntax {
+    return child(at: Cursor.rightBraceToken) as! TokenSyntax
+  }
+  public func withRightBraceToken(_ syntax: TokenSyntax) -> FieldDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.rightBraceToken)
+    return FieldDeclSyntax(root: newRoot, data: newData)
+  }
+
 }
 
-public typealias RecordFieldAssignmentListSyntax = SyntaxCollection<RecordFieldAssignmentSyntax>
+public final class RecordFieldAssignmentListSyntax: SyntaxCollection<RecordFieldAssignmentSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [RecordFieldAssignmentSyntax]) {
+    super.init(kind: .recordFieldAssignmentList, elements: elements)
+  }
+}
 
 public class RecordFieldAssignmentSyntax: Syntax {
   public enum Cursor: Int {
@@ -578,13 +657,17 @@ public class RecordFieldAssignmentSyntax: Syntax {
 public class FunctionDeclSyntax: DeclSyntax {
   public enum Cursor: Int {
     case ascription
+    case ascriptionSemicolon
     case clauseList
+    case trailingSemicolon
   }
 
-  public convenience init(ascription: AscriptionSyntax, clauseList: FunctionClauseListSyntax) {
+  public convenience init(ascription: AscriptionSyntax, ascriptionSemicolon: TokenSyntax, clauseList: FunctionClauseListSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.functionDecl, [
       ascription.raw,
+      ascriptionSemicolon.raw,
       clauseList.raw,
+      trailingSemicolon.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
@@ -597,6 +680,14 @@ public class FunctionDeclSyntax: DeclSyntax {
     return FunctionDeclSyntax(root: newRoot, data: newData)
   }
 
+  public var ascriptionSemicolon: TokenSyntax {
+    return child(at: Cursor.ascriptionSemicolon) as! TokenSyntax
+  }
+  public func withAscriptionSemicolon(_ syntax: TokenSyntax) -> FunctionDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.ascriptionSemicolon)
+    return FunctionDeclSyntax(root: newRoot, data: newData)
+  }
+
   public var clauseList: FunctionClauseListSyntax {
     return child(at: Cursor.clauseList) as! FunctionClauseListSyntax
   }
@@ -605,9 +696,24 @@ public class FunctionDeclSyntax: DeclSyntax {
     return FunctionDeclSyntax(root: newRoot, data: newData)
   }
 
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  }
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> FunctionDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
+    return FunctionDeclSyntax(root: newRoot, data: newData)
+  }
+
 }
 
-public typealias FunctionClauseListSyntax = SyntaxCollection<FunctionClauseSyntax>
+public final class FunctionClauseListSyntax: SyntaxCollection<FunctionClauseSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [FunctionClauseSyntax]) {
+    super.init(kind: .functionClauseList, elements: elements)
+  }
+}
 
 public class FunctionClauseSyntax: Syntax {
 
@@ -619,7 +725,7 @@ public class FunctionClauseSyntax: Syntax {
   }
 }
 
-public class NormalFunctionClauseSyntax: FunctionClauseSyntax {
+public class WithRuleFunctionClauseSyntax: FunctionClauseSyntax {
   public enum Cursor: Int {
     case functionName
     case patternClauseList
@@ -631,88 +737,12 @@ public class NormalFunctionClauseSyntax: FunctionClauseSyntax {
   }
 
   public convenience init(functionName: TokenSyntax, patternClauseList: PatternClauseListSyntax?, withToken: TokenSyntax, withExpr: ExprSyntax, withPatternClause: PatternClauseListSyntax?, equalsToken: TokenSyntax, rhsExpr: ExprSyntax) {
-    let raw = RawSyntax.node(.normalFunctionClause, [
+    let raw = RawSyntax.node(.withRuleFunctionClause, [
       functionName.raw,
       patternClauseList?.raw ?? RawSyntax.missing(.patternClauseList),
       withToken.raw,
       withExpr.raw,
       withPatternClause?.raw ?? RawSyntax.missing(.patternClauseList),
-      equalsToken.raw,
-      rhsExpr.raw,
-    ], .present)
-    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
-    self.init(root: data, data: data)
-  }
-  public var functionName: TokenSyntax {
-    return child(at: Cursor.functionName) as! TokenSyntax
-  }
-  public func withFunctionName(_ syntax: TokenSyntax) -> NormalFunctionClauseSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.functionName)
-    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
-  }
-
-  public var patternClauseList: PatternClauseListSyntax? {
-    return child(at: Cursor.patternClauseList) as? PatternClauseListSyntax
-  }
-  public func withPatternClauseList(_ syntax: PatternClauseListSyntax) -> NormalFunctionClauseSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.patternClauseList)
-    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
-  }
-
-  public var withToken: TokenSyntax {
-    return child(at: Cursor.withToken) as! TokenSyntax
-  }
-  public func withWithToken(_ syntax: TokenSyntax) -> NormalFunctionClauseSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.withToken)
-    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
-  }
-
-  public var withExpr: ExprSyntax {
-    return child(at: Cursor.withExpr) as! ExprSyntax
-  }
-  public func withWithExpr(_ syntax: ExprSyntax) -> NormalFunctionClauseSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.withExpr)
-    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
-  }
-
-  public var withPatternClause: PatternClauseListSyntax? {
-    return child(at: Cursor.withPatternClause) as? PatternClauseListSyntax
-  }
-  public func withWithPatternClause(_ syntax: PatternClauseListSyntax) -> NormalFunctionClauseSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.withPatternClause)
-    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
-  }
-
-  public var equalsToken: TokenSyntax {
-    return child(at: Cursor.equalsToken) as! TokenSyntax
-  }
-  public func withEqualsToken(_ syntax: TokenSyntax) -> NormalFunctionClauseSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.equalsToken)
-    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
-  }
-
-  public var rhsExpr: ExprSyntax {
-    return child(at: Cursor.rhsExpr) as! ExprSyntax
-  }
-  public func withRhsExpr(_ syntax: ExprSyntax) -> NormalFunctionClauseSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.rhsExpr)
-    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
-  }
-
-}
-
-public class WithRuleFunctionClauseSyntax: FunctionClauseSyntax {
-  public enum Cursor: Int {
-    case functionName
-    case patternClauseList
-    case equalsToken
-    case rhsExpr
-  }
-
-  public convenience init(functionName: TokenSyntax, patternClauseList: PatternClauseListSyntax?, equalsToken: TokenSyntax, rhsExpr: ExprSyntax) {
-    let raw = RawSyntax.node(.withRuleFunctionClause, [
-      functionName.raw,
-      patternClauseList?.raw ?? RawSyntax.missing(.patternClauseList),
       equalsToken.raw,
       rhsExpr.raw,
     ], .present)
@@ -735,6 +765,30 @@ public class WithRuleFunctionClauseSyntax: FunctionClauseSyntax {
     return WithRuleFunctionClauseSyntax(root: newRoot, data: newData)
   }
 
+  public var withToken: TokenSyntax {
+    return child(at: Cursor.withToken) as! TokenSyntax
+  }
+  public func withWithToken(_ syntax: TokenSyntax) -> WithRuleFunctionClauseSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.withToken)
+    return WithRuleFunctionClauseSyntax(root: newRoot, data: newData)
+  }
+
+  public var withExpr: ExprSyntax {
+    return child(at: Cursor.withExpr) as! ExprSyntax
+  }
+  public func withWithExpr(_ syntax: ExprSyntax) -> WithRuleFunctionClauseSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.withExpr)
+    return WithRuleFunctionClauseSyntax(root: newRoot, data: newData)
+  }
+
+  public var withPatternClause: PatternClauseListSyntax? {
+    return child(at: Cursor.withPatternClause) as? PatternClauseListSyntax
+  }
+  public func withWithPatternClause(_ syntax: PatternClauseListSyntax) -> WithRuleFunctionClauseSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.withPatternClause)
+    return WithRuleFunctionClauseSyntax(root: newRoot, data: newData)
+  }
+
   public var equalsToken: TokenSyntax {
     return child(at: Cursor.equalsToken) as! TokenSyntax
   }
@@ -753,7 +807,66 @@ public class WithRuleFunctionClauseSyntax: FunctionClauseSyntax {
 
 }
 
-public typealias PatternClauseListSyntax = SyntaxCollection<ExprSyntax>
+public class NormalFunctionClauseSyntax: FunctionClauseSyntax {
+  public enum Cursor: Int {
+    case functionName
+    case patternClauseList
+    case equalsToken
+    case rhsExpr
+  }
+
+  public convenience init(functionName: TokenSyntax, patternClauseList: PatternClauseListSyntax?, equalsToken: TokenSyntax, rhsExpr: ExprSyntax) {
+    let raw = RawSyntax.node(.normalFunctionClause, [
+      functionName.raw,
+      patternClauseList?.raw ?? RawSyntax.missing(.patternClauseList),
+      equalsToken.raw,
+      rhsExpr.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var functionName: TokenSyntax {
+    return child(at: Cursor.functionName) as! TokenSyntax
+  }
+  public func withFunctionName(_ syntax: TokenSyntax) -> NormalFunctionClauseSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.functionName)
+    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
+  }
+
+  public var patternClauseList: PatternClauseListSyntax? {
+    return child(at: Cursor.patternClauseList) as? PatternClauseListSyntax
+  }
+  public func withPatternClauseList(_ syntax: PatternClauseListSyntax) -> NormalFunctionClauseSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.patternClauseList)
+    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
+  }
+
+  public var equalsToken: TokenSyntax {
+    return child(at: Cursor.equalsToken) as! TokenSyntax
+  }
+  public func withEqualsToken(_ syntax: TokenSyntax) -> NormalFunctionClauseSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.equalsToken)
+    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
+  }
+
+  public var rhsExpr: ExprSyntax {
+    return child(at: Cursor.rhsExpr) as! ExprSyntax
+  }
+  public func withRhsExpr(_ syntax: ExprSyntax) -> NormalFunctionClauseSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.rhsExpr)
+    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
+  }
+
+}
+
+public final class PatternClauseListSyntax: SyntaxCollection<ExprSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [ExprSyntax]) {
+    super.init(kind: .patternClauseList, elements: elements)
+  }
+}
 
 public class TypedParameterArrowExprSyntax: ExprSyntax {
   public enum Cursor: Int {
@@ -889,7 +1002,7 @@ public class QuantifiedExprSyntax: ExprSyntax {
     case outputExpr
   }
 
-  public convenience init(forallToken: TokenSyntax, bindingList: BindingListSyntax, arrowToken: TokenSyntax, outputExpr: ExprSyntax) {
+  public convenience init(forallToken: TokenSyntax, bindingList: TypedParameterListSyntax, arrowToken: TokenSyntax, outputExpr: ExprSyntax) {
     let raw = RawSyntax.node(.quantifiedExpr, [
       forallToken.raw,
       bindingList.raw,
@@ -907,10 +1020,10 @@ public class QuantifiedExprSyntax: ExprSyntax {
     return QuantifiedExprSyntax(root: newRoot, data: newData)
   }
 
-  public var bindingList: BindingListSyntax {
-    return child(at: Cursor.bindingList) as! BindingListSyntax
+  public var bindingList: TypedParameterListSyntax {
+    return child(at: Cursor.bindingList) as! TypedParameterListSyntax
   }
-  public func withBindingList(_ syntax: BindingListSyntax) -> QuantifiedExprSyntax {
+  public func withBindingList(_ syntax: TypedParameterListSyntax) -> QuantifiedExprSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.bindingList)
     return QuantifiedExprSyntax(root: newRoot, data: newData)
   }
@@ -1017,9 +1130,23 @@ public class BasicExprSyntax: ExprSyntax {
   }
 }
 
-public typealias ApplicationExprListSyntax = SyntaxCollection<BasicExprSyntax>
+public final class ApplicationExprListSyntax: SyntaxCollection<BasicExprSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [BasicExprSyntax]) {
+    super.init(kind: .applicationExprList, elements: elements)
+  }
+}
 
-public typealias BindingListSyntax = SyntaxCollection<BindingSyntax>
+public final class BindingListSyntax: SyntaxCollection<BindingSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [BindingSyntax]) {
+    super.init(kind: .bindingList, elements: elements)
+  }
+}
 
 public class BindingSyntax: Syntax {
 
@@ -1075,7 +1202,14 @@ public class TypedBindingSyntax: BindingSyntax {
 
 }
 
-public typealias BasicExprListSyntax = SyntaxCollection<BasicExprSyntax>
+public final class BasicExprListSyntax: SyntaxCollection<BasicExprSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [BasicExprSyntax]) {
+    super.init(kind: .basicExprList, elements: elements)
+  }
+}
 
 public class NamedBasicExprSyntax: BasicExprSyntax {
   public enum Cursor: Int {
@@ -1194,12 +1328,12 @@ public class RecordExprSyntax: BasicExprSyntax {
     case rightBraceToken
   }
 
-  public convenience init(recordToken: TokenSyntax, parameterExpr: BasicExprSyntax, leftBraceToken: TokenSyntax, fieldAssignments: RecordFieldAssignmentListSyntax?, rightBraceToken: TokenSyntax) {
+  public convenience init(recordToken: TokenSyntax, parameterExpr: BasicExprSyntax?, leftBraceToken: TokenSyntax, fieldAssignments: RecordFieldAssignmentListSyntax, rightBraceToken: TokenSyntax) {
     let raw = RawSyntax.node(.recordExpr, [
       recordToken.raw,
-      parameterExpr.raw,
+      parameterExpr?.raw ?? RawSyntax.missing(.basicExpr),
       leftBraceToken.raw,
-      fieldAssignments?.raw ?? RawSyntax.missing(.recordFieldAssignmentList),
+      fieldAssignments.raw,
       rightBraceToken.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
@@ -1213,8 +1347,8 @@ public class RecordExprSyntax: BasicExprSyntax {
     return RecordExprSyntax(root: newRoot, data: newData)
   }
 
-  public var parameterExpr: BasicExprSyntax {
-    return child(at: Cursor.parameterExpr) as! BasicExprSyntax
+  public var parameterExpr: BasicExprSyntax? {
+    return child(at: Cursor.parameterExpr) as? BasicExprSyntax
   }
   public func withParameterExpr(_ syntax: BasicExprSyntax) -> RecordExprSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.parameterExpr)
@@ -1229,8 +1363,8 @@ public class RecordExprSyntax: BasicExprSyntax {
     return RecordExprSyntax(root: newRoot, data: newData)
   }
 
-  public var fieldAssignments: RecordFieldAssignmentListSyntax? {
-    return child(at: Cursor.fieldAssignments) as? RecordFieldAssignmentListSyntax
+  public var fieldAssignments: RecordFieldAssignmentListSyntax {
+    return child(at: Cursor.fieldAssignments) as! RecordFieldAssignmentListSyntax
   }
   public func withFieldAssignments(_ syntax: RecordFieldAssignmentListSyntax) -> RecordExprSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.fieldAssignments)

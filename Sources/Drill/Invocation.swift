@@ -48,6 +48,10 @@ public struct Invocation {
                     return token
                 }
                 print(newTokens.map { $0.sourceText }.joined())
+            case .dumpParse:
+              let layoutTokens = layout(tokens)
+              let parser = Parser(tokens: layoutTokens)
+              SyntaxDumper(stream: &stderrStream).dump(parser.parseTopLevelModule()!)
             }
         }
     }

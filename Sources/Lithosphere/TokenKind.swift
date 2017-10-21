@@ -57,7 +57,7 @@ public enum TokenKind: Equatable {
     case "data": self = .dataKeyword
     case "forall": self = .forallKeyword
     case "{": self = .leftBrace
-    case "type": self = .typeKeyword
+    case "Type": self = .typeKeyword
     case "with": self = .withKeyword
     case "}": self = .rightBrace
     case "(": self = .leftParen
@@ -90,7 +90,7 @@ public enum TokenKind: Equatable {
     case .dataKeyword: return "data"
     case .forallKeyword: return "forall"
     case .leftBrace: return "{"
-    case .typeKeyword: return "type"
+    case .typeKeyword: return "Type"
     case .withKeyword: return "with"
     case .identifier(let text): return text.description
     case .rightBrace: return "}"

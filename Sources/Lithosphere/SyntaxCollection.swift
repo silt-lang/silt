@@ -16,6 +16,16 @@ import Foundation
 /// behaves as a regular Swift collection, and has accessors that return new
 /// versions of the collection with different children.
 public class SyntaxCollection<SyntaxElement: Syntax>: Syntax {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+
+  internal init(kind: SyntaxKind, elements: [SyntaxElement]) {
+    let list = elements.map { $0.raw }
+    let sd = SyntaxData(raw: .node(kind, list, .present))
+    super.init(root: sd, data: sd)
+  }
+
   /// Creates a new SyntaxCollection by replacing the underlying layout with
   /// a different set of raw syntax nodes.
   ///

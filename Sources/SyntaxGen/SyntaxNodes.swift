@@ -27,10 +27,12 @@ let syntaxNodes = [
 
   Node("ModuleDecl", kind: "Decl", children: [
     Child("moduleToken", kind: "ModuleToken"),
-    Child("moduleIdentifier", kind: "IdentifierToken"),
+    Child("moduleIdentifier", kind: "QualifiedName"),
     Child("typedParameterList", kind: "TypedParameterList", isOptional: true),
     Child("whereToken", kind: "WhereToken"),
-    Child("declList", kind: "DeclList")
+    Child("leftBraceToken", kind: "LeftBraceToken"),
+    Child("declList", kind: "DeclList"),
+    Child("rightBraceToken", kind: "RightBraceToken"),
   ]),
 
   Node("DeclList", element: "Decl"),
@@ -43,12 +45,12 @@ let syntaxNodes = [
   Node("OpenImportDecl", kind: "Decl", children: [
     Child("openToken", kind: "OpenToken", isOptional: true),
     Child("importToken", kind: "ImportToken"),
-    Child("importIdentifier", kind: "IdentifierToken")
+    Child("importIdentifier", kind: "QualifiedName")
   ]),
 
   Node("ImportDecl", kind: "Decl", children: [
     Child("importToken", kind: "ImportToken"),
-    Child("importIdentifier", kind: "IdentifierToken")
+    Child("importIdentifier", kind: "QualifiedName")
   ]),
 
   /// MARK: Data types
@@ -112,27 +114,27 @@ let syntaxNodes = [
   Node("RecordDecl", kind: "Decl", children: [
     Child("recordToken", kind: "RecordToken"),
     Child("recordName", kind: "IdentifierToken"),
-    Child("parameterList", kind: "TypedParameterList", isOptional: true),
+    Child("parameterList", kind: "TypedParameterList"),
     Child("typeIndices", kind: "TypeIndices", isOptional: true),
-    Child("whereToken", kind: "WhereToken", isOptional: true),
+    Child("whereToken", kind: "WhereToken"),
     Child("recordElementList", kind: "RecordElementList")
   ]),
 
   // record-element-list ::= <record-element>
   //                       | <record-element> <record-element-list>
 
-  Node("RecordElementList", element: "RecordElement"),
+  Node("RecordElementList", element: "Decl"),
 
   // record-element ::= <field-decl>
   //                  | <function-decl>
 
-  Node("RecordElement", kind: "Syntax", children: []),
-
   // field-decl ::= 'field' <ascription>
 
-  Node("FieldDecl", kind: "RecordElement", children: [
+  Node("FieldDecl", kind: "Decl", children: [
     Child("fieldToken", kind: "FieldToken"),
-    Child("ascription", kind: "Ascription")
+    Child("leftBraceToken", kind: "LeftBraceToken"),
+    Child("ascription", kind: "Ascription"),
+    Child("rightBraceToken", kind: "RightBraceToken"),
   ]),
 
   // record-field-assignment-list ::= <record-field-assignment>
@@ -155,7 +157,9 @@ let syntaxNodes = [
 
   Node("FunctionDecl", kind: "Decl", children: [
     Child("ascription", kind: "Ascription"),
-    Child("clauseList", kind: "FunctionClauseList")
+    Child("ascriptionSemicolon", kind: "SemicolonToken"),
+    Child("clauseList", kind: "FunctionClauseList"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
   // function-clause-list ::= <function-clause>
@@ -168,7 +172,7 @@ let syntaxNodes = [
 
   Node("FunctionClause", kind: "Syntax", children: []),
 
-  Node("NormalFunctionClause", kind: "FunctionClause", children: [
+  Node("WithRuleFunctionClause", kind: "FunctionClause", children: [
     Child("functionName", kind: "IdentifierToken"),
     Child("patternClauseList", kind: "PatternClauseList", isOptional: true),
     Child("withToken", kind: "WithToken"),
@@ -178,7 +182,7 @@ let syntaxNodes = [
     Child("rhsExpr", kind: "Expr")
   ]),
 
-  Node("WithRuleFunctionClause", kind: "FunctionClause", children: [
+  Node("NormalFunctionClause", kind: "FunctionClause", children: [
     Child("functionName", kind: "IdentifierToken"),
     Child("patternClauseList", kind: "PatternClauseList", isOptional: true),
     Child("equalsToken", kind: "EqualsToken"),
@@ -199,7 +203,7 @@ let syntaxNodes = [
   // expr ::= <typed-parameter> '->' <expr>
   //        | <basic-expr-list> '->' <expr>
   //        | '\' <binding-list> <expr>
-  //        | 'forall' <binding-list> '->' <expr>
+  //        | 'forall' <typed-parameter-list> '->' <expr>
   //        | 'let' <decl-list> 'in' <expr>
   //        | <application>
   //        | <basic-expr>
@@ -224,7 +228,7 @@ let syntaxNodes = [
 
   Node("QuantifiedExpr", kind: "Expr", children: [
     Child("forallToken", kind: "ForallToken"),
-    Child("bindingList", kind: "BindingList"),
+    Child("bindingList", kind: "TypedParameterList"),
     Child("arrowToken", kind: "ArrowToken"),
     Child("outputExpr", kind: "Expr")
   ]),
@@ -294,9 +298,9 @@ let syntaxNodes = [
 
   Node("RecordExpr", kind: "BasicExpr", children: [
     Child("recordToken", kind: "recordToken"),
-    Child("parameterExpr", kind: "BasicExpr"),
+    Child("parameterExpr", kind: "BasicExpr", isOptional: true),
     Child("leftBraceToken", kind: "LeftBraceToken"),
-    Child("fieldAssignments", kind: "RecordFieldAssignmentList", isOptional: true),
+    Child("fieldAssignments", kind: "RecordFieldAssignmentList"),
     Child("rightBraceToken", kind: "RightBraceToken")
   ]),
 ]

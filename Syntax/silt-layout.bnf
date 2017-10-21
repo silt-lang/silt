@@ -37,7 +37,7 @@ record-field-assignment ::= <id> '=' <expr>
 
 ## Modules
 
-module-decl ::= 'module' <id> <typed-parameter-list>? 'where' <decl-list>
+module-decl ::= 'module' <id> <typed-parameter-list>? 'where' '{' <decl-list> '}'
 decl-list ::= <decl>
             | <decl> <decl-list>
 
@@ -48,9 +48,9 @@ import-decl ::= 'open'? 'import' <qualified-name>
 
 ## Functions
 
-function-decl ::= <ascription> <function-clause-list>
-function-clause-list ::= <function-clause>
-                       | <function-clause> <function-clause-list>
+function-decl ::= <ascription> ';' <function-clause-list>
+function-clause-list ::= <function-clause> ';'
+                       | <function-clause> ';' <function-clause-list>
 function-clause ::= <id> <pattern-clause-list>? with <expr> '|' <pattern-clause-list>? '=' <expr>
                   | <id> <pattern-clause-list>? '=' <expr>
 
@@ -73,8 +73,8 @@ expr ::= <typed-parameter> '->' <expr>
 
 application ::= <basic-expr> <application>
 
-binding-list ::  <qualified-name>
-               | <typed-parameter>
+binding-list ::= '(' <qualified-name> ')'
+               | '(' <typed-parameter> ')'
                | <qualified-name> <binding-list>
                | <typed-parameter> <binding-list>
 

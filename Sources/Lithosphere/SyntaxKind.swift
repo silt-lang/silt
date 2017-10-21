@@ -24,15 +24,14 @@ public enum SyntaxKind {
   case constructorDecl
   case recordDecl
   case recordElementList
-  case recordElement
   case fieldDecl
   case recordFieldAssignmentList
   case recordFieldAssignment
   case functionDecl
   case functionClauseList
   case functionClause
-  case normalFunctionClause
   case withRuleFunctionClause
+  case normalFunctionClause
   case patternClauseList
   case typedParameterArrowExpr
   case basicExprListArrowExpr
@@ -107,8 +106,6 @@ extension Syntax {
       return RecordDeclSyntax(root: root, data: data)
     case .recordElementList:
       return RecordElementListSyntax(root: root, data: data)
-    case .recordElement:
-      return RecordElementSyntax(root: root, data: data)
     case .fieldDecl:
       return FieldDeclSyntax(root: root, data: data)
     case .recordFieldAssignmentList:
@@ -121,10 +118,10 @@ extension Syntax {
       return FunctionClauseListSyntax(root: root, data: data)
     case .functionClause:
       return FunctionClauseSyntax(root: root, data: data)
-    case .normalFunctionClause:
-      return NormalFunctionClauseSyntax(root: root, data: data)
     case .withRuleFunctionClause:
       return WithRuleFunctionClauseSyntax(root: root, data: data)
+    case .normalFunctionClause:
+      return NormalFunctionClauseSyntax(root: root, data: data)
     case .patternClauseList:
       return PatternClauseListSyntax(root: root, data: data)
     case .typedParameterArrowExpr:
