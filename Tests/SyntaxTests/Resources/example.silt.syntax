@@ -71,7 +71,7 @@ module Prelude where
 -- CHECK-NEXT: Trailing Trivia:
 -- CHECK-NEXT: spaces(1)
 
--- CHECK-NEXT: Token: identifier("Type")
+-- CHECK-NEXT: Token: typeKeyword
 -- CHECK-NEXT: Leading Trivia:
 -- CHECK-NEXT: Trailing Trivia:
 -- CHECK-NEXT: spaces(1)

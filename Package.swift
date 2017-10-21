@@ -33,7 +33,7 @@ let package = Package(
 
     .testTarget(
       name: "SyntaxTests",
-      dependencies: ["Lithosphere", "Crust", "FileCheck"]),
+      dependencies: ["Drill", "Lithosphere", "Crust", "FileCheck"]),
     .testTarget(
       name: "DiagnosticTests",
       dependencies: ["Lithosphere"]),

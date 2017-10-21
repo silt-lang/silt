@@ -115,6 +115,10 @@ public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
   }
 
   // Append the EOF on the way out
-  stainlessToks.append(TokenSyntax(.eof))
+  if let lastTok = toks.last, case .eof = lastTok.tokenKind {
+    stainlessToks.append(lastTok)
+  } else {
+    stainlessToks.append(TokenSyntax(.eof))
+  }
   return stainlessToks
 }

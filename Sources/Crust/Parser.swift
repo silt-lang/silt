@@ -270,24 +270,20 @@ extension Parser {
 
 extension Parser {
   func parseDataDeclaration() throws -> DataDeclSyntax {
-    do {
-      let dataTok = try consume(.dataKeyword)
-      let dataId = try parseQualifiedNamePiece()
-      let paramList = parseTypedParameterList()
-      let indices = try parseTypeIndices()
-      let whereTok = try consume(.whereKeyword)
-      let constrList = parseConstructorList()
-      return DataDeclSyntax(
-        dataToken: dataTok,
-        dataIdentifier: dataId.name,
-        typedParameterList: paramList,
-        typeIndices: indices,
-        whereToken: whereTok,
-        constructorList: constrList
-      )
-    } catch let e {
-      throw e
-    }
+    let dataTok = try consume(.dataKeyword)
+    let dataId = try parseQualifiedNamePiece()
+    let paramList = parseTypedParameterList()
+    let indices = try parseTypeIndices()
+    let whereTok = try consume(.whereKeyword)
+    let constrList = parseConstructorList()
+    return DataDeclSyntax(
+      dataToken: dataTok,
+      dataIdentifier: dataId.name,
+      typedParameterList: paramList,
+      typeIndices: indices,
+      whereToken: whereTok,
+      constructorList: constrList
+    )
   }
 
   func parseConstructorList() -> ConstructorListSyntax {
