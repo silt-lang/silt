@@ -59,7 +59,9 @@ class SyntaxTestRunner: XCTestCase {
 
     switch action {
     case .dumpingShined:
-      print(layoutTokens.map { $0.shinedSourceText }.joined())
+      for token in layoutTokens {
+        token.writeSourceText(to: &stdoutStream, includeImplicit: true)
+      }
     case .describingTokens:
       TokenDescriber.describe(tokens, to: &stdoutStream)
     case .dumpingParse:

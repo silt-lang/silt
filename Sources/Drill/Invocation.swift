@@ -43,12 +43,14 @@ public struct Invocation {
             case .dump(.tokens):
               TokenDescriber.describe(tokens, to: &stdoutStream)
             case .dump(.file):
-              print(tokens.map { $0.sourceText }.joined())
+              for token in tokens {
+                token.writeSourceText(to: &stdoutStream, includeImplicit: false)
+              }
             case .dump(.shined):
               let layoutTokens = layout(tokens)
-              let parser = Parser(tokens: layoutTokens)
-              let module = parser.parseTopLevelModule()!
-              print(module.shinedSourceText)
+              for token in layoutTokens {
+                token.writeSourceText(to: &stdoutStream, includeImplicit: true)
+              }
             case .dump(.parse):
               let layoutTokens = layout(tokens)
               let parser = Parser(tokens: layoutTokens)
