@@ -41,13 +41,7 @@ public struct Invocation {
             case .describeTokens:
                 TokenDescriber.describe(tokens)
             case .reprint:
-                let newTokens = tokens.map { token -> TokenSyntax in
-                    if case .identifier(let text) = token.tokenKind {
-                        return token.withTokenKind(.identifier("\(text)_garbo"))
-                    }
-                    return token
-                }
-                print(newTokens.map { $0.sourceText }.joined())
+                print(tokens.map { $0.sourceText }.joined())
             case .dumpParse:
               let layoutTokens = layout(tokens)
               let parser = Parser(tokens: layoutTokens)
