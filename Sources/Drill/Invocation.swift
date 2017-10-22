@@ -38,11 +38,18 @@ public struct Invocation {
             let lexer = Lexer(input: contents, filePath: path)
             let tokens = lexer.tokenize()
             switch options.mode {
-            case .describeTokens:
+            case .compile:
+              fatalError("only Parse is implemented")
+            case .dump(.tokens):
                 TokenDescriber.describe(tokens)
-            case .reprint:
-                print(tokens.map { $0.sourceText }.joined())
-            case .dumpParse:
+            case .dump(.file):
+              print(tokens.map { $0.sourceText }.joined())
+            case .dump(.shined):
+              let layoutTokens = layout(tokens)
+              let parser = Parser(tokens: layoutTokens)
+              let module = parser.parseTopLevelModule()!
+              print(module.shinedSourceText)
+            case .dump(.parse):
               let layoutTokens = layout(tokens)
               let parser = Parser(tokens: layoutTokens)
               SyntaxDumper(stream: &stderrStream).dump(parser.parseTopLevelModule()!)

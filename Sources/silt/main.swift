@@ -19,29 +19,37 @@ import CommandLineKit
 /// Parses the command-line options into an Options struct and a list of file
 /// paths.
 func parseOptions() -> (Options, [String]) {
-    let cli = CommandLineKit.CommandLine()
-    let modeOption =
-        EnumOption<Mode>(longFlag: "mode",
-                         required: true,
-                         helpMessage: "The mode in which to execute the compiler.")
-    let disableColors =
-        BoolOption(longFlag: "no-colors",
-                   helpMessage: "Disable ANSI colors in printed output.")
-    cli.addOptions(modeOption, disableColors)
-    do {
-        try cli.parse()
-    } catch {
-        cli.printUsage()
-        exit(EXIT_FAILURE)
-    }
-    return (Options(mode: modeOption.value!,
-                    colorsEnabled: disableColors.value), cli.unparsedArguments)
+  let cli = CommandLineKit.CommandLine()
+  let dumpOption =
+    EnumOption<Mode.DumpKind>(longFlag: "dump",
+                              required: false,
+                              helpMessage: "Dumps the compiler's input at the specified stage in the compiler.")
+  let disableColors =
+    BoolOption(longFlag: "no-colors",
+               helpMessage: "Disable ANSI colors in printed output.")
+  cli.addOptions(dumpOption, disableColors)
+  do {
+    try cli.parse()
+  } catch {
+    cli.printUsage()
+    exit(EXIT_FAILURE)
+  }
+
+  let mode: Mode
+  if let dump = dumpOption.value {
+    mode = .dump(dump)
+  } else {
+    mode = .compile
+  }
+
+  return (Options(mode: mode,
+                  colorsEnabled: disableColors.value), cli.unparsedArguments)
 }
 
 func main() throws {
-    let (options, paths) = parseOptions()
-    let invocation = Invocation(options: options, paths: paths)
-    try invocation.run()
+  let (options, paths) = parseOptions()
+  let invocation = Invocation(options: options, paths: paths)
+  try invocation.run()
 }
 
 do {
