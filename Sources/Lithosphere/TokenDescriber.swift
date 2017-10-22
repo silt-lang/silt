@@ -11,20 +11,23 @@ import Foundation
 /// a silt file.
 public enum TokenDescriber {
   /// Prints a description of each token in the token stream and
-  public static func describe(_ tokens: [TokenSyntax]) {
+  public static
+  func describe<Target: TextOutputStream>(_ tokens: [TokenSyntax],
+                                          to stream: inout Target) {
     for token in tokens {
-      print("Token:", "\(token.tokenKind)", terminator: "")
+      stream.write("Token: \(token.tokenKind)")
       if let loc = token.sourceRange?.start {
         let baseName = URL(fileURLWithPath: loc.file).lastPathComponent
-        print(" <\(baseName):\(loc.line):\(loc.column)>")
+        stream.write(" <\(baseName):\(loc.line):\(loc.column)>")
       }
-      print("  Leading Trivia:")
+      stream.write("\n")
+      stream.write("  Leading Trivia:\n")
       for piece in token.leadingTrivia.pieces {
-        print("    \(piece)")
+        stream.write("    \(piece)\n")
       }
-      print("  Trailing Trivia:")
+      stream.write("  Trailing Trivia:\n")
       for piece in token.trailingTrivia.pieces {
-        print("    \(piece)")
+        stream.write("    \(piece)\n")
       }
     }
   }

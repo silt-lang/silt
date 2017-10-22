@@ -41,7 +41,7 @@ public struct Invocation {
             case .compile:
               fatalError("only Parse is implemented")
             case .dump(.tokens):
-                TokenDescriber.describe(tokens)
+              TokenDescriber.describe(tokens, to: &stdoutStream)
             case .dump(.file):
               print(tokens.map { $0.sourceText }.joined())
             case .dump(.shined):

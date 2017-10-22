@@ -16,6 +16,7 @@ var stdoutStream = FileHandle.standardOutput
 enum Action {
   case describingTokens
   case dumpingParse
+  case dumpingShined
 }
 
 class SyntaxTestRunner: XCTestCase {
@@ -39,6 +40,10 @@ class SyntaxTestRunner: XCTestCase {
       XCTAssert(fileCheckOutput(against: file.appendingPathExtension("ast").path, options: [.disableColors]) {
         describe(siltFile, at: file.absoluteString, by: .dumpingParse)
       })
+
+      XCTAssert(fileCheckOutput(against: file.appendingPathExtension("shined").path, options: [.disableColors]) {
+        describe(siltFile, at: file.absoluteString, by: .dumpingShined)
+      })
     }
   }
 
@@ -53,8 +58,10 @@ class SyntaxTestRunner: XCTestCase {
               "Layout affected token stream!?")
 
     switch action {
+    case .dumpingShined:
+      print(layoutTokens.map { $0.shinedSourceText }.joined())
     case .describingTokens:
-      TokenDescriber.describe(tokens)
+      TokenDescriber.describe(tokens, to: &stdoutStream)
     case .dumpingParse:
       let parser = Parser(tokens: layoutTokens)
       guard let tlm = parser.parseTopLevelModule() else {
