@@ -11,7 +11,8 @@ import Rainbow
 import Crust
 
 extension Diagnostic.Message {
-  static let noInputFiles = Diagnostic.Message(.error, "no input files provided")
+  static let noInputFiles = Diagnostic.Message(.error,
+                                               "no input files provided")
 }
 
 public struct Invocation {

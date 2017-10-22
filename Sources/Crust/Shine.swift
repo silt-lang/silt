@@ -10,7 +10,7 @@ private enum LayoutBlock {
   case implicit(TokenSyntax)
   case explicit(TokenSyntax)
 
-  var isImplicit : Bool {
+  var isImplicit: Bool {
     switch self {
     case .implicit(_): return true
     default: return false
@@ -119,7 +119,7 @@ fileprivate extension TokenSyntax {
 /// inserting layout markers in the appropriate places.  This ensures that we
 /// have an explicitly-scoped input to the Parser before we even try to do a
 /// Scope Check.
-public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
+public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
   var toks = ts
   if toks.isEmpty {
     toks.append(TokenSyntax(.eof))

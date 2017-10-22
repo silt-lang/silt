@@ -4,19 +4,18 @@
 ///
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
+
+// Disabling line length for this specific file because it has a lot of long
+// strings that go past the length boundary.
+// swiftlint:disable line_length
+// swiftlint:disable cyclomatic_complexity
+
 import Foundation
 
 extension FileHandle: TextOutputStream {
     public func write(_ string: String) {
         write(string.data(using: .utf8)!)
     }
-}
-
-extension String {
-  func camelCased() -> String {
-    guard self.count >= 2 else { return self }
-    return self.prefix(1).lowercased() + self.suffix(from: self.index(after: self.startIndex))
-  }
 }
 
 class SwiftGenerator {
@@ -67,6 +66,7 @@ class SwiftGenerator {
   }
 
   func startWriting(to filename: String) {
+    // swiftlint:disable force_try
     let url = outputDir.appendingPathComponent(filename)
     if FileManager.default.fileExists(atPath: url.path) {
         try! FileManager.default.removeItem(at: url)
@@ -120,7 +120,8 @@ class SwiftGenerator {
     for (_, token) in tokenMap {
       switch token.kind {
       case .associated(_):
-        line("    case (.\(token.caseName)(let l), .\(token.caseName)(let r)): return l == r")
+        line("    case (.\(token.caseName)(let l),")
+        line("          .\(token.caseName)(let r)): return l == r")
       case .keyword(_), .punctuation(_):
         line("    case (.\(token.caseName), .\(token.caseName)): return true")
       }
@@ -143,8 +144,8 @@ class SwiftGenerator {
     line()
     line("""
     extension Syntax {
-      /// Creates a Syntax node from the provided RawSyntax using the appropriate
-      /// Syntax type, as specified by its kind.
+      /// Creates a Syntax node from the provided RawSyntax using the
+      /// appropriate Syntax type, as specified by its kind.
       /// - Parameters:
       ///   - raw: The raw syntax with which to create this node.
       ///   - root: The root of this tree, or `nil` if the new node is the root.
@@ -153,8 +154,8 @@ class SwiftGenerator {
         return make(root: nil, data: data)
       }
 
-      /// Creates a Syntax node from the provided SyntaxData using the appropriate
-      /// Syntax type, as specified by its kind.
+      /// Creates a Syntax node from the provided SyntaxData using the
+      /// appropriate Syntax type, as specified by its kind.
       /// - Parameters:
       ///   - root: The root of this tree, or `nil` if the new node is the root.
       ///   - data: The data for this new node.
@@ -208,7 +209,7 @@ class SwiftGenerator {
       line("    super.init(root: root, data: data)")
       line("  }")
       line("  public init(elements: [\(elementKind)Syntax]) {")
-      line("    super.init(kind: .\(node.typeName.camelCased()), elements: elements)")
+      line("    super.init(kind: .\(node.typeName.lowercaseFirstLetter), elements: elements)")
       line("  }")
       line("}")
       line()

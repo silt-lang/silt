@@ -8,16 +8,25 @@ import XCTest
 import Lithosphere
 
 extension Diagnostic.Message {
-  static let errorWithNoNode = Diagnostic.Message(.error, "Error with no node attached")
-  static let errorWithNoNodeAndNotes = Diagnostic.Message(.error, "Error with no node, but notes attached")
-  static let highlightedNote = Diagnostic.Message(.note, "Note with a highlight attached")
-  static let bareNote = Diagnostic.Message(.note, "A bare note with no node or highlights")
-  static let warningWithANode = Diagnostic.Message(.warning, "A warning with a node attached")
-  static let warningWithANodeAndHighlights = Diagnostic.Message(.warning, "A warning with a node and a highlight")
-  static let warningWithEverything = Diagnostic.Message(.warning, "A warning with a node, highlights, and a note")
+  static let errorWithNoNode =
+    Diagnostic.Message(.error, "Error with no node attached")
+  static let errorWithNoNodeAndNotes =
+    Diagnostic.Message(.error, "Error with no node, but notes attached")
+  static let highlightedNote =
+    Diagnostic.Message(.note, "Note with a highlight attached")
+  static let bareNote =
+    Diagnostic.Message(.note, "A bare note with no node or highlights")
+  static let warningWithANode =
+    Diagnostic.Message(.warning, "A warning with a node attached")
+  static let warningWithANodeAndHighlights =
+    Diagnostic.Message(.warning, "A warning with a node and a highlight")
+  static let warningWithEverything =
+    Diagnostic.Message(.warning,
+                       "A warning with a node, highlights, and a note")
 
   static func unexpectedToken(_ token: TokenSyntax) -> Diagnostic.Message {
-    return Diagnostic.Message(.error, "unexpected token '\(token.tokenKind.text)'")
+    return Diagnostic.Message(.error,
+                              "unexpected token '\(token.tokenKind.text)'")
   }
 }
 
