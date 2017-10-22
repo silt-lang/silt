@@ -39,7 +39,8 @@ public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
         // If there's nothing after the layout word, open an implicit block and
         // append a brace into the token stream.
         layoutBlockStack.append(.implicit)
-        stainlessToks.append(TokenSyntax(.leftBrace, presence: .implicit))
+        stainlessToks.append(TokenSyntax(.leftBrace, leadingTrivia: .spaces(1),
+                                         presence: .implicit))
         continue
       }
 
@@ -47,7 +48,8 @@ public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
         layoutBlockStack.append(.explicit)
       } else {
         layoutBlockStack.append(.implicit)
-        stainlessToks.append(TokenSyntax(.leftBrace, presence: .implicit))
+        stainlessToks.append(TokenSyntax(.leftBrace, leadingTrivia: .spaces(1),
+                                         presence: .implicit))
       }
       continue
     }
@@ -67,7 +69,9 @@ public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
       while let implTop = layoutBlockStack.popLast() {
         switch implTop {
         case .implicit:
-          stainlessToks.append(TokenSyntax(.rightBrace, presence: .implicit))
+          stainlessToks.append(TokenSyntax(.rightBrace,
+                                           leadingTrivia: .newlines(1),
+                                           presence: .implicit))
         case .explicit:
           foundExplicit = true
           break
@@ -109,7 +113,8 @@ public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
   while let lb = layoutBlockStack.popLast() {
     switch lb {
     case .implicit:
-      stainlessToks.append(TokenSyntax(.rightBrace, presence: .implicit))
+      stainlessToks.append(TokenSyntax(.rightBrace, leadingTrivia: .newlines(1),
+                                       presence: .implicit))
     case .explicit: ()
     }
   }

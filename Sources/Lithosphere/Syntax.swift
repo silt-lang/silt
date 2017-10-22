@@ -129,7 +129,14 @@ public class Syntax {
   /// A source-accurate description of this node.
   public var sourceText: String {
     var s = ""
-    self.writeSourceText(to: &s)
+    self.writeSourceText(to: &s, includeImplicit: false)
+    return s
+  }
+
+  /// A description of this node including implicitly-synthesized tokens.
+  public var shinedSourceText: String {
+    var s = ""
+    self.writeSourceText(to: &s, includeImplicit: true)
     return s
   }
 }
@@ -137,8 +144,8 @@ public class Syntax {
 extension Syntax {
   /// Prints the raw value of this node to the provided stream.
   /// - Parameter stream: The stream to which to print the raw tree.
-  public func writeSourceText<Target: TextOutputStream>(to target: inout Target) {
-    data.raw.writeSourceText(to: &target)
+  public func writeSourceText<Target: TextOutputStream>(to target: inout Target, includeImplicit: Bool) {
+    data.raw.writeSourceText(to: &target, includeImplicit: includeImplicit)
   }
 }
 

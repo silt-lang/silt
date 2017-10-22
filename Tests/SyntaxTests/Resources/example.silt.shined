@@ -1,0 +1,5 @@
+// CHECK: -- A type
+// CHECK-NEXT: module Prelude where {
+// CHECK: id : forall (k : Level) (X : Type k) -> X -> X;
+// CHECK-NEXT: id x = x;
+// CHECK-NEXT: }

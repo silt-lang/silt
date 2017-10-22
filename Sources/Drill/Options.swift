@@ -8,17 +8,26 @@
 import Foundation
 
 /// The mode the compiler will be executing in.
-public enum Mode: String {
-  /// The compiler will describe all the tokens in the source file, along with
-  /// the leading and trailing trivia.
-  case describeTokens = "describe-tokens"
+public enum Mode {
+  public enum DumpKind: String {
+    /// The compiler will describe all the tokens in the source file, along with
+    /// the leading and trailing trivia.
+    case tokens
 
-  /// The compiler will reprint the source text as read from the token stream.
-  case reprint
+    /// The compiler will lex, layout, then parse the source text and dump the
+    /// resulting AST.
+    case parse
 
-  /// The compiler will lex, layout, then parse the source text and dump the
-  /// resulting AST.
-  case dumpParse = "dump-parse"
+    /// The compiler will lex, layout, then parse the source text and print the
+    /// original file from the token stream.
+    case file
+
+    /// The compiler will lex, layout, then parse the source text and print the
+    /// file from the token stream including implicit scope marking tokens.
+    case shined
+  }
+  case dump(DumpKind)
+  case compile
 }
 
 public struct Options {
