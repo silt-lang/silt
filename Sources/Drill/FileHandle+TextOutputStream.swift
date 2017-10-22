@@ -15,4 +15,3 @@ extension FileHandle: TextOutputStream {
 
 public var stderrStream = FileHandle.standardError
 public var stdoutStream = FileHandle.standardOutput
-

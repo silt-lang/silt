@@ -7,9 +7,11 @@
 
 public class TokenSyntax: Syntax {
   public convenience init(_ kind: TokenKind, leadingTrivia: Trivia = [],
-                          trailingTrivia: Trivia = [], presence: SourcePresence = .present,
+                          trailingTrivia: Trivia = [],
+                          presence: SourcePresence = .present,
                           sourceRange: SourceRange? = nil) {
-    let raw = RawSyntax.token(kind, leadingTrivia, trailingTrivia, presence, sourceRange)
+    let raw = RawSyntax.token(kind, leadingTrivia, trailingTrivia,
+                              presence, sourceRange)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
   }
@@ -29,7 +31,8 @@ public class TokenSyntax: Syntax {
   }
 
   public func withTokenKind(_ kind: TokenKind) -> TokenSyntax {
-    guard case let .token(_, leadingTrivia, trailingTrivia, presence, range) = raw else {
+    guard case let .token(_, leadingTrivia, trailingTrivia,
+                          presence, range) = raw else {
       fatalError("non-token TokenSyntax?")
     }
     let (newRoot, newData) =
