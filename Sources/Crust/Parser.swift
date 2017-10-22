@@ -87,19 +87,19 @@ extension Parser {
 
   func parseQualifiedName() throws -> QualifiedNameSyntax {
     var pieces = [QualifiedNamePieceSyntax]()
+    var lastLoc = self.index
     while let piece = try? parseQualifiedNamePiece() {
       pieces.append(piece)
+      lastLoc = self.index
     }
+
+    // Back up and parse the last piece
+    self.index = lastLoc
+    let finalPiece = try parseFinalQualifiedNamePiece()
+    pieces.append(finalPiece)
 
     // No pieces, no qualified name.
     guard !pieces.isEmpty else {
-      throw ParseError.failedParsingName
-    }
-
-    // All the pieces except the last one should have a dot present.
-    guard pieces.dropLast().reduce(true, { (acc, p) in
-      return acc && p.trailingPeriod != nil
-    }) else {
       throw ParseError.failedParsingName
     }
 
@@ -108,14 +108,19 @@ extension Parser {
 
   func parseQualifiedNamePiece() throws -> QualifiedNamePieceSyntax {
     let name = try parseIdentifierToken()
-    let period = (peek() == .period) ? try consume(.period) : nil
+    let period = try consume(.period)
     return QualifiedNamePieceSyntax(name: name, trailingPeriod: period)
+  }
+
+  func parseFinalQualifiedNamePiece() throws -> QualifiedNamePieceSyntax {
+    let name = try parseIdentifierToken()
+    return QualifiedNamePieceSyntax(name: name, trailingPeriod: nil)
   }
 
   func parseIdentifierList() throws -> IdentifierListSyntax {
     var pieces = [TokenSyntax]()
-    while let piece = try? parseQualifiedNamePiece() {
-      pieces.append(piece.name)
+    while let piece = (try? parseIdentifierToken()) ?? (try? consume(.underscore)) {
+      pieces.append(piece)
     }
     return IdentifierListSyntax(elements: pieces)
   }
@@ -153,6 +158,7 @@ extension Parser {
     let leftBrace = try consume(.leftBrace)
     let declList = parseDeclList()
     let rightBrace = try consume(.rightBrace)
+    let semi = try consume(.semicolon)
     return ModuleDeclSyntax(
       moduleToken: moduleKw,
       moduleIdentifier: moduleId,
@@ -160,7 +166,8 @@ extension Parser {
       whereToken: whereKw,
       leftBraceToken: leftBrace,
       declList: declList,
-      rightBraceToken: rightBrace
+      rightBraceToken: rightBrace,
+      trailingSemicolon: semi
     )
   }
 
@@ -240,13 +247,35 @@ extension Parser {
   }
 
   func parseTypedParameter() throws -> TypedParameterSyntax {
+    switch peek() {
+    case .leftParen:
+      return try self.parseExplicitTypedParameter()
+    case .leftBrace:
+      return try self.parseImplicitTypedParameter()
+    default:
+      throw ParseError.unexpectedToken(self.currentToken!)
+    }
+  }
+
+  func parseExplicitTypedParameter() throws -> ExplicitTypedParameterSyntax {
     let leftParen = try consume(.leftParen)
     let ascription = try parseAscription()
     let rightParen = try consume(.rightParen)
-    return TypedParameterSyntax(
+    return ExplicitTypedParameterSyntax(
       leftParenToken: leftParen,
       ascription: ascription,
       rightParenToken: rightParen
+    )
+  }
+
+  func parseImplicitTypedParameter() throws -> ImplicitTypedParameterSyntax {
+    let leftBrace = try consume(.leftBrace)
+    let ascription = try parseAscription()
+    let rightBrace = try consume(.rightBrace)
+    return ImplicitTypedParameterSyntax(
+      leftBraceToken: leftBrace,
+      ascription: ascription,
+      rightBraceToken: rightBrace
     )
   }
 
@@ -271,18 +300,24 @@ extension Parser {
 extension Parser {
   func parseDataDeclaration() throws -> DataDeclSyntax {
     let dataTok = try consume(.dataKeyword)
-    let dataId = try parseQualifiedNamePiece()
+    let dataId = try parseIdentifierToken()
     let paramList = parseTypedParameterList()
     let indices = try parseTypeIndices()
     let whereTok = try consume(.whereKeyword)
+    let leftBrace = try consume(.leftBrace)
     let constrList = parseConstructorList()
+    let rightBrace = try consume(.rightBrace)
+    let semi = try consume(.semicolon)
     return DataDeclSyntax(
       dataToken: dataTok,
-      dataIdentifier: dataId.name,
+      dataIdentifier: dataId,
       typedParameterList: paramList,
       typeIndices: indices,
       whereToken: whereTok,
-      constructorList: constrList
+      leftBraceToken: rightBrace,
+      constructorList: constrList,
+      rightBraceToken: leftBrace,
+      trailingSemicolon: semi
     )
   }
 
@@ -297,7 +332,12 @@ extension Parser {
   func parseConstructor() throws -> ConstructorDeclSyntax {
     let pipe = try consume(.pipe)
     let ascription = try parseAscription()
-    return ConstructorDeclSyntax(pipeToken: pipe, ascription: ascription)
+    let semi = try consume(.semicolon)
+    return ConstructorDeclSyntax(
+      pipeToken: pipe,
+      ascription: ascription,
+      trailingSemicolon: semi
+    )
   }
 }
 
@@ -306,12 +346,10 @@ extension Parser {
     let ascription = try parseAscription()
     let ascSemicolon = try consume(.semicolon)
     let clauses = try parseFunctionClauseList()
-    let clausesSemiColon = try consume(.semicolon)
     return FunctionDeclSyntax(
       ascription: ascription,
       ascriptionSemicolon: ascSemicolon,
-      clauseList: clauses,
-      trailingSemicolon: clausesSemiColon
+      clauseList: clauses
     )
   }
 
@@ -343,6 +381,7 @@ extension Parser {
     let withPatClause = try parsePatternClauseList()
     let equalsTok = try consume(.equals)
     let rhsExpr = try parseExpr()
+    let semi = try consume(.semicolon)
     return WithRuleFunctionClauseSyntax(
       functionName: functionName,
       patternClauseList: patternClauseList,
@@ -350,7 +389,8 @@ extension Parser {
       withExpr: withExpr,
       withPatternClause: withPatClause,
       equalsToken: equalsTok,
-      rhsExpr: rhsExpr
+      rhsExpr: rhsExpr,
+      trailingSemicolon: semi
     )
   }
 
@@ -359,11 +399,13 @@ extension Parser {
     let patternClauseList = try parsePatternClauseList()
     let equalsTok = try consume(.equals)
     let rhsExpr = try parseExpr()
+    let semi = try consume(.semicolon)
     return NormalFunctionClauseSyntax(
       functionName: functionName,
       patternClauseList: patternClauseList,
       equalsToken: equalsTok,
-      rhsExpr: rhsExpr
+      rhsExpr: rhsExpr,
+      trailingSemicolon: semi
     )
   }
 }
@@ -390,6 +432,7 @@ extension Parser {
     }, {
       return try self.parseBasicExprListArrowExprSyntax()
     }) {
+
       return expr
     }
 
@@ -410,11 +453,14 @@ extension Parser {
   }
 
   func parseTypedParameterArrowExpr() throws -> TypedParameterArrowExprSyntax {
-    let parameter = try parseTypedParameter()
+    let parameters = parseTypedParameterList()
+    guard !parameters.isEmpty else {
+      throw ParseError.failedParsingAscription
+    }
     let arrow = try consume(.arrow)
     let outputExpr = try parseExpr()
     return TypedParameterArrowExprSyntax(
-      parameter: parameter,
+      parameters: parameters,
       arrowToken: arrow,
       outputExpr: outputExpr
     )
@@ -434,10 +480,12 @@ extension Parser {
   func parseLambdaExpr() throws -> LambdaExprSyntax {
     let slashTok = try consume(.forwardSlash)
     let bindingList = try parseBindingList()
+    let arrowTok = try consume(.arrow)
     let bodyExpr = try parseExpr()
     return LambdaExprSyntax(
       slashToken: slashTok,
       bindingList: bindingList,
+      arrowToken: arrowTok,
       bodyExpr: bodyExpr
     )
   }
@@ -503,7 +551,7 @@ extension Parser {
       return try self.parseUnderscoreExpr()
     case .typeKeyword:
       return try self.parseTypeBasicExpr()
-    case .leftBrace:
+    case .leftParen:
       return try self.parseParenthesizedExpr()
     case .recordKeyword:
       return try self.parseRecordExpr()

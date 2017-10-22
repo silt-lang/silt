@@ -20,6 +20,8 @@ public enum SyntaxKind {
   case typedParameterList
   case ascription
   case typedParameter
+  case explicitTypedParameter
+  case implicitTypedParameter
   case constructorList
   case constructorDecl
   case recordDecl
@@ -98,6 +100,10 @@ extension Syntax {
       return AscriptionSyntax(root: root, data: data)
     case .typedParameter:
       return TypedParameterSyntax(root: root, data: data)
+    case .explicitTypedParameter:
+      return ExplicitTypedParameterSyntax(root: root, data: data)
+    case .implicitTypedParameter:
+      return ImplicitTypedParameterSyntax(root: root, data: data)
     case .constructorList:
       return ConstructorListSyntax(root: root, data: data)
     case .constructorDecl:

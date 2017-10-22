@@ -1,0 +1,5 @@
+module DataTypes where
+
+data N : Type where
+  | zero : N
+  | succ : N -> N

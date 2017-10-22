@@ -7,14 +7,50 @@
 import Lithosphere
 
 private enum LayoutBlock {
-  case implicit
-  case explicit
+  case implicit(TokenSyntax)
+  case explicit(TokenSyntax)
 
   var isImplicit : Bool {
     switch self {
-    case .implicit: return true
+    case .implicit(_): return true
     default: return false
     }
+  }
+}
+
+fileprivate extension TokenSyntax {
+  func hasEquivalentLeadingWhitespace(to other: TokenSyntax) -> Bool {
+    let selftrivia = self.leadingTrivia.filter({ if case .comment(_) = $0 { return false }; return true })
+    let othertrivia = other.leadingTrivia.filter({ if case .comment(_) = $0 { return false }; return true })
+    guard selftrivia.count == othertrivia.count else {
+      return false
+    }
+    
+    for (l, r) in zip(selftrivia.reversed(), othertrivia.reversed()) {
+      switch (l, r) {
+      // Search ends at the nearest newline.
+      case (.newlines(_), .newlines(_)):
+        return true
+      // Obvious mismatches between spaces and tabs
+      case (.spaces(_), .tabs(_)):
+        return false
+      case (.tabs(_), .spaces(_)):
+        return false
+      case (.spaces(let ln), .spaces(let rn)) where ln != rn:
+        return false
+      case (.tabs(let ln), .tabs(let rn)) where ln != rn:
+        return false
+      // Otherwise we have equal numbers of spaces or tabs
+      case (.spaces(_), .spaces(_)):
+        continue
+      case (.tabs(_), .tabs(_)):
+        continue
+      // Keep searching
+      default:
+        continue
+      }
+    }
+    return true
   }
 }
 
@@ -24,9 +60,14 @@ private enum LayoutBlock {
 /// Scope Check.
 public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
   var toks = ts
+  if toks.isEmpty {
+    toks.append(TokenSyntax(.eof))
+  }
+
+  var lastLineLeader = toks.first!
   var stainlessToks = [TokenSyntax]()
   var layoutBlockStack = [LayoutBlock]()
-  while !toks.isEmpty && toks[0].tokenKind != .eof {
+  while toks[0].tokenKind != .eof {
     // Pop the first token in the stream
     let tok = toks.removeFirst()
 
@@ -38,19 +79,27 @@ public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
       guard let peekTok = toks.first else {
         // If there's nothing after the layout word, open an implicit block and
         // append a brace into the token stream.
-        layoutBlockStack.append(.implicit)
+        layoutBlockStack.append(.implicit(lastLineLeader))
         stainlessToks.append(TokenSyntax(.leftBrace, leadingTrivia: .spaces(1),
                                          presence: .implicit))
         continue
       }
 
       if peekTok.tokenKind == .leftBrace {
-        layoutBlockStack.append(.explicit)
+        layoutBlockStack.append(.explicit(lastLineLeader))
       } else {
-        layoutBlockStack.append(.implicit)
+        lastLineLeader = peekTok
+        layoutBlockStack.append(.implicit(lastLineLeader))
         stainlessToks.append(TokenSyntax(.leftBrace, leadingTrivia: .spaces(1),
                                          presence: .implicit))
       }
+      continue
+    }
+
+    // If we find a left brace, push an explicit block onto the layout stack
+    if tok.tokenKind == .leftBrace {
+      layoutBlockStack.append(.explicit(lastLineLeader))
+      stainlessToks.append(tok)
       continue
     }
 
@@ -67,13 +116,15 @@ public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
              """)
       var foundExplicit = false
       while let implTop = layoutBlockStack.popLast() {
-        switch implTop {
-        case .implicit:
+        if case let .implicit(lll) = implTop {
           stainlessToks.append(TokenSyntax(.rightBrace,
                                            leadingTrivia: .newlines(1),
                                            presence: .implicit))
-        case .explicit:
+          stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
+          lastLineLeader = lll
+        } else if case let .explicit(lll) = implTop {
           foundExplicit = true
+          lastLineLeader = lll
           break
         }
       }
@@ -86,8 +137,9 @@ public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
 
     stainlessToks.append(tok)
 
-    // Finally, check to see if we've got a token on a new line.  If so, we
-    // need to insert a semicolon in the token stream if we can't find one.
+    // Finally, check to see if we've got a token on a new line at the same indent
+    // level.  If so, we need to insert a semicolon in the token stream if we
+    // can't find one.
     //
     // FIXME: This seems wrong in general.
     func newlineAmongTrivia(_ t : Trivia) -> Bool {
@@ -98,13 +150,15 @@ public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
         }
       })
     }
-    
+
     if
       let peekTok = toks.first,
       peekTok.tokenKind != .semicolon,
-      newlineAmongTrivia(peekTok.leadingTrivia)
+      newlineAmongTrivia(peekTok.leadingTrivia),
+      peekTok.hasEquivalentLeadingWhitespace(to: lastLineLeader)
     {
       stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
+      lastLineLeader = peekTok
     }
   }
 
@@ -115,15 +169,16 @@ public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
     case .implicit:
       stainlessToks.append(TokenSyntax(.rightBrace, leadingTrivia: .newlines(1),
                                        presence: .implicit))
+      stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
     case .explicit: ()
     }
   }
 
   // Append the EOF on the way out
-  if let lastTok = toks.last, case .eof = lastTok.tokenKind {
-    stainlessToks.append(lastTok)
-  } else {
-    stainlessToks.append(TokenSyntax(.eof))
+  guard let lastTok = toks.last, case .eof = lastTok.tokenKind else {
+    fatalError("Did not find EOF as the last token?")
   }
+  stainlessToks.append(lastTok)
+
   return stainlessToks
 }

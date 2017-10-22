@@ -1,0 +1,17 @@
+-- A type
+module Basics where
+
+id : forall {k : Level} {X : Type k} -> X -> X
+id x = x
+
+flip : forall {a b c : Level} {A : Type a} {B : Type b} {C : A -> B -> Type c} ->
+              ((x : A) (y : B) -> C x y) -> ((y : B) (x : A) -> C x y)
+flip f = \ y x -> f x y
+
+_ o _ : forall {i j k : Level}
+               {A : Type i}{B : A -> Type j}{C : (a : A) -> B a -> Type k} ->
+               (f : {a : A}(b : B a) -> C a b) ->
+               (g : (a : A) -> B a) ->
+               (a : A) -> C a (g a)
+f o g = \ a -> f (g a)
+

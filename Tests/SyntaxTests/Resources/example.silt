@@ -1,5 +1,0 @@
--- A type
-module Prelude where
-
-id : forall (k : Level) (X : Type k) -> X -> X
-id x = x
