@@ -1,0 +1,82 @@
+-- CHECK: Token: moduleKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("DataTypes")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: whereKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+module DataTypes where
+
+-- CHECK-NEXT: Token: dataKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(2)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("N")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: typeKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: whereKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: pipe
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(1)
+-- CHECK-NEXT:     spaces(2)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("zero")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("N")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: pipe
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(1)
+-- CHECK-NEXT:     spaces(2)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("succ")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("N")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("N")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: eof
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(1)
+-- CHECK-NEXT:   Trailing Trivia:
+data N : Type where
+  | zero : N
+  | succ : N -> N

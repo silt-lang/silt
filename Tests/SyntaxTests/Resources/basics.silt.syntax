@@ -1,0 +1,775 @@
+-- A type
+module Basics where
+
+id : forall {k : Level} {X : Type k} -> X -> X
+id x = x
+
+flip : forall {a b c : Level} {A : Type a} {B : Type b} {C : A -> B -> Type c} ->
+              ((x : A) (y : B) -> C x y) -> ((y : B) (x : A) -> C x y)
+flip f = \ y x -> f x y
+
+_ o _ : forall {i j k : Level}
+               {A : Type i}{B : A -> Type j}{C : (a : A) -> B a -> Type k} ->
+               (f : {a : A}(b : B a) -> C a b) ->
+               (g : (a : A) -> B a) ->
+               (a : A) -> C a (g a)
+f o g = \ a -> f (g a)
+
+-- CHECK: Token: moduleKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     comment("-- A type")
+-- CHECK-NEXT:     newlines(1)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("Basics")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: whereKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("id")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(2)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: forallKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("k")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("Level")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("X")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: typeKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("k")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("X")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("X")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("id")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(1)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("x")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: equals
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("x")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("flip")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(2)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: forallKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("b")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("c")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("Level")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("A")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: typeKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("B")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: typeKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("b")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("C")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("A")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("B")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: typeKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("c")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(1)
+-- CHECK-NEXT:     spaces(14)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("x")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("A")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("y")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("B")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("C")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("x")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("y")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("y")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("B")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("x")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("A")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("C")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("x")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("y")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("flip")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(1)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("f")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: equals
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: forwardSlash
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("y")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("x")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("f")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("x")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("y")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: underscore
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(2)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("o")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: underscore
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: forallKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("i")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("j")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("k")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("Level")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: leftBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(1)
+-- CHECK-NEXT:     spaces(15)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("A")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: typeKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("i")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: leftBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("B")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("A")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: typeKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("j")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: leftBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("C")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("A")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("B")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: typeKeyword
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("k")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(1)
+-- CHECK-NEXT:     spaces(15)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("f")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("A")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightBrace
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("b")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("B")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("C")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("b")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(1)
+-- CHECK-NEXT:     spaces(15)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("g")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("A")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("B")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(1)
+-- CHECK-NEXT:     spaces(15)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: colon
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("A")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("C")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("g")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("f")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(1)
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("o")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("g")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: equals
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: forwardSlash
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: arrow
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("f")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: leftParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: identifier("g")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT:     spaces(1)
+-- CHECK-NEXT: Token: identifier("a")
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: rightParen
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:   Trailing Trivia:
+-- CHECK-NEXT: Token: eof
+-- CHECK-NEXT:   Leading Trivia:
+-- CHECK-NEXT:     newlines(2)
+-- CHECK-NEXT:   Trailing Trivia:
+

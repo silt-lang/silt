@@ -33,17 +33,20 @@ class SyntaxTestRunner: XCTestCase {
         return
       }
 
-      XCTAssert(fileCheckOutput(against: file.appendingPathExtension("syntax").path, options: [.disableColors]) {
+      let syntaxFile = file.appendingPathExtension("syntax").path
+      XCTAssert(fileCheckOutput(against: syntaxFile, options: [.disableColors]) {
         describe(siltFile, at: file.absoluteString, by: .describingTokens)
-      })
+      }, "failed while dumping syntax file \(syntaxFile)")
 
-      XCTAssert(fileCheckOutput(against: file.appendingPathExtension("ast").path, options: [.disableColors]) {
+      let astFile = file.appendingPathExtension("ast").path
+      XCTAssert(fileCheckOutput(against: astFile, options: [.disableColors]) {
         describe(siltFile, at: file.absoluteString, by: .dumpingParse)
-      })
+      }, "failed while dumping AST file \(astFile)")
 
-      XCTAssert(fileCheckOutput(against: file.appendingPathExtension("shined").path, options: [.disableColors]) {
+      let shineFile = file.appendingPathExtension("shined").path
+      XCTAssert(fileCheckOutput(against: shineFile, options: [.disableColors]) {
         describe(siltFile, at: file.absoluteString, by: .dumpingShined)
-      })
+      }, "failed while dumping Shined file \(shineFile)")
     }
   }
 

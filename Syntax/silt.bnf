@@ -17,6 +17,7 @@ typed-parameter-list ::= <typed-parameter>
                       | <typed-parameter> <typed-parameter-list>
 ascription ::= <id-list> ':' <expr>
 typed-parameter ::= '(' <ascription> ')'
+                  | '{' <ascription> '}'
 constructor-list ::= <constructor-decl>
                    | <constructor-decl> <constructor-decl-list>
 constructor-decl ::= '|' <ascription>
@@ -63,9 +64,9 @@ pattern-clause ::= <expr>
 
 # Expressions
 
-expr ::= <typed-parameter> '->' <expr>
+expr ::= <typed-parameter-list> '->' <expr>
        | <basic-expr-list> '->' <expr>
-       | '\' <binding-list> <expr>
+       | '\' <binding-list> '->' <expr>
        | 'forall' <typed-parameter-list> '->' <expr>
        | 'let' <decl-list> 'in' <expr>
        | <application>

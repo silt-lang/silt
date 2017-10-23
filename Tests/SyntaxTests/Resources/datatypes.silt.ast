@@ -1,0 +1,29 @@
+-- CHECK: (moduleDecl
+-- CHECK-NEXT:   (token .moduleKeyword)
+-- CHECK-NEXT:   (qualifiedName
+-- CHECK-NEXT:     (qualifiedNamePiece
+-- CHECK-NEXT:       (token .identifier("DataTypes"))))
+-- CHECK-NEXT:   (typedParameterList)
+-- CHECK-NEXT:   (token .whereKeyword)
+-- CHECK-NEXT:   (declList
+-- CHECK-NEXT:     (dataDecl
+-- CHECK-NEXT:       (token .dataKeyword)
+-- CHECK-NEXT:       (token .identifier("N"))
+-- CHECK-NEXT:       (typedParameterList)
+-- CHECK-NEXT:       (typeIndices
+-- CHECK-NEXT:         (token .colon)
+-- CHECK-NEXT:         (typeBasicExpr
+-- CHECK-NEXT:           (token .typeKeyword)))
+-- CHECK-NEXT:       (token .whereKeyword)
+-- CHECK-NEXT:       (constructorList
+-- CHECK-NEXT:         (constructorDecl
+-- CHECK-NEXT:           (token .pipe)
+-- CHECK-NEXT:           (ascription
+-- CHECK-NEXT:             (identifierList
+-- CHECK-NEXT:               (token .identifier("zero")))
+-- CHECK-NEXT:             (token .colon)
+-- CHECK-NEXT:             (namedBasicExpr
+-- CHECK-NEXT:               (qualifiedName
+-- CHECK-NEXT:                 (qualifiedNamePiece
+-- CHECK-NEXT:                   (token .identifier("N"))))))
+

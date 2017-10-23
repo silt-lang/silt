@@ -11,15 +11,16 @@ decl ::= <data-decl>
 
 ## Data types
 
-data-decl ::= 'data' <id> <typed-parameter-list>? <type-indices>? 'where' <constructor-list>
+data-decl ::= 'data' <id> <typed-parameter-list>? <type-indices>? 'where' '{ ' <constructor-list> '}' ';'
 type-indices ::= ':' <expr>
 typed-parameter-list ::= <typed-parameter>
                       | <typed-parameter> <typed-parameter-list>
 ascription ::= <id-list> ':' <expr>
 typed-parameter ::= '(' <ascription> ')'
+                  | '{' <ascription> '}'
 constructor-list ::= <constructor-decl>
                    | <constructor-decl> <constructor-decl-list>
-constructor-decl ::= '|' <ascription>
+constructor-decl ::= '|' <ascription> ';'
 
 ## Records
 
@@ -37,7 +38,7 @@ record-field-assignment ::= <id> '=' <expr>
 
 ## Modules
 
-module-decl ::= 'module' <id> <typed-parameter-list>? 'where' '{' <decl-list> '}'
+module-decl ::= 'module' <id> <typed-parameter-list>? 'where' '{' <decl-list> '}' ';'
 decl-list ::= <decl>
             | <decl> <decl-list>
 
@@ -63,9 +64,9 @@ pattern-clause ::= <expr>
 
 # Expressions
 
-expr ::= <typed-parameter> '->' <expr>
+expr ::= <typed-parameter-list> '->' <expr>
        | <basic-expr-list> '->' <expr>
-       | '\' <binding-list> <expr>
+       | '\' <binding-list> '->' <expr>
        | 'forall' <typed-parameter-list> '->' <expr>
        | 'let' <decl-list> 'in' <expr>
        | <application>

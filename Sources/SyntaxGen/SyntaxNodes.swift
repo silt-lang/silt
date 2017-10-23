@@ -33,6 +33,7 @@ let syntaxNodes = [
     Child("leftBraceToken", kind: "LeftBraceToken"),
     Child("declList", kind: "DeclList"),
     Child("rightBraceToken", kind: "RightBraceToken"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
   Node("DeclList", element: "Decl"),
@@ -63,7 +64,10 @@ let syntaxNodes = [
     Child("typedParameterList", kind: "TypedParameterList", isOptional: true),
     Child("typeIndices", kind: "TypeIndices"),
     Child("whereToken", kind: "WhereToken"),
-    Child("constructorList", kind: "ConstructorList")
+    Child("leftBraceToken", kind: "LeftBraceToken"),
+    Child("constructorList", kind: "ConstructorList"),
+    Child("rightBraceToken", kind: "RightBraceToken"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
   // type-indices ::= ':' <expr>
@@ -75,7 +79,7 @@ let syntaxNodes = [
 
 
   // typed-parameter-list ::= <typed-parameter>
-  //                       | <typed-parameter> <typed-parameter-list>
+  //                        | <typed-parameter> <typed-parameter-list>
 
   Node("TypedParameterList", element: "TypedParameter"),
 
@@ -88,11 +92,20 @@ let syntaxNodes = [
   ]),
 
   // typed-parameter ::= '(' <ascription> ')'
+  //                   | '{' <ascription> '}'
 
-  Node("TypedParameter", kind: "Syntax", children: [
+  Node("TypedParameter", kind: "Syntax", children: []),
+
+  Node("ExplicitTypedParameter", kind: "TypedParameter", children: [
     Child("leftParenToken", kind: "LeftParenToken"),
     Child("ascription", kind: "Ascription"),
     Child("rightParenToken", kind: "RightParenToken")
+  ]),
+
+  Node("ImplicitTypedParameter", kind: "TypedParameter", children: [
+    Child("leftBraceToken", kind: "LeftBraceToken"),
+    Child("ascription", kind: "Ascription"),
+    Child("rightBraceToken", kind: "RightBraceToken")
   ]),
 
   // constructor-list ::= <constructor-decl>
@@ -104,7 +117,8 @@ let syntaxNodes = [
 
   Node("ConstructorDecl", kind: "Decl", children: [
     Child("pipeToken", kind: "PipeToken"),
-    Child("ascription", kind: "Ascription")
+    Child("ascription", kind: "Ascription"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
   /// MARK: Records
@@ -159,7 +173,6 @@ let syntaxNodes = [
     Child("ascription", kind: "Ascription"),
     Child("ascriptionSemicolon", kind: "SemicolonToken"),
     Child("clauseList", kind: "FunctionClauseList"),
-    Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
   // function-clause-list ::= <function-clause>
@@ -179,14 +192,16 @@ let syntaxNodes = [
     Child("withExpr", kind: "Expr"),
     Child("withPatternClause", kind: "PatternClauseList", isOptional: true),
     Child("equalsToken", kind: "EqualsToken"),
-    Child("rhsExpr", kind: "Expr")
+    Child("rhsExpr", kind: "Expr"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
   Node("NormalFunctionClause", kind: "FunctionClause", children: [
     Child("functionName", kind: "IdentifierToken"),
     Child("patternClauseList", kind: "PatternClauseList", isOptional: true),
     Child("equalsToken", kind: "EqualsToken"),
-    Child("rhsExpr", kind: "Expr")
+    Child("rhsExpr", kind: "Expr"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
 
@@ -200,7 +215,7 @@ let syntaxNodes = [
 
   // Expressions
 
-  // expr ::= <typed-parameter> '->' <expr>
+  // expr ::= <typed-parameter-list> '->' <expr>
   //        | <basic-expr-list> '->' <expr>
   //        | '\' <binding-list> <expr>
   //        | 'forall' <typed-parameter-list> '->' <expr>
@@ -209,7 +224,7 @@ let syntaxNodes = [
   //        | <basic-expr>
 
   Node("TypedParameterArrowExpr", kind: "Expr", children: [
-    Child("parameter", kind: "TypedParameter"),
+    Child("parameters", kind: "TypedParameterList"),
     Child("arrowToken", kind: "ArrowToken"),
     Child("outputExpr", kind: "Expr")
   ]),
@@ -223,6 +238,7 @@ let syntaxNodes = [
   Node("LambdaExpr", kind: "Expr", children: [
     Child("slashToken", kind: "ForwardSlashToken"),
     Child("bindingList", kind: "BindingList"),
+    Child("arrowToken", kind: "ArrowToken"),
     Child("bodyExpr", kind: "Expr")
   ]),
 
