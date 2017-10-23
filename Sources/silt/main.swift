@@ -43,7 +43,7 @@ func parseOptions() -> (Options, [String]) {
   }
 
   return (Options(mode: mode,
-                  colorsEnabled: disableColors.value), cli.unparsedArguments)
+                  colorsEnabled: !disableColors.value), cli.unparsedArguments)
 }
 
 func main() throws {

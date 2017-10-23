@@ -10,6 +10,7 @@ import Crust
 import XCTest
 import Foundation
 import FileCheck
+import Rainbow
 
 var stdoutStream = FileHandle.standardOutput
 
@@ -21,6 +22,9 @@ enum Action {
 
 class SyntaxTestRunner: XCTestCase {
   func testSyntax() {
+    // Disable colorized output for testing.
+    Rainbow.enabled = false
+
     let filesURL = URL(fileURLWithPath: #file).deletingLastPathComponent().appendingPathComponent("Resources")
     guard let siltFiles = try? FileManager.default.contentsOfDirectory(at: filesURL, includingPropertiesForKeys: nil) else {
       XCTFail("Could not read silt files in directory")
