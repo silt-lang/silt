@@ -8,6 +8,8 @@ matrix:
       osx_image: xcode9
       script:
         - swift test
+        - brew install swiftlint
+        - swiftlint
     - os: linux
       language: generic
       sudo: required
