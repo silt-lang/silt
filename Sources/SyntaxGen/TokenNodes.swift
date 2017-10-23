@@ -41,6 +41,9 @@ let tokenNodes = [
   Token(name: "Record", .keyword("record")),
   Token(name: "Field", .keyword("field")),
   Token(name: "Forall", .keyword("forall")),
+  Token(name: "Infixl", .keyword("infixl")),
+  Token(name: "Infixr", .keyword("infixr")),
+  Token(name: "Infix", .keyword("infix")),
 
   Token(name: "Identifier", .associated("String")),
   Token(name: "Unknown", .associated("Character"))

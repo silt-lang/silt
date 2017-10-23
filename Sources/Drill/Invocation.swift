@@ -11,6 +11,7 @@ import Rainbow
 import Lithosphere
 import Crust
 import Moho
+import Mantle
 
 extension Diagnostic.Message {
   static let noInputFiles = Diagnostic.Message(.error,
@@ -66,9 +67,10 @@ public struct Invocation {
         SyntaxDumper(stream: &stderrStream).dump(parser.parseTopLevelModule()!)
       case .dump(.scopes):
 //        let layoutTokens = layout(tokens)
-//        let parser = Parser(tokens: layoutTokens)
+//        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
 //        let module = parser.parseTopLevelModule()!
 //        let binder = NameBinding(topLevel: module, engine: engine)
+//        print(binder.performScopeCheck(topLevel: module))
         break
       }
     }

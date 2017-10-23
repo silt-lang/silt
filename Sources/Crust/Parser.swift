@@ -196,6 +196,8 @@ extension Parser {
       return try self.parseOpenImportDecl()
     case .importKeyword:
       return try self.parseImportDecl()
+    case .infixKeyword, .infixlKeyword, .infixrKeyword:
+      return try self.parseInfixDecl()
     case .identifier(_):
       return try self.parseFunctionDeclOrClause()
     default:
@@ -239,6 +241,60 @@ extension Parser {
     let importTok = try consume(.importKeyword)
     let ident = try parseQualifiedName()
     return ImportDeclSyntax(importToken: importTok, importIdentifier: ident)
+  }
+}
+
+extension Parser {
+  func parseInfixDecl() throws -> FixityDeclSyntax {
+    switch peek() {
+    case .infixKeyword:
+      return try self.parseNonFixDecl()
+    case .infixlKeyword:
+      return try self.parseLeftFixDecl()
+    case .infixrKeyword:
+      return try self.parseRightFixDecl()
+    default:
+      throw unexpectedToken()
+    }
+  }
+
+  func parseNonFixDecl() throws -> NonFixDeclSyntax {
+    let tok = try consume(.infixKeyword)
+    let prec = try parseIdentifierToken()
+    let ids = parseIdentifierList()
+    let semi = try consume(.semicolon)
+    return NonFixDeclSyntax(
+      infixToken: tok,
+      precedence: prec,
+      names: ids,
+      trailingSemicolon: semi
+    )
+  }
+
+  func parseLeftFixDecl() throws -> LeftFixDeclSyntax {
+    let tok = try consume(.infixlKeyword)
+    let prec = try parseIdentifierToken()
+    let ids = parseIdentifierList()
+    let semi = try consume(.semicolon)
+    return LeftFixDeclSyntax(
+      infixlToken: tok,
+      precedence: prec,
+      names: ids,
+      trailingSemicolon: semi
+    )
+  }
+
+  func parseRightFixDecl() throws -> RightFixDeclSyntax {
+    let tok = try consume(.infixrKeyword)
+    let prec = try parseIdentifierToken()
+    let ids = parseIdentifierList()
+    let semi = try consume(.semicolon)
+    return RightFixDeclSyntax(
+      infixrToken: tok,
+      precedence: prec,
+      names: ids,
+      trailingSemicolon: semi
+    )
   }
 }
 

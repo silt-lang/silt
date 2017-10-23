@@ -26,6 +26,13 @@ enum NameInfo {
   case projection(NumImplicitArguments)
   /// The result was a module, returns its local names.
   case module(LocalNames)
+
+  var isConstructor: Bool {
+    guard case .constructor(_, _) = self else {
+      return false
+    }
+    return true
+  }
 }
 
 public class NameBinding {
@@ -47,8 +54,17 @@ extension NameBinding {
   /// Under a new scope, execute a function returning a result.
   func underScope<T>(_ s: (Scope) throws -> T) rethrows -> T {
     let oldScope = self.activeScope
-    let copyScope = Scope(self.activeScope)
-    let result = try s(copyScope)
+    self.activeScope = Scope(self.activeScope)
+    let result = try s(self.activeScope)
+    self.activeScope = oldScope
+    return result
+  }
+
+  /// Under an existing scope, execute a function returning a result.
+  func withScope<T>(_ s : Scope, _ f : (Scope) throws -> T) rethrows -> T {
+    let oldScope = self.activeScope
+    self.activeScope = s
+    let result = try f(self.activeScope)
     self.activeScope = oldScope
     return result
   }
@@ -275,6 +291,27 @@ extension NameBinding {
     return self.activeScope.local { scope in
       scope.nameSpace.localNames[n] = ni
       return self.qualify(name: n)
+    }
+  }
+
+  func bindFixity(_ fixity: FixityDeclSyntax) -> Bool {
+    return self.activeScope.local { scope in
+      let names: [Name]
+      switch fixity {
+      case let fixity as NonFixDeclSyntax:
+        names = fixity.names.map(Name.init(name:))
+      case let fixity as RightFixDeclSyntax:
+        names = fixity.names.map(Name.init(name:))
+      case let fixity as LeftFixDeclSyntax:
+        names = fixity.names.map(Name.init(name:))
+      default:
+        fatalError()
+      }
+      for i in 0..<names.count {
+        let n = names[i]
+        scope.fixities[n] = fixity
+      }
+      return true
     }
   }
 

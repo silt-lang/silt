@@ -41,12 +41,15 @@ final class Scope {
   // The imported modules.
   var importedModules: [FullyQualifiedName: (NumImplicitArguments, LocalNames)]
 
+  var fixities: [Name: FixityDeclSyntax]
+
   init(_ n: FullyQualifiedName) {
     self.vars = [:]
     self.nameSpace = NameSpace(n)
     self.parentNameSpaces = []
     self.openedNames = [:]
     self.importedModules = [:]
+    self.fixities = [:]
   }
 
   init(_ s: Scope) {
@@ -55,6 +58,7 @@ final class Scope {
     self.parentNameSpaces = s.parentNameSpaces
     self.openedNames = s.openedNames
     self.importedModules = s.importedModules
+    self.fixities = s.fixities
   }
 
   func local<T>(_ s: (Scope) throws -> T) rethrows -> T {

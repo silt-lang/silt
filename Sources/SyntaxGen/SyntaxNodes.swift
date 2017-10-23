@@ -6,7 +6,7 @@
 /// available in the repository.
 
 let syntaxNodes = [
-  /// MARK: Identifiers
+  // MARK: Identifiers
 
   Node("IdentifierList", element: "IdentifierToken"),
 
@@ -19,7 +19,7 @@ let syntaxNodes = [
   ]),
 
 
-  /// MARK: Modules
+  // MARK: Modules
 
   // module-decl ::= 'module' <id> <typed-parameter-list>? 'where' <decl-list>
   // decl-list ::= <decl>
@@ -28,7 +28,7 @@ let syntaxNodes = [
   Node("ModuleDecl", kind: "Decl", children: [
     Child("moduleToken", kind: "ModuleToken"),
     Child("moduleIdentifier", kind: "QualifiedName"),
-    Child("typedParameterList", kind: "TypedParameterList", isOptional: true),
+    Child("typedParameterList", kind: "TypedParameterList"),
     Child("whereToken", kind: "WhereToken"),
     Child("leftBraceToken", kind: "LeftBraceToken"),
     Child("declList", kind: "DeclList"),
@@ -38,7 +38,7 @@ let syntaxNodes = [
 
   Node("DeclList", element: "Decl"),
 
-  /// MARK: Imports
+  // MARK: Imports
 
   // qualified-name ::= <id> | <id> '.' <qualified-name>
   // import-decl ::= 'open'? 'import' <qualified-name>
@@ -54,14 +54,14 @@ let syntaxNodes = [
     Child("importIdentifier", kind: "QualifiedName")
   ]),
 
-  /// MARK: Data types
+  // MARK: Data types
 
   // data-decl ::= 'data' <id> <typed-parameter-list>? <type-indices>? 'where' <constructor-list>
 
   Node("DataDecl", kind: "Decl", children: [
     Child("dataToken", kind: "DataToken"),
     Child("dataIdentifier", kind: "IdentifierToken"),
-    Child("typedParameterList", kind: "TypedParameterList", isOptional: true),
+    Child("typedParameterList", kind: "TypedParameterList"),
     Child("typeIndices", kind: "TypeIndices"),
     Child("whereToken", kind: "WhereToken"),
     Child("leftBraceToken", kind: "LeftBraceToken"),
@@ -121,7 +121,7 @@ let syntaxNodes = [
     Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
-  /// MARK: Records
+  // MARK: Records
 
   // record-decl ::= 'record' <id> <typed-parameter-list>? <type-indices>? 'where' <record-element-list>?
 
@@ -165,7 +165,7 @@ let syntaxNodes = [
     Child("trailingSemicolon", kind: "SemicolonToken", isOptional: true)
   ]),
 
-  /// MARK: Functions
+  // MARK: Functions
 
   // function-decl ::= <ascription>
 
@@ -195,6 +195,40 @@ let syntaxNodes = [
     Child("rhsExpr", kind: "Expr"),
     Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
+
+  // MARK: Fixity
+
+  // fixity-decl ::= 'infix' <int> <id-list>
+  //               | 'infixl' <int> <id-list>
+  //               | 'infixr' <int> <id-list>
+  Node("FixityDecl", kind: "Decl", children: []),
+
+  Node("NonFixDecl", kind: "FixityDecl", children: [
+    Child("infixToken", kind: "InfixToken"),
+    Child("precedence", kind: "IdentifierToken"),
+    Child("names", kind: "IdentifierList"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
+  ]),
+  Node("LeftFixDecl", kind: "FixityDecl", children: [
+    Child("infixlToken", kind: "InfixlToken"),
+    Child("precedence", kind: "IdentifierToken"),
+    Child("names", kind: "IdentifierList"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
+  ]),
+  Node("RightFixDecl", kind: "FixityDecl", children: [
+    Child("infixrToken", kind: "InfixrToken"),
+    Child("precedence", kind: "IdentifierToken"),
+    Child("names", kind: "IdentifierList"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
+  ]),
+
+  // MARK: Patterns
+
+  // pattern-clause-list ::= <pattern-clause>
+  //                       | <pattern-clause> <patter-clause-list>
+  // pattern-clause ::= <expr>
+
+  Node("PatternClauseList", element: "Expr"),
 
   // Expressions
 
