@@ -55,6 +55,9 @@ public enum SyntaxKind {
   case typeBasicExpr
   case parenthesizedExpr
   case recordExpr
+  case functionClauseList
+  case reparsedFunctionDecl
+  case reparsedApplicationExpr
 }
 
 extension Syntax {
@@ -172,6 +175,12 @@ extension Syntax {
       return ParenthesizedExprSyntax(root: root, data: data)
     case .recordExpr:
       return RecordExprSyntax(root: root, data: data)
+    case .functionClauseList:
+      return FunctionClauseListSyntax(root: root, data: data)
+    case .reparsedFunctionDecl:
+      return ReparsedFunctionDeclSyntax(root: root, data: data)
+    case .reparsedApplicationExpr:
+      return ReparsedApplicationExprSyntax(root: root, data: data)
     }
   }
 }

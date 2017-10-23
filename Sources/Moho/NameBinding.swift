@@ -43,6 +43,10 @@ public class NameBinding {
     self.activeScope = Scope(QualifiedName(ast: topLevel.moduleIdentifier))
     self.engine = engine
   }
+
+  public func performScopeCheck(topLevel: ModuleDeclSyntax) -> DeclaredModule {
+    return self.scopeCheckModule(topLevel)
+  }
 }
 
 extension NameBinding {

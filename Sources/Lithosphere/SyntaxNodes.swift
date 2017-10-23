@@ -1641,3 +1641,76 @@ public class RecordExprSyntax: BasicExprSyntax {
 
 }
 
+public final class FunctionClauseListSyntax: SyntaxCollection<FunctionClauseDeclSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [FunctionClauseDeclSyntax]) {
+    super.init(kind: .functionClauseList, elements: elements)
+  }
+}
+
+public class ReparsedFunctionDeclSyntax: DeclSyntax {
+  public enum Cursor: Int {
+    case ascription
+    case trailingSemicolon
+    case clauseList
+  }
+
+  public convenience init(ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax, clauseList: FunctionClauseListSyntax) {
+    let raw = RawSyntax.node(.reparsedFunctionDecl, [
+      ascription.raw,
+      trailingSemicolon.raw,
+      clauseList.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var ascription: AscriptionSyntax {
+    return child(at: Cursor.ascription) as! AscriptionSyntax
+  }
+  public func withAscription(_ syntax: AscriptionSyntax) -> ReparsedFunctionDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.ascription)
+    return ReparsedFunctionDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  }
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> ReparsedFunctionDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
+    return ReparsedFunctionDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var clauseList: FunctionClauseListSyntax {
+    return child(at: Cursor.clauseList) as! FunctionClauseListSyntax
+  }
+  public func withClauseList(_ syntax: FunctionClauseListSyntax) -> ReparsedFunctionDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.clauseList)
+    return ReparsedFunctionDeclSyntax(root: newRoot, data: newData)
+  }
+
+}
+
+public class ReparsedApplicationExprSyntax: BasicExprSyntax {
+  public enum Cursor: Int {
+    case exprs
+  }
+
+  public convenience init(exprs: BasicExprListSyntax) {
+    let raw = RawSyntax.node(.reparsedApplicationExpr, [
+      exprs.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var exprs: BasicExprListSyntax {
+    return child(at: Cursor.exprs) as! BasicExprListSyntax
+  }
+  public func withExprs(_ syntax: BasicExprListSyntax) -> ReparsedApplicationExprSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.exprs)
+    return ReparsedApplicationExprSyntax(root: newRoot, data: newData)
+  }
+
+}
+

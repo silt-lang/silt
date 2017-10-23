@@ -30,4 +30,9 @@ extension Diagnostic.Message {
   static func duplicateImport(_ qn: QualifiedName) -> Diagnostic.Message {
     return Diagnostic.Message(.warning, "\(qn) already imported")
   }
+
+  static func bodyBeforeSignature(_ n: Name) -> Diagnostic.Message {
+    return Diagnostic.Message(.error,
+      "function body for \(n) must appear after function type signature")
+  }
 }

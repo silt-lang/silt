@@ -9,8 +9,8 @@ import Lithosphere
 
 public struct DeclaredModule {
   let moduleName: QualifiedName
-  let params: [(Name, Expr)]
-  let namespace: [QualifiedName]
+  let params: [([Name], Expr)]
+  let namespace: NameSpace
   let decls: [Decl]
 }
 
@@ -19,7 +19,7 @@ enum Decl {
   case postulate(TypeSignature)
   case dataSignature(TypeSignature)
   case recordSignature(TypeSignature)
-  case function(QualifiedName, [DeclaredClause])
+  case function(QualifiedName, [Clause])
   case data(QualifiedName, [Name], [TypeSignature])
   case record(QualifiedName, [Name], QualifiedName, [TypeSignature])
   case module(DeclaredModule)
@@ -32,18 +32,18 @@ public struct TypeSignature {
   let type: Expr
 }
 
-struct DeclaredClause {
-  let patterns: [DeclaredPattern]
-  let body: DeclaredClauseBody
+struct Clause {
+  let patterns: [Pattern]
+  let body: ClauseBody
 }
 
-enum DeclaredClauseBody {
-  case Empty
-  case Body(Expr, [Decl])
+enum ClauseBody {
+  case empty
+  case body(Expr, [Decl])
 }
 
 public indirect enum Expr: Equatable {
-  case lambda(Name, Expr)
+  case lambda(([Name], Expr), Expr)
   case pi(Name, Expr, Expr)
   case function(Expr, Expr)
   case equal(Expr, Expr, Expr)
@@ -55,8 +55,8 @@ public indirect enum Expr: Equatable {
 
   public static func == (l: Expr, r: Expr) -> Bool {
     switch (l, r) {
-    case let (.lambda(x, e), .lambda(y, f)):
-      return x == y && e == f
+    case let (.lambda((x, tl), e), .lambda((y, tr), f)):
+      return x == y && tl == tr && e == f
     case let (.pi(x, a, b), .pi(y, c, d)):
       return x == y && a == c && b == d
     case let (.function(a, b), .function(c, d)):
@@ -110,8 +110,13 @@ public enum Elimination: Equatable {
 }
 
 public enum DeclaredPattern {
+  case wild
   case variable(Name)
-  case wild(SourceLocation)
   case constructor(QualifiedName, [DeclaredPattern])
-  case empty(SourceLocation)
+}
+
+public enum Pattern {
+  case wild
+  case variable(QualifiedName)
+  case constructor(QualifiedName, [Pattern])
 }
