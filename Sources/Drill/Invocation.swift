@@ -17,11 +17,11 @@ extension Diagnostic.Message {
 
 public struct Invocation {
   public let options: Options
-  public let sourceFiles: [String]
+  public let sourceFiles: Set<String>
 
-  public init(options: Options, paths: [String]) {
-    self.options = options
-    self.sourceFiles = paths
+  public init(options: Options, paths: Set<String>) {
+      self.options = options
+      self.sourceFiles = paths
   }
 
   public func run() throws {
