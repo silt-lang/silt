@@ -1,540 +1,539 @@
--- CHECK: (moduleDecl
--- CHECK-NEXT:   (token .moduleKeyword)
--- CHECK-NEXT:   (qualifiedName
--- CHECK-NEXT:     (qualifiedNamePiece
--- CHECK-NEXT:       (token .identifier("Basics"))))
--- CHECK-NEXT:   (typedParameterList)
--- CHECK-NEXT:   (token .whereKeyword)
--- CHECK-NEXT:   (declList
--- CHECK-NEXT:     (functionDecl
--- CHECK-NEXT:       (ascription
--- CHECK-NEXT:         (identifierList
--- CHECK-NEXT:           (token .identifier("id")))
--- CHECK-NEXT:         (token .colon)
--- CHECK-NEXT:         (quantifiedExpr
--- CHECK-NEXT:           (token .forallKeyword)
--- CHECK-NEXT:           (typedParameterList
--- CHECK-NEXT:             (implicitTypedParameter
--- CHECK-NEXT:               (token .leftBrace)
--- CHECK-NEXT:               (ascription
--- CHECK-NEXT:                 (identifierList
--- CHECK-NEXT:                   (token .identifier("k")))
--- CHECK-NEXT:                 (token .colon)
--- CHECK-NEXT:                 (namedBasicExpr
--- CHECK-NEXT:                   (qualifiedName
--- CHECK-NEXT:                     (qualifiedNamePiece
--- CHECK-NEXT:                       (token .identifier("Level"))))))
--- CHECK-NEXT:               (token .rightBrace))
--- CHECK-NEXT:             (implicitTypedParameter
--- CHECK-NEXT:               (token .leftBrace)
--- CHECK-NEXT:               (ascription
--- CHECK-NEXT:                 (identifierList
--- CHECK-NEXT:                   (token .identifier("X")))
--- CHECK-NEXT:                 (token .colon)
--- CHECK-NEXT:                 (applicationExpr
--- CHECK-NEXT:                   (applicationExprList
--- CHECK-NEXT:                     (typeBasicExpr
--- CHECK-NEXT:                       (token .typeKeyword))
--- CHECK-NEXT:                     (namedBasicExpr
--- CHECK-NEXT:                       (qualifiedName
--- CHECK-NEXT:                         (qualifiedNamePiece
--- CHECK-NEXT:                           (token .identifier("k"))))))))
--- CHECK-NEXT:               (token .rightBrace)))
--- CHECK-NEXT:           (token .arrow)
--- CHECK-NEXT:           (basicExprListArrowExpr
--- CHECK-NEXT:             (basicExprList
--- CHECK-NEXT:               (namedBasicExpr
--- CHECK-NEXT:                 (qualifiedName
--- CHECK-NEXT:                   (qualifiedNamePiece
--- CHECK-NEXT:                     (token .identifier("X"))))))
--- CHECK-NEXT:             (token .arrow)
--- CHECK-NEXT:             (namedBasicExpr
--- CHECK-NEXT:               (qualifiedName
--- CHECK-NEXT:                 (qualifiedNamePiece
--- CHECK-NEXT:                   (token .identifier("X"))))))))
--- CHECK-NEXT:       (functionClauseList
--- CHECK-NEXT:         (normalFunctionClause
--- CHECK-NEXT:           (token .identifier("id"))
--- CHECK-NEXT:           (patternClauseList
--- CHECK-NEXT:             (namedBasicExpr
--- CHECK-NEXT:               (qualifiedName
--- CHECK-NEXT:                 (qualifiedNamePiece
--- CHECK-NEXT:                   (token .identifier("x"))))))
--- CHECK-NEXT:           (token .equals)
--- CHECK-NEXT:           (namedBasicExpr
--- CHECK-NEXT:             (qualifiedName
--- CHECK-NEXT:               (qualifiedNamePiece
--- CHECK-NEXT:                 (token .identifier("x"))))))))
--- CHECK-NEXT:     (functionDecl
--- CHECK-NEXT:       (ascription
--- CHECK-NEXT:         (identifierList
--- CHECK-NEXT:           (token .identifier("flip")))
--- CHECK-NEXT:         (token .colon)
--- CHECK-NEXT:         (quantifiedExpr
--- CHECK-NEXT:           (token .forallKeyword)
--- CHECK-NEXT:           (typedParameterList
--- CHECK-NEXT:             (implicitTypedParameter
--- CHECK-NEXT:               (token .leftBrace)
--- CHECK-NEXT:               (ascription
--- CHECK-NEXT:                 (identifierList
--- CHECK-NEXT:                   (token .identifier("a"))
--- CHECK-NEXT:                   (token .identifier("b"))
--- CHECK-NEXT:                   (token .identifier("c")))
--- CHECK-NEXT:                 (token .colon)
--- CHECK-NEXT:                 (namedBasicExpr
--- CHECK-NEXT:                   (qualifiedName
--- CHECK-NEXT:                     (qualifiedNamePiece
--- CHECK-NEXT:                       (token .identifier("Level"))))))
--- CHECK-NEXT:               (token .rightBrace))
--- CHECK-NEXT:             (implicitTypedParameter
--- CHECK-NEXT:               (token .leftBrace)
--- CHECK-NEXT:               (ascription
--- CHECK-NEXT:                 (identifierList
--- CHECK-NEXT:                   (token .identifier("A")))
--- CHECK-NEXT:                 (token .colon)
--- CHECK-NEXT:                 (applicationExpr
--- CHECK-NEXT:                   (applicationExprList
--- CHECK-NEXT:                     (typeBasicExpr
--- CHECK-NEXT:                       (token .typeKeyword))
--- CHECK-NEXT:                     (namedBasicExpr
--- CHECK-NEXT:                       (qualifiedName
--- CHECK-NEXT:                         (qualifiedNamePiece
--- CHECK-NEXT:                           (token .identifier("a"))))))))
--- CHECK-NEXT:               (token .rightBrace))
--- CHECK-NEXT:             (implicitTypedParameter
--- CHECK-NEXT:               (token .leftBrace)
--- CHECK-NEXT:               (ascription
--- CHECK-NEXT:                 (identifierList
--- CHECK-NEXT:                   (token .identifier("B")))
--- CHECK-NEXT:                 (token .colon)
--- CHECK-NEXT:                 (applicationExpr
--- CHECK-NEXT:                   (applicationExprList
--- CHECK-NEXT:                     (typeBasicExpr
--- CHECK-NEXT:                       (token .typeKeyword))
--- CHECK-NEXT:                     (namedBasicExpr
--- CHECK-NEXT:                       (qualifiedName
--- CHECK-NEXT:                         (qualifiedNamePiece
--- CHECK-NEXT:                           (token .identifier("b"))))))))
--- CHECK-NEXT:               (token .rightBrace))
--- CHECK-NEXT:             (implicitTypedParameter
--- CHECK-NEXT:               (token .leftBrace)
--- CHECK-NEXT:               (ascription
--- CHECK-NEXT:                 (identifierList
--- CHECK-NEXT:                   (token .identifier("C")))
--- CHECK-NEXT:                 (token .colon)
--- CHECK-NEXT:                 (basicExprListArrowExpr
--- CHECK-NEXT:                   (basicExprList
--- CHECK-NEXT:                     (namedBasicExpr
--- CHECK-NEXT:                       (qualifiedName
--- CHECK-NEXT:                         (qualifiedNamePiece
--- CHECK-NEXT:                           (token .identifier("A"))))))
--- CHECK-NEXT:                   (token .arrow)
--- CHECK-NEXT:                   (basicExprListArrowExpr
--- CHECK-NEXT:                     (basicExprList
--- CHECK-NEXT:                       (namedBasicExpr
--- CHECK-NEXT:                         (qualifiedName
--- CHECK-NEXT:                           (qualifiedNamePiece
--- CHECK-NEXT:                             (token .identifier("B"))))))
--- CHECK-NEXT:                     (token .arrow)
--- CHECK-NEXT:                     (applicationExpr
--- CHECK-NEXT:                       (applicationExprList
--- CHECK-NEXT:                         (typeBasicExpr
--- CHECK-NEXT:                           (token .typeKeyword))
--- CHECK-NEXT:                         (namedBasicExpr
--- CHECK-NEXT:                           (qualifiedName
--- CHECK-NEXT:                             (qualifiedNamePiece
--- CHECK-NEXT:                               (token .identifier("c"))))))))))
--- CHECK-NEXT:               (token .rightBrace)))
--- CHECK-NEXT:           (token .arrow)
--- CHECK-NEXT:           (basicExprListArrowExpr
--- CHECK-NEXT:             (basicExprList
--- CHECK-NEXT:               (parenthesizedExpr
--- CHECK-NEXT:                 (token .leftParen)
--- CHECK-NEXT:                 (typedParameterArrowExpr
--- CHECK-NEXT:                   (typedParameterList
--- CHECK-NEXT:                     (explicitTypedParameter
--- CHECK-NEXT:                       (token .leftParen)
--- CHECK-NEXT:                       (ascription
--- CHECK-NEXT:                         (identifierList
--- CHECK-NEXT:                           (token .identifier("x")))
--- CHECK-NEXT:                         (token .colon)
--- CHECK-NEXT:                         (namedBasicExpr
--- CHECK-NEXT:                           (qualifiedName
--- CHECK-NEXT:                             (qualifiedNamePiece
--- CHECK-NEXT:                               (token .identifier("A"))))))
--- CHECK-NEXT:                       (token .rightParen))
--- CHECK-NEXT:                     (explicitTypedParameter
--- CHECK-NEXT:                       (token .leftParen)
--- CHECK-NEXT:                       (ascription
--- CHECK-NEXT:                         (identifierList
--- CHECK-NEXT:                           (token .identifier("y")))
--- CHECK-NEXT:                         (token .colon)
--- CHECK-NEXT:                         (namedBasicExpr
--- CHECK-NEXT:                           (qualifiedName
--- CHECK-NEXT:                             (qualifiedNamePiece
--- CHECK-NEXT:                               (token .identifier("B"))))))
--- CHECK-NEXT:                       (token .rightParen)))
--- CHECK-NEXT:                   (token .arrow)
--- CHECK-NEXT:                   (applicationExpr
--- CHECK-NEXT:                     (applicationExprList
--- CHECK-NEXT:                       (namedBasicExpr
--- CHECK-NEXT:                         (qualifiedName
--- CHECK-NEXT:                           (qualifiedNamePiece
--- CHECK-NEXT:                             (token .identifier("C")))))
--- CHECK-NEXT:                       (namedBasicExpr
--- CHECK-NEXT:                         (qualifiedName
--- CHECK-NEXT:                           (qualifiedNamePiece
--- CHECK-NEXT:                             (token .identifier("x")))))
--- CHECK-NEXT:                       (namedBasicExpr
--- CHECK-NEXT:                         (qualifiedName
--- CHECK-NEXT:                           (qualifiedNamePiece
--- CHECK-NEXT:                             (token .identifier("y"))))))))
--- CHECK-NEXT:                 (token .rightParen)))
--- CHECK-NEXT:             (token .arrow)
--- CHECK-NEXT:             (parenthesizedExpr
--- CHECK-NEXT:               (token .leftParen)
--- CHECK-NEXT:               (typedParameterArrowExpr
--- CHECK-NEXT:                 (typedParameterList
--- CHECK-NEXT:                   (explicitTypedParameter
--- CHECK-NEXT:                     (token .leftParen)
--- CHECK-NEXT:                     (ascription
--- CHECK-NEXT:                       (identifierList
--- CHECK-NEXT:                         (token .identifier("y")))
--- CHECK-NEXT:                       (token .colon)
--- CHECK-NEXT:                       (namedBasicExpr
--- CHECK-NEXT:                         (qualifiedName
--- CHECK-NEXT:                           (qualifiedNamePiece
--- CHECK-NEXT:                             (token .identifier("B"))))))
--- CHECK-NEXT:                     (token .rightParen))
--- CHECK-NEXT:                   (explicitTypedParameter
--- CHECK-NEXT:                     (token .leftParen)
--- CHECK-NEXT:                     (ascription
--- CHECK-NEXT:                       (identifierList
--- CHECK-NEXT:                         (token .identifier("x")))
--- CHECK-NEXT:                       (token .colon)
--- CHECK-NEXT:                       (namedBasicExpr
--- CHECK-NEXT:                         (qualifiedName
--- CHECK-NEXT:                           (qualifiedNamePiece
--- CHECK-NEXT:                             (token .identifier("A"))))))
--- CHECK-NEXT:                     (token .rightParen)))
--- CHECK-NEXT:                 (token .arrow)
--- CHECK-NEXT:                 (applicationExpr
--- CHECK-NEXT:                   (applicationExprList
--- CHECK-NEXT:                     (namedBasicExpr
--- CHECK-NEXT:                       (qualifiedName
--- CHECK-NEXT:                         (qualifiedNamePiece
--- CHECK-NEXT:                           (token .identifier("C")))))
--- CHECK-NEXT:                     (namedBasicExpr
--- CHECK-NEXT:                       (qualifiedName
--- CHECK-NEXT:                         (qualifiedNamePiece
--- CHECK-NEXT:                           (token .identifier("x")))))
--- CHECK-NEXT:                     (namedBasicExpr
--- CHECK-NEXT:                       (qualifiedName
--- CHECK-NEXT:                         (qualifiedNamePiece
--- CHECK-NEXT:                           (token .identifier("y"))))))))
--- CHECK-NEXT:               (token .rightParen)))))
--- CHECK-NEXT:       (functionClauseList
--- CHECK-NEXT:         (normalFunctionClause
--- CHECK-NEXT:           (token .identifier("flip"))
--- CHECK-NEXT:           (patternClauseList
--- CHECK-NEXT:             (namedBasicExpr
--- CHECK-NEXT:               (qualifiedName
--- CHECK-NEXT:                 (qualifiedNamePiece
--- CHECK-NEXT:                   (token .identifier("f"))))))
--- CHECK-NEXT:           (token .equals)
--- CHECK-NEXT:           (lambdaExpr
--- CHECK-NEXT:             (token .forwardSlash)
--- CHECK-NEXT:             (bindingList
--- CHECK-NEXT:               (namedBinding
--- CHECK-NEXT:                 (qualifiedName
--- CHECK-NEXT:                   (qualifiedNamePiece
--- CHECK-NEXT:                     (token .identifier("y")))))
--- CHECK-NEXT:               (namedBinding
--- CHECK-NEXT:                 (qualifiedName
--- CHECK-NEXT:                   (qualifiedNamePiece
--- CHECK-NEXT:                     (token .identifier("x"))))))
--- CHECK-NEXT:             (token .arrow)
--- CHECK-NEXT:             (applicationExpr
--- CHECK-NEXT:               (applicationExprList
--- CHECK-NEXT:                 (namedBasicExpr
--- CHECK-NEXT:                   (qualifiedName
--- CHECK-NEXT:                     (qualifiedNamePiece
--- CHECK-NEXT:                       (token .identifier("f")))))
--- CHECK-NEXT:                 (namedBasicExpr
--- CHECK-NEXT:                   (qualifiedName
--- CHECK-NEXT:                     (qualifiedNamePiece
--- CHECK-NEXT:                       (token .identifier("x")))))
--- CHECK-NEXT:                 (namedBasicExpr
--- CHECK-NEXT:                   (qualifiedName
--- CHECK-NEXT:                     (qualifiedNamePiece
--- CHECK-NEXT:                       (token .identifier("y")))))))))))
--- CHECK-NEXT:     (functionDecl
--- CHECK-NEXT:       (ascription
--- CHECK-NEXT:         (identifierList
--- CHECK-NEXT:           (token .underscore)
--- CHECK-NEXT:           (token .identifier("o"))
--- CHECK-NEXT:           (token .underscore))
--- CHECK-NEXT:         (token .colon)
--- CHECK-NEXT:         (quantifiedExpr
--- CHECK-NEXT:           (token .forallKeyword)
--- CHECK-NEXT:           (typedParameterList
--- CHECK-NEXT:             (implicitTypedParameter
--- CHECK-NEXT:               (token .leftBrace)
--- CHECK-NEXT:               (ascription
--- CHECK-NEXT:                 (identifierList
--- CHECK-NEXT:                   (token .identifier("i"))
--- CHECK-NEXT:                   (token .identifier("j"))
--- CHECK-NEXT:                   (token .identifier("k")))
--- CHECK-NEXT:                 (token .colon)
--- CHECK-NEXT:                 (namedBasicExpr
--- CHECK-NEXT:                   (qualifiedName
--- CHECK-NEXT:                     (qualifiedNamePiece
--- CHECK-NEXT:                       (token .identifier("Level"))))))
--- CHECK-NEXT:               (token .rightBrace))
--- CHECK-NEXT:             (implicitTypedParameter
--- CHECK-NEXT:               (token .leftBrace)
--- CHECK-NEXT:               (ascription
--- CHECK-NEXT:                 (identifierList
--- CHECK-NEXT:                   (token .identifier("A")))
--- CHECK-NEXT:                 (token .colon)
--- CHECK-NEXT:                 (applicationExpr
--- CHECK-NEXT:                   (applicationExprList
--- CHECK-NEXT:                     (typeBasicExpr
--- CHECK-NEXT:                       (token .typeKeyword))
--- CHECK-NEXT:                     (namedBasicExpr
--- CHECK-NEXT:                       (qualifiedName
--- CHECK-NEXT:                         (qualifiedNamePiece
--- CHECK-NEXT:                           (token .identifier("i"))))))))
--- CHECK-NEXT:               (token .rightBrace))
--- CHECK-NEXT:             (implicitTypedParameter
--- CHECK-NEXT:               (token .leftBrace)
--- CHECK-NEXT:               (ascription
--- CHECK-NEXT:                 (identifierList
--- CHECK-NEXT:                   (token .identifier("B")))
--- CHECK-NEXT:                 (token .colon)
--- CHECK-NEXT:                 (basicExprListArrowExpr
--- CHECK-NEXT:                   (basicExprList
--- CHECK-NEXT:                     (namedBasicExpr
--- CHECK-NEXT:                       (qualifiedName
--- CHECK-NEXT:                         (qualifiedNamePiece
--- CHECK-NEXT:                           (token .identifier("A"))))))
--- CHECK-NEXT:                   (token .arrow)
--- CHECK-NEXT:                   (applicationExpr
--- CHECK-NEXT:                     (applicationExprList
--- CHECK-NEXT:                       (typeBasicExpr
--- CHECK-NEXT:                         (token .typeKeyword))
--- CHECK-NEXT:                       (namedBasicExpr
--- CHECK-NEXT:                         (qualifiedName
--- CHECK-NEXT:                           (qualifiedNamePiece
--- CHECK-NEXT:                             (token .identifier("j")))))))))
--- CHECK-NEXT:               (token .rightBrace))
--- CHECK-NEXT:             (implicitTypedParameter
--- CHECK-NEXT:               (token .leftBrace)
--- CHECK-NEXT:               (ascription
--- CHECK-NEXT:                 (identifierList
--- CHECK-NEXT:                   (token .identifier("C")))
--- CHECK-NEXT:                 (token .colon)
--- CHECK-NEXT:                 (typedParameterArrowExpr
--- CHECK-NEXT:                   (typedParameterList
--- CHECK-NEXT:                     (explicitTypedParameter
--- CHECK-NEXT:                       (token .leftParen)
--- CHECK-NEXT:                       (ascription
--- CHECK-NEXT:                         (identifierList
--- CHECK-NEXT:                           (token .identifier("a")))
--- CHECK-NEXT:                         (token .colon)
--- CHECK-NEXT:                         (namedBasicExpr
--- CHECK-NEXT:                           (qualifiedName
--- CHECK-NEXT:                             (qualifiedNamePiece
--- CHECK-NEXT:                               (token .identifier("A"))))))
--- CHECK-NEXT:                       (token .rightParen)))
--- CHECK-NEXT:                   (token .arrow)
--- CHECK-NEXT:                   (basicExprListArrowExpr
--- CHECK-NEXT:                     (basicExprList
--- CHECK-NEXT:                       (namedBasicExpr
--- CHECK-NEXT:                         (qualifiedName
--- CHECK-NEXT:                           (qualifiedNamePiece
--- CHECK-NEXT:                             (token .identifier("B")))))
--- CHECK-NEXT:                       (namedBasicExpr
--- CHECK-NEXT:                         (qualifiedName
--- CHECK-NEXT:                           (qualifiedNamePiece
--- CHECK-NEXT:                             (token .identifier("a"))))))
--- CHECK-NEXT:                     (token .arrow)
--- CHECK-NEXT:                     (applicationExpr
--- CHECK-NEXT:                       (applicationExprList
--- CHECK-NEXT:                         (typeBasicExpr
--- CHECK-NEXT:                           (token .typeKeyword))
--- CHECK-NEXT:                         (namedBasicExpr
--- CHECK-NEXT:                           (qualifiedName
--- CHECK-NEXT:                             (qualifiedNamePiece
--- CHECK-NEXT:                               (token .identifier("k"))))))))))
--- CHECK-NEXT:               (token .rightBrace)))
--- CHECK-NEXT:           (token .arrow)
--- CHECK-NEXT:           (typedParameterArrowExpr
--- CHECK-NEXT:             (typedParameterList
--- CHECK-NEXT:               (explicitTypedParameter
--- CHECK-NEXT:                 (token .leftParen)
--- CHECK-NEXT:                 (ascription
--- CHECK-NEXT:                   (identifierList
--- CHECK-NEXT:                     (token .identifier("f")))
--- CHECK-NEXT:                   (token .colon)
--- CHECK-NEXT:                   (typedParameterArrowExpr
--- CHECK-NEXT:                     (typedParameterList
--- CHECK-NEXT:                       (implicitTypedParameter
--- CHECK-NEXT:                         (token .leftBrace)
--- CHECK-NEXT:                         (ascription
--- CHECK-NEXT:                           (identifierList
--- CHECK-NEXT:                             (token .identifier("a")))
--- CHECK-NEXT:                           (token .colon)
--- CHECK-NEXT:                           (namedBasicExpr
--- CHECK-NEXT:                             (qualifiedName
--- CHECK-NEXT:                               (qualifiedNamePiece
--- CHECK-NEXT:                                 (token .identifier("A"))))))
--- CHECK-NEXT:                         (token .rightBrace))
--- CHECK-NEXT:                       (explicitTypedParameter
--- CHECK-NEXT:                         (token .leftParen)
--- CHECK-NEXT:                         (ascription
--- CHECK-NEXT:                           (identifierList
--- CHECK-NEXT:                             (token .identifier("b")))
--- CHECK-NEXT:                           (token .colon)
--- CHECK-NEXT:                           (applicationExpr
--- CHECK-NEXT:                             (applicationExprList
--- CHECK-NEXT:                               (namedBasicExpr
--- CHECK-NEXT:                                 (qualifiedName
--- CHECK-NEXT:                                   (qualifiedNamePiece
--- CHECK-NEXT:                                     (token .identifier("B")))))
--- CHECK-NEXT:                               (namedBasicExpr
--- CHECK-NEXT:                                 (qualifiedName
--- CHECK-NEXT:                                   (qualifiedNamePiece
--- CHECK-NEXT:                                     (token .identifier("a"))))))))
--- CHECK-NEXT:                         (token .rightParen)))
--- CHECK-NEXT:                     (token .arrow)
--- CHECK-NEXT:                     (applicationExpr
--- CHECK-NEXT:                       (applicationExprList
--- CHECK-NEXT:                         (namedBasicExpr
--- CHECK-NEXT:                           (qualifiedName
--- CHECK-NEXT:                             (qualifiedNamePiece
--- CHECK-NEXT:                               (token .identifier("C")))))
--- CHECK-NEXT:                         (namedBasicExpr
--- CHECK-NEXT:                           (qualifiedName
--- CHECK-NEXT:                             (qualifiedNamePiece
--- CHECK-NEXT:                               (token .identifier("a")))))
--- CHECK-NEXT:                         (namedBasicExpr
--- CHECK-NEXT:                           (qualifiedName
--- CHECK-NEXT:                             (qualifiedNamePiece
--- CHECK-NEXT:                               (token .identifier("b")))))))))
--- CHECK-NEXT:                 (token .rightParen)))
--- CHECK-NEXT:             (token .arrow)
--- CHECK-NEXT:             (typedParameterArrowExpr
--- CHECK-NEXT:               (typedParameterList
--- CHECK-NEXT:                 (explicitTypedParameter
--- CHECK-NEXT:                   (token .leftParen)
--- CHECK-NEXT:                   (ascription
--- CHECK-NEXT:                     (identifierList
--- CHECK-NEXT:                       (token .identifier("g")))
--- CHECK-NEXT:                     (token .colon)
--- CHECK-NEXT:                     (typedParameterArrowExpr
--- CHECK-NEXT:                       (typedParameterList
--- CHECK-NEXT:                         (explicitTypedParameter
--- CHECK-NEXT:                           (token .leftParen)
--- CHECK-NEXT:                           (ascription
--- CHECK-NEXT:                             (identifierList
--- CHECK-NEXT:                               (token .identifier("a")))
--- CHECK-NEXT:                             (token .colon)
--- CHECK-NEXT:                             (namedBasicExpr
--- CHECK-NEXT:                               (qualifiedName
--- CHECK-NEXT:                                 (qualifiedNamePiece
--- CHECK-NEXT:                                   (token .identifier("A"))))))
--- CHECK-NEXT:                           (token .rightParen)))
--- CHECK-NEXT:                       (token .arrow)
--- CHECK-NEXT:                       (applicationExpr
--- CHECK-NEXT:                         (applicationExprList
--- CHECK-NEXT:                           (namedBasicExpr
--- CHECK-NEXT:                             (qualifiedName
--- CHECK-NEXT:                               (qualifiedNamePiece
--- CHECK-NEXT:                                 (token .identifier("B")))))
--- CHECK-NEXT:                           (namedBasicExpr
--- CHECK-NEXT:                             (qualifiedName
--- CHECK-NEXT:                               (qualifiedNamePiece
--- CHECK-NEXT:                                 (token .identifier("a")))))))))
--- CHECK-NEXT:                   (token .rightParen)))
--- CHECK-NEXT:               (token .arrow)
--- CHECK-NEXT:               (typedParameterArrowExpr
--- CHECK-NEXT:                 (typedParameterList
--- CHECK-NEXT:                   (explicitTypedParameter
--- CHECK-NEXT:                     (token .leftParen)
--- CHECK-NEXT:                     (ascription
--- CHECK-NEXT:                       (identifierList
--- CHECK-NEXT:                         (token .identifier("a")))
--- CHECK-NEXT:                       (token .colon)
--- CHECK-NEXT:                       (namedBasicExpr
--- CHECK-NEXT:                         (qualifiedName
--- CHECK-NEXT:                           (qualifiedNamePiece
--- CHECK-NEXT:                             (token .identifier("A"))))))
--- CHECK-NEXT:                     (token .rightParen)))
--- CHECK-NEXT:                 (token .arrow)
--- CHECK-NEXT:                 (applicationExpr
--- CHECK-NEXT:                   (applicationExprList
--- CHECK-NEXT:                     (namedBasicExpr
--- CHECK-NEXT:                       (qualifiedName
--- CHECK-NEXT:                         (qualifiedNamePiece
--- CHECK-NEXT:                           (token .identifier("C")))))
--- CHECK-NEXT:                     (namedBasicExpr
--- CHECK-NEXT:                       (qualifiedName
--- CHECK-NEXT:                         (qualifiedNamePiece
--- CHECK-NEXT:                           (token .identifier("a")))))
--- CHECK-NEXT:                     (parenthesizedExpr
--- CHECK-NEXT:                       (token .leftParen)
--- CHECK-NEXT:                       (applicationExpr
--- CHECK-NEXT:                         (applicationExprList
--- CHECK-NEXT:                           (namedBasicExpr
--- CHECK-NEXT:                             (qualifiedName
--- CHECK-NEXT:                               (qualifiedNamePiece
--- CHECK-NEXT:                                 (token .identifier("g")))))
--- CHECK-NEXT:                           (namedBasicExpr
--- CHECK-NEXT:                             (qualifiedName
--- CHECK-NEXT:                               (qualifiedNamePiece
--- CHECK-NEXT:                                 (token .identifier("a")))))))
--- CHECK-NEXT:                       (token .rightParen)))))))))
--- CHECK-NEXT:       (functionClauseList
--- CHECK-NEXT:         (normalFunctionClause
--- CHECK-NEXT:           (token .identifier("f"))
--- CHECK-NEXT:           (patternClauseList
--- CHECK-NEXT:             (applicationExpr
--- CHECK-NEXT:               (applicationExprList
--- CHECK-NEXT:                 (namedBasicExpr
--- CHECK-NEXT:                   (qualifiedName
--- CHECK-NEXT:                     (qualifiedNamePiece
--- CHECK-NEXT:                       (token .identifier("o")))))
--- CHECK-NEXT:                 (namedBasicExpr
--- CHECK-NEXT:                   (qualifiedName
--- CHECK-NEXT:                     (qualifiedNamePiece
--- CHECK-NEXT:                       (token .identifier("g"))))))))
--- CHECK-NEXT:           (token .equals)
--- CHECK-NEXT:           (lambdaExpr
--- CHECK-NEXT:             (token .forwardSlash)
--- CHECK-NEXT:             (bindingList
--- CHECK-NEXT:               (namedBinding
--- CHECK-NEXT:                 (qualifiedName
--- CHECK-NEXT:                   (qualifiedNamePiece
--- CHECK-NEXT:                     (token .identifier("a"))))))
--- CHECK-NEXT:             (token .arrow)
--- CHECK-NEXT:             (applicationExpr
--- CHECK-NEXT:               (applicationExprList
--- CHECK-NEXT:                 (namedBasicExpr
--- CHECK-NEXT:                   (qualifiedName
--- CHECK-NEXT:                     (qualifiedNamePiece
--- CHECK-NEXT:                       (token .identifier("f")))))
--- CHECK-NEXT:                 (parenthesizedExpr
--- CHECK-NEXT:                   (token .leftParen)
--- CHECK-NEXT:                   (applicationExpr
--- CHECK-NEXT:                     (applicationExprList
--- CHECK-NEXT:                       (namedBasicExpr
--- CHECK-NEXT:                         (qualifiedName
--- CHECK-NEXT:                           (qualifiedNamePiece
--- CHECK-NEXT:                             (token .identifier("g")))))
--- CHECK-NEXT:                       (namedBasicExpr
--- CHECK-NEXT:                         (qualifiedName
--- CHECK-NEXT:                           (qualifiedNamePiece
--- CHECK-NEXT:                             (token .identifier("a")))))))
--- CHECK-NEXT:                   (token .rightParen))))))))))
-
+//CHECK: (moduleDecl basics.silt:2:0
+//CHECK-NEXT:   (moduleKeyword basics.silt:2:0)
+//CHECK-NEXT:   (qualifiedName basics.silt:2:7
+//CHECK-NEXT:     (qualifiedNamePiece basics.silt:2:7
+//CHECK-NEXT:       (identifier "Basics" basics.silt:2:7)))
+//CHECK-NEXT:   (typedParameterList)
+//CHECK-NEXT:   (whereKeyword basics.silt:2:14)
+//CHECK-NEXT:   (declList basics.silt:4:0
+//CHECK-NEXT:     (functionDecl basics.silt:4:0
+//CHECK-NEXT:       (ascription basics.silt:4:0
+//CHECK-NEXT:         (identifierList basics.silt:4:0
+//CHECK-NEXT:           (identifier "id" basics.silt:4:0))
+//CHECK-NEXT:         (colon basics.silt:4:3)
+//CHECK-NEXT:         (quantifiedExpr basics.silt:4:5
+//CHECK-NEXT:           (forallKeyword basics.silt:4:5)
+//CHECK-NEXT:           (typedParameterList basics.silt:4:12
+//CHECK-NEXT:             (implicitTypedParameter basics.silt:4:12
+//CHECK-NEXT:               (leftBrace basics.silt:4:12)
+//CHECK-NEXT:               (ascription basics.silt:4:13
+//CHECK-NEXT:                 (identifierList basics.silt:4:13
+//CHECK-NEXT:                   (identifier "k" basics.silt:4:13))
+//CHECK-NEXT:                 (colon basics.silt:4:15)
+//CHECK-NEXT:                 (namedBasicExpr basics.silt:4:17
+//CHECK-NEXT:                   (qualifiedName basics.silt:4:17
+//CHECK-NEXT:                     (qualifiedNamePiece basics.silt:4:17
+//CHECK-NEXT:                       (identifier "Level" basics.silt:4:17)))))
+//CHECK-NEXT:               (rightBrace basics.silt:4:22))
+//CHECK-NEXT:             (implicitTypedParameter basics.silt:4:24
+//CHECK-NEXT:               (leftBrace basics.silt:4:24)
+//CHECK-NEXT:               (ascription basics.silt:4:25
+//CHECK-NEXT:                 (identifierList basics.silt:4:25
+//CHECK-NEXT:                   (identifier "X" basics.silt:4:25))
+//CHECK-NEXT:                 (colon basics.silt:4:27)
+//CHECK-NEXT:                 (applicationExpr basics.silt:4:29
+//CHECK-NEXT:                   (applicationExprList basics.silt:4:29
+//CHECK-NEXT:                     (typeBasicExpr basics.silt:4:29
+//CHECK-NEXT:                       (typeKeyword basics.silt:4:29))
+//CHECK-NEXT:                     (namedBasicExpr basics.silt:4:34
+//CHECK-NEXT:                       (qualifiedName basics.silt:4:34
+//CHECK-NEXT:                         (qualifiedNamePiece basics.silt:4:34
+//CHECK-NEXT:                           (identifier "k" basics.silt:4:34)))))))
+//CHECK-NEXT:               (rightBrace basics.silt:4:35)))
+//CHECK-NEXT:           (arrow basics.silt:4:37)
+//CHECK-NEXT:           (basicExprListArrowExpr basics.silt:4:40
+//CHECK-NEXT:             (basicExprList basics.silt:4:40
+//CHECK-NEXT:               (namedBasicExpr basics.silt:4:40
+//CHECK-NEXT:                 (qualifiedName basics.silt:4:40
+//CHECK-NEXT:                   (qualifiedNamePiece basics.silt:4:40
+//CHECK-NEXT:                     (identifier "X" basics.silt:4:40)))))
+//CHECK-NEXT:             (arrow basics.silt:4:42)
+//CHECK-NEXT:             (namedBasicExpr basics.silt:4:45
+//CHECK-NEXT:               (qualifiedName basics.silt:4:45
+//CHECK-NEXT:                 (qualifiedNamePiece basics.silt:4:45
+//CHECK-NEXT:                   (identifier "X" basics.silt:4:45)))))))
+//CHECK-NEXT:       (functionClauseList basics.silt:5:0
+//CHECK-NEXT:         (normalFunctionClause basics.silt:5:0
+//CHECK-NEXT:           (identifier "id" basics.silt:5:0)
+//CHECK-NEXT:           (patternClauseList basics.silt:5:3
+//CHECK-NEXT:             (namedBasicExpr basics.silt:5:3
+//CHECK-NEXT:               (qualifiedName basics.silt:5:3
+//CHECK-NEXT:                 (qualifiedNamePiece basics.silt:5:3
+//CHECK-NEXT:                   (identifier "x" basics.silt:5:3)))))
+//CHECK-NEXT:           (equals basics.silt:5:5)
+//CHECK-NEXT:           (namedBasicExpr basics.silt:5:7
+//CHECK-NEXT:             (qualifiedName basics.silt:5:7
+//CHECK-NEXT:               (qualifiedNamePiece basics.silt:5:7
+//CHECK-NEXT:                 (identifier "x" basics.silt:5:7)))))))
+//CHECK-NEXT:     (functionDecl basics.silt:7:0
+//CHECK-NEXT:       (ascription basics.silt:7:0
+//CHECK-NEXT:         (identifierList basics.silt:7:0
+//CHECK-NEXT:           (identifier "flip" basics.silt:7:0))
+//CHECK-NEXT:         (colon basics.silt:7:5)
+//CHECK-NEXT:         (quantifiedExpr basics.silt:7:7
+//CHECK-NEXT:           (forallKeyword basics.silt:7:7)
+//CHECK-NEXT:           (typedParameterList basics.silt:7:14
+//CHECK-NEXT:             (implicitTypedParameter basics.silt:7:14
+//CHECK-NEXT:               (leftBrace basics.silt:7:14)
+//CHECK-NEXT:               (ascription basics.silt:7:15
+//CHECK-NEXT:                 (identifierList basics.silt:7:15
+//CHECK-NEXT:                   (identifier "a" basics.silt:7:15)
+//CHECK-NEXT:                   (identifier "b" basics.silt:7:17)
+//CHECK-NEXT:                   (identifier "c" basics.silt:7:19))
+//CHECK-NEXT:                 (colon basics.silt:7:21)
+//CHECK-NEXT:                 (namedBasicExpr basics.silt:7:23
+//CHECK-NEXT:                   (qualifiedName basics.silt:7:23
+//CHECK-NEXT:                     (qualifiedNamePiece basics.silt:7:23
+//CHECK-NEXT:                       (identifier "Level" basics.silt:7:23)))))
+//CHECK-NEXT:               (rightBrace basics.silt:7:28))
+//CHECK-NEXT:             (implicitTypedParameter basics.silt:7:30
+//CHECK-NEXT:               (leftBrace basics.silt:7:30)
+//CHECK-NEXT:               (ascription basics.silt:7:31
+//CHECK-NEXT:                 (identifierList basics.silt:7:31
+//CHECK-NEXT:                   (identifier "A" basics.silt:7:31))
+//CHECK-NEXT:                 (colon basics.silt:7:33)
+//CHECK-NEXT:                 (applicationExpr basics.silt:7:35
+//CHECK-NEXT:                   (applicationExprList basics.silt:7:35
+//CHECK-NEXT:                     (typeBasicExpr basics.silt:7:35
+//CHECK-NEXT:                       (typeKeyword basics.silt:7:35))
+//CHECK-NEXT:                     (namedBasicExpr basics.silt:7:40
+//CHECK-NEXT:                       (qualifiedName basics.silt:7:40
+//CHECK-NEXT:                         (qualifiedNamePiece basics.silt:7:40
+//CHECK-NEXT:                           (identifier "a" basics.silt:7:40)))))))
+//CHECK-NEXT:               (rightBrace basics.silt:7:41))
+//CHECK-NEXT:             (implicitTypedParameter basics.silt:7:43
+//CHECK-NEXT:               (leftBrace basics.silt:7:43)
+//CHECK-NEXT:               (ascription basics.silt:7:44
+//CHECK-NEXT:                 (identifierList basics.silt:7:44
+//CHECK-NEXT:                   (identifier "B" basics.silt:7:44))
+//CHECK-NEXT:                 (colon basics.silt:7:46)
+//CHECK-NEXT:                 (applicationExpr basics.silt:7:48
+//CHECK-NEXT:                   (applicationExprList basics.silt:7:48
+//CHECK-NEXT:                     (typeBasicExpr basics.silt:7:48
+//CHECK-NEXT:                       (typeKeyword basics.silt:7:48))
+//CHECK-NEXT:                     (namedBasicExpr basics.silt:7:53
+//CHECK-NEXT:                       (qualifiedName basics.silt:7:53
+//CHECK-NEXT:                         (qualifiedNamePiece basics.silt:7:53
+//CHECK-NEXT:                           (identifier "b" basics.silt:7:53)))))))
+//CHECK-NEXT:               (rightBrace basics.silt:7:54))
+//CHECK-NEXT:             (implicitTypedParameter basics.silt:7:56
+//CHECK-NEXT:               (leftBrace basics.silt:7:56)
+//CHECK-NEXT:               (ascription basics.silt:7:57
+//CHECK-NEXT:                 (identifierList basics.silt:7:57
+//CHECK-NEXT:                   (identifier "C" basics.silt:7:57))
+//CHECK-NEXT:                 (colon basics.silt:7:59)
+//CHECK-NEXT:                 (basicExprListArrowExpr basics.silt:7:61
+//CHECK-NEXT:                   (basicExprList basics.silt:7:61
+//CHECK-NEXT:                     (namedBasicExpr basics.silt:7:61
+//CHECK-NEXT:                       (qualifiedName basics.silt:7:61
+//CHECK-NEXT:                         (qualifiedNamePiece basics.silt:7:61
+//CHECK-NEXT:                           (identifier "A" basics.silt:7:61)))))
+//CHECK-NEXT:                   (arrow basics.silt:7:63)
+//CHECK-NEXT:                   (basicExprListArrowExpr basics.silt:7:66
+//CHECK-NEXT:                     (basicExprList basics.silt:7:66
+//CHECK-NEXT:                       (namedBasicExpr basics.silt:7:66
+//CHECK-NEXT:                         (qualifiedName basics.silt:7:66
+//CHECK-NEXT:                           (qualifiedNamePiece basics.silt:7:66
+//CHECK-NEXT:                             (identifier "B" basics.silt:7:66)))))
+//CHECK-NEXT:                     (arrow basics.silt:7:68)
+//CHECK-NEXT:                     (applicationExpr basics.silt:7:71
+//CHECK-NEXT:                       (applicationExprList basics.silt:7:71
+//CHECK-NEXT:                         (typeBasicExpr basics.silt:7:71
+//CHECK-NEXT:                           (typeKeyword basics.silt:7:71))
+//CHECK-NEXT:                         (namedBasicExpr basics.silt:7:76
+//CHECK-NEXT:                           (qualifiedName basics.silt:7:76
+//CHECK-NEXT:                             (qualifiedNamePiece basics.silt:7:76
+//CHECK-NEXT:                               (identifier "c" basics.silt:7:76)))))))))
+//CHECK-NEXT:               (rightBrace basics.silt:7:77)))
+//CHECK-NEXT:           (arrow basics.silt:7:79)
+//CHECK-NEXT:           (basicExprListArrowExpr basics.silt:8:14
+//CHECK-NEXT:             (basicExprList basics.silt:8:14
+//CHECK-NEXT:               (parenthesizedExpr basics.silt:8:14
+//CHECK-NEXT:                 (leftParen basics.silt:8:14)
+//CHECK-NEXT:                 (typedParameterArrowExpr basics.silt:8:15
+//CHECK-NEXT:                   (typedParameterList basics.silt:8:15
+//CHECK-NEXT:                     (explicitTypedParameter basics.silt:8:15
+//CHECK-NEXT:                       (leftParen basics.silt:8:15)
+//CHECK-NEXT:                       (ascription basics.silt:8:16
+//CHECK-NEXT:                         (identifierList basics.silt:8:16
+//CHECK-NEXT:                           (identifier "x" basics.silt:8:16))
+//CHECK-NEXT:                         (colon basics.silt:8:18)
+//CHECK-NEXT:                         (namedBasicExpr basics.silt:8:20
+//CHECK-NEXT:                           (qualifiedName basics.silt:8:20
+//CHECK-NEXT:                             (qualifiedNamePiece basics.silt:8:20
+//CHECK-NEXT:                               (identifier "A" basics.silt:8:20)))))
+//CHECK-NEXT:                       (rightParen basics.silt:8:21))
+//CHECK-NEXT:                     (explicitTypedParameter basics.silt:8:23
+//CHECK-NEXT:                       (leftParen basics.silt:8:23)
+//CHECK-NEXT:                       (ascription basics.silt:8:24
+//CHECK-NEXT:                         (identifierList basics.silt:8:24
+//CHECK-NEXT:                           (identifier "y" basics.silt:8:24))
+//CHECK-NEXT:                         (colon basics.silt:8:26)
+//CHECK-NEXT:                         (namedBasicExpr basics.silt:8:28
+//CHECK-NEXT:                           (qualifiedName basics.silt:8:28
+//CHECK-NEXT:                             (qualifiedNamePiece basics.silt:8:28
+//CHECK-NEXT:                               (identifier "B" basics.silt:8:28)))))
+//CHECK-NEXT:                       (rightParen basics.silt:8:29)))
+//CHECK-NEXT:                   (arrow basics.silt:8:31)
+//CHECK-NEXT:                   (applicationExpr basics.silt:8:34
+//CHECK-NEXT:                     (applicationExprList basics.silt:8:34
+//CHECK-NEXT:                       (namedBasicExpr basics.silt:8:34
+//CHECK-NEXT:                         (qualifiedName basics.silt:8:34
+//CHECK-NEXT:                           (qualifiedNamePiece basics.silt:8:34
+//CHECK-NEXT:                             (identifier "C" basics.silt:8:34))))
+//CHECK-NEXT:                       (namedBasicExpr basics.silt:8:36
+//CHECK-NEXT:                         (qualifiedName basics.silt:8:36
+//CHECK-NEXT:                           (qualifiedNamePiece basics.silt:8:36
+//CHECK-NEXT:                             (identifier "x" basics.silt:8:36))))
+//CHECK-NEXT:                       (namedBasicExpr basics.silt:8:38
+//CHECK-NEXT:                         (qualifiedName basics.silt:8:38
+//CHECK-NEXT:                           (qualifiedNamePiece basics.silt:8:38
+//CHECK-NEXT:                             (identifier "y" basics.silt:8:38)))))))
+//CHECK-NEXT:                 (rightParen basics.silt:8:39)))
+//CHECK-NEXT:             (arrow basics.silt:8:41)
+//CHECK-NEXT:             (parenthesizedExpr basics.silt:8:44
+//CHECK-NEXT:               (leftParen basics.silt:8:44)
+//CHECK-NEXT:               (typedParameterArrowExpr basics.silt:8:45
+//CHECK-NEXT:                 (typedParameterList basics.silt:8:45
+//CHECK-NEXT:                   (explicitTypedParameter basics.silt:8:45
+//CHECK-NEXT:                     (leftParen basics.silt:8:45)
+//CHECK-NEXT:                     (ascription basics.silt:8:46
+//CHECK-NEXT:                       (identifierList basics.silt:8:46
+//CHECK-NEXT:                         (identifier "y" basics.silt:8:46))
+//CHECK-NEXT:                       (colon basics.silt:8:48)
+//CHECK-NEXT:                       (namedBasicExpr basics.silt:8:50
+//CHECK-NEXT:                         (qualifiedName basics.silt:8:50
+//CHECK-NEXT:                           (qualifiedNamePiece basics.silt:8:50
+//CHECK-NEXT:                             (identifier "B" basics.silt:8:50)))))
+//CHECK-NEXT:                     (rightParen basics.silt:8:51))
+//CHECK-NEXT:                   (explicitTypedParameter basics.silt:8:53
+//CHECK-NEXT:                     (leftParen basics.silt:8:53)
+//CHECK-NEXT:                     (ascription basics.silt:8:54
+//CHECK-NEXT:                       (identifierList basics.silt:8:54
+//CHECK-NEXT:                         (identifier "x" basics.silt:8:54))
+//CHECK-NEXT:                       (colon basics.silt:8:56)
+//CHECK-NEXT:                       (namedBasicExpr basics.silt:8:58
+//CHECK-NEXT:                         (qualifiedName basics.silt:8:58
+//CHECK-NEXT:                           (qualifiedNamePiece basics.silt:8:58
+//CHECK-NEXT:                             (identifier "A" basics.silt:8:58)))))
+//CHECK-NEXT:                     (rightParen basics.silt:8:59)))
+//CHECK-NEXT:                 (arrow basics.silt:8:61)
+//CHECK-NEXT:                 (applicationExpr basics.silt:8:64
+//CHECK-NEXT:                   (applicationExprList basics.silt:8:64
+//CHECK-NEXT:                     (namedBasicExpr basics.silt:8:64
+//CHECK-NEXT:                       (qualifiedName basics.silt:8:64
+//CHECK-NEXT:                         (qualifiedNamePiece basics.silt:8:64
+//CHECK-NEXT:                           (identifier "C" basics.silt:8:64))))
+//CHECK-NEXT:                     (namedBasicExpr basics.silt:8:66
+//CHECK-NEXT:                       (qualifiedName basics.silt:8:66
+//CHECK-NEXT:                         (qualifiedNamePiece basics.silt:8:66
+//CHECK-NEXT:                           (identifier "x" basics.silt:8:66))))
+//CHECK-NEXT:                     (namedBasicExpr basics.silt:8:68
+//CHECK-NEXT:                       (qualifiedName basics.silt:8:68
+//CHECK-NEXT:                         (qualifiedNamePiece basics.silt:8:68
+//CHECK-NEXT:                           (identifier "y" basics.silt:8:68)))))))
+//CHECK-NEXT:               (rightParen basics.silt:8:69)))))
+//CHECK-NEXT:       (functionClauseList basics.silt:9:0
+//CHECK-NEXT:         (normalFunctionClause basics.silt:9:0
+//CHECK-NEXT:           (identifier "flip" basics.silt:9:0)
+//CHECK-NEXT:           (patternClauseList basics.silt:9:5
+//CHECK-NEXT:             (namedBasicExpr basics.silt:9:5
+//CHECK-NEXT:               (qualifiedName basics.silt:9:5
+//CHECK-NEXT:                 (qualifiedNamePiece basics.silt:9:5
+//CHECK-NEXT:                   (identifier "f" basics.silt:9:5)))))
+//CHECK-NEXT:           (equals basics.silt:9:7)
+//CHECK-NEXT:           (lambdaExpr basics.silt:9:9
+//CHECK-NEXT:             (forwardSlash basics.silt:9:9)
+//CHECK-NEXT:             (bindingList basics.silt:9:11
+//CHECK-NEXT:               (namedBinding basics.silt:9:11
+//CHECK-NEXT:                 (qualifiedName basics.silt:9:11
+//CHECK-NEXT:                   (qualifiedNamePiece basics.silt:9:11
+//CHECK-NEXT:                     (identifier "y" basics.silt:9:11))))
+//CHECK-NEXT:               (namedBinding basics.silt:9:13
+//CHECK-NEXT:                 (qualifiedName basics.silt:9:13
+//CHECK-NEXT:                   (qualifiedNamePiece basics.silt:9:13
+//CHECK-NEXT:                     (identifier "x" basics.silt:9:13)))))
+//CHECK-NEXT:             (arrow basics.silt:9:15)
+//CHECK-NEXT:             (applicationExpr basics.silt:9:18
+//CHECK-NEXT:               (applicationExprList basics.silt:9:18
+//CHECK-NEXT:                 (namedBasicExpr basics.silt:9:18
+//CHECK-NEXT:                   (qualifiedName basics.silt:9:18
+//CHECK-NEXT:                     (qualifiedNamePiece basics.silt:9:18
+//CHECK-NEXT:                       (identifier "f" basics.silt:9:18))))
+//CHECK-NEXT:                 (namedBasicExpr basics.silt:9:20
+//CHECK-NEXT:                   (qualifiedName basics.silt:9:20
+//CHECK-NEXT:                     (qualifiedNamePiece basics.silt:9:20
+//CHECK-NEXT:                       (identifier "x" basics.silt:9:20))))
+//CHECK-NEXT:                 (namedBasicExpr basics.silt:9:22
+//CHECK-NEXT:                   (qualifiedName basics.silt:9:22
+//CHECK-NEXT:                     (qualifiedNamePiece basics.silt:9:22
+//CHECK-NEXT:                       (identifier "y" basics.silt:9:22))))))))))
+//CHECK-NEXT:     (functionDecl basics.silt:11:0
+//CHECK-NEXT:       (ascription basics.silt:11:0
+//CHECK-NEXT:         (identifierList basics.silt:11:0
+//CHECK-NEXT:           (underscore basics.silt:11:0)
+//CHECK-NEXT:           (identifier "o" basics.silt:11:2)
+//CHECK-NEXT:           (underscore basics.silt:11:4))
+//CHECK-NEXT:         (colon basics.silt:11:6)
+//CHECK-NEXT:         (quantifiedExpr basics.silt:11:8
+//CHECK-NEXT:           (forallKeyword basics.silt:11:8)
+//CHECK-NEXT:           (typedParameterList basics.silt:11:15
+//CHECK-NEXT:             (implicitTypedParameter basics.silt:11:15
+//CHECK-NEXT:               (leftBrace basics.silt:11:15)
+//CHECK-NEXT:               (ascription basics.silt:11:16
+//CHECK-NEXT:                 (identifierList basics.silt:11:16
+//CHECK-NEXT:                   (identifier "i" basics.silt:11:16)
+//CHECK-NEXT:                   (identifier "j" basics.silt:11:18)
+//CHECK-NEXT:                   (identifier "k" basics.silt:11:20))
+//CHECK-NEXT:                 (colon basics.silt:11:22)
+//CHECK-NEXT:                 (namedBasicExpr basics.silt:11:24
+//CHECK-NEXT:                   (qualifiedName basics.silt:11:24
+//CHECK-NEXT:                     (qualifiedNamePiece basics.silt:11:24
+//CHECK-NEXT:                       (identifier "Level" basics.silt:11:24)))))
+//CHECK-NEXT:               (rightBrace basics.silt:11:29))
+//CHECK-NEXT:             (implicitTypedParameter basics.silt:12:15
+//CHECK-NEXT:               (leftBrace basics.silt:12:15)
+//CHECK-NEXT:               (ascription basics.silt:12:16
+//CHECK-NEXT:                 (identifierList basics.silt:12:16
+//CHECK-NEXT:                   (identifier "A" basics.silt:12:16))
+//CHECK-NEXT:                 (colon basics.silt:12:18)
+//CHECK-NEXT:                 (applicationExpr basics.silt:12:20
+//CHECK-NEXT:                   (applicationExprList basics.silt:12:20
+//CHECK-NEXT:                     (typeBasicExpr basics.silt:12:20
+//CHECK-NEXT:                       (typeKeyword basics.silt:12:20))
+//CHECK-NEXT:                     (namedBasicExpr basics.silt:12:25
+//CHECK-NEXT:                       (qualifiedName basics.silt:12:25
+//CHECK-NEXT:                         (qualifiedNamePiece basics.silt:12:25
+//CHECK-NEXT:                           (identifier "i" basics.silt:12:25)))))))
+//CHECK-NEXT:               (rightBrace basics.silt:12:26))
+//CHECK-NEXT:             (implicitTypedParameter basics.silt:12:27
+//CHECK-NEXT:               (leftBrace basics.silt:12:27)
+//CHECK-NEXT:               (ascription basics.silt:12:28
+//CHECK-NEXT:                 (identifierList basics.silt:12:28
+//CHECK-NEXT:                   (identifier "B" basics.silt:12:28))
+//CHECK-NEXT:                 (colon basics.silt:12:30)
+//CHECK-NEXT:                 (basicExprListArrowExpr basics.silt:12:32
+//CHECK-NEXT:                   (basicExprList basics.silt:12:32
+//CHECK-NEXT:                     (namedBasicExpr basics.silt:12:32
+//CHECK-NEXT:                       (qualifiedName basics.silt:12:32
+//CHECK-NEXT:                         (qualifiedNamePiece basics.silt:12:32
+//CHECK-NEXT:                           (identifier "A" basics.silt:12:32)))))
+//CHECK-NEXT:                   (arrow basics.silt:12:34)
+//CHECK-NEXT:                   (applicationExpr basics.silt:12:37
+//CHECK-NEXT:                     (applicationExprList basics.silt:12:37
+//CHECK-NEXT:                       (typeBasicExpr basics.silt:12:37
+//CHECK-NEXT:                         (typeKeyword basics.silt:12:37))
+//CHECK-NEXT:                       (namedBasicExpr basics.silt:12:42
+//CHECK-NEXT:                         (qualifiedName basics.silt:12:42
+//CHECK-NEXT:                           (qualifiedNamePiece basics.silt:12:42
+//CHECK-NEXT:                             (identifier "j" basics.silt:12:42))))))))
+//CHECK-NEXT:               (rightBrace basics.silt:12:43))
+//CHECK-NEXT:             (implicitTypedParameter basics.silt:12:44
+//CHECK-NEXT:               (leftBrace basics.silt:12:44)
+//CHECK-NEXT:               (ascription basics.silt:12:45
+//CHECK-NEXT:                 (identifierList basics.silt:12:45
+//CHECK-NEXT:                   (identifier "C" basics.silt:12:45))
+//CHECK-NEXT:                 (colon basics.silt:12:47)
+//CHECK-NEXT:                 (typedParameterArrowExpr basics.silt:12:49
+//CHECK-NEXT:                   (typedParameterList basics.silt:12:49
+//CHECK-NEXT:                     (explicitTypedParameter basics.silt:12:49
+//CHECK-NEXT:                       (leftParen basics.silt:12:49)
+//CHECK-NEXT:                       (ascription basics.silt:12:50
+//CHECK-NEXT:                         (identifierList basics.silt:12:50
+//CHECK-NEXT:                           (identifier "a" basics.silt:12:50))
+//CHECK-NEXT:                         (colon basics.silt:12:52)
+//CHECK-NEXT:                         (namedBasicExpr basics.silt:12:54
+//CHECK-NEXT:                           (qualifiedName basics.silt:12:54
+//CHECK-NEXT:                             (qualifiedNamePiece basics.silt:12:54
+//CHECK-NEXT:                               (identifier "A" basics.silt:12:54)))))
+//CHECK-NEXT:                       (rightParen basics.silt:12:55)))
+//CHECK-NEXT:                   (arrow basics.silt:12:57)
+//CHECK-NEXT:                   (basicExprListArrowExpr basics.silt:12:60
+//CHECK-NEXT:                     (basicExprList basics.silt:12:60
+//CHECK-NEXT:                       (namedBasicExpr basics.silt:12:60
+//CHECK-NEXT:                         (qualifiedName basics.silt:12:60
+//CHECK-NEXT:                           (qualifiedNamePiece basics.silt:12:60
+//CHECK-NEXT:                             (identifier "B" basics.silt:12:60))))
+//CHECK-NEXT:                       (namedBasicExpr basics.silt:12:62
+//CHECK-NEXT:                         (qualifiedName basics.silt:12:62
+//CHECK-NEXT:                           (qualifiedNamePiece basics.silt:12:62
+//CHECK-NEXT:                             (identifier "a" basics.silt:12:62)))))
+//CHECK-NEXT:                     (arrow basics.silt:12:64)
+//CHECK-NEXT:                     (applicationExpr basics.silt:12:67
+//CHECK-NEXT:                       (applicationExprList basics.silt:12:67
+//CHECK-NEXT:                         (typeBasicExpr basics.silt:12:67
+//CHECK-NEXT:                           (typeKeyword basics.silt:12:67))
+//CHECK-NEXT:                         (namedBasicExpr basics.silt:12:72
+//CHECK-NEXT:                           (qualifiedName basics.silt:12:72
+//CHECK-NEXT:                             (qualifiedNamePiece basics.silt:12:72
+//CHECK-NEXT:                               (identifier "k" basics.silt:12:72)))))))))
+//CHECK-NEXT:               (rightBrace basics.silt:12:73)))
+//CHECK-NEXT:           (arrow basics.silt:12:75)
+//CHECK-NEXT:           (typedParameterArrowExpr basics.silt:13:15
+//CHECK-NEXT:             (typedParameterList basics.silt:13:15
+//CHECK-NEXT:               (explicitTypedParameter basics.silt:13:15
+//CHECK-NEXT:                 (leftParen basics.silt:13:15)
+//CHECK-NEXT:                 (ascription basics.silt:13:16
+//CHECK-NEXT:                   (identifierList basics.silt:13:16
+//CHECK-NEXT:                     (identifier "f" basics.silt:13:16))
+//CHECK-NEXT:                   (colon basics.silt:13:18)
+//CHECK-NEXT:                   (typedParameterArrowExpr basics.silt:13:20
+//CHECK-NEXT:                     (typedParameterList basics.silt:13:20
+//CHECK-NEXT:                       (implicitTypedParameter basics.silt:13:20
+//CHECK-NEXT:                         (leftBrace basics.silt:13:20)
+//CHECK-NEXT:                         (ascription basics.silt:13:21
+//CHECK-NEXT:                           (identifierList basics.silt:13:21
+//CHECK-NEXT:                             (identifier "a" basics.silt:13:21))
+//CHECK-NEXT:                           (colon basics.silt:13:23)
+//CHECK-NEXT:                           (namedBasicExpr basics.silt:13:25
+//CHECK-NEXT:                             (qualifiedName basics.silt:13:25
+//CHECK-NEXT:                               (qualifiedNamePiece basics.silt:13:25
+//CHECK-NEXT:                                 (identifier "A" basics.silt:13:25)))))
+//CHECK-NEXT:                         (rightBrace basics.silt:13:26))
+//CHECK-NEXT:                       (explicitTypedParameter basics.silt:13:27
+//CHECK-NEXT:                         (leftParen basics.silt:13:27)
+//CHECK-NEXT:                         (ascription basics.silt:13:28
+//CHECK-NEXT:                           (identifierList basics.silt:13:28
+//CHECK-NEXT:                             (identifier "b" basics.silt:13:28))
+//CHECK-NEXT:                           (colon basics.silt:13:30)
+//CHECK-NEXT:                           (applicationExpr basics.silt:13:32
+//CHECK-NEXT:                             (applicationExprList basics.silt:13:32
+//CHECK-NEXT:                               (namedBasicExpr basics.silt:13:32
+//CHECK-NEXT:                                 (qualifiedName basics.silt:13:32
+//CHECK-NEXT:                                   (qualifiedNamePiece basics.silt:13:32
+//CHECK-NEXT:                                     (identifier "B" basics.silt:13:32))))
+//CHECK-NEXT:                               (namedBasicExpr basics.silt:13:34
+//CHECK-NEXT:                                 (qualifiedName basics.silt:13:34
+//CHECK-NEXT:                                   (qualifiedNamePiece basics.silt:13:34
+//CHECK-NEXT:                                     (identifier "a" basics.silt:13:34)))))))
+//CHECK-NEXT:                         (rightParen basics.silt:13:35)))
+//CHECK-NEXT:                     (arrow basics.silt:13:37)
+//CHECK-NEXT:                     (applicationExpr basics.silt:13:40
+//CHECK-NEXT:                       (applicationExprList basics.silt:13:40
+//CHECK-NEXT:                         (namedBasicExpr basics.silt:13:40
+//CHECK-NEXT:                           (qualifiedName basics.silt:13:40
+//CHECK-NEXT:                             (qualifiedNamePiece basics.silt:13:40
+//CHECK-NEXT:                               (identifier "C" basics.silt:13:40))))
+//CHECK-NEXT:                         (namedBasicExpr basics.silt:13:42
+//CHECK-NEXT:                           (qualifiedName basics.silt:13:42
+//CHECK-NEXT:                             (qualifiedNamePiece basics.silt:13:42
+//CHECK-NEXT:                               (identifier "a" basics.silt:13:42))))
+//CHECK-NEXT:                         (namedBasicExpr basics.silt:13:44
+//CHECK-NEXT:                           (qualifiedName basics.silt:13:44
+//CHECK-NEXT:                             (qualifiedNamePiece basics.silt:13:44
+//CHECK-NEXT:                               (identifier "b" basics.silt:13:44))))))))
+//CHECK-NEXT:                 (rightParen basics.silt:13:45)))
+//CHECK-NEXT:             (arrow basics.silt:13:47)
+//CHECK-NEXT:             (typedParameterArrowExpr basics.silt:14:15
+//CHECK-NEXT:               (typedParameterList basics.silt:14:15
+//CHECK-NEXT:                 (explicitTypedParameter basics.silt:14:15
+//CHECK-NEXT:                   (leftParen basics.silt:14:15)
+//CHECK-NEXT:                   (ascription basics.silt:14:16
+//CHECK-NEXT:                     (identifierList basics.silt:14:16
+//CHECK-NEXT:                       (identifier "g" basics.silt:14:16))
+//CHECK-NEXT:                     (colon basics.silt:14:18)
+//CHECK-NEXT:                     (typedParameterArrowExpr basics.silt:14:20
+//CHECK-NEXT:                       (typedParameterList basics.silt:14:20
+//CHECK-NEXT:                         (explicitTypedParameter basics.silt:14:20
+//CHECK-NEXT:                           (leftParen basics.silt:14:20)
+//CHECK-NEXT:                           (ascription basics.silt:14:21
+//CHECK-NEXT:                             (identifierList basics.silt:14:21
+//CHECK-NEXT:                               (identifier "a" basics.silt:14:21))
+//CHECK-NEXT:                             (colon basics.silt:14:23)
+//CHECK-NEXT:                             (namedBasicExpr basics.silt:14:25
+//CHECK-NEXT:                               (qualifiedName basics.silt:14:25
+//CHECK-NEXT:                                 (qualifiedNamePiece basics.silt:14:25
+//CHECK-NEXT:                                   (identifier "A" basics.silt:14:25)))))
+//CHECK-NEXT:                           (rightParen basics.silt:14:26)))
+//CHECK-NEXT:                       (arrow basics.silt:14:28)
+//CHECK-NEXT:                       (applicationExpr basics.silt:14:31
+//CHECK-NEXT:                         (applicationExprList basics.silt:14:31
+//CHECK-NEXT:                           (namedBasicExpr basics.silt:14:31
+//CHECK-NEXT:                             (qualifiedName basics.silt:14:31
+//CHECK-NEXT:                               (qualifiedNamePiece basics.silt:14:31
+//CHECK-NEXT:                                 (identifier "B" basics.silt:14:31))))
+//CHECK-NEXT:                           (namedBasicExpr basics.silt:14:33
+//CHECK-NEXT:                             (qualifiedName basics.silt:14:33
+//CHECK-NEXT:                               (qualifiedNamePiece basics.silt:14:33
+//CHECK-NEXT:                                 (identifier "a" basics.silt:14:33))))))))
+//CHECK-NEXT:                   (rightParen basics.silt:14:34)))
+//CHECK-NEXT:               (arrow basics.silt:14:36)
+//CHECK-NEXT:               (typedParameterArrowExpr basics.silt:15:15
+//CHECK-NEXT:                 (typedParameterList basics.silt:15:15
+//CHECK-NEXT:                   (explicitTypedParameter basics.silt:15:15
+//CHECK-NEXT:                     (leftParen basics.silt:15:15)
+//CHECK-NEXT:                     (ascription basics.silt:15:16
+//CHECK-NEXT:                       (identifierList basics.silt:15:16
+//CHECK-NEXT:                         (identifier "a" basics.silt:15:16))
+//CHECK-NEXT:                       (colon basics.silt:15:18)
+//CHECK-NEXT:                       (namedBasicExpr basics.silt:15:20
+//CHECK-NEXT:                         (qualifiedName basics.silt:15:20
+//CHECK-NEXT:                           (qualifiedNamePiece basics.silt:15:20
+//CHECK-NEXT:                             (identifier "A" basics.silt:15:20)))))
+//CHECK-NEXT:                     (rightParen basics.silt:15:21)))
+//CHECK-NEXT:                 (arrow basics.silt:15:23)
+//CHECK-NEXT:                 (applicationExpr basics.silt:15:26
+//CHECK-NEXT:                   (applicationExprList basics.silt:15:26
+//CHECK-NEXT:                     (namedBasicExpr basics.silt:15:26
+//CHECK-NEXT:                       (qualifiedName basics.silt:15:26
+//CHECK-NEXT:                         (qualifiedNamePiece basics.silt:15:26
+//CHECK-NEXT:                           (identifier "C" basics.silt:15:26))))
+//CHECK-NEXT:                     (namedBasicExpr basics.silt:15:28
+//CHECK-NEXT:                       (qualifiedName basics.silt:15:28
+//CHECK-NEXT:                         (qualifiedNamePiece basics.silt:15:28
+//CHECK-NEXT:                           (identifier "a" basics.silt:15:28))))
+//CHECK-NEXT:                     (parenthesizedExpr basics.silt:15:30
+//CHECK-NEXT:                       (leftParen basics.silt:15:30)
+//CHECK-NEXT:                       (applicationExpr basics.silt:15:31
+//CHECK-NEXT:                         (applicationExprList basics.silt:15:31
+//CHECK-NEXT:                           (namedBasicExpr basics.silt:15:31
+//CHECK-NEXT:                             (qualifiedName basics.silt:15:31
+//CHECK-NEXT:                               (qualifiedNamePiece basics.silt:15:31
+//CHECK-NEXT:                                 (identifier "g" basics.silt:15:31))))
+//CHECK-NEXT:                           (namedBasicExpr basics.silt:15:33
+//CHECK-NEXT:                             (qualifiedName basics.silt:15:33
+//CHECK-NEXT:                               (qualifiedNamePiece basics.silt:15:33
+//CHECK-NEXT:                                 (identifier "a" basics.silt:15:33))))))
+//CHECK-NEXT:                       (rightParen basics.silt:15:34)))))))))
+//CHECK-NEXT:       (functionClauseList basics.silt:16:0
+//CHECK-NEXT:         (normalFunctionClause basics.silt:16:0
+//CHECK-NEXT:           (identifier "f" basics.silt:16:0)
+//CHECK-NEXT:           (patternClauseList basics.silt:16:2
+//CHECK-NEXT:             (applicationExpr basics.silt:16:2
+//CHECK-NEXT:               (applicationExprList basics.silt:16:2
+//CHECK-NEXT:                 (namedBasicExpr basics.silt:16:2
+//CHECK-NEXT:                   (qualifiedName basics.silt:16:2
+//CHECK-NEXT:                     (qualifiedNamePiece basics.silt:16:2
+//CHECK-NEXT:                       (identifier "o" basics.silt:16:2))))
+//CHECK-NEXT:                 (namedBasicExpr basics.silt:16:4
+//CHECK-NEXT:                   (qualifiedName basics.silt:16:4
+//CHECK-NEXT:                     (qualifiedNamePiece basics.silt:16:4
+//CHECK-NEXT:                       (identifier "g" basics.silt:16:4)))))))
+//CHECK-NEXT:           (equals basics.silt:16:6)
+//CHECK-NEXT:           (lambdaExpr basics.silt:16:8
+//CHECK-NEXT:             (forwardSlash basics.silt:16:8)
+//CHECK-NEXT:             (bindingList basics.silt:16:10
+//CHECK-NEXT:               (namedBinding basics.silt:16:10
+//CHECK-NEXT:                 (qualifiedName basics.silt:16:10
+//CHECK-NEXT:                   (qualifiedNamePiece basics.silt:16:10
+//CHECK-NEXT:                     (identifier "a" basics.silt:16:10)))))
+//CHECK-NEXT:             (arrow basics.silt:16:12)
+//CHECK-NEXT:             (applicationExpr basics.silt:16:15
+//CHECK-NEXT:               (applicationExprList basics.silt:16:15
+//CHECK-NEXT:                 (namedBasicExpr basics.silt:16:15
+//CHECK-NEXT:                   (qualifiedName basics.silt:16:15
+//CHECK-NEXT:                     (qualifiedNamePiece basics.silt:16:15
+//CHECK-NEXT:                       (identifier "f" basics.silt:16:15))))
+//CHECK-NEXT:                 (parenthesizedExpr basics.silt:16:17
+//CHECK-NEXT:                   (leftParen basics.silt:16:17)
+//CHECK-NEXT:                   (applicationExpr basics.silt:16:18
+//CHECK-NEXT:                     (applicationExprList basics.silt:16:18
+//CHECK-NEXT:                       (namedBasicExpr basics.silt:16:18
+//CHECK-NEXT:                         (qualifiedName basics.silt:16:18
+//CHECK-NEXT:                           (qualifiedNamePiece basics.silt:16:18
+//CHECK-NEXT:                             (identifier "g" basics.silt:16:18))))
+//CHECK-NEXT:                       (namedBasicExpr basics.silt:16:20
+//CHECK-NEXT:                         (qualifiedName basics.silt:16:20
+//CHECK-NEXT:                           (qualifiedNamePiece basics.silt:16:20
+//CHECK-NEXT:                             (identifier "a" basics.silt:16:20))))))
+//CHECK-NEXT:                   (rightParen basics.silt:16:21))))))))))

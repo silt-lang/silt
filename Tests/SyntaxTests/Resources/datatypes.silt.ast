@@ -1,29 +1,28 @@
--- CHECK: (moduleDecl
--- CHECK-NEXT:   (token .moduleKeyword)
--- CHECK-NEXT:   (qualifiedName
--- CHECK-NEXT:     (qualifiedNamePiece
--- CHECK-NEXT:       (token .identifier("DataTypes"))))
--- CHECK-NEXT:   (typedParameterList)
--- CHECK-NEXT:   (token .whereKeyword)
--- CHECK-NEXT:   (declList
--- CHECK-NEXT:     (dataDecl
--- CHECK-NEXT:       (token .dataKeyword)
--- CHECK-NEXT:       (token .identifier("N"))
--- CHECK-NEXT:       (typedParameterList)
--- CHECK-NEXT:       (typeIndices
--- CHECK-NEXT:         (token .colon)
--- CHECK-NEXT:         (typeBasicExpr
--- CHECK-NEXT:           (token .typeKeyword)))
--- CHECK-NEXT:       (token .whereKeyword)
--- CHECK-NEXT:       (constructorList
--- CHECK-NEXT:         (constructorDecl
--- CHECK-NEXT:           (token .pipe)
--- CHECK-NEXT:           (ascription
--- CHECK-NEXT:             (identifierList
--- CHECK-NEXT:               (token .identifier("zero")))
--- CHECK-NEXT:             (token .colon)
--- CHECK-NEXT:             (namedBasicExpr
--- CHECK-NEXT:               (qualifiedName
--- CHECK-NEXT:                 (qualifiedNamePiece
--- CHECK-NEXT:                   (token .identifier("N"))))))
-
+// CHECK: (moduleDecl datatypes.silt:1:1
+// CHECK-NEXT:   (moduleKeyword datatypes.silt:1:1)
+// CHECK-NEXT:   (qualifiedName datatypes.silt:1:8
+// CHECK-NEXT:     (qualifiedNamePiece datatypes.silt:1:8
+// CHECK-NEXT:       (identifier "DataTypes" datatypes.silt:1:8)))
+// CHECK-NEXT:   (typedParameterList)
+// CHECK-NEXT:   (whereKeyword datatypes.silt:1:18)
+// CHECK-NEXT:   (declList datatypes.silt:3:0
+// CHECK-NEXT:     (dataDecl datatypes.silt:3:0
+// CHECK-NEXT:       (dataKeyword datatypes.silt:3:0)
+// CHECK-NEXT:       (identifier "N" datatypes.silt:3:5)
+// CHECK-NEXT:       (typedParameterList)
+// CHECK-NEXT:       (typeIndices datatypes.silt:3:7
+// CHECK-NEXT:         (colon datatypes.silt:3:7)
+// CHECK-NEXT:         (typeBasicExpr datatypes.silt:3:9
+// CHECK-NEXT:           (typeKeyword datatypes.silt:3:9)))
+// CHECK-NEXT:       (whereKeyword datatypes.silt:3:14)
+// CHECK-NEXT:       (constructorList datatypes.silt:4:2
+// CHECK-NEXT:         (constructorDecl datatypes.silt:4:2
+// CHECK-NEXT:           (pipe datatypes.silt:4:2)
+// CHECK-NEXT:           (ascription datatypes.silt:4:4
+// CHECK-NEXT:             (identifierList datatypes.silt:4:4
+// CHECK-NEXT:               (identifier "zero" datatypes.silt:4:4))
+// CHECK-NEXT:             (colon datatypes.silt:4:9)
+// CHECK-NEXT:             (namedBasicExpr datatypes.silt:4:11
+// CHECK-NEXT:               (qualifiedName datatypes.silt:4:11
+// CHECK-NEXT:                 (qualifiedNamePiece datatypes.silt:4:11
+// CHECK-NEXT:                   (identifier "N" datatypes.silt:4:11))))))))))
