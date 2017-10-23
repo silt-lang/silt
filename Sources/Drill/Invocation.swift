@@ -6,9 +6,11 @@
 /// available in the repository.
 
 import Foundation
-import Lithosphere
 import Rainbow
+
+import Lithosphere
 import Crust
+import Moho
 
 extension Diagnostic.Message {
   static let noInputFiles = Diagnostic.Message(.error,
@@ -61,6 +63,13 @@ public struct Invocation {
         if let module = parser.parseTopLevelModule() {
           SyntaxDumper(stream: &stderrStream).dump(module)
         }
+        SyntaxDumper(stream: &stderrStream).dump(parser.parseTopLevelModule()!)
+      case .dump(.scopes):
+//        let layoutTokens = layout(tokens)
+//        let parser = Parser(tokens: layoutTokens)
+//        let module = parser.parseTopLevelModule()!
+//        let binder = NameBinding(topLevel: module, engine: engine)
+        break
       }
     }
   }

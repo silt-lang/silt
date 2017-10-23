@@ -25,6 +25,8 @@ public enum Mode {
     /// The compiler will lex, layout, then parse the source text and print the
     /// file from the token stream including implicit scope marking tokens.
     case shined
+
+    case scopes
   }
   case dump(DumpKind)
   case compile
