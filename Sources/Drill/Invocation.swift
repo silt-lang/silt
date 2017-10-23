@@ -70,6 +70,14 @@ public struct Invocation {
 //        let module = parser.parseTopLevelModule()!
 //        let binder = NameBinding(topLevel: module, engine: engine)
         break
+      case .parseVerify:
+        let layoutTokens = layout(tokens)
+        let parser = Parser(tokens: layoutTokens)
+        _ = parser.parseTopLevelModule()
+        let verifier =
+          try DiagnosticVerifier(file: url,
+                                 producedDiagnostics: engine.diagnostics)
+        verifier.verify()
       }
     }
   }

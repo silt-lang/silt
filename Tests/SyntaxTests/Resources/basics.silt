@@ -1,7 +1,7 @@
 -- A type
 module Basics where
 
-id : forall {k : Level} {X : Type k} -> X -> X
+id : forall {k : Level} {X : Type k} -> X -> X -- expected-error{{nothing}}
 id x = x
 
 flip : forall {a b c : Level} {A : Type a} {B : Type b} {C : A -> B -> Type c} ->

@@ -1,0 +1,4 @@
+module Garbage where
+
+foo : forall {A: Type} A -> B --expected-error{{unexpeted token 'A' (expected '->')}}
+foo = ()

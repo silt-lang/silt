@@ -29,6 +29,7 @@ public enum Mode {
     case scopes
   }
   case dump(DumpKind)
+  case parseVerify
   case compile
 }
 
