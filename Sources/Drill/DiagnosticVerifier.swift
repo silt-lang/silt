@@ -9,58 +9,86 @@ import Foundation
 import Lithosphere
 
 extension Diagnostic.Message {
+  /// A diagnostic was produced that did not have an associated expectation.
   static func unexpectedDiagnostic(
     _ diagnostic: Diagnostic.Message) -> Diagnostic.Message {
     return .init(.error,
       "unexpected \(diagnostic.severity) produced: '\(diagnostic.text)'")
   }
+
+  /// An expected diagnostic was never raised.
   static func diagnosticNotRaised(
     _ diagnostic: Diagnostic.Message) -> Diagnostic.Message {
     return .init(.error,
       "\(diagnostic.severity) \"\(diagnostic.text)\" never produced")
   }
-  static func diagnosticWithNoLine(
+
+  /// A diagnostic was raised with no node attached.
+  static func diagnosticWithNoNode(
     _ diagnostic: Diagnostic.Message) -> Diagnostic.Message {
     return .init(.error,
                  "diagnostic '\(diagnostic.text)' found with no location")
   }
 }
 
-/// A regex that matches expected(error|note|warning)
+/// A regex that matches expected(error|note|warning){{message}}, similar to
+/// Swift and Clang's diagnostic verifiers.
 fileprivate let diagRegex = try! NSRegularExpression(pattern:
   "--\\s*expected-(error|note|warning)\\s*\\{\\{(.*)\\}\\}")
 
-final class DiagnosticVerifier {
+/// The DiagnosticVerifier is responsible for parsing diagnostic expectation
+/// comments in a silt file and verifying that the set of diagnostics
+/// produced during the compilation operation exactly matches, with no extras
+/// or omissions, the set of expectation comments.
+///
+/// Expectation comments are written as standard silt comments, i.e.
+public final class DiagnosticVerifier {
+
+  /// Represents a parsed expectation containing a severity, a textual message,
+  /// and the original token to which the comment was attached (for use in the
+  /// final diagnostic to point near this comment).
   struct Expectation: Hashable {
     let message: Diagnostic.Message
-    let line: Int
+    let tokenContainingComment: Syntax
 
+    /// Compares two expectations to ensure they're the same.
     static func ==(lhs: Expectation, rhs: Expectation) -> Bool {
       return lhs.message.text == rhs.message.text &&
              lhs.message.severity == rhs.message.severity &&
-             lhs.line == rhs.line
+             lhs.tokenContainingComment.startLoc?.line ==
+               rhs.tokenContainingComment.startLoc?.line
     }
 
     var hashValue: Int {
       return message.text.hashValue ^
-             message.severity.rawValue.hashValue ^
-             line.hashValue
+             message.severity.rawValue.hashValue
     }
   }
-  let expectedDiagnostics: Set<Expectation>
-  let producedDiagnostics: [Diagnostic]
-  let engine = DiagnosticEngine()
 
-  init(file: URL, producedDiagnostics: [Diagnostic]) throws {
-    self.engine.register(PrintingDiagnosticConsumer(stream: &stderrStream))
-    let lines = try String(contentsOf: file).split(separator: "\n")
-                                            .map(String.init)
+  /// The set of expected-{severity} comments in the file.
+  let expectedDiagnostics: Set<Expectation>
+
+  /// The set of diagnostics that have been parsed.
+  let producedDiagnostics: [Diagnostic]
+
+  /// The temporary diagnostic engine into which we'll be pushing diagnostics
+  /// for verification errors.
+  let engine: DiagnosticEngine = {
+    let e = DiagnosticEngine()
+    e.register(PrintingDiagnosticConsumer(stream: &stderrStream))
+    return e
+  }()
+
+  /// Creates a diagnostic verifier that uses the provided token stream and
+  /// set of produced diagnostics to find and verify the set of expectations
+  /// in the original file.
+  public init(tokens: [TokenSyntax], producedDiagnostics: [Diagnostic]) throws {
     self.producedDiagnostics = producedDiagnostics
     self.expectedDiagnostics =
-      DiagnosticVerifier.parseDiagnostics(lines, engine: self.engine)
+      DiagnosticVerifier.parseExpectations(tokens, engine: self.engine)
   }
 
-  func verify() {
+  public func verify() {
     // Keep a list of expectations we haven't matched yet.
     var unmatchedExpectations = expectedDiagnostics
 
@@ -68,15 +96,18 @@ final class DiagnosticVerifier {
     for diagnostic in producedDiagnostics {
 
       // Expectations require a line.
-      guard let line = diagnostic.node?.startLoc?.line else {
-        engine.diagnose(.diagnosticWithNoLine(diagnostic.message))
+      guard let node = diagnostic.node else {
+        engine.diagnose(.diagnosticWithNoNode(diagnostic.message))
         continue
       }
-      let expectation = Expectation(message: diagnostic.message, line: line)
+
+      let expectation = Expectation(message: diagnostic.message,
+                                    tokenContainingComment: node)
 
       // Make sure we're expecting this diagnostic.
       guard expectedDiagnostics.contains(expectation) else {
-        engine.diagnose(.unexpectedDiagnostic(diagnostic.message))
+        engine.diagnose(.unexpectedDiagnostic(diagnostic.message),
+                        node: expectation.tokenContainingComment)
         continue
       }
 
@@ -86,27 +117,43 @@ final class DiagnosticVerifier {
 
     // Diagnostics we never saw produced are errors -- make our own error
     // stating that.
-    for expectation in unmatchedExpectations.sorted(by: { $0.line < $1.line }) {
-      engine.diagnose(.diagnosticNotRaised(expectation.message))
+    let expectations = unmatchedExpectations.sorted { a, b in
+      guard let aLine = a.tokenContainingComment.startLoc?.line,
+        let bLine = b.tokenContainingComment.startLoc?.line else {
+          return false
+      }
+      return aLine < bLine
+    }
+    for expectation in expectations {
+      engine.diagnose(.diagnosticNotRaised(expectation.message),
+                      node: expectation.tokenContainingComment)
     }
   }
 
-  static func parseDiagnostics(_ lines: [String],
-                               engine: DiagnosticEngine) -> Set<Expectation> {
+  /// Extracts a list of expectations from the comment trivia inside the
+  /// provided token stream. This provides the set of expectations that the
+  /// real diagnostics will be verified against.
+  private static func parseExpectations(
+    _ tokens: [TokenSyntax], engine: DiagnosticEngine) -> Set<Expectation> {
     var expectations = Set<Expectation>()
-    for (offset, line) in lines.enumerated() {
-      let nsString = NSString(string: line)
-      let range = NSRange(location: 0, length: nsString.length)
-      diagRegex.enumerateMatches(in: line,
-                                 range: range) { result, flags, _ in
-        guard let result = result else { return }
-        let severityRange = result.range(at: 1)
-        let messageRange = result.range(at: 2)
-        let rawSeverity = nsString.substring(with: severityRange)
-        let message = nsString.substring(with: messageRange)
-        let severity = Diagnostic.Message.Severity(rawValue: rawSeverity)!
-        expectations.insert(Expectation(message: .init(severity, message),
-                                        line: offset + 1))
+    for token in tokens {
+      for trivia in token.leadingTrivia + token.trailingTrivia {
+        guard case .comment(let text) = trivia else { continue }
+
+        let nsString = NSString(string: text)
+        let range = NSRange(location: 0, length: nsString.length)
+
+        diagRegex.enumerateMatches(in: text,
+                                   range: range) { result, flags, _ in
+          guard let result = result else { return }
+          let severityRange = result.range(at: 1)
+          let messageRange = result.range(at: 2)
+          let rawSeverity = nsString.substring(with: severityRange)
+          let message = nsString.substring(with: messageRange)
+          let severity = Diagnostic.Message.Severity(rawValue: rawSeverity)!
+          expectations.insert(Expectation(message: .init(severity, message),
+                                          tokenContainingComment: token))
+        }
       }
     }
     return expectations
