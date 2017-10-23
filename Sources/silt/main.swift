@@ -18,7 +18,7 @@ import CommandLineKit
 
 /// Parses the command-line options into an Options struct and a list of file
 /// paths.
-func parseOptions() -> (Options, [String]) {
+func parseOptions() -> (Options, Set<String>) {
   let cli = CommandLineKit.CommandLine()
   let dumpOption =
     EnumOption<Mode.DumpKind>(longFlag: "dump", required: false,
@@ -43,7 +43,8 @@ func parseOptions() -> (Options, [String]) {
   }
 
   return (Options(mode: mode,
-                  colorsEnabled: !disableColors.value), cli.unparsedArguments)
+                  colorsEnabled: !disableColors.value),
+          Set(cli.unparsedArguments))
 }
 
 func main() throws {
