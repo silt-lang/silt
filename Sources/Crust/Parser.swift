@@ -7,8 +7,23 @@
 import Lithosphere
 
 extension Diagnostic.Message {
-  static func unexpectedToken(_ token: TokenSyntax) -> Diagnostic.Message {
-    return .init(.error, "unexpected token '\(token.tokenKind.text)'")
+  static func unexpectedToken(
+    _ token: TokenSyntax, expected: TokenKind? = nil) -> Diagnostic.Message {
+    var msg: String
+    switch token.tokenKind {
+    case .leftBrace where token.isImplicit:
+      msg = "unexpected opening scope"
+    case .rightBrace where token.isImplicit:
+      msg = "unexpected end of scope"
+    case .semicolon where token.isImplicit:
+      msg = "unexpected end of line"
+    default:
+      msg = "unexpected token '\(token.tokenKind.text)'"
+    }
+    if let kind = expected {
+      msg += " (expected '\(kind.text)')"
+    }
+    return .init(.error, msg)
   }
   static let unexpectedEOF =
     Diagnostic.Message(.error, "unexpected end-of-file reached")
@@ -31,12 +46,37 @@ public class Parser {
     return index < tokens.count ? tokens[index] : nil
   }
 
-  func consume(_ kinds: TokenKind...) throws -> TokenSyntax {
-    guard let token = currentToken else {
-      throw engine.diagnose(.unexpectedEOF, node: peekToken(ahead: -1))
+  /// Looks backwards from where we are in the token stream for
+  /// the first non-implicit token to which we can attach a diagnostic.
+  func previousNonImplicitToken() -> TokenSyntax? {
+    var i = 0
+    while let tok = peekToken(ahead: i) {
+      defer { i -= 1 }
+      if tok.isImplicit { continue }
+      return tok
     }
-    guard kinds.index(of: token.tokenKind) != nil else {
-      throw engine.diagnose(.unexpectedToken(token), node: token)
+    return nil
+  }
+
+  func unexpectedToken(expected: TokenKind? = nil) -> Diagnostic.Message {
+    // If we've "unexpected" an implicit token from Shining, highlight
+    // instead the previous token because the diagnostic will say that we've
+    // begun or ended the scope/line.
+    let highlightedToken = previousNonImplicitToken()
+    guard let token = currentToken else {
+      return engine.diagnose(.unexpectedEOF, node: highlightedToken)
+    }
+    return engine.diagnose(.unexpectedToken(token, expected: expected),
+                           node: highlightedToken) {
+      if let tok = highlightedToken {
+        $0.highlight(tok)
+      }
+    }
+  }
+
+  func consume(_ kinds: TokenKind...) throws -> TokenSyntax {
+    guard let token = currentToken, kinds.contains(token.tokenKind) else {
+      throw unexpectedToken(expected: kinds.first)
     }
     advance()
     return token
@@ -71,7 +111,7 @@ extension Parser {
 extension Parser {
   func parseIdentifierToken() throws -> TokenSyntax {
     guard case .identifier(_) = peek() else {
-      throw engine.diagnose(.unexpectedToken(currentToken!))
+      throw unexpectedToken()
     }
 
     let name = currentToken!
@@ -97,7 +137,7 @@ extension Parser {
 
     // No pieces, no qualified name.
     guard !pieces.isEmpty else {
-      throw engine.diagnose(.expected("name"))
+      throw engine.diagnose(.expected("name"), node: currentToken)
     }
 
     return QualifiedNameSyntax(elements: pieces)
@@ -105,18 +145,13 @@ extension Parser {
 
   func parseIdentifierList() -> IdentifierListSyntax {
     var pieces = [TokenSyntax]()
-<<<<<<< HEAD
-    while let piece = (try? parseIdentifierToken()) ??
-                      (try? consume(.underscore)) {
-      pieces.append(piece)
-=======
-    while true {
+    loop: while true {
       switch peek() {
       case .identifier(_), .underscore:
         pieces.append(currentToken!)
-      default: break
+        advance()
+      default: break loop
       }
->>>>>>> Begin removing backtracking from parser and adding diagnostics
     }
     return IdentifierListSyntax(elements: pieces)
   }
@@ -238,6 +273,7 @@ extension Parser {
   func isStartOfTypedParameter() -> Bool {
     return [.leftParen, .leftBrace].contains(peek())
   }
+
   func parseTypedParameterList() throws -> TypedParameterListSyntax {
     var pieces = [TypedParameterSyntax]()
     while isStartOfTypedParameter() {
@@ -253,7 +289,7 @@ extension Parser {
     case .leftBrace:
       return try self.parseImplicitTypedParameter()
     default:
-      throw engine.diagnose(.unexpectedToken(currentToken!))
+      throw unexpectedToken()
     }
   }
 
@@ -354,7 +390,7 @@ extension Parser {
     }
 
     guard !pieces.isEmpty else {
-      throw engine.diagnose(.expected("function clause"))
+      throw engine.diagnose(.expected("function clause"), node: currentToken)
     }
     return FunctionClauseListSyntax(elements: pieces)
   }
@@ -390,7 +426,8 @@ extension Parser {
     }
 
     guard !pieces.isEmpty else {
-      throw engine.diagnose(.expected("function clause pattern"))
+      throw engine.diagnose(.expected("function clause pattern"),
+                            node: currentToken)
     }
 
     return PatternClauseListSyntax(elements: pieces)
@@ -410,16 +447,9 @@ extension Parser {
   func parseExpr() throws -> ExprSyntax {
     if isStartOfTypedParameter() {
       return try self.parseTypedParameterArrowExpr()
-<<<<<<< HEAD
-    }, {
-      return try self.parseBasicExprListArrowExpr()
-    }) {
-
-      return expr
-=======
->>>>>>> Begin removing backtracking from parser and adding diagnostics
     }
-    return try self.parseBasicExprListArrowExprSyntax()
+
+    //FIXME: re-enable: return try self.parseBasicExprListArrowExprSyntax()
 
     switch peek() {
     case .forwardSlash:
@@ -432,18 +462,28 @@ extension Parser {
       /// Function applications are one or more expressions in a row.
       let basic = try self.parseBasicExpr()
       if isStartOfBasicExpr() {
-        var exprs = try parseApplicationExprList()
+        var exprs = try parseBasicExprs()
         exprs.insert(basic, at: 0)
-        return ApplicationExprSyntax(exprs:
-          ApplicationExprListSyntax(elements: exprs))
+        let exprList = BasicExprListSyntax(elements: exprs)
+        if case .arrow = peek() {
+          let arrowToken = try consume(.arrow)
+          let outputExpr = try parseExpr()
+          return BasicExprListArrowExprSyntax(
+            exprList: exprList,
+            arrowToken: arrowToken,
+            outputExpr: outputExpr)
+        } else {
+          return ApplicationExprSyntax(exprs: exprList)
+        }
       }
+      return basic
     }
   }
 
   func parseTypedParameterArrowExpr() throws -> TypedParameterArrowExprSyntax {
     let parameters = try parseTypedParameterList()
     guard !parameters.isEmpty else {
-      throw engine.diagnose(.expected("type ascription"))
+      throw engine.diagnose(.expected("type ascription"), node: currentToken)
     }
     let arrow = try consume(.arrow)
     let outputExpr = try parseExpr()
@@ -454,6 +494,7 @@ extension Parser {
     )
   }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
   func parseBasicExprListArrowExpr() throws -> BasicExprListArrowExprSyntax {
 =======
@@ -470,6 +511,8 @@ extension Parser {
     )
   }
 
+=======
+>>>>>>> Got parser building again and improved handling of implicit tokens in diagnostics.
   func parseLambdaExpr() throws -> LambdaExprSyntax {
     let slashTok = try consume(.forwardSlash)
     let bindingList = try parseBindingList()
@@ -508,29 +551,23 @@ extension Parser {
       outputExpr: outputExpr)
   }
 
-  func parseApplicationExprList() throws -> [BasicExprSyntax] {
-    var pieces = [BasicExprSyntax]()
-    while let piece = try? parseBasicExpr() {
-      pieces.append(piece)
-    }
-    guard pieces.count >= 1 else {
-      throw engine.diagnose(.expected("function application"))
-    }
-    return pieces
-  }
-
-  func parseBasicExprList(
-    diagType: String = "expression") throws -> BasicExprListSyntax {
+  func parseBasicExprs(
+    diagType: String = "expression") throws -> [BasicExprSyntax] {
     var pieces = [BasicExprSyntax]()
     while let piece = try? parseBasicExpr() {
       pieces.append(piece)
     }
 
     guard !pieces.isEmpty else {
-      throw engine.diagnose(.expected(diagType))
+      throw engine.diagnose(.expected(diagType), node: currentToken)
     }
+    return pieces
+  }
 
-    return BasicExprListSyntax(elements: pieces)
+  func parseBasicExprList(
+    diagType: String = "expression") throws -> BasicExprListSyntax {
+    return BasicExprListSyntax(elements:
+      try parseBasicExprs(diagType: diagType))
   }
 
   func parseBasicExpr() throws -> BasicExprSyntax {
@@ -546,7 +583,7 @@ extension Parser {
     case .identifier(_):
       return try self.parseNamedBasicExpr()
     default:
-      throw engine.diagnose(.expected("expression"))
+      throw engine.diagnose(.expected("expression"), node: currentToken)
     }
   }
 
@@ -620,14 +657,17 @@ extension Parser {
     }
 
     guard !pieces.isEmpty else {
-      throw engine.diagnose(.expected("binding list"))
+      throw engine.diagnose(.expected("binding list"), node: currentToken)
     }
 
     return BindingListSyntax(elements: pieces)
   }
 
   func parseBinding() throws -> BindingSyntax {
-
+    if isStartOfTypedParameter() {
+      return try parseTypedBinding()
+    }
+    return try parseNamedBinding()
   }
 
   func parseNamedBinding() throws -> NamedBindingSyntax {

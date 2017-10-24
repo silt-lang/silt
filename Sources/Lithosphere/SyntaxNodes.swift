@@ -1225,17 +1225,17 @@ public class ApplicationExprSyntax: ExprSyntax {
     case exprs
   }
 
-  public convenience init(exprs: ApplicationExprListSyntax) {
+  public convenience init(exprs: BasicExprListSyntax) {
     let raw = RawSyntax.node(.applicationExpr, [
       exprs.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
   }
-  public var exprs: ApplicationExprListSyntax {
-    return child(at: Cursor.exprs) as! ApplicationExprListSyntax
+  public var exprs: BasicExprListSyntax {
+    return child(at: Cursor.exprs) as! BasicExprListSyntax
   }
-  public func withExprs(_ syntax: ApplicationExprListSyntax) -> ApplicationExprSyntax {
+  public func withExprs(_ syntax: BasicExprListSyntax) -> ApplicationExprSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.exprs)
     return ApplicationExprSyntax(root: newRoot, data: newData)
   }
@@ -1249,15 +1249,6 @@ public class BasicExprSyntax: ExprSyntax {
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
-  }
-}
-
-public final class ApplicationExprListSyntax: SyntaxCollection<BasicExprSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [BasicExprSyntax]) {
-    super.init(kind: .applicationExprList, elements: elements)
   }
 }
 

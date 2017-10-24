@@ -257,14 +257,12 @@ let syntaxNodes = [
   ]),
 
   Node("ApplicationExpr", kind: "Expr", children: [
-    Child("exprs", kind: "ApplicationExprList")
+    Child("exprs", kind: "BasicExprList")
   ]),
 
   Node("BasicExpr", kind: "Expr", children: []),
 
   // application ::= <basic-expr> <application>
-
-  Node("ApplicationExprList", element: "BasicExpr"),
 
   // binding-list ::= <qualified-name>
   //                | <typed-parameter>
