@@ -57,8 +57,10 @@ public struct Invocation {
         }
       case .dump(.parse):
         let layoutTokens = layout(tokens)
-        let parser = Parser(tokens: layoutTokens)
-        SyntaxDumper(stream: &stderrStream).dump(parser.parseTopLevelModule()!)
+        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
+        if let module = parser.parseTopLevelModule() {
+          SyntaxDumper(stream: &stderrStream).dump(module)
+        }
       }
     }
   }
