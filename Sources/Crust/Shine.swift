@@ -200,17 +200,14 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
     stainlessToks.append(tok)
   }
 
-  if layoutBlockStack.count == 1 {
-    stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
-    stainlessToks.append(TokenSyntax(.rightBrace, leadingTrivia: .newlines(1),
-                                     presence: .implicit))
-  } else {
+  if !layoutBlockStack.isEmpty {
     while let _ = layoutBlockStack.popLast() {
       stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
       stainlessToks.append(TokenSyntax(.rightBrace,
                                        leadingTrivia: .newlines(1),
                                        presence: .implicit))
     }
+    stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
   }
 
 

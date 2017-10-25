@@ -56,8 +56,8 @@ public enum SyntaxKind {
 }
 
 extension Syntax {
-  /// Creates a Syntax node from the provided RawSyntax using the appropriate
-  /// Syntax type, as specified by its kind.
+  /// Creates a Syntax node from the provided RawSyntax using the
+  /// appropriate Syntax type, as specified by its kind.
   /// - Parameters:
   ///   - raw: The raw syntax with which to create this node.
   ///   - root: The root of this tree, or `nil` if the new node is the root.
@@ -66,8 +66,8 @@ extension Syntax {
     return make(root: nil, data: data)
   }
 
-  /// Creates a Syntax node from the provided SyntaxData using the appropriate
-  /// Syntax type, as specified by its kind.
+  /// Creates a Syntax node from the provided SyntaxData using the
+  /// appropriate Syntax type, as specified by its kind.
   /// - Parameters:
   ///   - root: The root of this tree, or `nil` if the new node is the root.
   ///   - data: The data for this new node.

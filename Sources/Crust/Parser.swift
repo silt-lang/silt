@@ -161,7 +161,7 @@ extension Parser {
     let leftBrace = try consume(.leftBrace)
     let declList = parseDeclList()
     let rightBrace = try consume(.rightBrace)
-    let semi = try? consume(.semicolon)
+    let semi = try consume(.semicolon)
     return ModuleDeclSyntax(
       moduleToken: moduleKw,
       moduleIdentifier: moduleId,
