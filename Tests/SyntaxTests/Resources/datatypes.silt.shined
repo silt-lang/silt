@@ -3,5 +3,5 @@
 -- CHECK-NEXT: | zero : N;
 -- CHECK-NEXT: | succ : N -> N
 -- CHECK-NEXT: };
--- CHECK-NEXT: };
+-- CHECK-NEXT: }
 

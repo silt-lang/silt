@@ -33,7 +33,7 @@ let syntaxNodes = [
     Child("leftBraceToken", kind: "LeftBraceToken"),
     Child("declList", kind: "DeclList"),
     Child("rightBraceToken", kind: "RightBraceToken"),
-    Child("trailingSemicolon", kind: "SemicolonToken"),
+    Child("trailingSemicolon", kind: "SemicolonToken", isOptional: true),
   ]),
 
   Node("DeclList", element: "Decl"),

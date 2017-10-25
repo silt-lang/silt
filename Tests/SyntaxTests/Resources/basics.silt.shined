@@ -14,5 +14,5 @@
 -- CHECK-NEXT: (g : (a : A) -> B a) ->
 -- CHECK-NEXT: (a : A) -> C a (g a);
 -- CHECK-NEXT: f o g = \ a -> f (g a);
--- CHECK-NEXT: };
+-- CHECK-NEXT: }
 
