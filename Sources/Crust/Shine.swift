@@ -35,7 +35,7 @@ struct WhitespaceSummary {
   let totals: (Int, Int)
   let hasNewline: Bool
 
-  init(_ t : Trivia) {
+  init(_ t: Trivia) {
     var seq = [Spacer]()
     var spaces = 0
     var tabs = 0
@@ -54,7 +54,6 @@ struct WhitespaceSummary {
         continue
       default:
         newl = true
-        break
       }
       break
     }
@@ -107,7 +106,8 @@ struct WhitespaceSummary {
 
 fileprivate extension TokenSyntax {
   func hasEquivalentLeadingWhitespace(to other: TokenSyntax) -> Bool {
-    guard WhitespaceSummary(self.leadingTrivia).equalTo(WhitespaceSummary(other.leadingTrivia)) else {
+    guard WhitespaceSummary(self.leadingTrivia)
+            .equalTo(WhitespaceSummary(other.leadingTrivia)) else {
       return false
     }
 

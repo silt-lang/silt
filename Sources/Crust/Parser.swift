@@ -121,7 +121,8 @@ extension Parser {
 
   func parseIdentifierList() throws -> IdentifierListSyntax {
     var pieces = [TokenSyntax]()
-    while let piece = (try? parseIdentifierToken()) ?? (try? consume(.underscore)) {
+    while let piece = (try? parseIdentifierToken()) ??
+                      (try? consume(.underscore)) {
       pieces.append(piece)
     }
     return IdentifierListSyntax(elements: pieces)
