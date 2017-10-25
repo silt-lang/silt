@@ -27,6 +27,9 @@ contribution, and we pledge to always treat contributors with the respect they
 deserve. We have adopted the Contributor Covenant as our code of conduct,
 which can be read in this repository.
 
+For more info, and steps for a successful contribution, see the
+[Contribution Guide](.github/CONTRIBUTING.md).
+
 # Authors
 
 Robert Widmann ([@CodaFi](https://github.com/codafi))
