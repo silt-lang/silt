@@ -45,7 +45,7 @@ final class SyntaxData: Equatable {
   ///   - indexInParent: The index in the parent's layout where this node will
   ///                    reside.
   ///   - parent: The parent of this node, or `nil` if this node is the root.
-  required init(raw: RawSyntax, indexInParent: Int = 0, 
+  required init(raw: RawSyntax, indexInParent: Int = 0,
                 parent: SyntaxData? = nil) {
     self.raw = raw
     self.indexInParent = indexInParent
@@ -144,7 +144,7 @@ final class SyntaxData: Equatable {
   /// - Returns: The new root node created by this operation, and the new child
   ///            syntax data.
   /// - SeeAlso: replacingSelf(_:)
-  func replacingChild(_ child: RawSyntax, 
+  func replacingChild(_ child: RawSyntax,
     at index: Int) -> (root: SyntaxData, newValue: SyntaxData) {
     let newRaw = raw.replacingChild(index, with: child)
     return replacingSelf(newRaw)

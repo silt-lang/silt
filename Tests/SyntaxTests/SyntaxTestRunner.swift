@@ -22,33 +22,41 @@ enum Action {
 
 class SyntaxTestRunner: XCTestCase {
   func testSyntax() {
-    // Disable colorized output for testing.
-    Rainbow.enabled = false
-
-    let filesURL = URL(fileURLWithPath: #file).deletingLastPathComponent().appendingPathComponent("Resources")
-    guard let siltFiles = try? FileManager.default.contentsOfDirectory(at: filesURL, includingPropertiesForKeys: nil) else {
-      XCTFail("Could not read silt files in directory")
+    let filesURL = URL(fileURLWithPath: #file)
+      .deletingLastPathComponent()
+      .appendingPathComponent("Resources")
+    let siltFiles: [URL]
+    do {
+        siltFiles = try
+          FileManager.default.contentsOfDirectory(at: filesURL,
+            includingPropertiesForKeys: nil)
+    } catch {
+      XCTFail("Could not read silt files in directory: \(error)")
       return
     }
 
     for file in siltFiles.filter({ $0.pathExtension == "silt" }) {
-      guard let siltFile = try? String(contentsOfFile: file.path, encoding: .utf8) else {
+      guard let siltFile = try? String(contentsOfFile: file.path,
+                                       encoding: .utf8) else {
         XCTFail("Could not read silt file at path \(file.absoluteString)")
         return
       }
 
-      let syntaxFile = file.appendingPathExtension("syntax").path
-      XCTAssert(fileCheckOutput(against: syntaxFile, options: [.disableColors]) {
+      let syntaxFile = file.appendingPathExtension("syntax")
+      XCTAssert(fileCheckOutput(against: syntaxFile.path,
+                                options: [.disableColors]) {
         describe(siltFile, at: file.absoluteString, by: .describingTokens)
       }, "failed while dumping syntax file \(syntaxFile)")
 
-      let astFile = file.appendingPathExtension("ast").path
-      XCTAssert(fileCheckOutput(against: astFile, options: [.disableColors]) {
+      let astFile = file.appendingPathExtension("ast")
+      XCTAssert(fileCheckOutput(against: astFile.path,
+                                options: [.disableColors]) {
         describe(siltFile, at: file.absoluteString, by: .dumpingParse)
       }, "failed while dumping AST file \(astFile)")
 
-      let shineFile = file.appendingPathExtension("shined").path
-      XCTAssert(fileCheckOutput(against: shineFile, options: [.disableColors]) {
+      let shinedFile = file.appendingPathExtension("shined")
+      XCTAssert(fileCheckOutput(against: shinedFile.path,
+                                options: [.disableColors]) {
         describe(siltFile, at: file.absoluteString, by: .dumpingShined)
       }, "failed while dumping Shined file \(shineFile)")
     }

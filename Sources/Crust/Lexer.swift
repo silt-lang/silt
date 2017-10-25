@@ -41,7 +41,8 @@ public class Lexer {
   }
 
   func peek(ahead n: Int = 0) -> Character? {
-    guard let idx = input.index(index, offsetBy: n, limitedBy: input.endIndex) else {
+    guard let idx = input.index(index, offsetBy: n,
+                                limitedBy: input.endIndex) else {
       return nil
     }
     if idx == input.endIndex { return nil }

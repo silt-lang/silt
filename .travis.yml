@@ -11,6 +11,8 @@ matrix:
       script:
         - swiftlint
         - swift test
+        - brew install swiftlint
+        - swiftlint
     - os: linux
       language: generic
       sudo: required

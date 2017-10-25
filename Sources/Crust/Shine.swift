@@ -10,7 +10,7 @@ private enum LayoutBlock {
   case implicit(TokenSyntax)
   case explicit(TokenSyntax)
 
-  var isImplicit : Bool {
+  var isImplicit: Bool {
     switch self {
     case .implicit(_): return true
     default: return false
@@ -58,7 +58,7 @@ fileprivate extension TokenSyntax {
 /// inserting layout markers in the appropriate places.  This ensures that we
 /// have an explicitly-scoped input to the Parser before we even try to do a
 /// Scope Check.
-public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
+public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
   var toks = ts
   if toks.isEmpty {
     toks.append(TokenSyntax(.eof))
@@ -125,7 +125,6 @@ public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
         } else if case let .explicit(lll) = implTop {
           foundExplicit = true
           lastLineLeader = lll
-          break
         }
       }
       assert(foundExplicit,
@@ -142,7 +141,7 @@ public func layout(_ ts : [TokenSyntax]) -> [TokenSyntax] {
     // can't find one.
     //
     // FIXME: This seems wrong in general.
-    func newlineAmongTrivia(_ t : Trivia) -> Bool {
+    func newlineAmongTrivia(_ t: Trivia) -> Bool {
       return t.reduce(false, { (acc, n) in
         switch n {
         case .newlines(_): return true
