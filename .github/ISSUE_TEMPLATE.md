@@ -1,6 +1,6 @@
 ### Version
 
-_Share the git commit hash of the build that you are using. You can find it by running `git rev-parse HEAD` in the framework directory._
+_Share the git commit hash of the build that you are using. You can find it by running `git rev-parse HEAD` in the root of the repository._
 
 ### Environment
 
