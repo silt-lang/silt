@@ -116,16 +116,17 @@ extension SyntaxCollection: Collection {
   public var startIndex: Int {
     return data.childCaches.startIndex
   }
-  
+
   public var endIndex: Int {
     return data.childCaches.endIndex
   }
-  
+
   public func index(after i: Int) -> Int {
     return data.childCaches.index(after: i)
   }
-  
+
   public subscript(_ index: Int) -> SyntaxElement {
+    // swiftlint:disable force_cast
     return child(at: index)! as! SyntaxElement
   }
 }

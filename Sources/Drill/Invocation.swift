@@ -11,16 +11,17 @@ import Rainbow
 import Crust
 
 extension Diagnostic.Message {
-  static let noInputFiles = Diagnostic.Message(.error, "no input files provided")
+  static let noInputFiles = Diagnostic.Message(.error,
+                                               "no input files provided")
 }
 
 public struct Invocation {
   public let options: Options
-  public let sourceFiles: [String]
+  public let sourceFiles: Set<String>
 
-  public init(options: Options, paths: [String]) {
-    self.options = options
-    self.sourceFiles = paths
+  public init(options: Options, paths: Set<String>) {
+      self.options = options
+      self.sourceFiles = paths
   }
 
   public func run() throws {

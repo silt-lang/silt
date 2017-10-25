@@ -9,7 +9,8 @@ import Foundation
 import Lithosphere
 import Rainbow
 
-public final class PrintingDiagnosticConsumer<Target: TextOutputStream>: DiagnosticConsumer {
+public final
+class PrintingDiagnosticConsumer<Target: TextOutputStream>: DiagnosticConsumer {
   private var output: Target
 
   public init(stream: inout Target) {
@@ -40,7 +41,7 @@ public final class PrintingDiagnosticConsumer<Target: TextOutputStream>: Diagnos
   }
 
   public func finalize() {
-    
+
   }
 }
 

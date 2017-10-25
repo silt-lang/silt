@@ -50,7 +50,8 @@ extension TriviaPiece {
   /// Prints the provided trivia as they would be written in a source file.
   ///
   /// - Parameter stream: The stream to which to print the trivia.
-  public func writeSourceText<Target: TextOutputStream>(to target: inout Target) {
+  public func writeSourceText<
+    Target: TextOutputStream>(to target: inout Target) {
     func printRepeated(_ character: String, count: Int) {
       for _ in 0..<count { target.write(character) }
     }
@@ -124,15 +125,15 @@ extension Trivia: Collection {
   public var startIndex: Int {
     return pieces.startIndex
   }
-  
+
   public var endIndex: Int {
     return pieces.endIndex
   }
-  
+
   public func index(after i: Int) -> Int {
     return pieces.index(after: i)
   }
-  
+
   public subscript(_ index: Int) -> TriviaPiece {
     return pieces[index]
   }
@@ -147,6 +148,6 @@ extension Trivia: ExpressibleByArrayLiteral {
 }
 
 /// Concatenates two collections of `Trivia` into one collection.
-public func +(lhs: Trivia, rhs: Trivia) -> Trivia {
+public func + (lhs: Trivia, rhs: Trivia) -> Trivia {
   return Trivia(pieces: lhs.pieces + rhs.pieces)
 }

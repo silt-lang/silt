@@ -67,10 +67,12 @@ public class Parser {
 extension Parser {
   public func parseTopLevelModule() -> ModuleDeclSyntax? {
     let module = try? parseModule()
-    guard let _ = try? consume(.eof) else {
-      return nil
+    do {
+        _ = try consume(.eof)
+        return module
+    } catch {
+        return nil
     }
-    return module
   }
 }
 
@@ -119,7 +121,8 @@ extension Parser {
 
   func parseIdentifierList() throws -> IdentifierListSyntax {
     var pieces = [TokenSyntax]()
-    while let piece = (try? parseIdentifierToken()) ?? (try? consume(.underscore)) {
+    while let piece = (try? parseIdentifierToken()) ??
+                      (try? consume(.underscore)) {
       pieces.append(piece)
     }
     return IdentifierListSyntax(elements: pieces)
@@ -430,7 +433,7 @@ extension Parser {
     if let expr = try? split({
       return try self.parseTypedParameterArrowExpr()
     }, {
-      return try self.parseBasicExprListArrowExprSyntax()
+      return try self.parseBasicExprListArrowExpr()
     }) {
 
       return expr
@@ -466,7 +469,7 @@ extension Parser {
     )
   }
 
-  func parseBasicExprListArrowExprSyntax() throws -> BasicExprListArrowExprSyntax {
+  func parseBasicExprListArrowExpr() throws -> BasicExprListArrowExprSyntax {
     let exprList = try parseBasicExprList()
     let arrow = try consume(.arrow)
     let outputExpr = try parseExpr()

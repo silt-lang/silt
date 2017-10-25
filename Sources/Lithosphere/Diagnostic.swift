@@ -131,8 +131,8 @@ public struct Diagnostic {
     }
   }
 
-  /// Creates a Diagnostic with a given severity and message, attached to a given
-  /// node, highlighting the given nodes, with the given notes.
+  /// Creates a Diagnostic with a given severity and message, attached to a
+  /// given node, highlighting the given nodes, with the given notes.
   ///
   /// - Parameters:
   ///   - severity: The severity of the diagnostic.
@@ -156,8 +156,8 @@ public struct Diagnostic {
   /// make mutating calls into it to incrementally build up a diagnostic.
   public typealias BuildActions = (inout Builder) -> Void
 
-  /// Creates a Diagnostic with a given severity and message, attached to a given
-  /// node, highlighting the given nodes, with the given notes.
+  /// Creates a Diagnostic with a given severity and message, attached to a
+  /// given node, highlighting the given nodes, with the given notes.
   ///
   /// - Parameters:
   ///   - severity: The severity of the diagnostic.

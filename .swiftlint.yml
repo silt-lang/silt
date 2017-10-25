@@ -1,0 +1,39 @@
+included:
+  - Sources
+  - Tests
+excluded:
+  # These files are auto-generated and as such generally have poor style.
+  - Sources/Lithosphere/SyntaxNodes.swift
+  - Sources/Lithosphere/SyntaxKind.swift
+  - Sources/Lithosphere/TokenKind.swift
+
+  # These files are external dependencies.
+  - Sources/Lithosphere/AtomicCache.swift
+  - Sources/Lithosphere/SyntaxData.swift
+  - Sources/Lithosphere/RawSyntax.swift
+  - Sources/Lithosphere/Syntax.swift
+
+  # This file is data, not code.
+  - Sources/SyntaxGen/SyntaxNodes.swift
+
+disabled_rules:
+  - file_length # Compilers tend to have long files...
+  - identifier_name # `n` and the like should be allowed on a case by case basis
+  - vertical_whitespace # No harm in extra blank lines
+  - trailing_comma # No harm in trailing commas
+  - todo # FIXME comments are okay in the short term
+  - empty_enum_arguments # .foo(_) vs .foo is not very important
+  - nesting # triply-nested types are fine
+  - cyclomatic_complexity # complex functions are okay on a case by case basis
+
+line_length: 80
+function_body_length: 100 # the default of 40 is too conservative
+
+file_header:
+  required_pattern: |
+                    \/\/\/
+                    \/\/\/ .*?\.swift
+                    \/\/\/
+                    \/\/\/ Copyright \d{4}, The Silt Language Project
+                    \/\/\/ This project is released under the MIT license, a copy of which is
+                    \/\/\/ available in the repository.
