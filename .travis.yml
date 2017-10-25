@@ -22,7 +22,7 @@ matrix:
         - tar xzf swift-4.0-RELEASE-ubuntu14.04.tar.gz
         - wget https://github.com/realm/SwiftLint/archive/0.23.1.tar.gz -O swiftlint.tar.gz
         - tar xzf swiftlint.tar.gz
-        - cd SwiftLint-0.23.1 && ../swift-4.0-RELEASE-ubuntu14.04/usr/bin/swift build
+        - cd SwiftLint-0.23.1 && ../swift-4.0-RELEASE-ubuntu14.04/usr/bin/swift build && cd ..
       script:
         - ${PWD}/SwiftLint-0.23.1/.build/debug/swiftlint
         - ${PWD}/swift-4.0-RELEASE-ubuntu14.04/usr/bin/swift test
