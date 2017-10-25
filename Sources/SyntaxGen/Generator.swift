@@ -71,7 +71,7 @@ class SwiftGenerator {
     if FileManager.default.fileExists(atPath: url.path) {
         try! FileManager.default.removeItem(at: url)
     }
-    FileManager.default.createFile(atPath: url.path, contents: nil)
+    _ = FileManager.default.createFile(atPath: url.path, contents: nil)
     file = try! FileHandle(forWritingTo: url)
     writeHeaderComment(filename: filename)
   }
