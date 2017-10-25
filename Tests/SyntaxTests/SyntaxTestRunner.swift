@@ -38,19 +38,31 @@ class SyntaxTestRunner: XCTestCase {
       }
 
       let syntaxFile = file.appendingPathExtension("syntax").path
-      XCTAssert(fileCheckOutput(against: syntaxFile, options: [.disableColors]) {
-        describe(siltFile, at: file.absoluteString, by: .describingTokens)
-      }, "failed while dumping syntax file \(syntaxFile)")
+      if FileManager.default.fileExists(atPath: syntaxFile) {
+        XCTAssert(fileCheckOutput(against: syntaxFile, options: [.disableColors]) {
+          describe(siltFile, at: file.absoluteString, by: .describingTokens)
+        }, "failed while dumping syntax file \(syntaxFile)")
+      } else {
+        print("No corresponding syntax file found at \(syntaxFile)")
+      }
 
       let astFile = file.appendingPathExtension("ast").path
-      XCTAssert(fileCheckOutput(against: astFile, options: [.disableColors]) {
-        describe(siltFile, at: file.absoluteString, by: .dumpingParse)
-      }, "failed while dumping AST file \(astFile)")
+      if FileManager.default.fileExists(atPath: astFile) {
+        XCTAssert(fileCheckOutput(against: astFile, options: [.disableColors]) {
+          describe(siltFile, at: file.absoluteString, by: .dumpingParse)
+        }, "failed while dumping AST file \(astFile)")
+      } else {
+        print("No corresponding syntax file found at \(syntaxFile)")
+      }
 
-      let shineFile = file.appendingPathExtension("shined").path
-      XCTAssert(fileCheckOutput(against: shineFile, options: [.disableColors]) {
-        describe(siltFile, at: file.absoluteString, by: .dumpingShined)
-      }, "failed while dumping Shined file \(shineFile)")
+      if FileManager.default.fileExists(atPath: astFile) {
+        let shineFile = file.appendingPathExtension("shined").path
+        XCTAssert(fileCheckOutput(against: shineFile, options: [.disableColors]) {
+          describe(siltFile, at: file.absoluteString, by: .dumpingShined)
+        }, "failed while dumping Shined file \(shineFile)")
+      } else {
+        print("No corresponding syntax file found at \(syntaxFile)")
+      }
     }
   }
 

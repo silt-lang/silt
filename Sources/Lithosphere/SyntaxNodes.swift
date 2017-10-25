@@ -69,7 +69,7 @@ public class ModuleDeclSyntax: DeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(moduleToken: TokenSyntax, moduleIdentifier: QualifiedNameSyntax, typedParameterList: TypedParameterListSyntax?, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
+  public convenience init(moduleToken: TokenSyntax, moduleIdentifier: QualifiedNameSyntax, typedParameterList: TypedParameterListSyntax?, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax?) {
     let raw = RawSyntax.node(.moduleDecl, [
       moduleToken.raw,
       moduleIdentifier.raw,
@@ -78,7 +78,7 @@ public class ModuleDeclSyntax: DeclSyntax {
       leftBraceToken.raw,
       declList.raw,
       rightBraceToken.raw,
-      trailingSemicolon.raw,
+      trailingSemicolon?.raw ?? RawSyntax.missingToken(.semicolon),
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
@@ -139,8 +139,8 @@ public class ModuleDeclSyntax: DeclSyntax {
     return ModuleDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var trailingSemicolon: TokenSyntax {
-    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  public var trailingSemicolon: TokenSyntax? {
+    return child(at: Cursor.trailingSemicolon) as? TokenSyntax
   }
   public func withTrailingSemicolon(_ syntax: TokenSyntax) -> ModuleDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
@@ -245,12 +245,12 @@ public class DataDeclSyntax: DeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(dataToken: TokenSyntax, dataIdentifier: TokenSyntax, typedParameterList: TypedParameterListSyntax?, typeIndices: TypeIndicesSyntax?, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, constructorList: ConstructorListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
+  public convenience init(dataToken: TokenSyntax, dataIdentifier: TokenSyntax, typedParameterList: TypedParameterListSyntax?, typeIndices: TypeIndicesSyntax, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, constructorList: ConstructorListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.dataDecl, [
       dataToken.raw,
       dataIdentifier.raw,
       typedParameterList?.raw ?? RawSyntax.missing(.typedParameterList),
-      typeIndices?.raw ?? RawSyntax.missing(.typeIndices),
+      typeIndices.raw,
       whereToken.raw,
       leftBraceToken.raw,
       constructorList.raw,
@@ -284,8 +284,8 @@ public class DataDeclSyntax: DeclSyntax {
     return DataDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var typeIndices: TypeIndicesSyntax? {
-    return child(at: Cursor.typeIndices) as? TypeIndicesSyntax
+  public var typeIndices: TypeIndicesSyntax {
+    return child(at: Cursor.typeIndices) as! TypeIndicesSyntax
   }
   public func withTypeIndices(_ syntax: TypeIndicesSyntax) -> DataDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.typeIndices)
