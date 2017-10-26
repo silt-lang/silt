@@ -69,7 +69,7 @@ public class ModuleDeclSyntax: DeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(moduleToken: TokenSyntax, moduleIdentifier: QualifiedNameSyntax, typedParameterList: TypedParameterListSyntax?, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax?) {
+  public convenience init(moduleToken: TokenSyntax, moduleIdentifier: QualifiedNameSyntax, typedParameterList: TypedParameterListSyntax?, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.moduleDecl, [
       moduleToken.raw,
       moduleIdentifier.raw,
@@ -78,7 +78,7 @@ public class ModuleDeclSyntax: DeclSyntax {
       leftBraceToken.raw,
       declList.raw,
       rightBraceToken.raw,
-      trailingSemicolon?.raw ?? RawSyntax.missingToken(.semicolon),
+      trailingSemicolon.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
@@ -139,8 +139,8 @@ public class ModuleDeclSyntax: DeclSyntax {
     return ModuleDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var trailingSemicolon: TokenSyntax? {
-    return child(at: Cursor.trailingSemicolon) as? TokenSyntax
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ syntax: TokenSyntax) -> ModuleDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)

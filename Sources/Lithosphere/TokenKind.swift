@@ -117,7 +117,8 @@ public enum TokenKind: Equatable {
     case (.rightParen, .rightParen): return true
     case (.colon, .colon): return true
     case (.openKeyword, .openKeyword): return true
-    case (.unknown(let l), .unknown(let r)): return l == r
+    case (.unknown(let l),
+          .unknown(let r)): return l == r
     case (.equals, .equals): return true
     case (.arrowSymbol, .arrowSymbol): return true
     case (.dataKeyword, .dataKeyword): return true
@@ -125,7 +126,8 @@ public enum TokenKind: Equatable {
     case (.leftBrace, .leftBrace): return true
     case (.typeKeyword, .typeKeyword): return true
     case (.withKeyword, .withKeyword): return true
-    case (.identifier(let l), .identifier(let r)): return l == r
+    case (.identifier(let l),
+          .identifier(let r)): return l == r
     case (.rightBrace, .rightBrace): return true
     case (.leftParen, .leftParen): return true
     case (.inKeyword, .inKeyword): return true
