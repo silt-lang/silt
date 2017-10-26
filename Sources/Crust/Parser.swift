@@ -449,7 +449,7 @@ extension Parser {
       return try self.parseTypedParameterArrowExpr()
     }
 
-    //FIXME: re-enable: return try self.parseBasicExprListArrowExprSyntax()
+    //FIXME: re-enable: return try self.parseBasicExprListArrowExpr()
 
     switch peek() {
     case .forwardSlash:
@@ -494,13 +494,8 @@ extension Parser {
     )
   }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-  func parseBasicExprListArrowExpr() throws -> BasicExprListArrowExprSyntax {
-=======
-  func parseBasicExprListArrowExprSyntax() throws
+  func parseBasicExprListArrowExpr() throws
     -> BasicExprListArrowExprSyntax {
->>>>>>> Begin removing backtracking from parser and adding diagnostics
     let exprList = try parseBasicExprList()
     let arrow = try consume(.arrow)
     let outputExpr = try parseExpr()
@@ -511,8 +506,6 @@ extension Parser {
     )
   }
 
-=======
->>>>>>> Got parser building again and improved handling of implicit tokens in diagnostics.
   func parseLambdaExpr() throws -> LambdaExprSyntax {
     let slashTok = try consume(.forwardSlash)
     let bindingList = try parseBindingList()
