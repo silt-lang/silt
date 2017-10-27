@@ -58,6 +58,15 @@ public class Parser {
     return nil
   }
 
+  func expected(_ name: String) -> Diagnostic.Message {
+    let highlightedToken = previousNonImplicitToken()
+    return engine.diagnose(.expected(name), node: highlightedToken) {
+      if let tok = highlightedToken {
+        $0.highlight(tok)
+      }
+    }
+  }
+
   func unexpectedToken(expected: TokenKind? = nil) -> Diagnostic.Message {
     // If we've "unexpected" an implicit token from Shining, highlight
     // instead the previous token because the diagnostic will say that we've
@@ -66,11 +75,11 @@ public class Parser {
     guard let token = currentToken else {
       return engine.diagnose(.unexpectedEOF, node: highlightedToken)
     }
-    return engine.diagnose(.unexpectedToken(token, expected: expected),
-                           node: highlightedToken) {
-                            if let tok = highlightedToken {
-                              $0.highlight(tok)
-                            }
+    let msg = Diagnostic.Message.unexpectedToken(token, expected: expected)
+    return engine.diagnose(msg, node: highlightedToken) {
+      if let tok = highlightedToken {
+        $0.highlight(tok)
+      }
     }
   }
 
@@ -137,7 +146,7 @@ extension Parser {
 
     // No pieces, no qualified name.
     guard !pieces.isEmpty else {
-      throw engine.diagnose(.expected("name"), node: currentToken)
+      throw expected("name")
     }
 
     return QualifiedNameSyntax(elements: pieces)
@@ -179,7 +188,7 @@ extension Parser {
     case .identifier(_):
       return try self.parseFunctionDecl()
     default:
-      throw engine.diagnose(.expected("declaration"), node: currentToken)
+      throw expected("declaration")
     }
   }
 
@@ -262,8 +271,7 @@ extension Parser {
     case .identifier(_):
       return try self.parseFunctionDecl()
     default:
-      throw engine.diagnose(.expected("field or function declaration"),
-                            node: currentToken)
+      throw expected("field or function declaration")
     }
   }
 
@@ -301,7 +309,7 @@ extension Parser {
     case .leftBrace:
       return try self.parseImplicitTypedParameter()
     default:
-      throw engine.diagnose(.expected("typed parameter"), node: currentToken)
+      throw expected("typed parameter")
     }
   }
 
@@ -402,7 +410,7 @@ extension Parser {
     }
 
     guard !pieces.isEmpty else {
-      throw engine.diagnose(.expected("function clause"), node: currentToken)
+      throw expected("function clause")
     }
     return FunctionClauseListSyntax(elements: pieces)
   }
@@ -438,8 +446,7 @@ extension Parser {
     }
 
     guard !pieces.isEmpty else {
-      throw engine.diagnose(.expected("function clause pattern"),
-                            node: currentToken)
+      throw expected("function clause pattern")
     }
 
     return PatternClauseListSyntax(elements: pieces)
@@ -511,7 +518,7 @@ extension Parser {
   func parseTypedParameterArrowExpr() throws -> TypedParameterArrowExprSyntax {
     let parameters = try parseTypedParameterList()
     guard !parameters.isEmpty else {
-      throw engine.diagnose(.expected("type ascription"), node: currentToken)
+      throw expected("type ascription")
     }
     let arrow = try consume(.arrow)
     let outputExpr = try parseExpr()
@@ -580,7 +587,7 @@ extension Parser {
     }
 
     guard !pieces.isEmpty else {
-      throw engine.diagnose(.expected(diagType), node: currentToken)
+      throw expected(diagType)
     }
     return pieces
   }
@@ -603,7 +610,7 @@ extension Parser {
     case .identifier(_):
       return try self.parseNamedBasicExpr()
     default:
-      throw engine.diagnose(.expected("expression"), node: currentToken)
+      throw expected("expression")
     }
   }
 
@@ -683,7 +690,7 @@ extension Parser {
     }
 
     guard !pieces.isEmpty else {
-      throw engine.diagnose(.expected("binding list"), node: currentToken)
+      throw expected("binding list")
     }
 
     return BindingListSyntax(elements: pieces)
