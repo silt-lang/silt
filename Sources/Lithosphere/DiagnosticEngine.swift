@@ -37,8 +37,10 @@ public final class DiagnosticEngine {
   ///           diagnostic is meant to apply to the entire compilation.
   ///   - actions: A closure to execute to incrementally add highlights and
   ///              notes to a Syntax node.
-  public func diagnose(_ message: Diagnostic.Message, node: Syntax? = nil,
-                       actions: Diagnostic.BuildActions? = nil) {
+  @discardableResult
+  public func diagnose(
+    _ message: Diagnostic.Message, node: Syntax? = nil,
+    actions: Diagnostic.BuildActions? = nil) -> Diagnostic.Message {
     let diagnostic = Diagnostic(message: message,
                                 node: node,
                                 actions: actions)
@@ -46,5 +48,6 @@ public final class DiagnosticEngine {
     for consumer in consumers {
       consumer.handle(diagnostic)
     }
+    return message
   }
 }

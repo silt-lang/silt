@@ -6,24 +6,39 @@
 /// available in the repository.
 import Lithosphere
 
-enum ParseError: Error {
-  case unexpectedToken(TokenSyntax)
-  case unexpectedEOF
-  case failedParsingExpr
-  case failedParsingName
-  case failedParsingAscription
-  case failedParsingApplication
-  case failedParsingBindingList
-  case failedParsingFunctionClause
-  case failedParsingFunctionClausePattern
-  case allDisjunctsFailed
+extension Diagnostic.Message {
+  static func unexpectedToken(
+    _ token: TokenSyntax, expected: TokenKind? = nil) -> Diagnostic.Message {
+    var msg: String
+    switch token.tokenKind {
+    case .leftBrace where token.isImplicit:
+      msg = "unexpected opening scope"
+    case .rightBrace where token.isImplicit:
+      msg = "unexpected end of scope"
+    case .semicolon where token.isImplicit:
+      msg = "unexpected end of line"
+    default:
+      msg = "unexpected token '\(token.tokenKind.text)'"
+    }
+    if let kind = expected {
+      msg += " (expected '\(kind.text)')"
+    }
+    return .init(.error, msg)
+  }
+  static let unexpectedEOF =
+    Diagnostic.Message(.error, "unexpected end-of-file reached")
+  static func expected(_ name: String) -> Diagnostic.Message {
+    return Diagnostic.Message(.error, "expected \(name)")
+  }
 }
 
 public class Parser {
+  let engine: DiagnosticEngine
   let tokens: [TokenSyntax]
   var index = 0
 
-  public init(tokens: [TokenSyntax]) {
+  public init(diagnosticEngine: DiagnosticEngine, tokens: [TokenSyntax]) {
+    self.engine = diagnosticEngine
     self.tokens = tokens
   }
 
@@ -31,109 +46,131 @@ public class Parser {
     return index < tokens.count ? tokens[index] : nil
   }
 
-  func consume(_ kinds: TokenKind...) throws -> TokenSyntax {
-    guard let token = currentToken else {
-      throw ParseError.unexpectedEOF
+  /// Looks backwards from where we are in the token stream for
+  /// the first non-implicit token to which we can attach a diagnostic.
+  func previousNonImplicitToken() -> TokenSyntax? {
+    var i = 0
+    while let tok = peekToken(ahead: i) {
+      defer { i -= 1 }
+      if tok.isImplicit { continue }
+      return tok
     }
-    guard kinds.index(of: token.tokenKind) != nil else {
-      throw ParseError.unexpectedToken(token)
+    return nil
+  }
+
+  func expected(_ name: String) -> Diagnostic.Message {
+    let highlightedToken = previousNonImplicitToken()
+    return engine.diagnose(.expected(name), node: highlightedToken) {
+      if let tok = highlightedToken {
+        $0.highlight(tok)
+      }
+    }
+  }
+
+  func unexpectedToken(expected: TokenKind? = nil) -> Diagnostic.Message {
+    // If we've "unexpected" an implicit token from Shining, highlight
+    // instead the previous token because the diagnostic will say that we've
+    // begun or ended the scope/line.
+    let highlightedToken = previousNonImplicitToken()
+    guard let token = currentToken else {
+      return engine.diagnose(.unexpectedEOF, node: highlightedToken)
+    }
+    let msg = Diagnostic.Message.unexpectedToken(token, expected: expected)
+    return engine.diagnose(msg, node: highlightedToken) {
+      if let tok = highlightedToken {
+        $0.highlight(tok)
+      }
+    }
+  }
+
+  func consume(_ kinds: TokenKind...) throws -> TokenSyntax {
+    guard let token = currentToken, kinds.contains(token.tokenKind) else {
+      throw unexpectedToken(expected: kinds.first)
     }
     advance()
     return token
   }
 
   func peek(ahead n: Int = 0) -> TokenKind {
-    guard index + n < tokens.count else { return .eof }
-    return tokens[index + n].tokenKind
+    return peekToken(ahead: n)?.tokenKind ?? .eof
+  }
+
+  func peekToken(ahead n: Int = 0) -> TokenSyntax? {
+    guard index + n < tokens.count else { return nil }
+    return tokens[index + n]
   }
 
   func advance(_ n: Int = 1) {
     index += n
   }
-
-  func split<T>(_ fs : (() throws -> T)...) throws -> T {
-    for f in fs {
-      let previousPosition = self.index
-      guard let syntax = try? f() else {
-        self.index = previousPosition
-        continue
-      }
-      return syntax
-    }
-    throw ParseError.allDisjunctsFailed
-  }
 }
 
 extension Parser {
   public func parseTopLevelModule() -> ModuleDeclSyntax? {
-    let module = try? parseModule()
     do {
-        _ = try consume(.eof)
-        return module
+      let module = try parseModule()
+      _ = try consume(.eof)
+      return module
     } catch {
-        return nil
+      return nil
     }
   }
 }
 
 extension Parser {
   func parseIdentifierToken() throws -> TokenSyntax {
-    guard case .identifier(_) = self.peek() else {
-      throw ParseError.unexpectedToken(self.currentToken!)
+    guard case .identifier(_) = peek() else {
+      throw unexpectedToken()
     }
 
-    let name = self.currentToken!
-    self.advance()
+    let name = currentToken!
+    advance()
     return name
   }
 
   func parseQualifiedName() throws -> QualifiedNameSyntax {
     var pieces = [QualifiedNamePieceSyntax]()
-    var lastLoc = self.index
-    while let piece = try? parseQualifiedNamePiece() {
-      pieces.append(piece)
-      lastLoc = self.index
+    while true {
+      guard case .identifier(_) = peek() else { continue }
+      let id = try parseIdentifierToken()
+      if case .period = peek() {
+        let period = try consume(.period)
+        pieces.append(QualifiedNamePieceSyntax(name: id,
+                                               trailingPeriod: period))
+      } else {
+        pieces.append(QualifiedNamePieceSyntax(name: id,
+                                               trailingPeriod: nil))
+        break
+      }
     }
-
-    // Back up and parse the last piece
-    self.index = lastLoc
-    let finalPiece = try parseFinalQualifiedNamePiece()
-    pieces.append(finalPiece)
 
     // No pieces, no qualified name.
     guard !pieces.isEmpty else {
-      throw ParseError.failedParsingName
+      throw expected("name")
     }
 
     return QualifiedNameSyntax(elements: pieces)
   }
 
-  func parseQualifiedNamePiece() throws -> QualifiedNamePieceSyntax {
-    let name = try parseIdentifierToken()
-    let period = try consume(.period)
-    return QualifiedNamePieceSyntax(name: name, trailingPeriod: period)
-  }
-
-  func parseFinalQualifiedNamePiece() throws -> QualifiedNamePieceSyntax {
-    let name = try parseIdentifierToken()
-    return QualifiedNamePieceSyntax(name: name, trailingPeriod: nil)
-  }
-
-  func parseIdentifierList() throws -> IdentifierListSyntax {
+  func parseIdentifierList() -> IdentifierListSyntax {
     var pieces = [TokenSyntax]()
-    while let piece = (try? parseIdentifierToken()) ??
-                      (try? consume(.underscore)) {
-      pieces.append(piece)
+    loop: while true {
+      switch peek() {
+      case .identifier(_), .underscore:
+        pieces.append(currentToken!)
+        advance()
+      default: break loop
+      }
     }
     return IdentifierListSyntax(elements: pieces)
   }
 }
 
 extension Parser {
-  func parseDeclList() -> DeclListSyntax {
+  func parseDeclList() throws -> DeclListSyntax {
     var pieces = [DeclSyntax]()
-    while let piece = try? parseDecl() {
-      pieces.append(piece)
+    while peek() != .rightBrace {
+      pieces.append(try parseDecl())
     }
     return DeclListSyntax(elements: pieces)
   }
@@ -148,18 +185,20 @@ extension Parser {
       return try self.parseOpenImportDecl()
     case .importKeyword:
       return try self.parseImportDecl()
-    default:
+    case .identifier(_):
       return try self.parseFunctionDecl()
+    default:
+      throw expected("declaration")
     }
   }
 
   func parseModule() throws -> ModuleDeclSyntax {
     let moduleKw = try consume(.moduleKeyword)
     let moduleId = try parseQualifiedName()
-    let paramList = parseTypedParameterList()
+    let paramList = try parseTypedParameterList()
     let whereKw = try consume(.whereKeyword)
     let leftBrace = try consume(.leftBrace)
-    let declList = parseDeclList()
+    let declList = try parseDeclList()
     let rightBrace = try consume(.rightBrace)
     let semi = try consume(.semicolon)
     return ModuleDeclSyntax(
@@ -196,10 +235,10 @@ extension Parser {
   func parseRecordDecl() throws -> RecordDeclSyntax {
     let recordTok = try consume(.recordKeyword)
     let recName = try parseIdentifierToken()
-    let paramList = parseTypedParameterList()
-    let indices = try? parseTypeIndices()
+    let paramList = try parseTypedParameterList()
+    let indices = peek() == .colon ? try parseTypeIndices() : nil
     let whereTok = try consume(.whereKeyword)
-    let elemList = parseRecordElementList()
+    let elemList = try parseRecordElementList()
     return RecordDeclSyntax(
       recordToken: recordTok,
       recordName: recName,
@@ -210,20 +249,30 @@ extension Parser {
     )
   }
 
-  func parseRecordElementList() -> RecordElementListSyntax {
+  func parseRecordElementList() throws -> RecordElementListSyntax {
     var pieces = [DeclSyntax]()
-    while let piece = try? parseRecordElement() {
-      pieces.append(piece)
+    loop: while true {
+      switch peek() {
+      case .identifier(_):
+        pieces.append(try parseFunctionDecl())
+      case .fieldKeyword:
+        pieces.append(try parseFieldDecl())
+      default:
+        break loop
+      }
     }
     return RecordElementListSyntax(elements: pieces)
   }
 
   func parseRecordElement() throws -> DeclSyntax {
-    return try self.split({
+    switch peek() {
+    case .fieldKeyword:
       return try self.parseFieldDecl()
-    }, {
+    case .identifier(_):
       return try self.parseFunctionDecl()
-    })
+    default:
+      throw expected("field or function declaration")
+    }
   }
 
   func parseFieldDecl() throws -> FieldDeclSyntax {
@@ -241,10 +290,14 @@ extension Parser {
 }
 
 extension Parser {
-  func parseTypedParameterList() -> TypedParameterListSyntax {
+  func isStartOfTypedParameter() -> Bool {
+    return [.leftParen, .leftBrace].contains(peek())
+  }
+
+  func parseTypedParameterList() throws -> TypedParameterListSyntax {
     var pieces = [TypedParameterSyntax]()
-    while let piece = try? parseTypedParameter() {
-      pieces.append(piece)
+    while isStartOfTypedParameter() {
+      pieces.append(try parseTypedParameter())
     }
     return TypedParameterListSyntax(elements: pieces)
   }
@@ -256,7 +309,7 @@ extension Parser {
     case .leftBrace:
       return try self.parseImplicitTypedParameter()
     default:
-      throw ParseError.unexpectedToken(self.currentToken!)
+      throw expected("typed parameter")
     }
   }
 
@@ -267,8 +320,7 @@ extension Parser {
     return ExplicitTypedParameterSyntax(
       leftParenToken: leftParen,
       ascription: ascription,
-      rightParenToken: rightParen
-    )
+      rightParenToken: rightParen)
   }
 
   func parseImplicitTypedParameter() throws -> ImplicitTypedParameterSyntax {
@@ -278,8 +330,7 @@ extension Parser {
     return ImplicitTypedParameterSyntax(
       leftBraceToken: leftBrace,
       ascription: ascription,
-      rightBraceToken: rightBrace
-    )
+      rightBraceToken: rightBrace)
   }
 
   func parseTypeIndices() throws -> TypeIndicesSyntax {
@@ -289,14 +340,13 @@ extension Parser {
   }
 
   func parseAscription() throws -> AscriptionSyntax {
-    let boundNames = try parseIdentifierList()
+    let boundNames = parseIdentifierList()
     let colonToken = try consume(.colon)
     let expr = try parseExpr()
     return AscriptionSyntax(
       boundNames: boundNames,
       colonToken: colonToken,
-      typeExpr: expr
-    )
+      typeExpr: expr)
   }
 }
 
@@ -304,11 +354,11 @@ extension Parser {
   func parseDataDeclaration() throws -> DataDeclSyntax {
     let dataTok = try consume(.dataKeyword)
     let dataId = try parseIdentifierToken()
-    let paramList = parseTypedParameterList()
+    let paramList = try parseTypedParameterList()
     let indices = try parseTypeIndices()
     let whereTok = try consume(.whereKeyword)
     let leftBrace = try consume(.leftBrace)
-    let constrList = parseConstructorList()
+    let constrList = try parseConstructorList()
     let rightBrace = try consume(.rightBrace)
     let semi = try consume(.semicolon)
     return DataDeclSyntax(
@@ -320,14 +370,13 @@ extension Parser {
       leftBraceToken: rightBrace,
       constructorList: constrList,
       rightBraceToken: leftBrace,
-      trailingSemicolon: semi
-    )
+      trailingSemicolon: semi)
   }
 
-  func parseConstructorList() -> ConstructorListSyntax {
+  func parseConstructorList() throws -> ConstructorListSyntax {
     var pieces = [ConstructorDeclSyntax]()
-    while let piece = try? parseConstructor() {
-      pieces.append(piece)
+    while case .pipe = peek() {
+      pieces.append(try parseConstructor())
     }
     return ConstructorListSyntax(elements: pieces)
   }
@@ -339,8 +388,7 @@ extension Parser {
     return ConstructorDeclSyntax(
       pipeToken: pipe,
       ascription: ascription,
-      trailingSemicolon: semi
-    )
+      trailingSemicolon: semi)
   }
 }
 
@@ -352,76 +400,53 @@ extension Parser {
     return FunctionDeclSyntax(
       ascription: ascription,
       ascriptionSemicolon: ascSemicolon,
-      clauseList: clauses
-    )
+      clauseList: clauses)
   }
 
   func parseFunctionClauseList() throws -> FunctionClauseListSyntax {
     var pieces = [FunctionClauseSyntax]()
-    while let piece = try? parseFunctionClause() {
-      pieces.append(piece)
+    while case .identifier(_) = peek() {
+      pieces.append(try parseFunctionClause())
     }
 
     guard !pieces.isEmpty else {
-      throw ParseError.failedParsingFunctionClause
+      throw expected("function clause")
     }
     return FunctionClauseListSyntax(elements: pieces)
   }
 
   func parseFunctionClause() throws -> FunctionClauseSyntax {
-    return try split({
-      return try self.parseWithRuleFunctionClause()
-    }, {
-      return try self.parseNormalFunctionClause()
-    })
-  }
-
-  func parseWithRuleFunctionClause() throws -> WithRuleFunctionClauseSyntax {
     let functionName = try parseIdentifierToken()
     let patternClauseList = try parsePatternClauseList()
-    let withToken = try consume(.withKeyword)
-    let withExpr = try parseExpr()
-    let withPatClause = try parsePatternClauseList()
-    let equalsTok = try consume(.equals)
-    let rhsExpr = try parseExpr()
-    let semi = try consume(.semicolon)
-    return WithRuleFunctionClauseSyntax(
-      functionName: functionName,
-      patternClauseList: patternClauseList,
-      withToken: withToken,
-      withExpr: withExpr,
-      withPatternClause: withPatClause,
-      equalsToken: equalsTok,
-      rhsExpr: rhsExpr,
-      trailingSemicolon: semi
-    )
-  }
-
-  func parseNormalFunctionClause() throws -> NormalFunctionClauseSyntax {
-    let functionName = try parseIdentifierToken()
-    let patternClauseList = try parsePatternClauseList()
-    let equalsTok = try consume(.equals)
-    let rhsExpr = try parseExpr()
-    let semi = try consume(.semicolon)
+    if case .withKeyword = peek() {
+      return WithRuleFunctionClauseSyntax(
+        functionName: functionName,
+        patternClauseList: patternClauseList,
+        withToken: try consume(.withKeyword),
+        withExpr: try parseExpr(),
+        withPatternClause: try parsePatternClauseList(),
+        equalsToken: try consume(.equals),
+        rhsExpr: try parseExpr(),
+        trailingSemicolon: try consume(.semicolon))
+    }
     return NormalFunctionClauseSyntax(
       functionName: functionName,
       patternClauseList: patternClauseList,
-      equalsToken: equalsTok,
-      rhsExpr: rhsExpr,
-      trailingSemicolon: semi
-    )
+      equalsToken: try consume(.equals),
+      rhsExpr: try parseExpr(),
+      trailingSemicolon: try consume(.semicolon))
   }
 }
 
 extension Parser {
   func parsePatternClauseList() throws -> PatternClauseListSyntax {
     var pieces = [ExprSyntax]()
-    while let piece = try? parseExpr() {
-      pieces.append(piece)
+    while isStartOfExpr() {
+      pieces.append(try parseExpr())
     }
 
     guard !pieces.isEmpty else {
-      throw ParseError.failedParsingFunctionClausePattern
+      throw expected("function clause pattern")
     }
 
     return PatternClauseListSyntax(elements: pieces)
@@ -429,14 +454,28 @@ extension Parser {
 }
 
 extension Parser {
-  func parseExpr() throws -> ExprSyntax {
-    if let expr = try? split({
-      return try self.parseTypedParameterArrowExpr()
-    }, {
-      return try self.parseBasicExprListArrowExpr()
-    }) {
+  func isStartOfExpr() -> Bool {
+    if isStartOfBasicExpr() { return true }
+    switch peek() {
+    case .forwardSlash, .forallSymbol, .forallKeyword, .letKeyword:
+      return true
+    default:
+      return false
+    }
+  }
 
-      return expr
+  func isStartOfBasicExpr() -> Bool {
+    switch peek() {
+    case .underscore, .typeKeyword, .leftParen, .recordKeyword, .identifier(_):
+      return true
+    default:
+      return false
+    }
+  }
+
+  func parseExpr() throws -> ExprSyntax {
+    if isStartOfTypedParameter() {
+      return try self.parseTypedParameterArrowExpr()
     }
 
     switch peek() {
@@ -447,18 +486,39 @@ extension Parser {
     case .letKeyword:
       return try self.parseLetExpr()
     default:
-      return try split({
-        return try self.parseApplicationExpr()
-      }, {
-        return try self.parseBasicExpr()
-      })
+      // Get the basic expression we're looking at
+      let basic = try self.parseBasicExpr()
+
+      // If we're looking at another basic expr, then we're trying to parse
+      // either an application or an -> expression. Either way, parse the
+      // remaining list of expressions and construct a BasicExprList with the
+      // first expression at the beginning.
+      if isStartOfBasicExpr() {
+        var exprs = try parseBasicExprs()
+        exprs.insert(basic, at: 0)
+        let exprList = BasicExprListSyntax(elements: exprs)
+
+        // If we see an arrow, then consume it and parse the RHS.
+        if case .arrow = peek() {
+          let arrowToken = try consume(.arrow)
+          let outputExpr = try parseExpr()
+          return BasicExprListArrowExprSyntax(
+            exprList: exprList,
+            arrowToken: arrowToken,
+            outputExpr: outputExpr)
+        } else {
+          // Otherwise just create the application.
+          return ApplicationExprSyntax(exprs: exprList)
+        }
+      }
+      return basic
     }
   }
 
   func parseTypedParameterArrowExpr() throws -> TypedParameterArrowExprSyntax {
-    let parameters = parseTypedParameterList()
+    let parameters = try parseTypedParameterList()
     guard !parameters.isEmpty else {
-      throw ParseError.failedParsingAscription
+      throw expected("type ascription")
     }
     let arrow = try consume(.arrow)
     let outputExpr = try parseExpr()
@@ -469,15 +529,16 @@ extension Parser {
     )
   }
 
-  func parseBasicExprListArrowExpr() throws -> BasicExprListArrowExprSyntax {
-    let exprList = try parseBasicExprList()
-    let arrow = try consume(.arrow)
-    let outputExpr = try parseExpr()
-    return BasicExprListArrowExprSyntax(
-      exprList: exprList,
-      arrowToken: arrow,
-      outputExpr: outputExpr
-    )
+  func parseBasicExprListArrowExpr() throws
+    -> BasicExprListArrowExprSyntax {
+      let exprList = try parseBasicExprList()
+      let arrow = try consume(.arrow)
+      let outputExpr = try parseExpr()
+      return BasicExprListArrowExprSyntax(
+        exprList: exprList,
+        arrowToken: arrow,
+        outputExpr: outputExpr
+      )
   }
 
   func parseLambdaExpr() throws -> LambdaExprSyntax {
@@ -495,7 +556,7 @@ extension Parser {
 
   func parseQuantifiedExpr() throws -> QuantifiedExprSyntax {
     let forallTok = try consume(.forallSymbol, .forallKeyword)
-    let bindingList = parseTypedParameterList()
+    let bindingList = try parseTypedParameterList()
     let arrow = try consume(.arrow)
     let outputExpr = try parseExpr()
     return QuantifiedExprSyntax(
@@ -508,44 +569,32 @@ extension Parser {
 
   func parseLetExpr() throws -> LetExprSyntax {
     let letTok = try consume(.letKeyword)
-    let declList = parseDeclList()
+    let declList = try parseDeclList()
     let inTok = try consume(.inKeyword)
     let outputExpr = try parseExpr()
     return LetExprSyntax(
       letToken: letTok,
       declList: declList,
       inToken: inTok,
-      outputExpr: outputExpr
-    )
+      outputExpr: outputExpr)
   }
 
-  func parseApplicationExpr() throws -> ApplicationExprSyntax {
-    let appExprList = try parseApplicationExprList()
-    return ApplicationExprSyntax(exprs: appExprList)
-  }
-
-  func parseApplicationExprList() throws -> ApplicationExprListSyntax {
+  func parseBasicExprs(
+    diagType: String = "expression") throws -> [BasicExprSyntax] {
     var pieces = [BasicExprSyntax]()
-    while let piece = try? parseBasicExpr() {
-      pieces.append(piece)
-    }
-    guard pieces.count >= 2 else {
-      throw ParseError.failedParsingApplication
-    }
-    return ApplicationExprListSyntax(elements: pieces)
-  }
-
-  func parseBasicExprList() throws -> BasicExprListSyntax {
-    var pieces = [BasicExprSyntax]()
-    while let piece = try? parseBasicExpr() {
-      pieces.append(piece)
+    while isStartOfBasicExpr() {
+      pieces.append(try parseBasicExpr())
     }
 
     guard !pieces.isEmpty else {
-      throw ParseError.failedParsingExpr
+      throw expected(diagType)
     }
+    return pieces
+  }
 
-    return BasicExprListSyntax(elements: pieces)
+  func parseBasicExprList() throws -> BasicExprListSyntax {
+    return BasicExprListSyntax(elements:
+      try parseBasicExprs(diagType: "list of expressions"))
   }
 
   func parseBasicExpr() throws -> BasicExprSyntax {
@@ -558,16 +607,18 @@ extension Parser {
       return try self.parseParenthesizedExpr()
     case .recordKeyword:
       return try self.parseRecordExpr()
-    default:
+    case .identifier(_):
       return try self.parseNamedBasicExpr()
+    default:
+      throw expected("expression")
     }
   }
 
   func parseRecordExpr() throws -> RecordExprSyntax {
     let recordTok = try consume(.recordKeyword)
-    let parameterExpr = try? parseBasicExpr()
+    let parameterExpr = isStartOfBasicExpr() ? try parseBasicExpr() : nil
     let leftBrace = try consume(.leftBrace)
-    let fieldAssigns = parseRecordFieldAssignmentList()
+    let fieldAssigns = try parseRecordFieldAssignmentList()
     let rightBrace = try consume(.rightBrace)
     return RecordExprSyntax(
       recordToken: recordTok,
@@ -578,20 +629,20 @@ extension Parser {
     )
   }
 
-  func parseRecordFieldAssignmentList() -> RecordFieldAssignmentListSyntax {
-    var pieces = [RecordFieldAssignmentSyntax]()
-    while let piece = try? parseRecordFieldAssignment() {
-      pieces.append(piece)
-    }
-
-    return RecordFieldAssignmentListSyntax(elements: pieces)
+  func parseRecordFieldAssignmentList() throws
+    -> RecordFieldAssignmentListSyntax {
+      var pieces = [RecordFieldAssignmentSyntax]()
+      while case .identifier(_) = peek() {
+        pieces.append(try parseRecordFieldAssignment())
+      }
+      return RecordFieldAssignmentListSyntax(elements: pieces)
   }
 
   func parseRecordFieldAssignment() throws -> RecordFieldAssignmentSyntax {
     let fieldName = try parseIdentifierToken()
     let equalsTok = try consume(.equals)
     let fieldInit = try parseExpr()
-    let trailingSemi = try? consume(.semicolon)
+    let trailingSemi = try consume(.semicolon)
     return RecordFieldAssignmentSyntax(
       fieldName: fieldName,
       equalsToken: equalsTok,
@@ -628,23 +679,21 @@ extension Parser {
 
   func parseBindingList() throws -> BindingListSyntax {
     var pieces = [BindingSyntax]()
-    while let piece = try? parseBinding() {
-      pieces.append(piece)
+    while true {
+      if isStartOfTypedParameter() {
+        pieces.append(try parseTypedBinding())
+      } else if case .identifier(_) = peek() {
+        pieces.append(try parseNamedBinding())
+      } else {
+        break
+      }
     }
 
     guard !pieces.isEmpty else {
-      throw ParseError.failedParsingBindingList
+      throw expected("binding list")
     }
 
     return BindingListSyntax(elements: pieces)
-  }
-
-  func parseBinding() throws -> BindingSyntax {
-    return try split({
-      return try self.parseNamedBinding()
-    }, {
-      return try self.parseTypedBinding()
-    })
   }
 
   func parseNamedBinding() throws -> NamedBindingSyntax {

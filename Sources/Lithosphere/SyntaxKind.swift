@@ -42,7 +42,6 @@ public enum SyntaxKind {
   case letExpr
   case applicationExpr
   case basicExpr
-  case applicationExprList
   case bindingList
   case binding
   case namedBinding
@@ -144,8 +143,6 @@ extension Syntax {
       return ApplicationExprSyntax(root: root, data: data)
     case .basicExpr:
       return BasicExprSyntax(root: root, data: data)
-    case .applicationExprList:
-      return ApplicationExprListSyntax(root: root, data: data)
     case .bindingList:
       return BindingListSyntax(root: root, data: data)
     case .binding:
