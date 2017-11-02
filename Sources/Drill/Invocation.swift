@@ -28,8 +28,8 @@ public struct Invocation {
 
   public func run() throws {
     let engine = DiagnosticEngine()
-    let consumer = PrintingDiagnosticConsumer(stream: &stderrStream)
-    engine.register(consumer)
+    let printingConsumer = PrintingDiagnosticConsumer(stream: &stderrStream)
+    engine.register(printingConsumer)
 
     Rainbow.enabled = options.colorsEnabled
 
@@ -71,6 +71,7 @@ public struct Invocation {
 //        let binder = NameBinding(topLevel: module, engine: engine)
         break
       case .parseVerify:
+        engine.unregister(printingConsumer)
         let layoutTokens = layout(tokens)
         let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
         _ = parser.parseTopLevelModule()

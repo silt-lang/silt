@@ -22,6 +22,14 @@ extension Diagnostic.Message {
     return .init(.error,
       "\(diagnostic.severity) \"\(diagnostic.text)\" never produced")
   }
+    
+  static func incorrectDiagnostic(got diagnostic: Diagnostic.Message) -> Diagnostic.Message {
+    return .init(.error, "incorrect diagnostic '\(diagnostic.text)'")
+  }
+  
+  static func expected(_ diagnostic: Diagnostic.Message) -> Diagnostic.Message {
+    return .init(.note, "expected \(diagnostic.severity) '\(diagnostic.text)'")
+  }
 
   /// A diagnostic was raised with no node attached.
   static func diagnosticWithNoNode(
@@ -91,12 +99,16 @@ public final class DiagnosticVerifier {
   public func verify() {
     // Keep a list of expectations we haven't matched yet.
     var unmatchedExpectations = expectedDiagnostics
+    
+    // Maintain a list of unexpected diagnostics and the line they
+    // occurred on.
+    var unexpectedDiagnostics = [Int: Diagnostic]()
 
     // Go through each diagnostic we've produced.
     for diagnostic in producedDiagnostics {
 
       // Expectations require a line.
-      guard let node = diagnostic.node else {
+      guard let node = diagnostic.node, let loc = node.startLoc else {
         engine.diagnose(.diagnosticWithNoNode(diagnostic.message))
         continue
       }
@@ -106,8 +118,7 @@ public final class DiagnosticVerifier {
 
       // Make sure we're expecting this diagnostic.
       guard expectedDiagnostics.contains(expectation) else {
-        engine.diagnose(.unexpectedDiagnostic(diagnostic.message),
-                        node: expectation.tokenContainingComment)
+        unexpectedDiagnostics[loc.line] = diagnostic
         continue
       }
 
@@ -125,8 +136,21 @@ public final class DiagnosticVerifier {
       return aLine < bLine
     }
     for expectation in expectations {
-      engine.diagnose(.diagnosticNotRaised(expectation.message),
-                      node: expectation.tokenContainingComment)
+      if
+        let line = expectation.tokenContainingComment.startLoc?.line,
+        let unexpected = unexpectedDiagnostics[line] {
+        engine.diagnose(.incorrectDiagnostic(got: unexpected.message),
+                        node: unexpected.node) {
+          $0.note(.expected(expectation.message), node: unexpected.node)
+        }
+        unexpectedDiagnostics.removeValue(forKey: line)
+      } else {
+        engine.diagnose(.diagnosticNotRaised(expectation.message),
+                        node: expectation.tokenContainingComment)
+      }
+    }
+    for diagnostic in unexpectedDiagnostics.values {
+      engine.diagnose(.unexpectedDiagnostic(diagnostic.message), node: diagnostic.node)
     }
   }
 

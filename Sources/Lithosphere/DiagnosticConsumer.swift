@@ -10,7 +10,7 @@ import Foundation
 /// diagnostics into its internal storage. It's responsible for converting
 /// the content of the diagnostics into a different form for serialization,
 /// textual output, and whatever else it wants.
-public protocol DiagnosticConsumer {
+public protocol DiagnosticConsumer: AnyObject {
   /// Called when the diagnostic engine pops any diagnostic. Use this as
   /// the opportunity to update your internal storage or output the contents
   /// of the diagnostic to a file.
