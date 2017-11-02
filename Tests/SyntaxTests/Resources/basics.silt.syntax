@@ -15,7 +15,7 @@ _ o _ : forall {i j k : Level}
                (a : A) -> C a (g a)
 f o g = \ a -> f (g a)
 
--- CHECK: Token: moduleKeyword
+-- CHECK:      Token: moduleKeyword
 -- CHECK-NEXT:   Leading Trivia:
 -- CHECK-NEXT:     comment("-- A type")
 -- CHECK-NEXT:     newlines(1)
@@ -397,17 +397,9 @@ f o g = \ a -> f (g a)
 -- CHECK-NEXT: Token: identifier("y")
 -- CHECK-NEXT:   Leading Trivia:
 -- CHECK-NEXT:   Trailing Trivia:
--- CHECK-NEXT: Token: underscore
+-- CHECK-NEXT: Token: identifier("_o_")
 -- CHECK-NEXT:   Leading Trivia:
 -- CHECK-NEXT:     newlines(2)
--- CHECK-NEXT:   Trailing Trivia:
--- CHECK-NEXT:     spaces(1)
--- CHECK-NEXT: Token: identifier("o")
--- CHECK-NEXT:   Leading Trivia:
--- CHECK-NEXT:   Trailing Trivia:
--- CHECK-NEXT:     spaces(1)
--- CHECK-NEXT: Token: underscore
--- CHECK-NEXT:   Leading Trivia:
 -- CHECK-NEXT:   Trailing Trivia:
 -- CHECK-NEXT:     spaces(1)
 -- CHECK-NEXT: Token: colon
@@ -446,7 +438,7 @@ f o g = \ a -> f (g a)
 -- CHECK-NEXT: Token: leftBrace
 -- CHECK-NEXT:   Leading Trivia:
 -- CHECK-NEXT:     newlines(1)
--- CHECK-NEXT:     spaces(15)
+-- CHECK-NEXT:     spaces(13)
 -- CHECK-NEXT:   Trailing Trivia:
 -- CHECK-NEXT: Token: identifier("A")
 -- CHECK-NEXT:   Leading Trivia:
@@ -557,7 +549,7 @@ f o g = \ a -> f (g a)
 -- CHECK-NEXT: Token: leftParen
 -- CHECK-NEXT:   Leading Trivia:
 -- CHECK-NEXT:     newlines(1)
--- CHECK-NEXT:     spaces(15)
+-- CHECK-NEXT:     spaces(13)
 -- CHECK-NEXT:   Trailing Trivia:
 -- CHECK-NEXT: Token: identifier("f")
 -- CHECK-NEXT:   Leading Trivia:
@@ -631,7 +623,7 @@ f o g = \ a -> f (g a)
 -- CHECK-NEXT: Token: leftParen
 -- CHECK-NEXT:   Leading Trivia:
 -- CHECK-NEXT:     newlines(1)
--- CHECK-NEXT:     spaces(15)
+-- CHECK-NEXT:     spaces(13)
 -- CHECK-NEXT:   Trailing Trivia:
 -- CHECK-NEXT: Token: identifier("g")
 -- CHECK-NEXT:   Leading Trivia:
@@ -680,7 +672,7 @@ f o g = \ a -> f (g a)
 -- CHECK-NEXT: Token: leftParen
 -- CHECK-NEXT:   Leading Trivia:
 -- CHECK-NEXT:     newlines(1)
--- CHECK-NEXT:     spaces(15)
+-- CHECK-NEXT:     spaces(13)
 -- CHECK-NEXT:   Trailing Trivia:
 -- CHECK-NEXT: Token: identifier("a")
 -- CHECK-NEXT:   Leading Trivia:
@@ -772,4 +764,3 @@ f o g = \ a -> f (g a)
 -- CHECK-NEXT:   Leading Trivia:
 -- CHECK-NEXT:     newlines(2)
 -- CHECK-NEXT:   Trailing Trivia:
-

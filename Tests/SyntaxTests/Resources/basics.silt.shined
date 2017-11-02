@@ -8,7 +8,7 @@
 -- CHECK-NEXT: ((x : A) (y : B) -> C x y) -> ((y : B) (x : A) -> C x y);
 -- CHECK-NEXT: flip f = \ y x -> f x y;
 
--- CHECK: _ o _ : forall {i j k : Level}
+-- CHECK: _o_ : forall {i j k : Level}
 -- CHECK-NEXT: {A : Type i}{B : A -> Type j}{C : (a : A) -> B a -> Type k} ->
 -- CHECK-NEXT: (f : {a : A}(b : B a) -> C a b) ->
 -- CHECK-NEXT: (g : (a : A) -> B a) ->

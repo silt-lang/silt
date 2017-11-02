@@ -167,51 +167,34 @@ let syntaxNodes = [
 
   /// MARK: Functions
 
-  // function-decl ::= <ascription> <function-clause-list>
+  // function-decl ::= <ascription>
 
   Node("FunctionDecl", kind: "Decl", children: [
     Child("ascription", kind: "Ascription"),
-    Child("ascriptionSemicolon", kind: "SemicolonToken"),
-    Child("clauseList", kind: "FunctionClauseList"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
-  // function-clause-list ::= <function-clause>
-  //                        | <function-clause> <function-clause-list>
+  // function-clause ::= <basic-expr-list> with <expr> '|' <basic-expr-list>? '=' <expr>
+  //                   | <basic-expr-list> '=' <expr>
 
-  Node("FunctionClauseList", element: "FunctionClause"),
+  Node("FunctionClauseDecl", kind: "Decl", children: []),
 
-  // function-clause ::= <id> <pattern-clause-list>? with <expr> '|' <pattern-clause-list>? '=' <expr>
-  //                   | <id> <pattern-clause-list>? '=' <expr>
-
-  Node("FunctionClause", kind: "Syntax", children: []),
-
-  Node("WithRuleFunctionClause", kind: "FunctionClause", children: [
-    Child("functionName", kind: "IdentifierToken"),
-    Child("patternClauseList", kind: "PatternClauseList", isOptional: true),
+  Node("WithRuleFunctionClauseDecl", kind: "FunctionClauseDecl", children: [
+    Child("basicExprList", kind: "BasicExprList"),
     Child("withToken", kind: "WithToken"),
     Child("withExpr", kind: "Expr"),
-    Child("withPatternClause", kind: "PatternClauseList", isOptional: true),
+    Child("withPatternClause", kind: "BasicExprList", isOptional: true),
     Child("equalsToken", kind: "EqualsToken"),
     Child("rhsExpr", kind: "Expr"),
     Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
-  Node("NormalFunctionClause", kind: "FunctionClause", children: [
-    Child("functionName", kind: "IdentifierToken"),
-    Child("patternClauseList", kind: "PatternClauseList", isOptional: true),
+  Node("NormalFunctionClauseDecl", kind: "FunctionClauseDecl", children: [
+    Child("basicExprList", kind: "BasicExprList"),
     Child("equalsToken", kind: "EqualsToken"),
     Child("rhsExpr", kind: "Expr"),
     Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
-
-
-  /// MARK: Patterns
-
-  // pattern-clause-list ::= <pattern-clause>
-  //                       | <pattern-clause> <patter-clause-list>
-  // pattern-clause ::= <expr>
-
-  Node("PatternClauseList", element: "Expr"),
 
   // Expressions
 
@@ -225,12 +208,6 @@ let syntaxNodes = [
 
   Node("TypedParameterArrowExpr", kind: "Expr", children: [
     Child("parameters", kind: "TypedParameterList"),
-    Child("arrowToken", kind: "ArrowToken"),
-    Child("outputExpr", kind: "Expr")
-  ]),
-
-  Node("BasicExprListArrowExpr", kind: "Expr", children: [
-    Child("exprList", kind: "BasicExprList"),
     Child("arrowToken", kind: "ArrowToken"),
     Child("outputExpr", kind: "Expr")
   ]),

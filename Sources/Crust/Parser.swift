@@ -30,6 +30,17 @@ extension Diagnostic.Message {
   static func expected(_ name: String) -> Diagnostic.Message {
     return Diagnostic.Message(.error, "expected \(name)")
   }
+
+  static let expectedNameInFuncDecl =
+    Diagnostic.Message(
+      .error, "expression may not be used as identifier in function name")
+
+  static func unexpectedQualifiedName(
+    _ syntax: QualifiedNameSyntax) -> Diagnostic.Message {
+    return Diagnostic.Message(
+      .error,
+      "qualified name '\(syntax.sourceText)' is not allowed in this position")
+  }
 }
 
 public class Parser {
@@ -186,7 +197,7 @@ extension Parser {
     case .importKeyword:
       return try self.parseImportDecl()
     case .identifier(_):
-      return try self.parseFunctionDecl()
+      return try self.parseFunctionDeclOrClause()
     default:
       throw expected("declaration")
     }
@@ -254,7 +265,7 @@ extension Parser {
     loop: while true {
       switch peek() {
       case .identifier(_):
-        pieces.append(try parseFunctionDecl())
+        pieces.append(try parseFunctionDeclOrClause())
       case .fieldKeyword:
         pieces.append(try parseFieldDecl())
       default:
@@ -269,7 +280,7 @@ extension Parser {
     case .fieldKeyword:
       return try self.parseFieldDecl()
     case .identifier(_):
-      return try self.parseFunctionDecl()
+      return try self.parseFunctionDeclOrClause()
     default:
       throw expected("field or function declaration")
     }
@@ -291,7 +302,12 @@ extension Parser {
 
 extension Parser {
   func isStartOfTypedParameter() -> Bool {
-    return [.leftParen, .leftBrace].contains(peek())
+    guard self.index + 1 < self.tokens.endIndex else { return false }
+    switch (peek(), peek(ahead: 1)) {
+    case (.leftBrace, .identifier(_)): return true
+    case (.leftParen, .identifier(_)): return true
+    default: return false
+    }
   }
 
   func parseTypedParameterList() throws -> TypedParameterListSyntax {
@@ -393,63 +409,60 @@ extension Parser {
 }
 
 extension Parser {
-  func parseFunctionDecl() throws -> FunctionDeclSyntax {
-    let ascription = try parseAscription()
-    let ascSemicolon = try consume(.semicolon)
-    let clauses = try parseFunctionClauseList()
+  func parseFunctionDeclOrClause() throws -> DeclSyntax {
+    let exprs = try parseBasicExprList()
+    switch peek() {
+    case .colon:
+      return try self.finishParsingFunctionDecl(exprs)
+    case .equals, .withKeyword:
+      return try self.finishParsingFunctionClause(exprs)
+    default:
+      throw expected("colon or equals")
+    }
+  }
+
+  func finishParsingFunctionDecl(
+        _ exprs: BasicExprListSyntax) throws -> FunctionDeclSyntax {
+    let colonTok = try self.consume(.colon)
+    let boundNames = IdentifierListSyntax(elements: try exprs.map { expr in
+      guard let namedExpr = expr as? NamedBasicExprSyntax else {
+        throw Diagnostic.Message.expectedNameInFuncDecl
+      }
+
+      guard let name = namedExpr.name.first, namedExpr.name.count == 1 else {
+        throw Diagnostic.Message.unexpectedQualifiedName(namedExpr.name)
+      }
+      return name.name
+    })
+    let typeExpr = try self.parseExpr()
+    let ascription = AscriptionSyntax(
+      boundNames: boundNames,
+      colonToken: colonTok,
+      typeExpr: typeExpr
+    )
     return FunctionDeclSyntax(
       ascription: ascription,
-      ascriptionSemicolon: ascSemicolon,
-      clauseList: clauses)
+      trailingSemicolon: try consume(.semicolon))
   }
 
-  func parseFunctionClauseList() throws -> FunctionClauseListSyntax {
-    var pieces = [FunctionClauseSyntax]()
-    while case .identifier(_) = peek() {
-      pieces.append(try parseFunctionClause())
-    }
-
-    guard !pieces.isEmpty else {
-      throw expected("function clause")
-    }
-    return FunctionClauseListSyntax(elements: pieces)
-  }
-
-  func parseFunctionClause() throws -> FunctionClauseSyntax {
-    let functionName = try parseIdentifierToken()
-    let patternClauseList = try parsePatternClauseList()
+  func finishParsingFunctionClause(
+        _ exprs: BasicExprListSyntax) throws -> FunctionClauseDeclSyntax {
     if case .withKeyword = peek() {
-      return WithRuleFunctionClauseSyntax(
-        functionName: functionName,
-        patternClauseList: patternClauseList,
+      return WithRuleFunctionClauseDeclSyntax(
+        basicExprList: exprs,
         withToken: try consume(.withKeyword),
         withExpr: try parseExpr(),
-        withPatternClause: try parsePatternClauseList(),
+        withPatternClause: try parseBasicExprList(),
         equalsToken: try consume(.equals),
         rhsExpr: try parseExpr(),
         trailingSemicolon: try consume(.semicolon))
     }
-    return NormalFunctionClauseSyntax(
-      functionName: functionName,
-      patternClauseList: patternClauseList,
+    assert(peek() == .equals)
+    return NormalFunctionClauseDeclSyntax(
+      basicExprList: exprs,
       equalsToken: try consume(.equals),
       rhsExpr: try parseExpr(),
       trailingSemicolon: try consume(.semicolon))
-  }
-}
-
-extension Parser {
-  func parsePatternClauseList() throws -> PatternClauseListSyntax {
-    var pieces = [ExprSyntax]()
-    while isStartOfExpr() {
-      pieces.append(try parseExpr())
-    }
-
-    guard !pieces.isEmpty else {
-      throw expected("function clause pattern")
-    }
-
-    return PatternClauseListSyntax(elements: pieces)
   }
 }
 
@@ -486,32 +499,28 @@ extension Parser {
     case .letKeyword:
       return try self.parseLetExpr()
     default:
-      // Get the basic expression we're looking at
-      let basic = try self.parseBasicExpr()
-
       // If we're looking at another basic expr, then we're trying to parse
       // either an application or an -> expression. Either way, parse the
       // remaining list of expressions and construct a BasicExprList with the
       // first expression at the beginning.
-      if isStartOfBasicExpr() {
-        var exprs = try parseBasicExprs()
-        exprs.insert(basic, at: 0)
-        let exprList = BasicExprListSyntax(elements: exprs)
-
-        // If we see an arrow, then consume it and parse the RHS.
+      var exprs = [BasicExprSyntax]()
+      while isStartOfBasicExpr() || peek() == .arrow {
+        // If we see an arrow at the start, then consume it and move on.
         if case .arrow = peek() {
-          let arrowToken = try consume(.arrow)
-          let outputExpr = try parseExpr()
-          return BasicExprListArrowExprSyntax(
-            exprList: exprList,
-            arrowToken: arrowToken,
-            outputExpr: outputExpr)
+          let arrow = try consume(.arrow)
+          let name = QualifiedNameSyntax(elements: [
+            QualifiedNamePieceSyntax(name: arrow, trailingPeriod: nil),
+          ])
+          exprs.append(NamedBasicExprSyntax(name: name))
         } else {
-          // Otherwise just create the application.
-          return ApplicationExprSyntax(exprs: exprList)
+          exprs.append(contentsOf: try parseBasicExprs())
         }
       }
-      return basic
+
+      if exprs.isEmpty {
+        throw expected("expression")
+      }
+      return ApplicationExprSyntax(exprs: BasicExprListSyntax(elements: exprs))
     }
   }
 
@@ -527,18 +536,6 @@ extension Parser {
       arrowToken: arrow,
       outputExpr: outputExpr
     )
-  }
-
-  func parseBasicExprListArrowExpr() throws
-    -> BasicExprListArrowExprSyntax {
-      let exprList = try parseBasicExprList()
-      let arrow = try consume(.arrow)
-      let outputExpr = try parseExpr()
-      return BasicExprListArrowExprSyntax(
-        exprList: exprList,
-        arrowToken: arrow,
-        outputExpr: outputExpr
-      )
   }
 
   func parseLambdaExpr() throws -> LambdaExprSyntax {

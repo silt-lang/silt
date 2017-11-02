@@ -88,7 +88,7 @@ class SyntaxTestRunner: XCTestCase {
 
       let syntaxFile = file.appendingPathExtension("syntax").path
       if FileManager.default.fileExists(atPath: syntaxFile) {
-        XCTAssert(fileCheckOutput(against: syntaxFile) {
+        XCTAssert(fileCheckOutput(against: .filePath(syntaxFile)) {
           describe(siltFile, at: file.absoluteString, by: .describingTokens)
         }, "failed while dumping syntax file \(syntaxFile)")
       } else {
@@ -97,7 +97,7 @@ class SyntaxTestRunner: XCTestCase {
 
       let astFile = file.appendingPathExtension("ast").path
       if FileManager.default.fileExists(atPath: astFile) {
-        XCTAssert(fileCheckOutput(against: astFile) {
+        XCTAssert(fileCheckOutput(against: .filePath(astFile)) {
           describe(siltFile, at: file.absoluteString, by: .dumpingParse)
         }, "failed while dumping AST file \(astFile)")
       } else {
@@ -106,7 +106,7 @@ class SyntaxTestRunner: XCTestCase {
 
       if FileManager.default.fileExists(atPath: astFile) {
         let shineFile = file.appendingPathExtension("shined").path
-        XCTAssert(fileCheckOutput(against: shineFile) {
+        XCTAssert(fileCheckOutput(against: .filePath(shineFile)) {
           describe(siltFile, at: file.absoluteString, by: .dumpingShined)
         }, "failed while dumping Shined file \(shineFile)")
       } else {

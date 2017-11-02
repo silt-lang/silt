@@ -30,13 +30,10 @@ public enum SyntaxKind {
   case recordFieldAssignmentList
   case recordFieldAssignment
   case functionDecl
-  case functionClauseList
-  case functionClause
-  case withRuleFunctionClause
-  case normalFunctionClause
-  case patternClauseList
+  case functionClauseDecl
+  case withRuleFunctionClauseDecl
+  case normalFunctionClauseDecl
   case typedParameterArrowExpr
-  case basicExprListArrowExpr
   case lambdaExpr
   case quantifiedExpr
   case letExpr
@@ -119,20 +116,14 @@ extension Syntax {
       return RecordFieldAssignmentSyntax(root: root, data: data)
     case .functionDecl:
       return FunctionDeclSyntax(root: root, data: data)
-    case .functionClauseList:
-      return FunctionClauseListSyntax(root: root, data: data)
-    case .functionClause:
-      return FunctionClauseSyntax(root: root, data: data)
-    case .withRuleFunctionClause:
-      return WithRuleFunctionClauseSyntax(root: root, data: data)
-    case .normalFunctionClause:
-      return NormalFunctionClauseSyntax(root: root, data: data)
-    case .patternClauseList:
-      return PatternClauseListSyntax(root: root, data: data)
+    case .functionClauseDecl:
+      return FunctionClauseDeclSyntax(root: root, data: data)
+    case .withRuleFunctionClauseDecl:
+      return WithRuleFunctionClauseDeclSyntax(root: root, data: data)
+    case .normalFunctionClauseDecl:
+      return NormalFunctionClauseDeclSyntax(root: root, data: data)
     case .typedParameterArrowExpr:
       return TypedParameterArrowExprSyntax(root: root, data: data)
-    case .basicExprListArrowExpr:
-      return BasicExprListArrowExprSyntax(root: root, data: data)
     case .lambdaExpr:
       return LambdaExprSyntax(root: root, data: data)
     case .quantifiedExpr:
