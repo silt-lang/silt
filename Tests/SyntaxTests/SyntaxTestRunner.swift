@@ -21,6 +21,50 @@ enum Action {
 }
 
 class SyntaxTestRunner: XCTestCase {
+  var engine: DiagnosticEngine!
+
+  /// A diagnostic consumer that emits an XCTFail with the serialized
+  /// diagnostic whenever a diagnostic is emitted.
+  class XCTestFailureConsumer: DiagnosticConsumer {
+    /// A reference type that exists to keep alive a String.
+    class StreamBuffer: TextOutputStream {
+      var value = ""
+      func write(_ string: String) {
+        value += string
+      }
+      func clear() {
+        value = ""
+      }
+    }
+
+    /// A buffer for each diagnostic.
+    var scratch = StreamBuffer()
+
+    /// A printing diagnostic consumer that will serialize diagnostics
+    /// to a string.
+    let printer: PrintingDiagnosticConsumer<StreamBuffer>
+
+    init() {
+      printer = .init(stream: &scratch)
+    }
+
+    /// XCTFails with the serialized version of the diagnostic provided.
+    func handle(_ diagnostic: Diagnostic) {
+      scratch.clear()
+      printer.handle(diagnostic)
+      XCTFail(scratch.value)
+    }
+
+    func finalize() {
+      // Do nothing
+    }
+  }
+
+  override func setUp() {
+    engine = DiagnosticEngine()
+    engine.register(XCTestFailureConsumer())
+  }
+
   func testSyntax() {
     let filesURL = URL(fileURLWithPath: #file)
       .deletingLastPathComponent()
@@ -44,7 +88,7 @@ class SyntaxTestRunner: XCTestCase {
 
       let syntaxFile = file.appendingPathExtension("syntax").path
       if FileManager.default.fileExists(atPath: syntaxFile) {
-        XCTAssert(fileCheckOutput(against: syntaxFile) {
+        XCTAssert(fileCheckOutput(against: .filePath(syntaxFile)) {
           describe(siltFile, at: file.absoluteString, by: .describingTokens)
         }, "failed while dumping syntax file \(syntaxFile)")
       } else {
@@ -53,7 +97,7 @@ class SyntaxTestRunner: XCTestCase {
 
       let astFile = file.appendingPathExtension("ast").path
       if FileManager.default.fileExists(atPath: astFile) {
-        XCTAssert(fileCheckOutput(against: astFile) {
+        XCTAssert(fileCheckOutput(against: .filePath(astFile)) {
           describe(siltFile, at: file.absoluteString, by: .dumpingParse)
         }, "failed while dumping AST file \(astFile)")
       } else {
@@ -62,7 +106,7 @@ class SyntaxTestRunner: XCTestCase {
 
       if FileManager.default.fileExists(atPath: astFile) {
         let shineFile = file.appendingPathExtension("shined").path
-        XCTAssert(fileCheckOutput(against: shineFile) {
+        XCTAssert(fileCheckOutput(against: .filePath(shineFile)) {
           describe(siltFile, at: file.absoluteString, by: .dumpingShined)
         }, "failed while dumping Shined file \(shineFile)")
       } else {
@@ -89,7 +133,7 @@ class SyntaxTestRunner: XCTestCase {
     case .describingTokens:
       TokenDescriber.describe(tokens, to: &stdoutStream)
     case .dumpingParse:
-      let parser = Parser(tokens: layoutTokens)
+      let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
       guard let tlm = parser.parseTopLevelModule() else {
         XCTFail("Parsing top level module failed!")
         return

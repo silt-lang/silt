@@ -71,6 +71,11 @@ public class Syntax {
     return raw.presence == .missing
   }
 
+  /// Whether or not this node it marked as `implicit`.
+  public var isImplicit: Bool {
+    return raw.presence == .implicit
+  }
+
   /// The parent of this syntax node, or `nil` if this node is the root.
   public var parent: Syntax? {
     guard let parentData = data.parent else { return nil }

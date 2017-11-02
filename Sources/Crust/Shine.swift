@@ -122,7 +122,7 @@ fileprivate extension TokenSyntax {
 public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
   var toks = ts
   if toks.isEmpty {
-    toks.append(TokenSyntax(.eof))
+    toks.append(TokenSyntax(.eof, presence: .implicit))
   }
 
   var stainlessToks = [TokenSyntax]()

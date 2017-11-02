@@ -29,7 +29,7 @@ public struct Diagnostic {
   /// Represents a diagnostic message. Clients should extend this struct with
   /// static constants or functions to enable leading-dot-style references to
   /// diagnostic messages.
-  public struct Message {
+  public struct Message: Error {
     /// The severity of the message, expressing how the compiler treats it.
     public enum Severity {
       /// The message is a warning that will not prevent compilation but that

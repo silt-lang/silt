@@ -49,15 +49,14 @@ import-decl ::= 'open'? 'import' <qualified-name>
 
 ## Functions
 
-function-decl ::= <ascription> ';' <function-clause-list>
-function-clause-list ::= <function-clause> ';'
-                       | <function-clause> ';' <function-clause-list>
-function-clause ::= <id> <pattern-clause-list>? with <expr> '|' <pattern-clause-list>? '=' <expr>
-                  | <id> <pattern-clause-list>? '=' <expr>
+function-decl ::= <ascription> ';'
+
+function-clause-decl ::= <basic-expr-list> with <expr> '|' <basic-expr-list>? '=' <expr> ';'
+                       | <basic-expr-list> '=' <expr> ';'
 
 # Patterns
 
-pattern-clause-list ::= <pattern-clause>
+basic-expr-list ::= <pattern-clause>
                       | <pattern-clause> <patter-clause-list>
 
 pattern-clause ::= <expr>

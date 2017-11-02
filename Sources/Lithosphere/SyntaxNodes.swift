@@ -759,15 +759,13 @@ public class RecordFieldAssignmentSyntax: Syntax {
 public class FunctionDeclSyntax: DeclSyntax {
   public enum Cursor: Int {
     case ascription
-    case ascriptionSemicolon
-    case clauseList
+    case trailingSemicolon
   }
 
-  public convenience init(ascription: AscriptionSyntax, ascriptionSemicolon: TokenSyntax, clauseList: FunctionClauseListSyntax) {
+  public convenience init(ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.functionDecl, [
       ascription.raw,
-      ascriptionSemicolon.raw,
-      clauseList.raw,
+      trailingSemicolon.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
@@ -780,47 +778,29 @@ public class FunctionDeclSyntax: DeclSyntax {
     return FunctionDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var ascriptionSemicolon: TokenSyntax {
-    return child(at: Cursor.ascriptionSemicolon) as! TokenSyntax
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
   }
-  public func withAscriptionSemicolon(_ syntax: TokenSyntax) -> FunctionDeclSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.ascriptionSemicolon)
-    return FunctionDeclSyntax(root: newRoot, data: newData)
-  }
-
-  public var clauseList: FunctionClauseListSyntax {
-    return child(at: Cursor.clauseList) as! FunctionClauseListSyntax
-  }
-  public func withClauseList(_ syntax: FunctionClauseListSyntax) -> FunctionDeclSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.clauseList)
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> FunctionDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
     return FunctionDeclSyntax(root: newRoot, data: newData)
   }
 
 }
 
-public final class FunctionClauseListSyntax: SyntaxCollection<FunctionClauseSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [FunctionClauseSyntax]) {
-    super.init(kind: .functionClauseList, elements: elements)
-  }
-}
-
-public class FunctionClauseSyntax: Syntax {
+public class FunctionClauseDeclSyntax: DeclSyntax {
 
   public convenience init() {
-    let raw = RawSyntax.node(.functionClause, [
+    let raw = RawSyntax.node(.functionClauseDecl, [
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
   }
 }
 
-public class WithRuleFunctionClauseSyntax: FunctionClauseSyntax {
+public class WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax {
   public enum Cursor: Int {
-    case functionName
-    case patternClauseList
+    case basicExprList
     case withToken
     case withExpr
     case withPatternClause
@@ -829,13 +809,12 @@ public class WithRuleFunctionClauseSyntax: FunctionClauseSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(functionName: TokenSyntax, patternClauseList: PatternClauseListSyntax?, withToken: TokenSyntax, withExpr: ExprSyntax, withPatternClause: PatternClauseListSyntax?, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
-    let raw = RawSyntax.node(.withRuleFunctionClause, [
-      functionName.raw,
-      patternClauseList?.raw ?? RawSyntax.missing(.patternClauseList),
+  public convenience init(basicExprList: BasicExprListSyntax, withToken: TokenSyntax, withExpr: ExprSyntax, withPatternClause: BasicExprListSyntax?, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
+    let raw = RawSyntax.node(.withRuleFunctionClauseDecl, [
+      basicExprList.raw,
       withToken.raw,
       withExpr.raw,
-      withPatternClause?.raw ?? RawSyntax.missing(.patternClauseList),
+      withPatternClause?.raw ?? RawSyntax.missing(.basicExprList),
       equalsToken.raw,
       rhsExpr.raw,
       trailingSemicolon.raw,
@@ -843,85 +822,75 @@ public class WithRuleFunctionClauseSyntax: FunctionClauseSyntax {
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
   }
-  public var functionName: TokenSyntax {
-    return child(at: Cursor.functionName) as! TokenSyntax
+  public var basicExprList: BasicExprListSyntax {
+    return child(at: Cursor.basicExprList) as! BasicExprListSyntax
   }
-  public func withFunctionName(_ syntax: TokenSyntax) -> WithRuleFunctionClauseSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.functionName)
-    return WithRuleFunctionClauseSyntax(root: newRoot, data: newData)
-  }
-
-  public var patternClauseList: PatternClauseListSyntax? {
-    return child(at: Cursor.patternClauseList) as? PatternClauseListSyntax
-  }
-  public func withPatternClauseList(_ syntax: PatternClauseListSyntax) -> WithRuleFunctionClauseSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.patternClauseList)
-    return WithRuleFunctionClauseSyntax(root: newRoot, data: newData)
+  public func withBasicExprList(_ syntax: BasicExprListSyntax) -> WithRuleFunctionClauseDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.basicExprList)
+    return WithRuleFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
   public var withToken: TokenSyntax {
     return child(at: Cursor.withToken) as! TokenSyntax
   }
-  public func withWithToken(_ syntax: TokenSyntax) -> WithRuleFunctionClauseSyntax {
+  public func withWithToken(_ syntax: TokenSyntax) -> WithRuleFunctionClauseDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.withToken)
-    return WithRuleFunctionClauseSyntax(root: newRoot, data: newData)
+    return WithRuleFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
   public var withExpr: ExprSyntax {
     return child(at: Cursor.withExpr) as! ExprSyntax
   }
-  public func withWithExpr(_ syntax: ExprSyntax) -> WithRuleFunctionClauseSyntax {
+  public func withWithExpr(_ syntax: ExprSyntax) -> WithRuleFunctionClauseDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.withExpr)
-    return WithRuleFunctionClauseSyntax(root: newRoot, data: newData)
+    return WithRuleFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var withPatternClause: PatternClauseListSyntax? {
-    return child(at: Cursor.withPatternClause) as? PatternClauseListSyntax
+  public var withPatternClause: BasicExprListSyntax? {
+    return child(at: Cursor.withPatternClause) as? BasicExprListSyntax
   }
-  public func withWithPatternClause(_ syntax: PatternClauseListSyntax) -> WithRuleFunctionClauseSyntax {
+  public func withWithPatternClause(_ syntax: BasicExprListSyntax) -> WithRuleFunctionClauseDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.withPatternClause)
-    return WithRuleFunctionClauseSyntax(root: newRoot, data: newData)
+    return WithRuleFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
   public var equalsToken: TokenSyntax {
     return child(at: Cursor.equalsToken) as! TokenSyntax
   }
-  public func withEqualsToken(_ syntax: TokenSyntax) -> WithRuleFunctionClauseSyntax {
+  public func withEqualsToken(_ syntax: TokenSyntax) -> WithRuleFunctionClauseDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.equalsToken)
-    return WithRuleFunctionClauseSyntax(root: newRoot, data: newData)
+    return WithRuleFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
   public var rhsExpr: ExprSyntax {
     return child(at: Cursor.rhsExpr) as! ExprSyntax
   }
-  public func withRhsExpr(_ syntax: ExprSyntax) -> WithRuleFunctionClauseSyntax {
+  public func withRhsExpr(_ syntax: ExprSyntax) -> WithRuleFunctionClauseDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.rhsExpr)
-    return WithRuleFunctionClauseSyntax(root: newRoot, data: newData)
+    return WithRuleFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
   public var trailingSemicolon: TokenSyntax {
     return child(at: Cursor.trailingSemicolon) as! TokenSyntax
   }
-  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> WithRuleFunctionClauseSyntax {
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> WithRuleFunctionClauseDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
-    return WithRuleFunctionClauseSyntax(root: newRoot, data: newData)
+    return WithRuleFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
 }
 
-public class NormalFunctionClauseSyntax: FunctionClauseSyntax {
+public class NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax {
   public enum Cursor: Int {
-    case functionName
-    case patternClauseList
+    case basicExprList
     case equalsToken
     case rhsExpr
     case trailingSemicolon
   }
 
-  public convenience init(functionName: TokenSyntax, patternClauseList: PatternClauseListSyntax?, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
-    let raw = RawSyntax.node(.normalFunctionClause, [
-      functionName.raw,
-      patternClauseList?.raw ?? RawSyntax.missing(.patternClauseList),
+  public convenience init(basicExprList: BasicExprListSyntax, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
+    let raw = RawSyntax.node(.normalFunctionClauseDecl, [
+      basicExprList.raw,
       equalsToken.raw,
       rhsExpr.raw,
       trailingSemicolon.raw,
@@ -929,55 +898,38 @@ public class NormalFunctionClauseSyntax: FunctionClauseSyntax {
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
   }
-  public var functionName: TokenSyntax {
-    return child(at: Cursor.functionName) as! TokenSyntax
+  public var basicExprList: BasicExprListSyntax {
+    return child(at: Cursor.basicExprList) as! BasicExprListSyntax
   }
-  public func withFunctionName(_ syntax: TokenSyntax) -> NormalFunctionClauseSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.functionName)
-    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
-  }
-
-  public var patternClauseList: PatternClauseListSyntax? {
-    return child(at: Cursor.patternClauseList) as? PatternClauseListSyntax
-  }
-  public func withPatternClauseList(_ syntax: PatternClauseListSyntax) -> NormalFunctionClauseSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.patternClauseList)
-    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
+  public func withBasicExprList(_ syntax: BasicExprListSyntax) -> NormalFunctionClauseDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.basicExprList)
+    return NormalFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
   public var equalsToken: TokenSyntax {
     return child(at: Cursor.equalsToken) as! TokenSyntax
   }
-  public func withEqualsToken(_ syntax: TokenSyntax) -> NormalFunctionClauseSyntax {
+  public func withEqualsToken(_ syntax: TokenSyntax) -> NormalFunctionClauseDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.equalsToken)
-    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
+    return NormalFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
   public var rhsExpr: ExprSyntax {
     return child(at: Cursor.rhsExpr) as! ExprSyntax
   }
-  public func withRhsExpr(_ syntax: ExprSyntax) -> NormalFunctionClauseSyntax {
+  public func withRhsExpr(_ syntax: ExprSyntax) -> NormalFunctionClauseDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.rhsExpr)
-    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
+    return NormalFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
   public var trailingSemicolon: TokenSyntax {
     return child(at: Cursor.trailingSemicolon) as! TokenSyntax
   }
-  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> NormalFunctionClauseSyntax {
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> NormalFunctionClauseDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
-    return NormalFunctionClauseSyntax(root: newRoot, data: newData)
+    return NormalFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
-}
-
-public final class PatternClauseListSyntax: SyntaxCollection<ExprSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [ExprSyntax]) {
-    super.init(kind: .patternClauseList, elements: elements)
-  }
 }
 
 public class TypedParameterArrowExprSyntax: ExprSyntax {
@@ -1018,48 +970,6 @@ public class TypedParameterArrowExprSyntax: ExprSyntax {
   public func withOutputExpr(_ syntax: ExprSyntax) -> TypedParameterArrowExprSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.outputExpr)
     return TypedParameterArrowExprSyntax(root: newRoot, data: newData)
-  }
-
-}
-
-public class BasicExprListArrowExprSyntax: ExprSyntax {
-  public enum Cursor: Int {
-    case exprList
-    case arrowToken
-    case outputExpr
-  }
-
-  public convenience init(exprList: BasicExprListSyntax, arrowToken: TokenSyntax, outputExpr: ExprSyntax) {
-    let raw = RawSyntax.node(.basicExprListArrowExpr, [
-      exprList.raw,
-      arrowToken.raw,
-      outputExpr.raw,
-    ], .present)
-    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
-    self.init(root: data, data: data)
-  }
-  public var exprList: BasicExprListSyntax {
-    return child(at: Cursor.exprList) as! BasicExprListSyntax
-  }
-  public func withExprList(_ syntax: BasicExprListSyntax) -> BasicExprListArrowExprSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.exprList)
-    return BasicExprListArrowExprSyntax(root: newRoot, data: newData)
-  }
-
-  public var arrowToken: TokenSyntax {
-    return child(at: Cursor.arrowToken) as! TokenSyntax
-  }
-  public func withArrowToken(_ syntax: TokenSyntax) -> BasicExprListArrowExprSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.arrowToken)
-    return BasicExprListArrowExprSyntax(root: newRoot, data: newData)
-  }
-
-  public var outputExpr: ExprSyntax {
-    return child(at: Cursor.outputExpr) as! ExprSyntax
-  }
-  public func withOutputExpr(_ syntax: ExprSyntax) -> BasicExprListArrowExprSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.outputExpr)
-    return BasicExprListArrowExprSyntax(root: newRoot, data: newData)
   }
 
 }
@@ -1225,17 +1135,17 @@ public class ApplicationExprSyntax: ExprSyntax {
     case exprs
   }
 
-  public convenience init(exprs: ApplicationExprListSyntax) {
+  public convenience init(exprs: BasicExprListSyntax) {
     let raw = RawSyntax.node(.applicationExpr, [
       exprs.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
   }
-  public var exprs: ApplicationExprListSyntax {
-    return child(at: Cursor.exprs) as! ApplicationExprListSyntax
+  public var exprs: BasicExprListSyntax {
+    return child(at: Cursor.exprs) as! BasicExprListSyntax
   }
-  public func withExprs(_ syntax: ApplicationExprListSyntax) -> ApplicationExprSyntax {
+  public func withExprs(_ syntax: BasicExprListSyntax) -> ApplicationExprSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.exprs)
     return ApplicationExprSyntax(root: newRoot, data: newData)
   }
@@ -1249,15 +1159,6 @@ public class BasicExprSyntax: ExprSyntax {
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
-  }
-}
-
-public final class ApplicationExprListSyntax: SyntaxCollection<BasicExprSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [BasicExprSyntax]) {
-    super.init(kind: .applicationExprList, elements: elements)
   }
 }
 
