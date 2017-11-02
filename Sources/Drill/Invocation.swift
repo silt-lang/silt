@@ -72,10 +72,10 @@ public struct Invocation {
         break
       case .parseVerify:
         let layoutTokens = layout(tokens)
-        let parser = Parser(tokens: layoutTokens)
+        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
         _ = parser.parseTopLevelModule()
         let verifier =
-          try DiagnosticVerifier(file: url,
+          try DiagnosticVerifier(tokens: layoutTokens,
                                  producedDiagnostics: engine.diagnostics)
         verifier.verify()
       }
