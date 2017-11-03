@@ -26,7 +26,7 @@ public final class DiagnosticEngine {
   public func register(_ consumer: DiagnosticConsumer) {
     consumers.append(consumer)
   }
-  
+
   public func unregister(_ consumer: DiagnosticConsumer) {
     for (index, c) in consumers.enumerated() where c === consumer {
       consumers.remove(at: index)

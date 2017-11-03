@@ -43,7 +43,7 @@ extension Diagnostic.Message {
 /// A regex that matches expected(error|note|warning){{message}}, similar to
 /// Swift and Clang's diagnostic verifiers.
 //swiftlint:disable force_try
-fileprivate let diagRegex = try! NSRegularExpression(pattern:
+private let diagRegex = try! NSRegularExpression(pattern:
   "--\\s*expected-(error|note|warning)\\s*\\{\\{(.*)\\}\\}")
 
 /// The DiagnosticVerifier is responsible for parsing diagnostic expectation
