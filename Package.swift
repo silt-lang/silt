@@ -23,13 +23,17 @@ let package = Package(
       dependencies: ["Lithosphere"]),
     .target(
       name: "Drill",
-      dependencies: ["Lithosphere", "Crust"]),
+      dependencies: ["Lithosphere", "Crust", "Moho"]),
     .target(
       name: "silt",
       dependencies: ["Drill", "CommandLine"]),
     .target(
       name: "SyntaxGen",
       dependencies: ["CommandLine"]),
+
+    .target(
+      name: "Moho",
+      dependencies: ["Lithosphere", "Crust"]),
 
     .testTarget(
       name: "SyntaxTests",
