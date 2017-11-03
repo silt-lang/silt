@@ -22,11 +22,12 @@ extension Diagnostic.Message {
     return .init(.error,
       "\(diagnostic.severity) \"\(diagnostic.text)\" never produced")
   }
-    
-  static func incorrectDiagnostic(got diagnostic: Diagnostic.Message) -> Diagnostic.Message {
+
+  static func incorrectDiagnostic(
+    got diagnostic: Diagnostic.Message) -> Diagnostic.Message {
     return .init(.error, "incorrect diagnostic '\(diagnostic.text)'")
   }
-  
+
   static func expected(_ diagnostic: Diagnostic.Message) -> Diagnostic.Message {
     return .init(.note, "expected \(diagnostic.severity) '\(diagnostic.text)'")
   }
@@ -41,6 +42,7 @@ extension Diagnostic.Message {
 
 /// A regex that matches expected(error|note|warning){{message}}, similar to
 /// Swift and Clang's diagnostic verifiers.
+//swiftlint:disable force_try
 fileprivate let diagRegex = try! NSRegularExpression(pattern:
   "--\\s*expected-(error|note|warning)\\s*\\{\\{(.*)\\}\\}")
 
@@ -60,7 +62,7 @@ public final class DiagnosticVerifier {
     let tokenContainingComment: Syntax
 
     /// Compares two expectations to ensure they're the same.
-    static func ==(lhs: Expectation, rhs: Expectation) -> Bool {
+    static func == (lhs: Expectation, rhs: Expectation) -> Bool {
       return lhs.message.text == rhs.message.text &&
              lhs.message.severity == rhs.message.severity &&
              lhs.tokenContainingComment.startLoc?.line ==
@@ -99,7 +101,7 @@ public final class DiagnosticVerifier {
   public func verify() {
     // Keep a list of expectations we haven't matched yet.
     var unmatchedExpectations = expectedDiagnostics
-    
+
     // Maintain a list of unexpected diagnostics and the line they
     // occurred on.
     var unexpectedDiagnostics = [Int: Diagnostic]()
@@ -150,7 +152,8 @@ public final class DiagnosticVerifier {
       }
     }
     for diagnostic in unexpectedDiagnostics.values {
-      engine.diagnose(.unexpectedDiagnostic(diagnostic.message), node: diagnostic.node)
+      engine.diagnose(.unexpectedDiagnostic(diagnostic.message),
+                      node: diagnostic.node)
     }
   }
 
@@ -168,7 +171,7 @@ public final class DiagnosticVerifier {
         let range = NSRange(location: 0, length: nsString.length)
 
         diagRegex.enumerateMatches(in: text,
-                                   range: range) { result, flags, _ in
+                                   range: range) { result, _, _ in
           guard let result = result else { return }
           let severityRange = result.range(at: 1)
           let messageRange = result.range(at: 2)
