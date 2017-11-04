@@ -173,6 +173,7 @@ public final class DiagnosticVerifier {
         diagRegex.enumerateMatches(in: text,
                                    range: range) { result, _, _ in
           guard let result = result else { return }
+          guard result.numberOfRanges == 3 else { return }
           let severityRange = result.range(at: 1)
           let messageRange = result.range(at: 2)
           let rawSeverity = nsString.substring(with: severityRange)
