@@ -34,6 +34,9 @@ let package = Package(
     .target(
       name: "Moho",
       dependencies: ["Lithosphere", "Crust"]),
+    .target(
+      name: "Mantle",
+      dependencies: ["Lithosphere", "Moho"]),
 
     .testTarget(
       name: "SyntaxTests",
