@@ -96,7 +96,7 @@ public struct QualifiedName: Equatable, Hashable, CustomStringConvertible {
   public var description: String {
     return self.module.reduce("") { (acc, x) in
       return acc + x.description + "."
-      } + self.name.description
+    } + self.name.description
   }
 
   public var string: String {

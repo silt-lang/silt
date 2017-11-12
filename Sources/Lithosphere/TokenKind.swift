@@ -7,6 +7,8 @@
 /// available in the repository.
 public enum TokenKind: Equatable {
   case eof
+  case infixlKeyword
+  case infixKeyword
   case forallSymbol
   case moduleKeyword
   case arrow
@@ -29,6 +31,7 @@ public enum TokenKind: Equatable {
   case leftBrace
   case typeKeyword
   case withKeyword
+  case infixrKeyword
   case identifier(String)
   case rightBrace
   case leftParen
@@ -38,6 +41,8 @@ public enum TokenKind: Equatable {
 
   public init(text: String) {
     switch text {
+    case "infixl": self = .infixlKeyword
+    case "infix": self = .infixKeyword
     case "∀": self = .forallSymbol
     case "module": self = .moduleKeyword
     case "->": self = .arrow
@@ -59,6 +64,7 @@ public enum TokenKind: Equatable {
     case "{": self = .leftBrace
     case "Type": self = .typeKeyword
     case "with": self = .withKeyword
+    case "infixr": self = .infixrKeyword
     case "}": self = .rightBrace
     case "(": self = .leftParen
     case "in": self = .inKeyword
@@ -70,6 +76,8 @@ public enum TokenKind: Equatable {
   public var text: String {
     switch self {
     case .eof: return ""
+    case .infixlKeyword: return "infixl"
+    case .infixKeyword: return "infix"
     case .forallSymbol: return "∀"
     case .moduleKeyword: return "module"
     case .arrow: return "->"
@@ -92,6 +100,7 @@ public enum TokenKind: Equatable {
     case .leftBrace: return "{"
     case .typeKeyword: return "Type"
     case .withKeyword: return "with"
+    case .infixrKeyword: return "infixr"
     case .identifier(let text): return text.description
     case .rightBrace: return "}"
     case .leftParen: return "("
@@ -103,6 +112,8 @@ public enum TokenKind: Equatable {
   public static func == (lhs: TokenKind, rhs: TokenKind) -> Bool {
     switch (lhs, rhs) {
     case (.eof, .eof): return true
+    case (.infixlKeyword, .infixlKeyword): return true
+    case (.infixKeyword, .infixKeyword): return true
     case (.forallSymbol, .forallSymbol): return true
     case (.moduleKeyword, .moduleKeyword): return true
     case (.arrow, .arrow): return true
@@ -126,6 +137,7 @@ public enum TokenKind: Equatable {
     case (.leftBrace, .leftBrace): return true
     case (.typeKeyword, .typeKeyword): return true
     case (.withKeyword, .withKeyword): return true
+    case (.infixrKeyword, .infixrKeyword): return true
     case (.identifier(let l),
           .identifier(let r)): return l == r
     case (.rightBrace, .rightBrace): return true

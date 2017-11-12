@@ -33,6 +33,11 @@ public enum SyntaxKind {
   case functionClauseDecl
   case withRuleFunctionClauseDecl
   case normalFunctionClauseDecl
+  case fixityDecl
+  case nonFixDecl
+  case leftFixDecl
+  case rightFixDecl
+  case patternClauseList
   case typedParameterArrowExpr
   case lambdaExpr
   case quantifiedExpr
@@ -122,6 +127,16 @@ extension Syntax {
       return WithRuleFunctionClauseDeclSyntax(root: root, data: data)
     case .normalFunctionClauseDecl:
       return NormalFunctionClauseDeclSyntax(root: root, data: data)
+    case .fixityDecl:
+      return FixityDeclSyntax(root: root, data: data)
+    case .nonFixDecl:
+      return NonFixDeclSyntax(root: root, data: data)
+    case .leftFixDecl:
+      return LeftFixDeclSyntax(root: root, data: data)
+    case .rightFixDecl:
+      return RightFixDeclSyntax(root: root, data: data)
+    case .patternClauseList:
+      return PatternClauseListSyntax(root: root, data: data)
     case .typedParameterArrowExpr:
       return TypedParameterArrowExprSyntax(root: root, data: data)
     case .lambdaExpr:

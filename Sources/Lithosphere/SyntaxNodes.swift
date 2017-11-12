@@ -69,11 +69,11 @@ public class ModuleDeclSyntax: DeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(moduleToken: TokenSyntax, moduleIdentifier: QualifiedNameSyntax, typedParameterList: TypedParameterListSyntax?, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
+  public convenience init(moduleToken: TokenSyntax, moduleIdentifier: QualifiedNameSyntax, typedParameterList: TypedParameterListSyntax, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.moduleDecl, [
       moduleToken.raw,
       moduleIdentifier.raw,
-      typedParameterList?.raw ?? RawSyntax.missing(.typedParameterList),
+      typedParameterList.raw,
       whereToken.raw,
       leftBraceToken.raw,
       declList.raw,
@@ -99,8 +99,8 @@ public class ModuleDeclSyntax: DeclSyntax {
     return ModuleDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var typedParameterList: TypedParameterListSyntax? {
-    return child(at: Cursor.typedParameterList) as? TypedParameterListSyntax
+  public var typedParameterList: TypedParameterListSyntax {
+    return child(at: Cursor.typedParameterList) as! TypedParameterListSyntax
   }
   public func withTypedParameterList(_ syntax: TypedParameterListSyntax) -> ModuleDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.typedParameterList)
@@ -245,11 +245,11 @@ public class DataDeclSyntax: DeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(dataToken: TokenSyntax, dataIdentifier: TokenSyntax, typedParameterList: TypedParameterListSyntax?, typeIndices: TypeIndicesSyntax, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, constructorList: ConstructorListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
+  public convenience init(dataToken: TokenSyntax, dataIdentifier: TokenSyntax, typedParameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, constructorList: ConstructorListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.dataDecl, [
       dataToken.raw,
       dataIdentifier.raw,
-      typedParameterList?.raw ?? RawSyntax.missing(.typedParameterList),
+      typedParameterList.raw,
       typeIndices.raw,
       whereToken.raw,
       leftBraceToken.raw,
@@ -276,8 +276,8 @@ public class DataDeclSyntax: DeclSyntax {
     return DataDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var typedParameterList: TypedParameterListSyntax? {
-    return child(at: Cursor.typedParameterList) as? TypedParameterListSyntax
+  public var typedParameterList: TypedParameterListSyntax {
+    return child(at: Cursor.typedParameterList) as! TypedParameterListSyntax
   }
   public func withTypedParameterList(_ syntax: TypedParameterListSyntax) -> DataDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.typedParameterList)
@@ -930,6 +930,181 @@ public class NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax {
     return NormalFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
+}
+
+public class FixityDeclSyntax: DeclSyntax {
+
+  public convenience init() {
+    let raw = RawSyntax.node(.fixityDecl, [
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+}
+
+public class NonFixDeclSyntax: FixityDeclSyntax {
+  public enum Cursor: Int {
+    case infixToken
+    case precedence
+    case names
+    case trailingSemicolon
+  }
+
+  public convenience init(infixToken: TokenSyntax, precedence: TokenSyntax, names: IdentifierListSyntax, trailingSemicolon: TokenSyntax) {
+    let raw = RawSyntax.node(.nonFixDecl, [
+      infixToken.raw,
+      precedence.raw,
+      names.raw,
+      trailingSemicolon.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var infixToken: TokenSyntax {
+    return child(at: Cursor.infixToken) as! TokenSyntax
+  }
+  public func withInfixToken(_ syntax: TokenSyntax) -> NonFixDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.infixToken)
+    return NonFixDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var precedence: TokenSyntax {
+    return child(at: Cursor.precedence) as! TokenSyntax
+  }
+  public func withPrecedence(_ syntax: TokenSyntax) -> NonFixDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.precedence)
+    return NonFixDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var names: IdentifierListSyntax {
+    return child(at: Cursor.names) as! IdentifierListSyntax
+  }
+  public func withNames(_ syntax: IdentifierListSyntax) -> NonFixDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.names)
+    return NonFixDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  }
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> NonFixDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
+    return NonFixDeclSyntax(root: newRoot, data: newData)
+  }
+
+}
+
+public class LeftFixDeclSyntax: FixityDeclSyntax {
+  public enum Cursor: Int {
+    case infixlToken
+    case precedence
+    case names
+    case trailingSemicolon
+  }
+
+  public convenience init(infixlToken: TokenSyntax, precedence: TokenSyntax, names: IdentifierListSyntax, trailingSemicolon: TokenSyntax) {
+    let raw = RawSyntax.node(.leftFixDecl, [
+      infixlToken.raw,
+      precedence.raw,
+      names.raw,
+      trailingSemicolon.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var infixlToken: TokenSyntax {
+    return child(at: Cursor.infixlToken) as! TokenSyntax
+  }
+  public func withInfixlToken(_ syntax: TokenSyntax) -> LeftFixDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.infixlToken)
+    return LeftFixDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var precedence: TokenSyntax {
+    return child(at: Cursor.precedence) as! TokenSyntax
+  }
+  public func withPrecedence(_ syntax: TokenSyntax) -> LeftFixDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.precedence)
+    return LeftFixDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var names: IdentifierListSyntax {
+    return child(at: Cursor.names) as! IdentifierListSyntax
+  }
+  public func withNames(_ syntax: IdentifierListSyntax) -> LeftFixDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.names)
+    return LeftFixDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  }
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> LeftFixDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
+    return LeftFixDeclSyntax(root: newRoot, data: newData)
+  }
+
+}
+
+public class RightFixDeclSyntax: FixityDeclSyntax {
+  public enum Cursor: Int {
+    case infixrToken
+    case precedence
+    case names
+    case trailingSemicolon
+  }
+
+  public convenience init(infixrToken: TokenSyntax, precedence: TokenSyntax, names: IdentifierListSyntax, trailingSemicolon: TokenSyntax) {
+    let raw = RawSyntax.node(.rightFixDecl, [
+      infixrToken.raw,
+      precedence.raw,
+      names.raw,
+      trailingSemicolon.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var infixrToken: TokenSyntax {
+    return child(at: Cursor.infixrToken) as! TokenSyntax
+  }
+  public func withInfixrToken(_ syntax: TokenSyntax) -> RightFixDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.infixrToken)
+    return RightFixDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var precedence: TokenSyntax {
+    return child(at: Cursor.precedence) as! TokenSyntax
+  }
+  public func withPrecedence(_ syntax: TokenSyntax) -> RightFixDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.precedence)
+    return RightFixDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var names: IdentifierListSyntax {
+    return child(at: Cursor.names) as! IdentifierListSyntax
+  }
+  public func withNames(_ syntax: IdentifierListSyntax) -> RightFixDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.names)
+    return RightFixDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  }
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> RightFixDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
+    return RightFixDeclSyntax(root: newRoot, data: newData)
+  }
+
+}
+
+public final class PatternClauseListSyntax: SyntaxCollection<ExprSyntax> {
+  internal override init(root: SyntaxData, data: SyntaxData) {
+    super.init(root: root, data: data)
+  }
+  public init(elements: [ExprSyntax]) {
+    super.init(kind: .patternClauseList, elements: elements)
+  }
 }
 
 public class TypedParameterArrowExprSyntax: ExprSyntax {

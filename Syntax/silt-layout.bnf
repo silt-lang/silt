@@ -8,6 +8,7 @@ decl ::= <data-decl>
        | <module-decl>
        | <import-decl>
        | <function-decl>
+       | <fixity-decl>
 
 ## Data types
 
@@ -53,6 +54,12 @@ function-decl ::= <ascription> ';'
 
 function-clause-decl ::= <basic-expr-list> with <expr> '|' <basic-expr-list>? '=' <expr> ';'
                        | <basic-expr-list> '=' <expr> ';'
+
+# Fixity
+
+fixity-decl ::= 'infix' <int> <id-list>
+              | 'infixl' <int> <id-list>
+              | 'infixr' <int> <id-list>
 
 # Patterns
 

@@ -1,6 +1,8 @@
 id ::= <a group of non-space unicode characters>
 id-list ::= <id> | <id-list>
 
+int ::= [0-9]+
+
 # Declarations
 
 decl ::= <data-decl>
@@ -9,6 +11,7 @@ decl ::= <data-decl>
        | <import-decl>
        | <function-decl>
        | <function-clause-decl>
+       | <fixity-decl>
 
 ## Data types
 
@@ -54,6 +57,12 @@ function-decl ::= <ascription>
 
 function-clause-decl ::= <basic-expr-list> with <expr> '|' <basic-expr-list>? '=' <expr>
                        | <basic-expr-list> '=' <expr>
+
+# Fixity
+
+fixity-decl ::= 'infix' <int> <id-list>
+              | 'infixl' <int> <id-list>
+              | 'infixr' <int> <id-list>
 
 # Patterns
 
