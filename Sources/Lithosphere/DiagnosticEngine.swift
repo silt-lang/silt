@@ -36,7 +36,6 @@ public final class DiagnosticEngine {
     return DiagnosticConsumerToken(uuid: uuid)
   }
 
-
   /// Unregisters a consumer that's registered with the provided token.
   ///
   /// - Parameter token: The token returned when the consumer was registered.
@@ -46,6 +45,11 @@ public final class DiagnosticEngine {
     guard consumers.removeValue(forKey: token.uuid) != nil else {
       fatalError("attempt to remove unregistered diagnostic consumer")
     }
+  }
+
+  /// Unregisters all consumers registered with this engine.
+  public func unregisterConsumers() {
+    consumers = [:]
   }
 
   /// Emits a diagnostic message into the engine.

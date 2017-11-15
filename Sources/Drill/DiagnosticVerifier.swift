@@ -83,7 +83,7 @@ public final class DiagnosticVerifier {
 
   /// The temporary diagnostic engine into which we'll be pushing diagnostics
   /// for verification errors.
-  let engine: DiagnosticEngine = {
+  public let engine: DiagnosticEngine = {
     let e = DiagnosticEngine()
     e.register(PrintingDiagnosticConsumer(stream: &stderrStream))
     return e
@@ -92,7 +92,7 @@ public final class DiagnosticVerifier {
   /// Creates a diagnostic verifier that uses the provided token stream and
   /// set of produced diagnostics to find and verify the set of expectations
   /// in the original file.
-  public init(tokens: [TokenSyntax], producedDiagnostics: [Diagnostic]) throws {
+  public init(tokens: [TokenSyntax], producedDiagnostics: [Diagnostic]) {
     self.producedDiagnostics = producedDiagnostics
     self.expectedDiagnostics =
       DiagnosticVerifier.parseExpectations(tokens, engine: self.engine)

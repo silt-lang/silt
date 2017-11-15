@@ -6,6 +6,9 @@
 /// available in the repository.
 import XCTest
 import Lithosphere
+import Drill
+import Crust
+import Seismography
 
 extension Diagnostic.Message {
   static let errorWithNoNode =
@@ -35,6 +38,35 @@ class DiagnosticTests: XCTestCase {
 
   override func setUp() {
     engine = DiagnosticEngine()
+  }
+
+  override func tearDown() {
+    engine.unregisterConsumers()
+  }
+
+  func testParseVerifyTests() {
+    let dir = URL(fileURLWithPath: #file)
+      .deletingLastPathComponent()
+      .appendingPathComponent("Resources")
+    let siltFiles: [SourceFileContents]
+    do {
+      siltFiles = try contentsOfSiltSourceFiles(in: dir)
+    } catch {
+      XCTFail("could not read silt source files: \(error)")
+      return
+    }
+
+    for file in siltFiles {
+      let lexer = Lexer(input: file.contents, filePath: file.url.path)
+      let layoutTokens = layout(lexer.tokenize())
+      let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
+      _ = parser.parseTopLevelModule()
+      let diagnosticVerifier =
+        DiagnosticVerifier(tokens: layoutTokens,
+                           producedDiagnostics: engine.diagnostics)
+      diagnosticVerifier.engine.register(XCTestFailureConsumer())
+      diagnosticVerifier.verify()
+    }
   }
 
   func testSimpleDiagnosticEmission() {

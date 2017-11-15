@@ -9,7 +9,7 @@ let package = Package(
     // Dependencies declare other packages that this package depends on.
     // .package(url: /* package url */, from: "1.0.0"),
     .package(url: "https://github.com/jatoben/CommandLine.git", .branch("master")),
-    .package(url: "https://github.com/trill-lang/FileCheck.git", from: "0.0.3"),
+    .package(url: "https://github.com/trill-lang/FileCheck.git", from: "0.0.4"),
     .package(url: "https://github.com/onevcat/Rainbow", from: "3.0.0"),
     ],
   targets: [
@@ -35,11 +35,15 @@ let package = Package(
       name: "Moho",
       dependencies: ["Lithosphere", "Crust"]),
 
+    .target(
+      name: "Seismography",
+      dependencies: ["Lithosphere", "Drill"]),
     .testTarget(
       name: "SyntaxTests",
-      dependencies: ["Drill", "Lithosphere", "Crust", "FileCheck"]),
+      dependencies: ["Drill", "Lithosphere", "Crust",
+                     "Seismography", "FileCheck"]),
     .testTarget(
       name: "DiagnosticTests",
-      dependencies: ["Lithosphere"]),
+      dependencies: ["Lithosphere", "Seismography"]),
     ]
 )
