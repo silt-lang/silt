@@ -76,8 +76,8 @@ public struct Invocation {
         let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
         _ = parser.parseTopLevelModule()
         let verifier =
-          try DiagnosticVerifier(tokens: layoutTokens,
-                                 producedDiagnostics: engine.diagnostics)
+          DiagnosticVerifier(input: contents,
+                             producedDiagnostics: engine.diagnostics)
         verifier.verify()
       }
     }

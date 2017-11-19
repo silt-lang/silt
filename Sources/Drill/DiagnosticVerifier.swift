@@ -18,9 +18,9 @@ extension Diagnostic.Message {
 
   /// An expected diagnostic was never raised.
   static func diagnosticNotRaised(
-    _ diagnostic: Diagnostic.Message) -> Diagnostic.Message {
+    _ expectation: DiagnosticVerifier.Expectation) -> Diagnostic.Message {
     return .init(.error,
-      "\(diagnostic.severity) \"\(diagnostic.text)\" never produced")
+      "\(expectation.severity) \"\(expectation.messageText)\" never produced")
   }
 
   static func incorrectDiagnostic(
@@ -28,8 +28,10 @@ extension Diagnostic.Message {
     return .init(.error, "incorrect diagnostic '\(diagnostic.text)'")
   }
 
-  static func expected(_ diagnostic: Diagnostic.Message) -> Diagnostic.Message {
-    return .init(.note, "expected \(diagnostic.severity) '\(diagnostic.text)'")
+  static func expected(
+    _ expectation: DiagnosticVerifier.Expectation) -> Diagnostic.Message {
+    return .init(.note,
+      "expected \(expectation.severity) '\(expectation.messageText)'")
   }
 
   /// A diagnostic was raised with no node attached.
@@ -40,11 +42,17 @@ extension Diagnostic.Message {
   }
 }
 
-/// A regex that matches expected(error|note|warning){{message}}, similar to
+/// A regex that matches expected-(error|note|warning) @<line>, similar to
+/// Swift and Clang's diagnostic verifiers.
+//swiftlint:disable force_try
+private let diagWithLineRegex = try! NSRegularExpression(pattern:
+  "--\\s*expected-(error|note|warning)\\s*@(-?\\d+)\\s+\\{\\{")
+
+/// A regex that matches expected-(error|note|warning), similar to
 /// Swift and Clang's diagnostic verifiers.
 //swiftlint:disable force_try
 private let diagRegex = try! NSRegularExpression(pattern:
-  "--\\s*expected-(error|note|warning)\\s*\\{\\{(.*)\\}\\}")
+  "--\\s*expected-(error|note|warning)\\s*\\{\\{")
 
 /// The DiagnosticVerifier is responsible for parsing diagnostic expectation
 /// comments in a silt file and verifying that the set of diagnostics
@@ -58,25 +66,27 @@ public final class DiagnosticVerifier {
   /// and the original token to which the comment was attached (for use in the
   /// final diagnostic to point near this comment).
   struct Expectation: Hashable {
-    let message: Diagnostic.Message
-    let tokenContainingComment: Syntax
+    let messageText: String
+    let messageRegex: NSRegularExpression
+    let severity: Diagnostic.Message.Severity
+    let line: Int
 
     /// Compares two expectations to ensure they're the same.
     static func == (lhs: Expectation, rhs: Expectation) -> Bool {
-      return lhs.message.text == rhs.message.text &&
-             lhs.message.severity == rhs.message.severity &&
-             lhs.tokenContainingComment.startLoc?.line ==
-               rhs.tokenContainingComment.startLoc?.line
+      return lhs.messageText == rhs.messageText &&
+             lhs.severity == rhs.severity &&
+             lhs.line == rhs.line
     }
 
     var hashValue: Int {
-      return message.text.hashValue ^
-             message.severity.rawValue.hashValue
+      return messageText.hashValue ^
+             severity.rawValue.hashValue ^
+             line.hashValue
     }
   }
 
   /// The set of expected-{severity} comments in the file.
-  let expectedDiagnostics: Set<Expectation>
+  let expectations: Set<Expectation>
 
   /// The set of diagnostics that have been parsed.
   let producedDiagnostics: [Diagnostic]
@@ -92,19 +102,32 @@ public final class DiagnosticVerifier {
   /// Creates a diagnostic verifier that uses the provided token stream and
   /// set of produced diagnostics to find and verify the set of expectations
   /// in the original file.
-  public init(tokens: [TokenSyntax], producedDiagnostics: [Diagnostic]) {
+  public init(input: String, producedDiagnostics: [Diagnostic]) {
     self.producedDiagnostics = producedDiagnostics
-    self.expectedDiagnostics =
-      DiagnosticVerifier.parseExpectations(tokens, engine: self.engine)
+    self.expectations =
+      DiagnosticVerifier.parseExpectations(input: input, engine: self.engine)
+  }
+
+  private func matches(_ diagnostic: Diagnostic,
+                       expectation: Expectation) -> Bool {
+    let expectedLine = expectation.line
+    if expectedLine != diagnostic.node?.startLoc?.line {
+      return false
+    }
+    let nsString = NSString(string: diagnostic.message.text)
+    let range = NSRange(location: 0, length: nsString.length)
+    let match = expectation.messageRegex.firstMatch(in: diagnostic.message.text,
+                                                    range: range)
+    return match != nil
   }
 
   public func verify() {
     // Keep a list of expectations we haven't matched yet.
-    var unmatchedExpectations = expectedDiagnostics
+    var unmatched = expectations
 
     // Maintain a list of unexpected diagnostics and the line they
     // occurred on.
-    var unexpectedDiagnostics = [Int: Diagnostic]()
+    var unexpected = [Int: [Diagnostic]]()
 
     // Go through each diagnostic we've produced.
     for diagnostic in producedDiagnostics {
@@ -115,74 +138,91 @@ public final class DiagnosticVerifier {
         continue
       }
 
-      let expectation = Expectation(message: diagnostic.message,
-                                    tokenContainingComment: node)
-
-      // Make sure we're expecting this diagnostic.
-      guard expectedDiagnostics.contains(expectation) else {
-        unexpectedDiagnostics[loc.line] = diagnostic
-        continue
+      var found = false
+      for (idx, exp) in zip(unmatched.indices, unmatched) {
+        // If it matches, remove this from the set of expectations
+        if matches(diagnostic, expectation: exp) {
+          found = true
+          unmatched.remove(at: idx)
+          break
+        }
       }
-
-      // Remove it from the unmatched one, if we've seen it.
-      unmatchedExpectations.remove(expectation)
+      if !found {
+        unexpected[loc.line, default: []].append(diagnostic)
+      }
     }
 
     // Diagnostics we never saw produced are errors -- make our own error
     // stating that.
-    let expectations = unmatchedExpectations.sorted { a, b in
-      guard let aLine = a.tokenContainingComment.startLoc?.line,
-        let bLine = b.tokenContainingComment.startLoc?.line else {
-          return false
-      }
-      return aLine < bLine
-    }
-    for expectation in expectations {
-      if
-        let line = expectation.tokenContainingComment.startLoc?.line,
-        let unexpected = unexpectedDiagnostics[line] {
-        engine.diagnose(.incorrectDiagnostic(got: unexpected.message),
-                        node: unexpected.node) {
-          $0.note(.expected(expectation.message), node: unexpected.node)
+    let remaining = unmatched.sorted { $0.line < $1.line }
+    for expectation in remaining {
+      if let diags = unexpected[expectation.line] {
+        for diag in diags {
+          engine.diagnose(.incorrectDiagnostic(got: diag.message),
+                          node: diag.node) {
+            $0.note(.expected(expectation), node: diag.node)
+          }
         }
-        unexpectedDiagnostics.removeValue(forKey: line)
+        unexpected.removeValue(forKey: expectation.line)
       } else {
-        engine.diagnose(.diagnosticNotRaised(expectation.message),
-                        node: expectation.tokenContainingComment)
+        engine.diagnose(.diagnosticNotRaised(expectation))
       }
     }
-    for diagnostic in unexpectedDiagnostics.values {
+    for diagnostic in unexpected.values.flatMap({ $0 }) {
       engine.diagnose(.unexpectedDiagnostic(diagnostic.message),
                       node: diagnostic.node)
     }
+  }
+
+  
+
+  private static func parseExpectation(_ line: String,
+                                       lineNumber: Int) -> Expectation? {
+    let nsString = NSString(string: line)
+    let range = NSRange(location: 0, length: nsString.length)
+    let match: NSTextCheckingResult
+    var lineOffset = 0
+
+    if let _match = diagWithLineRegex.firstMatch(in: line, range: range) {
+      match = _match
+      let offsetStr = nsString.substring(with: match.range(at: 2))
+      lineOffset = Int(offsetStr) ?? 0
+    } else if let _match = diagRegex.firstMatch(in: line, range: range) {
+      match = _match
+    } else {
+      return nil
+    }
+
+    let severityRange = match.range(at: 1)
+    let rawSeverity = nsString.substring(with: severityRange)
+    let severity = Diagnostic.Message.Severity(rawValue: rawSeverity)!
+    var remainder = nsString.substring(from: match.range(at: 0).upperBound)
+    if remainder.hasSuffix("}}") {
+      remainder.removeLast(2)
+    }
+    guard
+      let regex = DiagnosticRegexParser.parseMessageAsRegex(remainder) else {
+        return nil
+    }
+
+    return Expectation(messageText: remainder,
+                       messageRegex: regex,
+                       severity: severity,
+                       line: lineNumber + lineOffset)
   }
 
   /// Extracts a list of expectations from the comment trivia inside the
   /// provided token stream. This provides the set of expectations that the
   /// real diagnostics will be verified against.
   private static func parseExpectations(
-    _ tokens: [TokenSyntax], engine: DiagnosticEngine) -> Set<Expectation> {
+    input: String, engine: DiagnosticEngine) -> Set<Expectation> {
     var expectations = Set<Expectation>()
-    for token in tokens {
-      for trivia in token.leadingTrivia + token.trailingTrivia {
-        guard case .comment(let text) = trivia else { continue }
-
-        let nsString = NSString(string: text)
-        let range = NSRange(location: 0, length: nsString.length)
-
-        diagRegex.enumerateMatches(in: text,
-                                   range: range) { result, _, _ in
-          guard let result = result else { return }
-          guard result.numberOfRanges == 3 else { return }
-          let severityRange = result.range(at: 1)
-          let messageRange = result.range(at: 2)
-          let rawSeverity = nsString.substring(with: severityRange)
-          let message = nsString.substring(with: messageRange)
-          let severity = Diagnostic.Message.Severity(rawValue: rawSeverity)!
-          expectations.insert(Expectation(message: .init(severity, message),
-                                          tokenContainingComment: token))
-        }
+    for (lineNum, line) in input.split(separator: "\n").enumerated() {
+      guard let exp = parseExpectation(String(line),
+                                       lineNumber: lineNum + 1) else {
+        continue
       }
+      expectations.insert(exp)
     }
     return expectations
   }
