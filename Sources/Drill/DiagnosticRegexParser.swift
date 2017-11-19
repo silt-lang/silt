@@ -26,16 +26,9 @@ enum RegexPiece {
   var asRegex: String {
     switch self {
     case .literal(let str):
-      let requiresEscape = Set("*?+[(){}^$|\\./")
-      var s = ""
-      for c in str {
-        if requiresEscape.contains(c) {
-          s.append("\\")
-        }
-        s.append(c)
-      }
-      return s
-    case .regex(let str): return str
+      return NSRegularExpression.escapedPattern(for: str)
+    case .regex(let str):
+      return str
     }
   }
 }
