@@ -174,7 +174,7 @@ public final class DiagnosticVerifier {
     }
   }
 
-  
+
 
   private static func parseExpectation(_ line: String,
                                        lineNumber: Int) -> Expectation? {

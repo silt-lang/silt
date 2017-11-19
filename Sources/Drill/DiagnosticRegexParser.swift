@@ -35,6 +35,7 @@ enum RegexPiece {
 
 /// A regex that matches a sub-regex inside a diagnostic expectation.
 /// It will look something like: --expected-error{{foo something {{.*}} bar}}
+//swiftlint:disable force_try
 private let subRegexRegex = try! NSRegularExpression(pattern:
   "\\{\\{([^\\}]+)\\}\\}")
 
