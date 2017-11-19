@@ -62,7 +62,7 @@ class DiagnosticTests: XCTestCase {
       let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
       _ = parser.parseTopLevelModule()
       let diagnosticVerifier =
-        DiagnosticVerifier(tokens: layoutTokens,
+        DiagnosticVerifier(input: file.contents,
                            producedDiagnostics: engine.diagnostics)
       diagnosticVerifier.engine.register(XCTestFailureConsumer())
       diagnosticVerifier.verify()
