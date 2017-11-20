@@ -34,16 +34,6 @@ extension Diagnostic.Message {
 }
 
 class DiagnosticTests: XCTestCase {
-  var engine: DiagnosticEngine!
-
-  override func setUp() {
-    engine = DiagnosticEngine()
-  }
-
-  override func tearDown() {
-    engine.unregisterConsumers()
-  }
-
   func testParseVerifyTests() {
     let dir = URL(fileURLWithPath: #file)
       .deletingLastPathComponent()
@@ -57,6 +47,7 @@ class DiagnosticTests: XCTestCase {
     }
 
     for file in siltFiles {
+      let engine = DiagnosticEngine()
       let lexer = Lexer(input: file.contents, filePath: file.url.path)
       let layoutTokens = layout(lexer.tokenize())
       let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
@@ -70,6 +61,7 @@ class DiagnosticTests: XCTestCase {
   }
 
   func testSimpleDiagnosticEmission() {
+    let engine = DiagnosticEngine()
     engine.diagnose(.errorWithNoNode)
 
     let file = "foo.silt"
@@ -110,6 +102,7 @@ class DiagnosticTests: XCTestCase {
   #if !os(macOS)
   static var allTests = testCase([
     ("testSimpleDiagnosticEmission", testSimpleDiagnosticEmission),
+    ("testParseVerifyTests", testParseVerifyTests),
   ])
   #endif
 }

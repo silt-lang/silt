@@ -21,9 +21,9 @@ import CommandLineKit
 func parseOptions() -> (Options, Set<String>) {
   let cli = CommandLineKit.CommandLine()
   let dumpOption =
-  EnumOption<Mode.DumpKind>(longFlag: "dump", required: false,
-    helpMessage: "Dumps the compiler's input at the specified stage in the " +
-                 "compiler.")
+    EnumOption<Mode.DumpKind>(longFlag: "dump", required: false,
+                              helpMessage:
+        "Dumps the compiler's input at the specified stage in the compiler.")
   let verify =
     EnumOption<VerifyLayer>(longFlag: "verify",
       helpMessage: "Run the compiler in diagnostic verifier mode.")
@@ -31,6 +31,7 @@ func parseOptions() -> (Options, Set<String>) {
     BoolOption(longFlag: "no-colors",
                helpMessage: "Disable ANSI colors in printed output.")
   cli.addOptions(dumpOption, verify, disableColors)
+
   do {
     try cli.parse()
   } catch {

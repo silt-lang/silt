@@ -25,11 +25,13 @@ class SyntaxTestRunner: XCTestCase {
   var engine: DiagnosticEngine!
 
   override func setUp() {
+    Rainbow.enabled = false
     engine = DiagnosticEngine()
     engine.register(XCTestFailureConsumer())
   }
 
   func testSyntax() {
+
     let filesURL = URL(fileURLWithPath: #file)
       .deletingLastPathComponent()
       .appendingPathComponent("Resources")

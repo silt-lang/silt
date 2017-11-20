@@ -1,4 +1,0 @@
-module Foo where
-
-id : x -> x
-id x = x --expected-error{{unexpected token 'x' (expected ':')}}
