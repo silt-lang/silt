@@ -31,7 +31,7 @@ public struct Diagnostic {
   /// diagnostic messages.
   public struct Message: Error {
     /// The severity of the message, expressing how the compiler treats it.
-    public enum Severity {
+    public enum Severity: String {
       /// The message is a warning that will not prevent compilation but that
       /// the silt compiler feels might signal code that does not behave the way
       /// the programmer expected.

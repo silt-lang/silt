@@ -22,6 +22,10 @@ extension TriviaPiece {
             return .spaces(s1 + s2)
         case let (.tabs(s1), .tabs(s2)):
             return .tabs(s1 + s2)
+        case let (.verticalTabs(s1), .verticalTabs(s2)):
+            return .verticalTabs(s1 + s2)
+        case let (.formfeeds(s1), .formfeeds(s2)):
+            return .formfeeds(s1 + s2)
         case let (.newlines(s1), .newlines(s2)):
             return .newlines(s1 + s2)
         default: return nil

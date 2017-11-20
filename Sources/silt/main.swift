@@ -22,12 +22,16 @@ func parseOptions() -> (Options, Set<String>) {
   let cli = CommandLineKit.CommandLine()
   let dumpOption =
     EnumOption<Mode.DumpKind>(longFlag: "dump", required: false,
-      helpMessage: "Dumps the compiler's input at the specified stage in the " +
-                   "compiler.")
+                              helpMessage:
+        "Dumps the compiler's input at the specified stage in the compiler.")
+  let verify =
+    EnumOption<VerifyLayer>(longFlag: "verify",
+      helpMessage: "Run the compiler in diagnostic verifier mode.")
   let disableColors =
     BoolOption(longFlag: "no-colors",
                helpMessage: "Disable ANSI colors in printed output.")
-  cli.addOptions(dumpOption, disableColors)
+  cli.addOptions(dumpOption, verify, disableColors)
+
   do {
     try cli.parse()
   } catch {
@@ -36,7 +40,9 @@ func parseOptions() -> (Options, Set<String>) {
   }
 
   let mode: Mode
-  if let dump = dumpOption.value {
+  if let layer = verify.value {
+    mode = .verify(layer)
+  } else if let dump = dumpOption.value {
     mode = .dump(dump)
   } else {
     mode = .compile

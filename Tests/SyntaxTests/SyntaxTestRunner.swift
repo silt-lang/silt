@@ -11,6 +11,7 @@ import XCTest
 import Foundation
 import FileCheck
 import Rainbow
+import Seismography
 
 var stdoutStream = FileHandle.standardOutput
 
@@ -23,49 +24,14 @@ enum Action {
 class SyntaxTestRunner: XCTestCase {
   var engine: DiagnosticEngine!
 
-  /// A diagnostic consumer that emits an XCTFail with the serialized
-  /// diagnostic whenever a diagnostic is emitted.
-  class XCTestFailureConsumer: DiagnosticConsumer {
-    /// A reference type that exists to keep alive a String.
-    class StreamBuffer: TextOutputStream {
-      var value = ""
-      func write(_ string: String) {
-        value += string
-      }
-      func clear() {
-        value = ""
-      }
-    }
-
-    /// A buffer for each diagnostic.
-    var scratch = StreamBuffer()
-
-    /// A printing diagnostic consumer that will serialize diagnostics
-    /// to a string.
-    let printer: PrintingDiagnosticConsumer<StreamBuffer>
-
-    init() {
-      printer = .init(stream: &scratch)
-    }
-
-    /// XCTFails with the serialized version of the diagnostic provided.
-    func handle(_ diagnostic: Diagnostic) {
-      scratch.clear()
-      printer.handle(diagnostic)
-      XCTFail(scratch.value)
-    }
-
-    func finalize() {
-      // Do nothing
-    }
-  }
-
   override func setUp() {
+    Rainbow.enabled = false
     engine = DiagnosticEngine()
     engine.register(XCTestFailureConsumer())
   }
 
   func testSyntax() {
+
     let filesURL = URL(fileURLWithPath: #file)
       .deletingLastPathComponent()
       .appendingPathComponent("Resources")

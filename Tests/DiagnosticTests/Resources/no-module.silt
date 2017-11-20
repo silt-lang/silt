@@ -1,0 +1,4 @@
+id : ∀ {A: Type} A -> A
+-- expected-error@-1 {{unexpected token '{{.*}}'}}
+id x = x
+

@@ -29,8 +29,8 @@ public struct Invocation {
 
   public func run() throws {
     let engine = DiagnosticEngine()
-    let consumer = PrintingDiagnosticConsumer(stream: &stderrStream)
-    engine.register(consumer)
+    let printingConsumer = PrintingDiagnosticConsumer(stream: &stderrStream)
+    let printingConsumerToken = engine.register(printingConsumer)
 
     Rainbow.enabled = options.colorsEnabled
 
@@ -64,7 +64,6 @@ public struct Invocation {
         if let module = parser.parseTopLevelModule() {
           SyntaxDumper(stream: &stderrStream).dump(module)
         }
-        SyntaxDumper(stream: &stderrStream).dump(parser.parseTopLevelModule()!)
       case .dump(.scopes):
 //        let layoutTokens = layout(tokens)
 //        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
@@ -72,6 +71,15 @@ public struct Invocation {
 //        let binder = NameBinding(topLevel: module, engine: engine)
 //        print(binder.performScopeCheck(topLevel: module))
         break
+      case .verify(.parse):
+        engine.unregister(printingConsumerToken)
+        let layoutTokens = layout(tokens)
+        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
+        _ = parser.parseTopLevelModule()
+        let verifier =
+          DiagnosticVerifier(input: contents,
+                             producedDiagnostics: engine.diagnostics)
+        verifier.verify()
       }
     }
   }

@@ -7,6 +7,10 @@
 
 import Foundation
 
+public struct DiagnosticConsumerToken {
+  internal let uuid: UUID
+}
+
 /// A DiagnosticEngine is a container for diagnostics that have been emitted
 /// while compiling a silt program. It exposes an interface for emitting errors
 /// and warnings and allows for iteration over diagnostics after the fact.
@@ -15,7 +19,7 @@ public final class DiagnosticEngine {
   private(set) public var diagnostics = [Diagnostic]()
 
   /// The set of consumers receiving diagnostic notifications from this engine.
-  private(set) public var consumers = [DiagnosticConsumer]()
+  private(set) private var consumers = [UUID: DiagnosticConsumer]()
 
   /// Creates a new DiagnosticEngine with no diagnostics registered.
   public init() {}
@@ -23,8 +27,29 @@ public final class DiagnosticEngine {
   /// Adds a diagnostic consumer to the engine to receive diagnostic updates.
   ///
   /// - Parameter consumer: The consumer that will observe diagnostics.
-  public func register(_ consumer: DiagnosticConsumer) {
-    consumers.append(consumer)
+  /// - Returns: A token that can be used to unregister a consumer.
+  @discardableResult
+  public func register(
+    _ consumer: DiagnosticConsumer) -> DiagnosticConsumerToken {
+    let uuid = UUID()
+    consumers[uuid] = consumer
+    return DiagnosticConsumerToken(uuid: uuid)
+  }
+
+  /// Unregisters a consumer that's registered with the provided token.
+  ///
+  /// - Parameter token: The token returned when the consumer was registered.
+  /// - Note: If the token was not registered with this diagnostic engine,
+  ///         this function will cause a fatal error.
+  public func unregister(_ token: DiagnosticConsumerToken) {
+    guard consumers.removeValue(forKey: token.uuid) != nil else {
+      fatalError("attempt to remove unregistered diagnostic consumer")
+    }
+  }
+
+  /// Unregisters all consumers registered with this engine.
+  public func unregisterConsumers() {
+    consumers = [:]
   }
 
   /// Emits a diagnostic message into the engine.
@@ -45,7 +70,7 @@ public final class DiagnosticEngine {
                                 node: node,
                                 actions: actions)
     diagnostics.append(diagnostic)
-    for consumer in consumers {
+    for consumer in consumers.values {
       consumer.handle(diagnostic)
     }
     return message

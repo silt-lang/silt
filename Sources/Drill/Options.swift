@@ -7,6 +7,13 @@
 
 import Foundation
 
+/// A distinct layer of compilation that defines places where the diagnostic
+/// verifier can work.
+public enum VerifyLayer: String {
+  /// Run the diagnostic verifier after parsing but before typechecking.
+  case parse
+}
+
 /// The mode the compiler will be executing in.
 public enum Mode {
   public enum DumpKind: String {
@@ -29,6 +36,7 @@ public enum Mode {
     case scopes
   }
   case dump(DumpKind)
+  case verify(VerifyLayer)
   case compile
 }
 

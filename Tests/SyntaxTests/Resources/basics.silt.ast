@@ -1,4 +1,4 @@
--- CHECK:      (moduleDecl basics.silt:2:0
+-- CHECK: (moduleDecl basics.silt:2:0
 -- CHECK-NEXT:   (moduleKeyword basics.silt:2:0)
 -- CHECK-NEXT:   (qualifiedName basics.silt:2:7
 -- CHECK-NEXT:     (qualifiedNamePiece basics.silt:2:7
