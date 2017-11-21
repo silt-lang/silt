@@ -37,7 +37,7 @@ func main() -> Int {
   do {
     let testRunner = try TestRunner(testDirPath: testDir.value!,
                                     siltExecutablePath: siltExe.value!)
-    return try testRunner.run() ? -1 : 0
+    return try testRunner.run() ? 0 : -1
   } catch {
     if let err = error as? Diagnostic.Message {
       engine.diagnose(err)
