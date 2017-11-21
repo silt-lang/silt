@@ -37,11 +37,14 @@ class TestRunner {
     self.siltExecutable = URL(fileURLWithPath: siltExecutablePath)
   }
 
+  /// Runs all the tests in the test directory and all its subdirectories.
+  /// - returns: `true` if all tests passed.
   func run() throws -> Bool {
+    var passes = [String]()
+    var failures = [String]()
     let fm = FileManager.default
     let enumerator = fm.enumerator(at: testDir,
                                    includingPropertiesForKeys: nil)!
-    var allPassed = true
     for case let file as URL in enumerator {
       guard file.pathExtension == "silt" else { continue }
       let dirPathLen = testDir.path.count
@@ -52,16 +55,32 @@ class TestRunner {
         shortName = String(shortName[shortEnd..<shortName.endIndex])
       }
       let passed = try run(file: file)
-      allPassed = allPassed && passed
       if passed {
-        print("\("✔".green) \(shortName)")
+        passes.append(shortName)
+        print("\("✔".green.bold) \(shortName)")
       } else {
-        print("\("𝗫".red) \(shortName)")
+        failures.append(shortName)
+        print("\("𝗫".red.bold) \(shortName)")
       }
     }
-    return !allPassed
+    let passDesc = "pass\(passes.count == 1 ? "" : "es")"
+    let failDesc = "failure\(failures.count == 1 ? "" : "s")"
+    let total = passes.count + failures.count
+    print("Executed \(total) tests with \(passes.count) \(passDesc) " +
+          "and \(failures.count) \(failDesc)")
+    if failures.isEmpty {
+      print("All tests passed! 🎉".green)
+    } else {
+      print("Failures:")
+      for failure in failures {
+        print("  \("𝗫".red.bold) \(failure)")
+      }
+    }
+
+    return failures.isEmpty
   }
 
+  /// Runs
   private func run(file: URL) throws -> Bool {
     let runLines = try RunLineParser.parseRunLines(in: file)
     var allPassed = true
