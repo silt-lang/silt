@@ -27,9 +27,14 @@ extension Diagnostic.Message {
   }
   static let unexpectedEOF =
     Diagnostic.Message(.error, "unexpected end-of-file reached")
+
   static func expected(_ name: String) -> Diagnostic.Message {
     return Diagnostic.Message(.error, "expected \(name)")
   }
+
+  static let expectedTopLevelModule =
+    Diagnostic.Message(
+      .error, "missing required top level module")
 
   static let expectedNameInFuncDecl =
     Diagnostic.Message(
@@ -119,6 +124,9 @@ public class Parser {
 extension Parser {
   public func parseTopLevelModule() -> ModuleDeclSyntax? {
     do {
+      guard peek() == .moduleKeyword else {
+        throw engine.diagnose(.expectedTopLevelModule, node: currentToken)
+      }
       let module = try parseModule()
       _ = try consume(.eof)
       return module
