@@ -27,7 +27,9 @@ public struct Invocation {
       self.sourceFiles = paths
   }
 
-  public func run() throws {
+  public typealias HadErrors = Bool
+
+  public func run() throws -> HadErrors {
     let engine = DiagnosticEngine()
     let printingConsumer = PrintingDiagnosticConsumer(stream: &stderrStream)
     let printingConsumerToken = engine.register(printingConsumer)
@@ -36,7 +38,7 @@ public struct Invocation {
 
     if sourceFiles.isEmpty {
       engine.diagnose(.noInputFiles)
-      return
+      return true
     }
 
     for path in sourceFiles {
@@ -82,5 +84,6 @@ public struct Invocation {
         verifier.verify()
       }
     }
+    return !engine.diagnostics.filter { $0.message.severity == .error }.isEmpty
   }
 }

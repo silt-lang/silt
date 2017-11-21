@@ -217,7 +217,9 @@ public final class DiagnosticVerifier {
   private static func parseExpectations(
     input: String, engine: DiagnosticEngine) -> Set<Expectation> {
     var expectations = Set<Expectation>()
-    for (lineNum, line) in input.split(separator: "\n").enumerated() {
+    let lines = input.split(separator: "\n",
+                            omittingEmptySubsequences: false)
+    for (lineNum, line) in lines.enumerated() {
       guard let exp = parseExpectation(String(line),
                                        lineNumber: lineNum + 1) else {
         continue
