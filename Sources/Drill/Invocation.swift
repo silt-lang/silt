@@ -82,8 +82,9 @@ public struct Invocation {
           DiagnosticVerifier(input: contents,
                              producedDiagnostics: engine.diagnostics)
         verifier.verify()
+        return verifier.engine.hasErrors()
       }
     }
-    return !engine.diagnostics.filter { $0.message.severity == .error }.isEmpty
+    return engine.hasErrors()
   }
 }

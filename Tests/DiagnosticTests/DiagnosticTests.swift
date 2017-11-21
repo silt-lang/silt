@@ -62,17 +62,11 @@ class DiagnosticTests: XCTestCase {
 
   func testSimpleDiagnosticEmission() {
     let engine = DiagnosticEngine()
-    engine.diagnose(.errorWithNoNode)
 
     let file = "foo.silt"
     let loc = SourceLocation(line: 0, column: 0, file: file, offset: 0)
     let range = SourceRange(start: loc, end: loc)
     let colon = TokenSyntax(.colon, sourceRange: range)
-
-    engine.diagnose(.unexpectedToken(colon)) {
-      $0.note(.highlightedNote, node: colon, highlights: [colon])
-      $0.note(.bareNote)
-    }
 
     engine.diagnose(.warningWithANode, node: colon)
     engine.diagnose(.warningWithANodeAndHighlights, node: colon) {
@@ -84,19 +78,30 @@ class DiagnosticTests: XCTestCase {
       $0.note(.bareNote, node: colon)
     }
 
+    XCTAssertFalse(engine.hasErrors())
+
+    engine.diagnose(.errorWithNoNode)
+
+    engine.diagnose(.unexpectedToken(colon)) {
+      $0.note(.highlightedNote, node: colon, highlights: [colon])
+      $0.note(.bareNote)
+    }
+
+    XCTAssert(engine.hasErrors())
+
     XCTAssertEqual(engine.diagnostics.count, 5)
 
     XCTAssertEqual(engine.diagnostics[0].notes.count, 0)
-    XCTAssertEqual(engine.diagnostics[1].notes.count, 2)
-    XCTAssertEqual(engine.diagnostics[2].notes.count, 0)
+    XCTAssertEqual(engine.diagnostics[1].notes.count, 0)
+    XCTAssertEqual(engine.diagnostics[2].notes.count, 1)
     XCTAssertEqual(engine.diagnostics[3].notes.count, 0)
-    XCTAssertEqual(engine.diagnostics[4].notes.count, 1)
+    XCTAssertEqual(engine.diagnostics[4].notes.count, 2)
 
     XCTAssertEqual(engine.diagnostics[0].highlights.count, 0)
-    XCTAssertEqual(engine.diagnostics[1].highlights.count, 0)
-    XCTAssertEqual(engine.diagnostics[2].highlights.count, 0)
-    XCTAssertEqual(engine.diagnostics[3].highlights.count, 1)
-    XCTAssertEqual(engine.diagnostics[4].highlights.count, 1)
+    XCTAssertEqual(engine.diagnostics[1].highlights.count, 1)
+    XCTAssertEqual(engine.diagnostics[2].highlights.count, 1)
+    XCTAssertEqual(engine.diagnostics[3].highlights.count, 0)
+    XCTAssertEqual(engine.diagnostics[4].highlights.count, 0)
   }
 
   #if !os(macOS)

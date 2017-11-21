@@ -52,6 +52,11 @@ public final class DiagnosticEngine {
     consumers = [:]
   }
 
+  /// Determines if the engine has any `.error` diagnostics registered.
+  public func hasErrors() -> Bool {
+    return diagnostics.contains { $0.message.severity == .error }
+  }
+
   /// Emits a diagnostic message into the engine.
   ///
   /// - Parameters:
