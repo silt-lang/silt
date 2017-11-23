@@ -79,6 +79,7 @@ public struct Invocation {
     let shineFile = lexFile |> Passes.shine
     let parseFile = shineFile |> Passes.parse
     let scopeCheckFile = parseFile |> Passes.scopeCheck
+    let typeCheckFile = scopeCheckFile |> Passes.typeCheck
 
     for path in options.inputPaths {
       let url = URL(fileURLWithPath: path)
@@ -115,6 +116,10 @@ public struct Invocation {
         })
       case .dump(.scopes):
         run(scopeCheckFile |> Pass(name: "Dump Scopes") { module, _ in
+          print(module)
+        })
+      case .dump(.typecheck):
+        run(typeCheckFile |> Pass(name: "Type Check") { module, _ in
           print(module)
         })
       case .verify(let verification):

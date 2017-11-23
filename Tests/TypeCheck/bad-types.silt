@@ -1,0 +1,20 @@
+module bad-types where
+
+id : forall {A : Type} -> A -> A
+id _ x = x
+
+const : forall {A B : Type} -> A -> B -> A
+const _ _ x _ = x
+
+flip : forall {A B : Type} {C : A -> B -> Type} ->
+       (forall (x : A) (y : B) -> C x y) -> (forall (y : B) (x : A) -> C x y)
+flip _ _ _ f = \ y x -> f x y
+
+data List (A : Type) : Type where
+  | Nil  : List A
+  | Cons : A -> (List A) -> (List A)
+
+-- append : forall (A : Type) -> (List A) -> (List A) -> (List A)
+-- append A Nil ys = ys
+-- append A (Cons x xs) ys = Cons x (append A xs ys)
+
