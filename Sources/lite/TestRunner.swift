@@ -82,11 +82,10 @@ class TestRunner {
       total += results.count
       handleResults(results, shortName: shortName)
     }
-    let testDesc = "\(total) test\(total == 1 ? "" : "s")"
-    let passDesc = "\(passes) pass\(passes == 1 ? "" : "es")"
-    let failDesc = "\(failures) failure\(failures == 1 ? "" : "s")"
-    print("Executed \(testDesc.bold) with \(passDesc.green.bold) and " +
-          "\(failDesc.red.bold)")
+    let testDesc = "\(total) test\(total == 1 ? "" : "s")".bold
+    let passDesc = "\(passes) pass\(passes == 1 ? "" : "es")".green.bold
+    let failDesc = "\(failures) failure\(failures == 1 ? "" : "s")".red.bold
+    print("Executed \(testDesc) with \(passDesc) and \(failDesc)")
     if failures == 0 {
       print("All tests passed! 🎉".green.bold)
     }
