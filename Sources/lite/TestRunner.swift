@@ -17,12 +17,35 @@ extension ObjCBool {
 }
 #endif
 
+/// Represents a test that either passed or failed, and contains the run line
+/// that triggered the result.
+struct TestResult {
+  /// The run line comprising this test.
+  let line: RunLine
+
+  /// Whether this test passed or failed.
+  let passed: Bool
+}
+
+
+/// TestRunner is responsible for coordinating a set of tests, running them, and
+/// reporting successes and failures.
 class TestRunner {
+  /// The number of run lines that passed in all files.
   private var passes = 0
+
+  /// The number of run lines that failed in all files.
   private var failures = 0
+
+  /// The test directory in which tests reside.
   let testDir: URL
+
+  /// The URL of the silt executable.
   let siltExecutable: URL
 
+  /// Creates a test runner that will execute all tests in the provided
+  /// directory using the provided `silt` executable.
+  /// - throws: An error if the test directory or executable are invalid.
   init(testDirPath: String, siltExecutablePath: String) throws {
     let fm = FileManager.default
     var isDir: ObjCBool = false
@@ -71,6 +94,7 @@ class TestRunner {
     return failures == 0
   }
 
+  /// Prints individual test results for one specific file.
   func handleResults(_ results: [TestResult], shortName: String) {
     let allPassed = !results.contains { !$0.passed }
     if allPassed {
@@ -89,12 +113,8 @@ class TestRunner {
     }
   }
 
-  struct TestResult {
-    let line: RunLine
-    let passed: Bool
-  }
-
-  /// Runs
+  /// Runs all the run lines in a given file and returns a test result
+  /// with the individual successes or failures.
   private func run(file: URL) throws -> [TestResult] {
     let runLines = try RunLineParser.parseRunLines(in: file)
     var results = [TestResult]()
