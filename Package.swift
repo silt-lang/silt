@@ -8,6 +8,7 @@ let package = Package(
   dependencies: [
     .package(url: "https://github.com/jatoben/CommandLine.git", .branch("master")),
     .package(url: "https://github.com/trill-lang/FileCheck.git", from: "0.0.4"),
+    .package(url: "https://github.com/silt-lang/Symbolic.git", from: "0.0.1"),
     .package(url: "https://github.com/onevcat/Rainbow", from: "3.0.0"),
   ],
   targets: [
@@ -28,15 +29,13 @@ let package = Package(
       dependencies: ["CommandLine"]),
     .target(
       name: "lite",
-      dependencies: ["Drill", "CommandLine"]),
-
+      dependencies: ["Drill", "Symbolic", "CommandLine"]),
     .target(
       name: "Moho",
       dependencies: ["Lithosphere", "Crust"]),
     .target(
       name: "Mantle",
       dependencies: ["Lithosphere", "Moho"]),
-
     .target(
       name: "Seismography",
       dependencies: ["Lithosphere", "Drill"]),

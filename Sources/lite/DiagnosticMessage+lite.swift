@@ -25,6 +25,10 @@ extension Diagnostic.Message {
     return .init(.error, "could not find silt binary at '\(path)'")
   }
 
+  /// We couldn't find the silt executable provided.
+  static let couldNotInferSilt =
+    Diagnostic.Message(.error, "could not infer location of silt binary")
+
   /// We weren't able to execute the silt executable provided.
   static func couldNotExecuteSilt(_ path: String) -> Diagnostic.Message {
     return .init(.error, "could not execute silt binary at '\(path)'")

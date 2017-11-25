@@ -46,7 +46,7 @@ class TestRunner {
   /// Creates a test runner that will execute all tests in the provided
   /// directory using the provided `silt` executable.
   /// - throws: An error if the test directory or executable are invalid.
-  init(testDirPath: String, siltExecutablePath: String) throws {
+  init(testDirPath: String, siltExecutablePath: String?) throws {
     let fm = FileManager.default
     var isDir: ObjCBool = false
     guard fm.fileExists(atPath: testDirPath, isDirectory: &isDir) else {
@@ -55,11 +55,19 @@ class TestRunner {
     guard isDir.boolValue else {
       throw Diagnostic.Message.testDirIsNotDirectory(testDirPath)
     }
-    guard fm.fileExists(atPath: siltExecutablePath) else {
-      throw Diagnostic.Message.couldNotFindSilt(testDirPath)
-    }
     self.testDir = URL(fileURLWithPath: testDirPath, isDirectory: true)
-    self.siltExecutable = URL(fileURLWithPath: siltExecutablePath)
+
+    if let siltPath = siltExecutablePath {
+      guard fm.fileExists(atPath: siltPath) else {
+        throw Diagnostic.Message.couldNotFindSilt(siltPath)
+      }
+      self.siltExecutable = URL(fileURLWithPath: siltPath)
+    } else {
+      guard let siltURL = findSiltExecutable() else {
+        throw Diagnostic.Message.couldNotInferSilt
+      }
+      self.siltExecutable = siltURL
+    }
   }
 
   /// Runs all the tests in the test directory and all its subdirectories.
@@ -86,6 +94,7 @@ class TestRunner {
     let passDesc = "\(passes) pass\(passes == 1 ? "" : "es")".green.bold
     let failDesc = "\(failures) failure\(failures == 1 ? "" : "s")".red.bold
     print("Executed \(testDesc) with \(passDesc) and \(failDesc)")
+
     if failures == 0 {
       print("All tests passed! 🎉".green.bold)
     }
@@ -95,6 +104,7 @@ class TestRunner {
 
   /// Prints individual test results for one specific file.
   func handleResults(_ results: [TestResult], shortName: String) {
+    if results.isEmpty { return }
     let allPassed = !results.contains { !$0.passed }
     if allPassed {
       print("\("✔".green.bold) \(shortName)")
