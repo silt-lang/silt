@@ -1,0 +1,12 @@
+-- RUN: --verify parse
+module DataDecl where
+
+data Foo : Set where
+  | Foo : nat -> nat -> Foo
+  | Bar : nat -> Foo
+
+data Bar : Set where
+-- FIXME: This error is awful.
+-- expected-error @1 {{expected declaration}}
+| Bar : nat -> nat -> Bar
+| Baz : nat -> Bar

@@ -34,32 +34,6 @@ extension Diagnostic.Message {
 }
 
 class DiagnosticTests: XCTestCase {
-  func testParseVerifyTests() {
-    let dir = URL(fileURLWithPath: #file)
-      .deletingLastPathComponent()
-      .appendingPathComponent("Resources")
-    let siltFiles: [SourceFileContents]
-    do {
-      siltFiles = try contentsOfSiltSourceFiles(in: dir)
-    } catch {
-      XCTFail("could not read silt source files: \(error)")
-      return
-    }
-
-    for file in siltFiles {
-      let engine = DiagnosticEngine()
-      let lexer = Lexer(input: file.contents, filePath: file.url.path)
-      let layoutTokens = layout(lexer.tokenize())
-      let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
-      _ = parser.parseTopLevelModule()
-      let diagnosticVerifier =
-        DiagnosticVerifier(input: file.contents,
-                           producedDiagnostics: engine.diagnostics)
-      diagnosticVerifier.engine.register(XCTestFailureConsumer())
-      diagnosticVerifier.verify()
-    }
-  }
-
   func testSimpleDiagnosticEmission() {
     let engine = DiagnosticEngine()
 
@@ -107,7 +81,6 @@ class DiagnosticTests: XCTestCase {
   #if !os(macOS)
   static var allTests = testCase([
     ("testSimpleDiagnosticEmission", testSimpleDiagnosticEmission),
-    ("testParseVerifyTests", testParseVerifyTests),
   ])
   #endif
 }
