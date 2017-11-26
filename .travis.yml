@@ -11,7 +11,7 @@ matrix:
       script:
         - swiftlint
         - swift test
-        - .build/debug/lite -d Tests/Lite
+        - swift run lite -d Tests/Lite
     - os: linux
       language: generic
       sudo: required
@@ -29,4 +29,4 @@ matrix:
       script:
         - LINUX_SOURCEKIT_LIB_PATH=${PWD}/swift-4.0-RELEASE-ubuntu14.04/usr/lib ${PWD}/SwiftLint-0.23.1/.build/release/swiftlint
         - ${PWD}/swift-4.0-RELEASE-ubuntu14.04/usr/bin/swift test
-        - .build/debug/lite -d Tests/Lite
+        - swift run lite -d Tests/Lite
