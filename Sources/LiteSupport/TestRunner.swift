@@ -7,6 +7,7 @@
 
 import Foundation
 import Lithosphere
+import SwiftShell
 
 #if os(Linux)
 /// HACK: This is needed because on macOS, ObjCBool is a distinct type
@@ -17,26 +18,10 @@ extension ObjCBool {
 }
 #endif
 
-/// Represents a test that either passed or failed, and contains the run line
-/// that triggered the result.
-struct TestResult {
-  /// The run line comprising this test.
-  let line: RunLine
-
-  /// Whether this test passed or failed.
-  let passed: Bool
-}
-
 
 /// TestRunner is responsible for coordinating a set of tests, running them, and
 /// reporting successes and failures.
 class TestRunner {
-  /// The number of run lines that passed in all files.
-  private var passes = 0
-
-  /// The number of run lines that failed in all files.
-  private var failures = 0
-
   /// The test directory in which tests reside.
   let testDir: URL
 
@@ -46,9 +31,10 @@ class TestRunner {
   /// Creates a test runner that will execute all tests in the provided
   /// directory using the provided `silt` executable.
   /// - throws: An error if the test directory or executable are invalid.
-  init(testDirPath: String, siltExecutablePath: String?) throws {
+  init(testDirPath: String?, siltExecutablePath: String?) throws {
     let fm = FileManager.default
     var isDir: ObjCBool = false
+    let testDirPath = testDirPath ?? FileManager.default.currentDirectoryPath
     guard fm.fileExists(atPath: testDirPath, isDirectory: &isDir) else {
       throw Diagnostic.Message.couldNotOpenTestDir(testDirPath)
     }
@@ -70,26 +56,48 @@ class TestRunner {
     }
   }
 
-  /// Runs all the tests in the test directory and all its subdirectories.
-  /// - returns: `true` if all tests passed.
-  func run() throws -> Bool {
+  func discoverTests() throws -> [TestFile] {
     let fm = FileManager.default
     let enumerator = fm.enumerator(at: testDir,
                                    includingPropertiesForKeys: nil)!
-    var total = 0
+    var files = [TestFile]()
     for case let file as URL in enumerator {
       guard file.pathExtension == "silt" else { continue }
-      let dirPathLen = testDir.path.count
-      var shortName = file.path
-      if shortName.hasPrefix(testDir.path) {
-        let shortEnd = shortName.index(shortName.startIndex,
-                                       offsetBy: dirPathLen + 1)
-        shortName = String(shortName[shortEnd..<shortName.endIndex])
-      }
-      let results = try run(file: file)
-      total += results.count
-      handleResults(results, shortName: shortName)
+      let runLines = try RunLineParser.parseRunLines(in: file)
+      if runLines.isEmpty { continue }
+      files.append(TestFile(url: file, runLines: runLines))
     }
+    return files
+  }
+
+  /// Runs all the tests in the test directory and all its subdirectories.
+  /// - returns: `true` if all tests passed.
+  func run() throws -> Bool {
+    let files = try discoverTests()
+    if files.isEmpty { return true }
+
+    var resultMap = [URL: [TestResult]]()
+    for file in files {
+      resultMap[file.url] = try run(file: file)
+    }
+
+    return handleResults(files: files, resultMap)
+  }
+
+  /// Prints individual test results for one specific file.
+  func handleResults(files: [TestFile], _ map: [URL: [TestResult]]) -> Bool {
+    let commonPrefix = files.map { $0.url.path }.commonPrefix
+    let prefixLen = commonPrefix.count
+    var passes = 0
+    var failures = 0
+    print("Running all tests in \(commonPrefix.bold)")
+    for file in files {
+      guard let results = map[file.url] else { continue }
+      handleResults(file, results: results, prefixLen: prefixLen,
+                    passes: &passes, failures: &failures)
+    }
+
+    let total = passes + failures
     let testDesc = "\(total) test\(total == 1 ? "" : "s")".bold
     let passDesc = "\(passes) pass\(passes == 1 ? "" : "es")".green.bold
     let failDesc = "\(failures) failure\(failures == 1 ? "" : "s")".red.bold
@@ -97,20 +105,26 @@ class TestRunner {
 
     if failures == 0 {
       print("All tests passed! 🎉".green.bold)
+      return true
     }
 
-    return failures == 0
+    return false
   }
 
-  /// Prints individual test results for one specific file.
-  func handleResults(_ results: [TestResult], shortName: String) {
-    if results.isEmpty { return }
+  func handleResults(_ file: TestFile, results: [TestResult],
+                     prefixLen: Int, passes: inout Int,
+                     failures: inout Int) {
+    let path = file.url.path
+    let suffixIdx = path.index(path.startIndex, offsetBy: prefixLen,
+                               limitedBy: path.endIndex)
+    let shortName = suffixIdx.map { path.suffix(from: $0) } ?? Substring(path)
     let allPassed = !results.contains { !$0.passed }
     if allPassed {
       print("\("✔".green.bold) \(shortName)")
     } else {
       print("\("𝗫".red.bold) \(shortName)")
     }
+
     for result in results {
       if result.passed {
         passes += 1
@@ -118,27 +132,34 @@ class TestRunner {
       } else {
         failures += 1
         print("  \("𝗫".red.bold) \(result.line.asString)")
+        if !result.output.stderror.isEmpty {
+          print("    stderr:")
+          let lines = result.output.stderror.split(separator: "\n")
+                                            .joined(separator: "\n      ")
+          print("      \(lines)")
+        }
+        if !result.output.stdout.isEmpty {
+          print("    stdout:")
+          let lines = result.output.stdout.split(separator: "\n")
+                                          .joined(separator: "\n      ")
+          print("      \(lines)")
+        }
+        print("    command line:")
+        print("      \(result.makeCommandLine(siltExecutable))")
       }
     }
   }
 
   /// Runs all the run lines in a given file and returns a test result
   /// with the individual successes or failures.
-  private func run(file: URL) throws -> [TestResult] {
-    let runLines = try RunLineParser.parseRunLines(in: file)
+  private func run(file: TestFile) throws -> [TestResult] {
     var results = [TestResult]()
-    for line in runLines {
-      let process = Process()
-      process.launchPath = siltExecutable.path
-      process.arguments = line.arguments + [file.path]
-      if line.command == .runNot {
-        // Silence stderr when we're expecting a failure.
-        process.standardError = Pipe()
-      }
-      process.launch()
-      process.waitUntilExit()
-      let passed = line.isFailure(process.terminationStatus)
-      results.append(TestResult(line: line, passed: passed))
+    for line in file.runLines {
+      let output = SwiftShell.main.run(siltExecutable.path,
+                                       line.arguments + [file.url.path])
+      let passed = line.isFailure(output.exitcode)
+      results.append(TestResult(line: line, passed: passed,
+                                output: output, file: file.url))
     }
     return results
   }
