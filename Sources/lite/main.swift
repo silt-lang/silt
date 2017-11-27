@@ -13,13 +13,14 @@ import Lithosphere
 /// The main entry point for `lite`.
 func main() -> Int {
   let testDir =
-    StringOption(longFlag: "test-dir",
+    StringOption(shortFlag: "d",
+                 longFlag: "test-dir",
                  required: true,
       helpMessage: "The top-level directory containing tests to run")
 
   let siltExe = StringOption(longFlag: "silt",
-                             required: true,
-                             helpMessage: "The path to the `silt` executable")
+                  helpMessage: "The path to the `silt` executable. " +
+                               "Defaults to the executable next to `lite`.")
 
   let cli = CommandLineKit.CommandLine()
   cli.addOptions(testDir, siltExe)
@@ -36,7 +37,7 @@ func main() -> Int {
 
   do {
     let testRunner = try TestRunner(testDirPath: testDir.value!,
-                                    siltExecutablePath: siltExe.value!)
+                                    siltExecutablePath: siltExe.value)
     return try testRunner.run() ? 0 : -1
   } catch {
     if let err = error as? Diagnostic.Message {

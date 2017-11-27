@@ -8,25 +8,25 @@ matrix:
       osx_image: xcode9
       before_install:
         - brew install swiftlint
+        - gem install xcpretty xcpretty-travis-formatter
       script:
         - swiftlint
-        - swift test
-        - .build/debug/lite --test-dir Tests/Lite --silt .build/debug/silt
+        - swift build
+        - swift test 2>&1 | xcpretty -f 'xcpretty-travis-formatter' && exit ${PIPESTATUS[0]}
+        - swift run lite -d Tests/Lite
     - os: linux
       language: generic
+      rvm:
+        - 2.2
+        - jruby
+        - 2.0.0-p247
       sudo: required
       dist: trusty
       before_install:
-        - sudo apt-get update -qq
-        - sudo apt-get install -qq clang-3.5 curl git libblocksruntime0 libcurl4-openssl-dev libedit2 libicu52 libkqueue0 libpython2.7-dev libxml2 python2.7 uuid-dev
-        - git submodule update --init --recursive
-        - wget -q -O - https://swift.org/keys/all-keys.asc | gpg --import -
-        - wget https://swift.org/builds/swift-4.0-release/ubuntu1404/swift-4.0-RELEASE/swift-4.0-RELEASE-ubuntu14.04.tar.gz
-        - tar xzf swift-4.0-RELEASE-ubuntu14.04.tar.gz
-        - wget https://github.com/realm/SwiftLint/archive/0.23.1.tar.gz -O swiftlint.tar.gz
-        - tar xzf swiftlint.tar.gz
-        - cd SwiftLint-0.23.1 && ../swift-4.0-RELEASE-ubuntu14.04/usr/bin/swift build -c release && cd ..
+        - gem install xcpretty
+      install:
+        - eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
       script:
-        - LINUX_SOURCEKIT_LIB_PATH=${PWD}/swift-4.0-RELEASE-ubuntu14.04/usr/lib ${PWD}/SwiftLint-0.23.1/.build/release/swiftlint
-        - ${PWD}/swift-4.0-RELEASE-ubuntu14.04/usr/bin/swift test
-        - .build/debug/lite --test-dir Tests/Lite --silt .build/debug/silt
+        - swift build
+        - swift test 2>&1 | xcpretty && exit ${PIPESTATUS[0]}
+        - swift run lite -d Tests/Lite
