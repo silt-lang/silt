@@ -8,7 +8,7 @@
 import Lithosphere
 
 extension NameBinding {
-  func scopeCheckModule(_ module: ModuleDeclSyntax) -> DeclaredModule {
+  public func scopeCheckModule(_ module: ModuleDeclSyntax) -> DeclaredModule {
     let params = module.typedParameterList.map(self.scopeCheckTelescope)
     let filteredDecls = self.withScope(walkNotations(module)) { _ in
       return self.reparseDecls(module.declList)
@@ -208,5 +208,55 @@ extension NameBinding {
     default:
       fatalError()
     }
+  }
+}
+
+extension NameBinding {
+  func reparseDecls(_ ds: DeclListSyntax) -> DeclListSyntax {
+    var decls = [DeclSyntax]()
+//    let notes = self.newNotations(in: self.activeScope)
+    var funcMap = [Name: FunctionDeclSyntax]()
+    var clauseMap = [Name: [FunctionClauseDeclSyntax]]()
+    for i in 0..<ds.count {
+      let decl = ds[i]
+      switch decl {
+      case let funcDecl as FunctionDeclSyntax:
+        for i in 0..<funcDecl.ascription.boundNames.count {
+          let name = Name(name: funcDecl.ascription.boundNames[i])
+          guard clauseMap[name] == nil else {
+            self.engine.diagnose(.nameShadows(name))
+            fatalError()
+          }
+          funcMap[name] = funcDecl
+          clauseMap[name] = []
+        }
+      case let funcDecl as NormalFunctionClauseDeclSyntax:
+        guard
+          let namedExpr = funcDecl.basicExprList[0] as? NamedBasicExprSyntax
+        else {
+          fatalError()
+        }
+        let name = QualifiedName(ast: namedExpr.name).name
+        guard clauseMap[name] != nil else {
+          self.engine.diagnose(.bodyBeforeSignature(name))
+          fatalError()
+        }
+        clauseMap[name]!.append(funcDecl)
+      default:
+        fatalError()
+      }
+    }
+
+    for k in funcMap.keys {
+      let function = funcMap[k]!
+      let clauses = clauseMap[k]!
+      let singleton = IdentifierListSyntax(elements: [ k.syntax ])
+      decls.append(ReparsedFunctionDeclSyntax(
+        ascription: function.ascription.withBoundNames(singleton),
+        trailingSemicolon: function.trailingSemicolon,
+        clauseList: FunctionClauseListSyntax(elements: clauses)))
+    }
+
+    return DeclListSyntax(elements: decls)
   }
 }
