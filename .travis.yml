@@ -8,9 +8,10 @@ matrix:
       osx_image: xcode9
       before_install:
         - brew install swiftlint
+        - gem install xcpretty xcpretty-travis-formatter
       script:
         - swiftlint
-        - swift test
+        - swift test 2>&1 | xcpretty -f 'xcpretty-travis-formatter' && exit ${PIPESTATUS[0]}
         - swift run lite -d Tests/Lite
     - os: linux
       language: generic
