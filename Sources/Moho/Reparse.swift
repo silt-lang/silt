@@ -98,7 +98,7 @@ extension NameBinding {
         case let node as FunctionDeclSyntax:
           for i in 0..<node.ascription.boundNames.count {
             let name = node.ascription.boundNames[i]
-            guard self.bindDefinition(named: Name(name: name), -1) != nil else {
+            guard self.lookupLocalName(Name(name: name)) != nil else {
               return scope
             }
             guard name.sourceText.contains("_" as Character) else {

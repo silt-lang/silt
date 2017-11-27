@@ -88,6 +88,20 @@ public struct Invocation {
                              producedDiagnostics: engine.diagnostics)
         verifier.verify()
         return verifier.engine.hasErrors()
+      case .verify(.scopes):
+        engine.unregister(printingConsumerToken)
+        let layoutTokens = layout(tokens)
+        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
+        guard let module = parser.parseTopLevelModule() else {
+          return true
+        }
+        let binder = NameBinding(topLevel: module, engine: engine)
+        _ = binder.performScopeCheck(topLevel: module)
+        let verifier =
+          DiagnosticVerifier(input: contents,
+                             producedDiagnostics: engine.diagnostics)
+        verifier.verify()
+        return verifier.engine.hasErrors()
       }
     }
     return engine.hasErrors()

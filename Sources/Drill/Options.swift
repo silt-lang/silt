@@ -10,8 +10,12 @@ import Foundation
 /// A distinct layer of compilation that defines places where the diagnostic
 /// verifier can work.
 public enum VerifyLayer: String {
-  /// Run the diagnostic verifier after parsing but before typechecking.
+  /// Run the diagnostic verifier after parsing but before scope checking.
   case parse
+
+  /// Run the diagnostic verifier after parsing and scope checking but before
+  /// typechecking.
+  case scopes
 }
 
 /// The mode the compiler will be executing in.

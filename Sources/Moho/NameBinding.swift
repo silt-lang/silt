@@ -116,7 +116,9 @@ extension NameBinding {
   /// traversing imported modules.  Because the fully qualified name is known,
   /// only information about that name is returned if lookup suceeds.
   func lookupFullyQualifiedName(_ n: FullyQualifiedName) -> NameInfo? {
-    let m = n.module.first!
+    guard let m = n.module.first else {
+      return nil
+    }
     let ms = Array(n.module.dropFirst())
     let qn = QualifiedName(cons: m, ms)
     return self.activeScope.importedModules[qn].flatMap { (_, exports) in

@@ -17,10 +17,10 @@ extension NameBinding {
       moduleName: self.activeScope.nameSpace.module,
       params: params,
       namespace: self.activeScope.nameSpace,
-      decls: filteredDecls.map(self.scopeCheckDecl))
+      decls: filteredDecls.flatMap(self.scopeCheckDecl))
   }
   
-  private func scopeCheckDecl(_ syntax: DeclSyntax) -> Decl {
+  private func scopeCheckDecl(_ syntax: DeclSyntax) -> [Decl] {
     precondition(!(syntax is FunctionDeclSyntax ||
       syntax is FunctionClauseDeclSyntax))
     switch syntax {
@@ -38,11 +38,13 @@ extension NameBinding {
       let head : ApplyHead
       if self.isBoundVariable(n.name) {
         head = ApplyHead.variable(n.name)
-      } else {
-        guard case .definition(_)? = self.lookupFullyQualifiedName(n) else {
-          fatalError()
-        }
+      } else if case .definition(_)? = self.lookupFullyQualifiedName(n) {
         head = ApplyHead.definition(n)
+      } else {
+        // If it's not a definition or a local variable, it's undefined.
+        // Recover by introducing a local variable binding anyways.
+        self.engine.diagnose(.undeclaredIdentifier(n), node: n.node)
+        head = ApplyHead.variable(n.name)
       }
       return .apply(head, [])
     case _ as TypeBasicExprSyntax:
@@ -60,17 +62,26 @@ extension NameBinding {
         }
       }
     case let syntax as ApplicationExprSyntax:
+      guard syntax.exprs.count > 1 else {
+        return self.scopeCheckExpr(syntax.exprs[0])
+      }
+
       var elims = [Elimination]()
       let n = QualifiedName(ast: (syntax.exprs[0] as! NamedBasicExprSyntax).name)
 
       let head : ApplyHead
-      if self.isBoundVariable(n.name) {
+      if n.string == "->" {
+        assert(syntax.exprs.count == 3)
+        return .function(self.scopeCheckExpr(syntax.exprs[1]), self.scopeCheckExpr(syntax.exprs[2]))
+      } else if self.isBoundVariable(n.name) {
         head = ApplyHead.variable(n.name)
-      } else {
-        guard case .some(.definition(_)) = self.lookupFullyQualifiedName(n) else {
-          fatalError()
-        }
+      } else if case .some(.definition(_)) = self.lookupFullyQualifiedName(n) {
         head = ApplyHead.definition(n)
+      } else {
+        // If it's not a definition or a local variable, it's undefined.
+        // Recover by introducing a local variable binding anyways.
+        self.engine.diagnose(.undeclaredIdentifier(n), node: n.node)
+        head = ApplyHead.variable(n.name)
       }
 
       for i in 1..<syntax.exprs.count {
@@ -79,6 +90,17 @@ extension NameBinding {
         elims.append(elim)
       }
       return .apply(head, elims)
+    case let syntax as QuantifiedExprSyntax:
+      return self.underScope { _ in
+        let telescope = syntax.bindingList.map(self.scopeCheckTelescope)
+        var type = self.scopeCheckExpr(syntax.outputExpr)
+        for (names, expr) in telescope {
+          for name in names {
+            type = Expr.pi(name, expr, type)
+          }
+        }
+        return type
+      }
     default:
       print(type(of: syntax))
       fatalError()
@@ -110,7 +132,7 @@ extension NameBinding {
     _ syntax: TypedParameterSyntax) -> ([Name], Expr) {
     switch syntax {
     case let syntax as ExplicitTypedParameterSyntax:
-      let tyExpr = self.scopeCheckExpr(syntax.ascription.typeExpr)
+      let tyExpr = self.scopeCheckExpr(self.rebindArrows(syntax.ascription.typeExpr))
       var names = [Name]()
       for j in 0..<syntax.ascription.boundNames.count {
         let name = syntax.ascription.boundNames[j]
@@ -121,7 +143,7 @@ extension NameBinding {
       }
       return (names, tyExpr)
     case let syntax as ImplicitTypedParameterSyntax:
-      let tyExpr = self.scopeCheckExpr(syntax.ascription.typeExpr)
+      let tyExpr = self.scopeCheckExpr(self.rebindArrows(syntax.ascription.typeExpr))
       var names = [Name]()
       for j in 0..<syntax.ascription.boundNames.count {
         let name = syntax.ascription.boundNames[j]
@@ -211,14 +233,19 @@ extension NameBinding {
   }
 
   private func scopeCheckFunctionDecl(
-    _ syntax: ReparsedFunctionDeclSyntax) -> Decl {
+    _ syntax: ReparsedFunctionDeclSyntax) -> [Decl] {
     precondition(syntax.ascription.boundNames.count == 1)
     let funcName = Name(name: syntax.ascription.boundNames[0])
     guard let functionName = self.bindDefinition(named: funcName, 0) else {
-      fatalError()
+      fatalError("Should have unique function names by now")
     }
+    // FIXME: This is not a substitute for real mixfix operators
+    let rebindExpr = self.rebindArrows(syntax.ascription.typeExpr)
+    let ascExpr = self.scopeCheckExpr(rebindExpr)
+    let asc = Decl.ascription(TypeSignature(name: functionName, type: ascExpr))
     let clauses = syntax.clauseList.map(self.scopeCheckFunctionClause)
-    return Decl.function(functionName, clauses)
+    let fn = Decl.function(functionName, clauses)
+    return [asc, fn]
   }
 
   private func scopeCheckFunctionClause(
@@ -272,8 +299,10 @@ extension NameBinding {
         for i in 0..<funcDecl.ascription.boundNames.count {
           let name = Name(name: funcDecl.ascription.boundNames[i])
           guard clauseMap[name] == nil else {
-            self.engine.diagnose(.nameShadows(name))
-            fatalError()
+            // If this declaration does not have a unique name, diagnose it and
+            // recover by ignoring it.
+            self.engine.diagnose(.nameShadows(name), node: funcDecl.ascription)
+            continue
           }
           funcMap[name] = funcDecl
           clauseMap[name] = []
@@ -286,8 +315,8 @@ extension NameBinding {
         }
         let name = QualifiedName(ast: namedExpr.name).name
         guard clauseMap[name] != nil else {
-          self.engine.diagnose(.bodyBeforeSignature(name))
-          fatalError()
+          self.engine.diagnose(.bodyBeforeSignature(name), node: funcDecl)
+          continue
         }
         clauseMap[name]!.append(funcDecl)
       default:
