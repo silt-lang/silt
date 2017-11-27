@@ -162,6 +162,54 @@ extension NameBinding {
     return patterns
   }
 
+  // FIXME: Remove this and really implement mixfix operators, dummy.
+  private func rebindArrows(_ syntax: ExprSyntax) -> ExprSyntax {
+    switch syntax {
+    case let syntax as ParenthesizedExprSyntax:
+      return syntax.withExpr(self.rebindArrows(syntax.expr))
+    case let syntax as ApplicationExprSyntax:
+      guard syntax.exprs.count > 1 else {
+        return syntax.exprs[0]
+      }
+
+      var precExprs = [BasicExprSyntax]()
+      for exprIdx in 0..<syntax.exprs.count {
+        let expr = syntax.exprs[exprIdx]
+        if
+          let tokExpr = expr as? NamedBasicExprSyntax,
+          QualifiedName(ast: tokExpr.name).string == "->"
+        {
+          let prevApp = ApplicationExprSyntax(exprs: BasicExprListSyntax(elements: precExprs))
+          let prevExpr = ParenthesizedExprSyntax(
+            leftParenToken: TokenSyntax(.leftParen),
+            expr: self.rebindArrows(prevApp),
+            rightParenToken: TokenSyntax(.rightParen)
+          )
+
+          let nextApp = ApplicationExprSyntax(exprs: BasicExprListSyntax(elements: Array(syntax.exprs[exprIdx+1..<syntax.exprs.endIndex])))
+          let nextExpr = ParenthesizedExprSyntax(
+            leftParenToken: TokenSyntax(.leftParen),
+            expr: self.rebindArrows(nextApp),
+            rightParenToken: TokenSyntax(.rightParen)
+          )
+          return ParenthesizedExprSyntax(
+            leftParenToken: TokenSyntax(.leftParen),
+            expr: ApplicationExprSyntax(exprs: BasicExprListSyntax(elements: [ tokExpr , prevExpr, nextExpr ])),
+            rightParenToken: TokenSyntax(.rightParen)
+          )
+        } else {
+          precExprs.append(expr)
+        }
+      }
+      return syntax
+    case let syntax as QuantifiedExprSyntax:
+      return syntax.withOutputExpr(self.rebindArrows(syntax.outputExpr))
+    default:
+      print(type(of: syntax))
+      fatalError()
+    }
+  }
+
   private func scopeCheckFunctionDecl(
     _ syntax: ReparsedFunctionDeclSyntax) -> Decl {
     precondition(syntax.ascription.boundNames.count == 1)
