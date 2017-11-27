@@ -34,5 +34,5 @@ matrix:
         - cd SwiftLint-0.23.1 && ../swift-4.0-RELEASE-ubuntu14.04/usr/bin/swift build -c release && cd ..
       script:
         - LINUX_SOURCEKIT_LIB_PATH=${PWD}/swift-4.0-RELEASE-ubuntu14.04/usr/lib ${PWD}/SwiftLint-0.23.1/.build/release/swiftlint
-        - ${PWD}/swift-4.0-RELEASE-ubuntu14.04/usr/bin/swift test 2>&1 | xcpretty -f 'xcpretty-travis-formatter' && exit ${PIPESTATUS[0]}
+        - ${PWD}/swift-4.0-RELEASE-ubuntu14.04/usr/bin/swift test 2>&1 | xcpretty -f 'xcpretty-travis-formatter-1.0.0' && exit ${PIPESTATUS[0]}
         - ${PWD}/swift-4.0-RELEASE-ubuntu14.04/usr/bin/swift run lite -d Tests/Lite
