@@ -99,8 +99,14 @@ class TestRunner {
 
     let total = passes + failures
     let testDesc = "\(total) test\(total == 1 ? "" : "s")".bold
-    let passDesc = "\(passes) pass\(passes == 1 ? "" : "es")".green.bold
-    let failDesc = "\(failures) failure\(failures == 1 ? "" : "s")".red.bold
+    var passDesc = "\(passes) pass\(passes == 1 ? "" : "es")".bold
+    var failDesc = "\(failures) failure\(failures == 1 ? "" : "s")".bold
+    if passes > 0 {
+      passDesc = passDesc.green
+    }
+    if failures > 0 {
+      failDesc = failDesc.red
+    }
     print("Executed \(testDesc) with \(passDesc) and \(failDesc)")
 
     if failures == 0 {
