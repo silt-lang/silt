@@ -33,7 +33,7 @@ private func format(time: Double) -> String {
   var time = time
   let unit: String
   let formatter = NumberFormatter()
-  formatter.maximumFractionDigits = 3
+  formatter.maximumFractionDigits = 1
   if time > 1.0 {
     unit = "s"
   } else if time > 0.001 {
