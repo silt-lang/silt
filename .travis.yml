@@ -12,7 +12,7 @@ matrix:
       script:
         - swiftlint
         - swift build
-        - swift test 2>&1 | xcpretty -f 'xcpretty-travis-formatter' && exit ${PIPESTATUS[0]}
+        - swift test 2>&1 | xcpretty -f `xcpretty-travis-formatter` && exit ${PIPESTATUS[0]}
         - swift run lite -d Tests/Lite
     - os: linux
       language: generic
