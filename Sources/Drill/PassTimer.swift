@@ -11,10 +11,10 @@ class PassTimer {
   private var timings = [(String, TimeInterval)]()
 
   func measure<Out>(pass: String, actions: () -> Out) -> Out {
-    let start = CFAbsoluteTimeGetCurrent()
+    // FIXME: Date() is wasteful here...
+    let start = Date()
     defer {
-      let end = CFAbsoluteTimeGetCurrent()
-      timings.append((pass, end - start))
+      timings.append((pass, Date().timeIntervalSince(start)))
     }
     return actions()
   }
