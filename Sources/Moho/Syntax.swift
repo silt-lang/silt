@@ -42,7 +42,7 @@ enum ClauseBody {
   case body(Expr, [Decl])
 }
 
-public indirect enum Expr: Equatable, CustomStringConvertible {
+public indirect enum Expr: Equatable {
   case lambda(([Name], Expr), Expr)
   case pi(Name, Expr, Expr)
   case function(Expr, Expr)
@@ -73,40 +73,6 @@ public indirect enum Expr: Equatable, CustomStringConvertible {
       return true
     default:
       return false
-    }
-  }
-
-  public var description: String {
-    switch self {
-    case let .pi(n1, .pi(n2, ss, sr), t2):
-      return "forall (\(n1) : (forall \(n2) . \(ss) -> \(sr))) -> \(t2)"
-    case let .pi(name, lhs, rhs):
-      return "forall (\(name) : \(lhs)) -> \(rhs)"
-    case let .function(.function(ss, sr), t2):
-      return "(\(ss) -> \(sr)) -> \(t2)"
-    case let .function(t1, t2):
-      return "\(t1) -> \(t2)"
-    case let .apply(head, es):
-      switch head {
-      case let .definition(name):
-        guard !es.isEmpty else {
-          return "\(name)"
-        }
-        return "(\(name) \(es))"
-      case let .variable(name):
-        guard !es.isEmpty else {
-          return "\(name)"
-        }
-        return "(\(name) \(es))"
-      }
-    case .type:
-      return "Type"
-    case .refl:
-      return "refl"
-    case .meta:
-      return "meta"
-    default:
-      return "EXPR"
     }
   }
 }

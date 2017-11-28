@@ -43,4 +43,9 @@ extension Diagnostic.Message {
     return Diagnostic.Message(.error,
       "function body for '\(n)' must appear after function type signature")
   }
+
+  static var recordMissingConstructor: Diagnostic.Message {
+    return Diagnostic.Message(.error,
+                              "record must have constructor declared")
+  }
 }

@@ -1,11 +1,28 @@
-//
-//  Reparse.swift
-//  Moho
-//
-//  Created by Robert Widmann on 10/28/17.
-//
+/// Reparse.swift
+///
+/// Copyright 2017, The Silt Language Project.
+///
+/// This project is released under the MIT license, a copy of which is
+/// available in the repository.
+
 import Lithosphere
 
+/// Describes a section of user-defined notation.
+///
+/// For example, given:
+///
+/// ```
+/// if_then_else_ : ...
+/// ```
+///
+/// We parse this as
+/// ```
+/// [
+///   .identifier("if"),   .wild,
+///   .identifier("then"), .wild,
+///   .identifier("else"), .wild,
+/// ]
+/// ```
 public enum NotationSection: CustomStringConvertible {
   case wild
   case identifier(Name)
@@ -18,67 +35,92 @@ public enum NotationSection: CustomStringConvertible {
   }
 }
 
-public enum PrecedenceLevel: Comparable, Hashable, CustomStringConvertible {
-  case unrelated
-  case related(Int)
-
-  public static func == (lhs: PrecedenceLevel, rhs: PrecedenceLevel) -> Bool {
-    switch (lhs, rhs) {
-    case (.unrelated, .unrelated): return true
-    case let (.related(l), .related(r)): return l == r
-    default: return false
-    }
-  }
-
-  public static func < (lhs: PrecedenceLevel, rhs: PrecedenceLevel) -> Bool {
-    switch (lhs, rhs) {
-    case (.unrelated, _): return true
-    case (_, .unrelated): return false
-    case let (.related(l), .related(r)): return l < r
-    }
-  }
-
-  public var hashValue: Int {
-    switch self {
-    // FIXME: Hash like an Optional<Int> when Optional<Int> can hash at all
-    case .unrelated:
-      return Int.max.hashValue
-    case let .related(l):
-      return l.hashValue
-    }
-  }
-
-  public static var min: PrecedenceLevel {
-    return .related(Int.min)
-  }
-
-  public static var max: PrecedenceLevel {
-    return .related(Int.max - 1)
-  }
-
-  public var description: String {
-    switch self {
-    case .unrelated: return ""
-    case let .related(l): return l.description
-    }
-  }
-}
-
-enum Associativity {
-  case non
-  case left
-  case right
-}
-
-struct Fixity {
+/// Describes the associativity and precedence of a piece of notation.
+public struct Fixity {
   let level: PrecedenceLevel
   let assoc: Associativity
+
+  /// Describes the precedence level of a user-defined notation.
+  public enum PrecedenceLevel: Comparable, Hashable, CustomStringConvertible {
+    /// A special value for the `_->_` declaration.
+    case unrelated
+    /// The strength this declaration binds at relative to other declarations.
+    case related(Int)
+
+    public static func == (lhs: PrecedenceLevel, rhs: PrecedenceLevel) -> Bool {
+      switch (lhs, rhs) {
+      case (.unrelated, .unrelated): return true
+      case let (.related(l), .related(r)): return l == r
+      default: return false
+      }
+    }
+
+    public static func < (lhs: PrecedenceLevel, rhs: PrecedenceLevel) -> Bool {
+      switch (lhs, rhs) {
+      case (.unrelated, _): return true
+      case (_, .unrelated): return false
+      case let (.related(l), .related(r)): return l < r
+      }
+    }
+
+    public var hashValue: Int {
+      switch self {
+      // FIXME: Hash like an Optional<Int> when Optional<Int> can hash at all
+      case .unrelated:
+        return Int.max.hashValue
+      case let .related(l):
+        return l.hashValue
+      }
+    }
+
+    public static var min: PrecedenceLevel {
+      return .related(Int.min)
+    }
+
+    public static var max: PrecedenceLevel {
+      return .related(Int.max - 1)
+    }
+
+    public var description: String {
+      switch self {
+      case .unrelated: return ""
+      case let .related(l): return l.description
+      }
+    }
+  }
+
+  /// Associativity of a user-defined notation
+  enum Associativity {
+    /// Non-associative
+    ///
+    /// ```
+    /// (x + y + z) => [ERROR]
+    /// ```
+    case non
+    /// Left-associative
+    ///
+    /// ```
+    /// (x + y + z) => ((x + y) + z)
+    /// ```
+    case left
+    /// Right-associative
+    ///
+    /// ```
+    /// (x + y + z) => (x + (y + z))
+    /// ```
+    case right
+  }
 }
 
+/// A user-defined notation.
 public struct NewNotation: CustomStringConvertible {
+  /// The name of the notation.
   let name: Name
+  /// The names involved in the body of the notation.
   let names: Set<Name>
+  /// The fixity of the notation.
   let fixity: Fixity
+  /// An exploded view of the sections of the notation.
   let notation: [NotationSection]
 
   public var description: String {
@@ -89,6 +131,8 @@ public struct NewNotation: CustomStringConvertible {
 }
 
 extension NameBinding {
+  /// Walks the module and registers any encountered user-defined notations in
+  /// a scope.
   func walkNotations(_ module: ModuleDeclSyntax) -> Scope {
     return self.underScope { (scope) -> Scope in
       for i in 0..<module.declList.count {
@@ -116,8 +160,8 @@ extension NameBinding {
             }
           }
         case _ where d is NonFixDeclSyntax
-          || d is LeftFixDeclSyntax
-          || d is RightFixDeclSyntax:
+                  || d is LeftFixDeclSyntax
+                  || d is RightFixDeclSyntax:
           guard let fd = d as? FixityDeclSyntax else {
             fatalError("Switch case cast bug")
           }
@@ -132,6 +176,8 @@ extension NameBinding {
     }
   }
 
+  /// Teases apart a name that is known to introduce new notation into the
+  /// sections and a set of its name components.
   private func teaseNotation(_ not: Name) -> ([NotationSection], Set<Name>) {
     var secs = [NotationSection]()
     var names = Set<Name>()
@@ -182,6 +228,7 @@ extension NameBinding {
     public static let constructors = NotationFilter(rawValue: 1 << 0)
   }
 
+  /// Builds a DAG of the notations in a given scope, ordered by precedence.
   func newNotations(
     in scope: Scope,
     filter: NotationFilter = []
@@ -250,7 +297,7 @@ extension NameBinding {
   }
 }
 
-public typealias NotationDAG = DAG<PrecedenceLevel, NewNotation>
+public typealias NotationDAG = DAG<Fixity.PrecedenceLevel, NewNotation>
 
 /*
 public final class Reparser {

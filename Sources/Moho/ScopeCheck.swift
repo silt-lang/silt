@@ -1,4 +1,4 @@
-/// Scope.swift
+/// ScopeCheck.swift
 ///
 /// Copyright 2017, The Silt Language Project.
 ///
@@ -8,6 +8,17 @@
 import Lithosphere
 
 extension NameBinding {
+  /// Checks that a module, its parameters, and its child declarations are
+  /// well-scoped.  In the process, `NameBinding` will quantify all non-local
+  /// names and return a simplified well-scoped (but not yet type-correct)
+  /// AST as output.
+  ///
+  /// Should scope check detect inconsistencies, it will diagnose terms and
+  /// often drop them from its consideration - but not before binding their
+  /// names into scope to aid recovery.
+  ///
+  /// This pass does not fail thus it is crucial that the diagnostic
+  /// engine be checked before continuing on to the semantic passes.
   public func scopeCheckModule(_ module: ModuleDeclSyntax) -> DeclaredModule {
     let params = module.typedParameterList.map(self.scopeCheckTelescope)
     let filteredDecls = self.withScope(walkNotations(module)) { _ in
@@ -20,20 +31,29 @@ extension NameBinding {
       decls: filteredDecls.flatMap(self.scopeCheckDecl))
   }
 
+  /// Scope check a declaration that may be found directly under a module.
   private func scopeCheckDecl(_ syntax: DeclSyntax) -> [Decl] {
     precondition(!(syntax is FunctionDeclSyntax ||
       syntax is FunctionClauseDeclSyntax))
     switch syntax {
+    case let syntax as ModuleDeclSyntax:
+      return [.module(self.scopeCheckModule(syntax))]
     case let syntax as ReparsedFunctionDeclSyntax:
       return self.scopeCheckFunctionDecl(syntax)
     case let syntax as DataDeclSyntax:
       return self.scopeCheckDataDecl(syntax)
+    case let syntax as RecordDeclSyntax:
+      return self.scopeCheckRecordDecl(syntax)
+      // FIXME: Implement import validation logic.
+//    case let syntax as ImportDeclSyntax:
+//    case let syntax as OpenImportDeclSyntax:
     default:
       print(type(of: syntax))
       fatalError()
     }
   }
 
+  /// Scope check and validate an expression.
   private func scopeCheckExpr(_ syntax: ExprSyntax) -> Expr {
     switch syntax {
     case let syntax as NamedBasicExprSyntax:
@@ -332,6 +352,89 @@ extension NameBinding {
     }
 
     return [ sig, .data(boundDataName, cs.map {$0.0}, cs.map {$0.1}) ]
+  }
+
+  private func scopeCheckRecordDecl(_ syntax: RecordDeclSyntax) -> [Decl] {
+    let recName = Name(name: syntax.recordName)
+    guard let boundDataName = self.bindDefinition(named: recName, 0) else {
+      // If this declaration does not have a unique name, diagnose it and
+      // recover by ignoring it.
+      self.engine.diagnose(.nameShadows(recName), node: syntax)
+      return []
+    }
+    return self.underScope { _ in
+      let params = syntax.parameterList.map(self.scopeCheckTelescope)
+      // FIXME: This is not a substitute for real mixfix operators
+      var type = syntax.typeIndices.map({
+        return self.scopeCheckExpr(self.rebindArrows($0.indexExpr))
+      }) ?? Expr.type
+      for (names, expr) in params {
+        for name in names {
+          type = Expr.pi(name, expr, type)
+        }
+      }
+      let asc = Decl.recordSignature(TypeSignature(name: boundDataName,
+                                                   type: type))
+
+      var sigs = [(Name, TypeSignature)]()
+      var decls = [Decl]()
+      var constr: QualifiedName? = nil
+      for i in 0..<syntax.recordElementList.count {
+        let re = syntax.recordElementList[i]
+
+        if let field = re as? FieldDeclSyntax {
+          sigs.append(contentsOf: self.scopeCheckFieldDecl(field))
+          continue
+        }
+
+        if let funcField = re as? FunctionDeclSyntax {
+          decls.append(contentsOf: self.scopeCheckDecl(funcField))
+          continue
+        }
+
+        if let recConstr = re as? RecordConstructorDeclSyntax {
+          let name = Name(name: recConstr.constructorName)
+          guard let bindName = self.bindConstructor(named: name, 0, 0) else {
+            // If this declaration does not have a unique name, diagnose it and
+            // recover by ignoring it.
+            self.engine.diagnose(.nameShadows(name), node: recConstr)
+            continue
+          }
+          constr = bindName
+          continue
+        }
+      }
+      guard let recConstr = constr else {
+        self.engine.diagnose(.recordMissingConstructor, node: syntax)
+        return []
+      }
+      let recordDecl: Decl = .record(boundDataName, sigs.map {$0.0},
+                                     recConstr, sigs.map {$0.1})
+      return [asc, recordDecl] + decls
+    }
+  }
+
+  private func scopeCheckFieldDecl(
+    _ syntax: FieldDeclSyntax) -> [(Name, TypeSignature)] {
+    var result = [(Name, TypeSignature)]()
+    result.reserveCapacity(syntax.ascription.boundNames.count)
+    for j in 0..<syntax.ascription.boundNames.count {
+      let name = Name(name: syntax.ascription.boundNames[j])
+
+      // FIXME: This is not a substitute for real mixfix operators
+      let rebindExpr = self.rebindArrows(syntax.ascription.typeExpr)
+      let ascExpr = self.scopeCheckExpr(rebindExpr)
+
+      guard let bindName = self.bindProjection(named: name, 0) else {
+        // If this declaration does not have a unique name, diagnose it and
+        // recover by ignoring it.
+        self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
+        continue
+      }
+
+      result.append((name, TypeSignature(name: bindName, type: ascExpr)))
+    }
+    return result
   }
 
   private func scopeCheckConstructor(
