@@ -27,6 +27,7 @@ public enum SyntaxKind {
   case recordDecl
   case recordElementList
   case fieldDecl
+  case recordConstructorDecl
   case recordFieldAssignmentList
   case recordFieldAssignment
   case functionDecl
@@ -115,6 +116,8 @@ extension Syntax {
       return RecordElementListSyntax(root: root, data: data)
     case .fieldDecl:
       return FieldDeclSyntax(root: root, data: data)
+    case .recordConstructorDecl:
+      return RecordConstructorDeclSyntax(root: root, data: data)
     case .recordFieldAssignmentList:
       return RecordFieldAssignmentListSyntax(root: root, data: data)
     case .recordFieldAssignment:

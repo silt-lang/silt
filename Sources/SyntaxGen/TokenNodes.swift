@@ -29,6 +29,7 @@ let tokenNodes = [
   // Interchangeable with the "->" punctuation.
   Token(name: "ArrowSymbol", .punctuation("→")),
 
+  Token(name: "Constructor", .keyword("constructor")),
   Token(name: "Module", .keyword("module")),
   Token(name: "Open", .keyword("open")),
   Token(name: "Import", .keyword("import")),

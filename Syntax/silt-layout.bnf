@@ -27,10 +27,12 @@ constructor-decl ::= '|' <ascription> ';'
 
 record-decl ::= 'record' <id> <typed-parameter-list>? <type-indices>? 'where' <record-element-list>?
 record-element-list ::= <record-element>
-                      | <record-element> <record-element-list>
+                      | <record-element> ';' <record-element-list>
 record-element ::= <field-decl>
                  | <function-decl>
-field-decl ::= 'field' '{' <ascription> '}'
+                 | <record-constructor-decl>
+field-decl ::= 'field' <ascription>
+record-constructor-decl ::= 'constructor' <id>
 
 record-field-assignment-list ::= <record-field-assignment>
                                | <record-field-assignment> ';' <record-field-assignment-list>
@@ -64,7 +66,7 @@ fixity-decl ::= 'infix' <int> <id-list>
 # Patterns
 
 basic-expr-list ::= <pattern-clause>
-                      | <pattern-clause> <patter-clause-list>
+                  | <pattern-clause> <patter-clause-list>
 
 pattern-clause ::= <expr>
 

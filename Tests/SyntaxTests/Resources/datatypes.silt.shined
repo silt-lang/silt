@@ -1,7 +1,15 @@
--- CHECK: module DataTypes where {
--- CHECK: data N : Type where {
--- CHECK-NEXT: | zero : N;
--- CHECK-NEXT: | succ : N -> N
--- CHECK-NEXT: };
+-- CHECK:      module DataTypes where {
+
+-- CHECK:      data N : Type where {
+-- CHECK-NEXT:   | zero : N;
+-- CHECK-NEXT:   | succ : N -> N;
 -- CHECK-NEXT: };
 
+-- CHECK:      record Person : Type where {
+-- CHECK-NEXT:   constructor MkPerson;
+-- CHECK-NEXT:   field
+-- CHECK-NEXT:     firstName middleName lastName : String;
+-- CHECK-NEXT:   field
+-- CHECK-NEXT:     age : N;
+-- CHECK-NEXT: };
+-- CHECK-NEXT: };
