@@ -125,20 +125,18 @@ public struct Invocation {
           SyntaxDumper(stream: &stderrStream).dump(module)
         })
       case .dump(.scopes):
-        let layoutTokens = layout(tokens)
-        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
-        let module = parser.parseTopLevelModule()!
-        let binder = NameBinding(topLevel: module, engine: engine)
-        print(binder.performScopeCheck(topLevel: module))
+        run(scopeCheckPass |> Pass(name: "Dump Scopes") { module, _ in
+          print(module)
+        })
       case .verify(let verification):
         engine.unregister(printingConsumerToken)
         switch verification {
         case .parse:
           return run(makeVerifyPass(url: url, pass: parsePass,
-                                    context: context))
+                                    context: context)) ?? true
         case .scopes:
           return run(makeVerifyPass(url: url, pass: scopeCheckPass,
-                                    context: context))
+                                    context: context)) ?? true
         }
       }
     }
