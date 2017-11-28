@@ -40,7 +40,7 @@ struct RunLine {
 
   /// Determines if a given process exit code is a failure or success, depending
   /// on the run line's command.
-  func isFailure(_ status: Int32) -> Bool {
+  func isFailure(_ status: Int) -> Bool {
     switch command {
     case .run: return status == 0
     case .runNot: return status != 0

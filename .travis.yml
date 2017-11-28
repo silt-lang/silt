@@ -8,12 +8,12 @@ matrix:
       osx_image: xcode9
       before_install:
         - brew install swiftlint
-        - gem install xcpretty xcpretty-travis-formatter
+        - gem install xcpretty
       script:
         - swiftlint
         - swift build
-        - swift test 2>&1 | xcpretty -f `xcpretty-travis-formatter` && exit ${PIPESTATUS[0]}
-        - swift run lite -d Tests/Lite
+        - swift run lite
+        - swift test 2>&1 | xcpretty && exit ${PIPESTATUS[0]}
     - os: linux
       language: generic
       rvm:
@@ -28,5 +28,5 @@ matrix:
         - eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
       script:
         - swift build
+        - swift run lite
         - swift test 2>&1 | xcpretty && exit ${PIPESTATUS[0]}
-        - swift run lite -d Tests/Lite

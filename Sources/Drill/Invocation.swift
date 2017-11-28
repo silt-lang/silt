@@ -36,6 +36,11 @@ public struct Invocation {
 
     Rainbow.enabled = options.colorsEnabled
 
+    // Force Rainbow to use ANSI colors even when not in a TTY.
+    if Rainbow.outputTarget == .unknown {
+      Rainbow.outputTarget = .console
+    }
+
     if sourceFiles.isEmpty {
       engine.diagnose(.noInputFiles)
       return true
