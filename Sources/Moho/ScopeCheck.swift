@@ -19,14 +19,17 @@ extension NameBinding {
       namespace: self.activeScope.nameSpace,
       decls: filteredDecls.flatMap(self.scopeCheckDecl))
   }
-  
+
   private func scopeCheckDecl(_ syntax: DeclSyntax) -> [Decl] {
     precondition(!(syntax is FunctionDeclSyntax ||
       syntax is FunctionClauseDeclSyntax))
     switch syntax {
     case let syntax as ReparsedFunctionDeclSyntax:
       return self.scopeCheckFunctionDecl(syntax)
+    case let syntax as DataDeclSyntax:
+      return self.scopeCheckDataDecl(syntax)
     default:
+      print(type(of: syntax))
       fatalError()
     }
   }
@@ -35,11 +38,19 @@ extension NameBinding {
     switch syntax {
     case let syntax as NamedBasicExprSyntax:
       let n = QualifiedName(ast: syntax.name)
-      let head : ApplyHead
+      let head: ApplyHead
       if self.isBoundVariable(n.name) {
         head = ApplyHead.variable(n.name)
-      } else if case .definition(_)? = self.lookupFullyQualifiedName(n) {
+      } else if let nameInfo = self.lookupFullyQualifiedName(n) {
+        guard case .definition(_) = nameInfo else {
+          return .constructor(n, [])
+        }
         head = ApplyHead.definition(n)
+      } else if let (fqn, nameInfo) = self.lookupLocalName(n.name) {
+        guard case .definition(_) = nameInfo else {
+          return .constructor(fqn, [])
+        }
+        head = ApplyHead.definition(fqn)
       } else {
         // If it's not a definition or a local variable, it's undefined.
         // Recover by introducing a local variable binding anyways.
@@ -66,16 +77,30 @@ extension NameBinding {
         return self.scopeCheckExpr(syntax.exprs[0])
       }
 
-      var elims = [Elimination]()
-      let n = QualifiedName(ast: (syntax.exprs[0] as! NamedBasicExprSyntax).name)
+      guard let headExpr = syntax.exprs[0] as? NamedBasicExprSyntax else {
+        fatalError("Cannot yet handle this case")
+      }
 
-      let head : ApplyHead
-      if n.string == "->" {
+      let n = QualifiedName(ast: headExpr.name)
+      guard n.string != "->" else {
         assert(syntax.exprs.count == 3)
-        return .function(self.scopeCheckExpr(syntax.exprs[1]), self.scopeCheckExpr(syntax.exprs[2]))
-      } else if self.isBoundVariable(n.name) {
+        return .function(self.scopeCheckExpr(syntax.exprs[1]),
+                         self.scopeCheckExpr(syntax.exprs[2]))
+      }
+
+      var args = [Expr]()
+      for i in 1..<syntax.exprs.count {
+        let e = syntax.exprs[i]
+        let elim = self.scopeCheckExpr(e)
+        args.append(elim)
+      }
+
+      let head: ApplyHead
+      if self.isBoundVariable(n.name) {
         head = ApplyHead.variable(n.name)
-      } else if case .some(.definition(_)) = self.lookupFullyQualifiedName(n) {
+      } else if let (fqn, _) = self.lookupLocalName(n.name) {
+        head = ApplyHead.definition(fqn)
+      } else if self.lookupFullyQualifiedName(n) != nil {
         head = ApplyHead.definition(n)
       } else {
         // If it's not a definition or a local variable, it's undefined.
@@ -84,12 +109,7 @@ extension NameBinding {
         head = ApplyHead.variable(n.name)
       }
 
-      for i in 1..<syntax.exprs.count {
-        let e = syntax.exprs[i]
-        let elim = Elimination.apply(self.scopeCheckExpr(e))
-        elims.append(elim)
-      }
-      return .apply(head, elims)
+      return .apply(head, args.map(Elimination.apply))
     case let syntax as QuantifiedExprSyntax:
       return self.underScope { _ in
         let telescope = syntax.bindingList.map(self.scopeCheckTelescope)
@@ -101,6 +121,15 @@ extension NameBinding {
         }
         return type
       }
+    case let syntax as TypedParameterArrowExprSyntax:
+      let telescope = syntax.parameters.map(self.scopeCheckTelescope)
+      var type = self.scopeCheckExpr(syntax.outputExpr)
+      for (names, expr) in telescope {
+        for name in names {
+          type = Expr.pi(name, expr, type)
+        }
+      }
+      return type
     default:
       print(type(of: syntax))
       fatalError()
@@ -132,25 +161,8 @@ extension NameBinding {
     _ syntax: TypedParameterSyntax) -> ([Name], Expr) {
     switch syntax {
     case let syntax as ExplicitTypedParameterSyntax:
-      let tyExpr = self.scopeCheckExpr(self.rebindArrows(syntax.ascription.typeExpr))
-      var names = [Name]()
-      for j in 0..<syntax.ascription.boundNames.count {
-        let name = Name(name: syntax.ascription.boundNames[j])
-        guard !self.isBoundVariable(name) else {
-          // If this declaration does not have a unique name, diagnose it and
-          // recover by ignoring it.
-          self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
-          continue
-        }
-        
-        guard let bindName = self.bindVariable(named: name) else {
-          fatalError()
-        }
-        names.append(bindName)
-      }
-      return (names, tyExpr)
-    case let syntax as ImplicitTypedParameterSyntax:
-      let tyExpr = self.scopeCheckExpr(self.rebindArrows(syntax.ascription.typeExpr))
+      let tyExpr = self.scopeCheckExpr(
+                      self.rebindArrows(syntax.ascription.typeExpr))
       var names = [Name]()
       for j in 0..<syntax.ascription.boundNames.count {
         let name = Name(name: syntax.ascription.boundNames[j])
@@ -163,6 +175,25 @@ extension NameBinding {
 
         guard let bindName = self.bindVariable(named: name) else {
           fatalError()
+        }
+        names.append(bindName)
+      }
+      return (names, tyExpr)
+    case let syntax as ImplicitTypedParameterSyntax:
+      let tyExpr = self.scopeCheckExpr(
+                      self.rebindArrows(syntax.ascription.typeExpr))
+      var names = [Name]()
+      for j in 0..<syntax.ascription.boundNames.count {
+        let name = Name(name: syntax.ascription.boundNames[j])
+        guard !self.isBoundVariable(name) else {
+          // If this declaration does not have a unique name, diagnose it and
+          // recover by ignoring it.
+          self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
+          continue
+        }
+
+        guard let bindName = self.bindVariable(named: name) else {
+          fatalError("Name should be unique by now!")
         }
         names.append(bindName)
       }
@@ -172,10 +203,27 @@ extension NameBinding {
     }
   }
 
+  private func scopeCheckDeclaredPattern(_ syntax: DeclaredPattern) -> Pattern {
+    switch syntax {
+    case .wild:
+      return .wild
+    case let .variable(name):
+      guard let (localName, _) = self.lookupLocalName(name) else {
+        guard let name = self.bindVariable(named: name) else {
+          fatalError("Lookup failed, Name should be unbound!")
+        }
+        return .variable(QualifiedName(name: name))
+      }
+      return .variable(localName)
+    case let .constructor(name, ps):
+      return .constructor(name, ps.map(self.scopeCheckDeclaredPattern))
+    }
+  }
+
   private func scopeCheckPattern(_ syntax: BasicExprListSyntax) -> [Pattern] {
     assert(!syntax.isEmpty)
 
-    let pats = syntax.map(self.exprToDeclaredPattern)
+    let pats = syntax.map(self.exprToDeclPattern)
     var patterns = [Pattern]()
     patterns.reserveCapacity(pats.count)
     for p in pats.dropFirst() {
@@ -185,14 +233,15 @@ extension NameBinding {
       case .variable(let name):
         guard let (localName, _) = self.lookupLocalName(name) else {
           guard let name = self.bindVariable(named: name) else {
-            fatalError()
+            fatalError("Lookup failed, Name should be unbound!")
           }
           patterns.append(.variable(QualifiedName(name: name)))
           continue
         }
         patterns.append(.variable(localName))
-      default:
-        fatalError()
+      case let .constructor(n, ps):
+        let pats = ps.map(self.scopeCheckDeclaredPattern)
+        patterns.append(.constructor(n, pats))
       }
     }
     return patterns
@@ -215,14 +264,17 @@ extension NameBinding {
           let tokExpr = expr as? NamedBasicExprSyntax,
           QualifiedName(ast: tokExpr.name).string == "->"
         {
-          let prevApp = ApplicationExprSyntax(exprs: BasicExprListSyntax(elements: precExprs))
+          let prevApp = ApplicationExprSyntax(exprs:
+            BasicExprListSyntax(elements: precExprs))
           let prevExpr = ParenthesizedExprSyntax(
             leftParenToken: TokenSyntax(.leftParen),
             expr: self.rebindArrows(prevApp),
             rightParenToken: TokenSyntax(.rightParen)
           )
 
-          let nextApp = ApplicationExprSyntax(exprs: BasicExprListSyntax(elements: Array(syntax.exprs[exprIdx+1..<syntax.exprs.endIndex])))
+          let nextApp = ApplicationExprSyntax(exprs:
+            BasicExprListSyntax(elements:
+              Array(syntax.exprs[exprIdx+1..<syntax.exprs.endIndex])))
           let nextExpr = ParenthesizedExprSyntax(
             leftParenToken: TokenSyntax(.leftParen),
             expr: self.rebindArrows(nextApp),
@@ -230,7 +282,8 @@ extension NameBinding {
           )
           return ParenthesizedExprSyntax(
             leftParenToken: TokenSyntax(.leftParen),
-            expr: ApplicationExprSyntax(exprs: BasicExprListSyntax(elements: [ tokExpr , prevExpr, nextExpr ])),
+            expr: ApplicationExprSyntax(exprs:
+              BasicExprListSyntax(elements: [ tokExpr, prevExpr, nextExpr ])),
             rightParenToken: TokenSyntax(.rightParen)
           )
         } else {
@@ -240,15 +293,74 @@ extension NameBinding {
       return syntax
     case let syntax as QuantifiedExprSyntax:
       return syntax.withOutputExpr(self.rebindArrows(syntax.outputExpr))
+    case let syntax as TypedParameterArrowExprSyntax:
+      return syntax.withOutputExpr(self.rebindArrows(syntax.outputExpr))
     default:
       print(type(of: syntax))
       fatalError()
     }
   }
 
+  private func scopeCheckDataDecl(_ syntax: DataDeclSyntax) -> [Decl] {
+    let dataName = Name(name: syntax.dataIdentifier)
+    guard let boundDataName = self.bindDefinition(named: dataName, 0) else {
+      // If this declaration does not have a unique name, diagnose it and
+      // recover by ignoring it.
+      self.engine.diagnose(.nameShadows(dataName), node: syntax)
+      return []
+    }
+    let (sig, cs) = self.underScope { (_) -> (Decl, [(Name, TypeSignature)]) in
+      let params = syntax.typedParameterList.map(self.scopeCheckTelescope)
+      // FIXME: This is not a substitute for real mixfix operators
+      let rebindExpr = self.rebindArrows(syntax.typeIndices.indexExpr)
+      var type = self.scopeCheckExpr(rebindExpr)
+      for (names, expr) in params {
+        for name in names {
+          type = Expr.pi(name, expr, type)
+        }
+      }
+      let asc = Decl.dataSignature(TypeSignature(name: boundDataName,
+                                                 type: type))
+      let cs = syntax.constructorList.flatMap(self.scopeCheckConstructor)
+      return (asc, cs)
+    }
+
+    for (name, _) in cs {
+      guard self.bindConstructor(named: name, 0, 0) != nil else {
+        fatalError("Constructor names should be unique by now!")
+      }
+    }
+
+    return [ sig, .data(boundDataName, cs.map {$0.0}, cs.map {$0.1}) ]
+  }
+
+  private func scopeCheckConstructor(
+    _ syntax: ConstructorDeclSyntax) -> [(Name, TypeSignature)] {
+    var result = [(Name, TypeSignature)]()
+    result.reserveCapacity(syntax.ascription.boundNames.count)
+    for j in 0..<syntax.ascription.boundNames.count {
+      let name = Name(name: syntax.ascription.boundNames[j])
+
+      // FIXME: This is not a substitute for real mixfix operators
+      let rebindExpr = self.rebindArrows(syntax.ascription.typeExpr)
+      let ascExpr = self.scopeCheckExpr(rebindExpr)
+
+      guard let bindName = self.bindConstructor(named: name, 0, 0) else {
+        // If this declaration does not have a unique name, diagnose it and
+        // recover by ignoring it.
+        self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
+        continue
+      }
+
+      result.append((name, TypeSignature(name: bindName, type: ascExpr)))
+    }
+    return result
+  }
+
   private func scopeCheckFunctionDecl(
     _ syntax: ReparsedFunctionDeclSyntax) -> [Decl] {
     precondition(syntax.ascription.boundNames.count == 1)
+
     let funcName = Name(name: syntax.ascription.boundNames[0])
     guard let functionName = self.bindDefinition(named: funcName, 0) else {
       fatalError("Should have unique function names by now")
@@ -283,18 +395,26 @@ extension NameBinding {
     }
   }
 
-  private func exprToDeclaredPattern(_ e : ExprSyntax) -> DeclaredPattern {
-    switch e {
-    case let e as NamedBasicExprSyntax where e.name.count == 1 &&
-      e.name[0].name.tokenKind == .underscore:
+  private func exprToDeclPattern(_ syntax: ExprSyntax) -> DeclaredPattern {
+    switch syntax {
+    case let syntax as NamedBasicExprSyntax where syntax.name.count == 1 &&
+      syntax.name[0].name.tokenKind == .underscore:
       return .wild
-    case let e as NamedBasicExprSyntax:
-      return .variable(QualifiedName(ast: e.name).name)
-    case let e as ApplicationExprSyntax:
-      let head = e.exprs.first! as! NamedBasicExprSyntax
+    case let syntax as NamedBasicExprSyntax:
+      return .variable(QualifiedName(ast: syntax.name).name)
+    case let syntax as ApplicationExprSyntax:
+      guard
+        let firstExpr = syntax.exprs.first,
+        let head = firstExpr as? NamedBasicExprSyntax
+      else {
+        fatalError("Can't handle this kind of pattern")
+      }
       return .constructor(QualifiedName(ast: head.name),
-                          e.exprs.dropFirst().map(self.exprToDeclaredPattern))
+                          syntax.exprs.dropFirst().map(self.exprToDeclPattern))
+    case let syntax as ParenthesizedExprSyntax:
+      return self.exprToDeclPattern(syntax.expr)
     default:
+      print(type(of: syntax))
       fatalError()
     }
   }
@@ -334,7 +454,7 @@ extension NameBinding {
         }
         clauseMap[name]!.append(funcDecl)
       default:
-        fatalError()
+        decls.append(decl)
       }
     }
 

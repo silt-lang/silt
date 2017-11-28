@@ -19,7 +19,7 @@ public final class DAG<K: Comparable & Hashable, T> {
       isSortedKeys = false
       return
     }
-    
+
     self.map[prec]!.append(v)
   }
 

@@ -118,7 +118,10 @@ extension NameBinding {
         case _ where d is NonFixDeclSyntax
           || d is LeftFixDeclSyntax
           || d is RightFixDeclSyntax:
-          guard self.bindFixity(d as! FixityDeclSyntax) else {
+          guard let fd = d as? FixityDeclSyntax else {
+            fatalError("Switch case cast bug")
+          }
+          guard self.bindFixity(fd) else {
             return scope
           }
         default:
@@ -179,7 +182,10 @@ extension NameBinding {
     public static let constructors = NotationFilter(rawValue: 1 << 0)
   }
 
-  func newNotations(in scope: Scope, filter: NotationFilter = []) -> ([NewNotation], NotationDAG) {
+  func newNotations(
+    in scope: Scope,
+    filter: NotationFilter = []
+  ) -> ([NewNotation], NotationDAG) {
     return self.withScope(scope) { scope in
       var notes = [NewNotation]()
       notes.reserveCapacity(scope.fixities.count)

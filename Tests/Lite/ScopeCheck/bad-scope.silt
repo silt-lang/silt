@@ -23,3 +23,17 @@ shadowing-binding : forall {A A : Type} -- expected-error {{cannot shadow name '
                            {x x : A} -> x -- expected-error {{cannot shadow name 'x'}}
 shadowing-binding x = x
 
+data BadNat : Typo where -- expected-error {{Use of undeclared identifier 'Typo'}}
+  | z : BadNat
+  | s : BadNat -> BadNot -- expected-error {{Use of undeclared identifier 'BadNot'}}
+
+data N : Type where
+  | zero : N
+  | succ : N -> N
+
+data Vec (X : Type) : N -> Type where
+  | [] : Vec X zero
+  | cons : {n : N} -> X -> Vec X n -> Vec X (succ n)
+
+bad-head : forall {n : N}{X : Type} -> Vec X (suc n) -> X -- expected-error {{Use of undeclared identifier 'suc'}}
+bad-head (cons x xs) = x

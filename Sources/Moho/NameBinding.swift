@@ -98,7 +98,7 @@ extension NameBinding {
   /// Looks up a name that has been opened into local scope, perhaps under
   /// a different name.  If there is a match, its fully-qualified name and
   /// information about that name is returned.
-  func lookupOpenedName(_ n: Name) throws -> (FullyQualifiedName, NameInfo)? {
+  func lookupOpenedName(_ n: Name) -> (FullyQualifiedName, NameInfo)? {
     guard let mbNames = self.activeScope.openedNames[n] else {
       return .none
     }
@@ -227,8 +227,7 @@ extension NameBinding {
         case let .some((qn, ni)):
           return .nameInfo(qn, ni)
         default:
-          let res = try self.lookupOpenedName(qn.name)
-          if let (qn, ni) = res {
+          if let (qn, ni) = self.lookupOpenedName(qn.name) {
             return .nameInfo(qn, ni)
           } else {
             return .none
@@ -266,6 +265,15 @@ extension NameBinding {
   func bindProjection(
     named n: Name, _ hidden: NumImplicitArguments) -> FullyQualifiedName? {
     return self.bindLocal(named: n, info: .projection(hidden))
+  }
+
+  /// Bind a data constructor in the current active scope.
+  func bindConstructor(
+    named n: Name,
+    _ hidden: NumImplicitArguments,
+    _ shown: NumExplicitArguments
+  ) -> FullyQualifiedName? {
+    return self.bindLocal(named: n, info: .constructor(hidden, shown))
   }
 
   /// Bind a local variable in the current active scope.

@@ -12,6 +12,10 @@ extension Diagnostic.Message {
     return Diagnostic.Message(.error, "Use of undeclared identifier '\(n)'")
   }
 
+  static func undeclaredIdentifier(_ n: Name) -> Diagnostic.Message {
+    return Diagnostic.Message(.error, "Use of undeclared identifier '\(n)'")
+  }
+
   static func ambiguousName(
     _ n: Name, _ others: [FullyQualifiedName]) -> Diagnostic.Message {
     return Diagnostic.Message(.error, "'\(n)' could be any of \(others)")

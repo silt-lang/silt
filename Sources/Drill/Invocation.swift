@@ -77,7 +77,6 @@ public struct Invocation {
         let module = parser.parseTopLevelModule()!
         let binder = NameBinding(topLevel: module, engine: engine)
         print(binder.performScopeCheck(topLevel: module))
-        break
       case .verify(.parse):
         engine.unregister(printingConsumerToken)
         let layoutTokens = layout(tokens)
