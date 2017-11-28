@@ -1,0 +1,39 @@
+-- RUN: --verify scopes
+
+module bad-scope where
+
+id : forall {A : Type} -> A -> A
+id x = y -- expected-error {{use of undeclared identifier 'y'}}
+
+id : forall {A : Type} -> A -> A -- expected-error {{cannot shadow name 'id'}}
+id x = x
+
+typo : forall {A : Typo} -> A -> A -- expected-error {{use of undeclared identifier 'Typo'}}
+typo x = x
+
+typo2 : forall {A : Type} -> A -> B -- expected-error {{use of undeclared identifier 'B'}}
+typo2 x = x
+
+apply-missing-var : forall {A B : Type}{x : A}{f : A -> Type} -> f x -> f y -- expected-error {{use of undeclared identifier 'y'}}
+apply-missing-var x = x
+
+body-before-sig x = x -- expected-error {{function body for 'body-before-sig' must appear after function type signature}}
+
+shadowing-binding : forall {A A : Type} -- expected-error {{cannot shadow name 'A'}}
+                           {x x : A} -> x -- expected-error {{cannot shadow name 'x'}}
+shadowing-binding x = x
+
+data BadNat : Typo where -- expected-error {{use of undeclared identifier 'Typo'}}
+  | z : BadNat
+  | s : BadNat -> BadNot -- expected-error {{use of undeclared identifier 'BadNot'}}
+
+data N : Type where
+  | zero : N
+  | succ : N -> N
+
+data Vec (X : Type) : N -> Type where
+  | [] : Vec X zero
+  | cons : {n : N} -> X -> Vec X n -> Vec X (succ n)
+
+bad-head : forall {n : N}{X : Type} -> Vec X (suc n) -> X -- expected-error {{use of undeclared identifier 'suc'}}
+bad-head (cons x xs) = x

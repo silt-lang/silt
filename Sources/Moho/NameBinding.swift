@@ -43,6 +43,10 @@ public class NameBinding {
     self.activeScope = Scope(QualifiedName(ast: topLevel.moduleIdentifier))
     self.engine = engine
   }
+
+  public func performScopeCheck(topLevel: ModuleDeclSyntax) -> DeclaredModule {
+    return self.scopeCheckModule(topLevel)
+  }
 }
 
 extension NameBinding {
@@ -94,13 +98,17 @@ extension NameBinding {
   /// Looks up a name that has been opened into local scope, perhaps under
   /// a different name.  If there is a match, its fully-qualified name and
   /// information about that name is returned.
-  func lookupOpenedName(_ n: Name) throws -> (FullyQualifiedName, NameInfo)? {
+  func lookupOpenedName(_ n: Name) -> (FullyQualifiedName, NameInfo)? {
     guard let mbNames = self.activeScope.openedNames[n] else {
       return .none
     }
 
     guard mbNames.count == 1 else {
-      engine.diagnose(.ambiguousName(n, mbNames))
+      engine.diagnose(.ambiguousName(n), node: n.syntax) {
+        for cand in mbNames {
+          $0.note(.ambiguousCandidate(cand))
+        }
+      }
       return .none
     }
 
@@ -112,7 +120,9 @@ extension NameBinding {
   /// traversing imported modules.  Because the fully qualified name is known,
   /// only information about that name is returned if lookup suceeds.
   func lookupFullyQualifiedName(_ n: FullyQualifiedName) -> NameInfo? {
-    let m = n.module.first!
+    guard let m = n.module.first else {
+      return nil
+    }
     let ms = Array(n.module.dropFirst())
     let qn = QualifiedName(cons: m, ms)
     return self.activeScope.importedModules[qn].flatMap { (_, exports) in
@@ -221,8 +231,7 @@ extension NameBinding {
         case let .some((qn, ni)):
           return .nameInfo(qn, ni)
         default:
-          let res = try self.lookupOpenedName(qn.name)
-          if let (qn, ni) = res {
+          if let (qn, ni) = self.lookupOpenedName(qn.name) {
             return .nameInfo(qn, ni)
           } else {
             return .none
@@ -260,6 +269,15 @@ extension NameBinding {
   func bindProjection(
     named n: Name, _ hidden: NumImplicitArguments) -> FullyQualifiedName? {
     return self.bindLocal(named: n, info: .projection(hidden))
+  }
+
+  /// Bind a data constructor in the current active scope.
+  func bindConstructor(
+    named n: Name,
+    _ hidden: NumImplicitArguments,
+    _ shown: NumExplicitArguments
+  ) -> FullyQualifiedName? {
+    return self.bindLocal(named: n, info: .constructor(hidden, shown))
   }
 
   /// Bind a local variable in the current active scope.
@@ -307,9 +325,8 @@ extension NameBinding {
       default:
         fatalError()
       }
-      for i in 0..<names.count {
-        let n = names[i]
-        scope.fixities[n] = fixity
+      for name in names {
+        scope.fixities[name] = fixity
       }
       return true
     }
@@ -329,7 +346,7 @@ extension NameBinding {
       return false
     }
     if let (qn, _) = self.lookupLocalName(n) {
-      engine.diagnose(.nameShadows(n, local: qn))
+      engine.diagnose(.nameShadows(n, qn))
       return false
     }
     return true

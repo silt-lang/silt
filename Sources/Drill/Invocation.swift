@@ -72,17 +72,30 @@ public struct Invocation {
           SyntaxDumper(stream: &stderrStream).dump(module)
         }
       case .dump(.scopes):
-//        let layoutTokens = layout(tokens)
-//        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
-//        let module = parser.parseTopLevelModule()!
-//        let binder = NameBinding(topLevel: module, engine: engine)
-//        print(binder.performScopeCheck(topLevel: module))
-        break
+        let layoutTokens = layout(tokens)
+        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
+        let module = parser.parseTopLevelModule()!
+        let binder = NameBinding(topLevel: module, engine: engine)
+        print(binder.performScopeCheck(topLevel: module))
       case .verify(.parse):
         engine.unregister(printingConsumerToken)
         let layoutTokens = layout(tokens)
         let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
         _ = parser.parseTopLevelModule()
+        let verifier =
+          DiagnosticVerifier(input: contents,
+                             producedDiagnostics: engine.diagnostics)
+        verifier.verify()
+        return verifier.engine.hasErrors()
+      case .verify(.scopes):
+        engine.unregister(printingConsumerToken)
+        let layoutTokens = layout(tokens)
+        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
+        guard let module = parser.parseTopLevelModule() else {
+          return true
+        }
+        let binder = NameBinding(topLevel: module, engine: engine)
+        _ = binder.performScopeCheck(topLevel: module)
         let verifier =
           DiagnosticVerifier(input: contents,
                              producedDiagnostics: engine.diagnostics)
