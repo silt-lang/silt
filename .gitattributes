@@ -1,0 +1,7 @@
+# Highlight Silt as Agda
+*.silt linguist-language=Agda
+
+# Generated files
+Sources/Lithosphere/SyntaxNodes.swift linguist-generated=true
+Sources/Lithosphere/SyntaxKind.swift linguist-generated=true
+Sources/Lithosphere/TokenKind.swift linguist-generated=true
