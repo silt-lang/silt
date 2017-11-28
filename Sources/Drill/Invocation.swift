@@ -60,10 +60,21 @@ public struct Invocation {
 
     let context = PassContext(engine: engine)
 
-    let lexerPass = Pass<URL, [TokenSyntax]>(name: "Lexer") { url, ctx in
-      let contents = try! String(contentsOf: url, encoding: .utf8)
-      let lexer = Lexer(input: contents, filePath: url.path)
-      return lexer.tokenize()
+    defer {
+      if options.shouldPrintTiming {
+        context.timer.dump(to: &stdoutStream)
+      }
+    }
+
+    let lexerPass = Pass<URL, [TokenSyntax]>(name: "Lex") { url, ctx in
+      do {
+        let contents = try String(contentsOf: url, encoding: .utf8)
+        let lexer = Lexer(input: contents, filePath: url.path)
+        return lexer.tokenize()
+      } catch {
+        ctx.engine.diagnose(.couldNotReadInput(url))
+        return nil
+      }
     }
 
     let shinePass = lexerPass |> Pass(name: "Shine") { tokens, ctx in
