@@ -135,8 +135,15 @@ extension NameBinding {
       let tyExpr = self.scopeCheckExpr(self.rebindArrows(syntax.ascription.typeExpr))
       var names = [Name]()
       for j in 0..<syntax.ascription.boundNames.count {
-        let name = syntax.ascription.boundNames[j]
-        guard let bindName = self.bindVariable(named: Name(name: name)) else {
+        let name = Name(name: syntax.ascription.boundNames[j])
+        guard !self.isBoundVariable(name) else {
+          // If this declaration does not have a unique name, diagnose it and
+          // recover by ignoring it.
+          self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
+          continue
+        }
+        
+        guard let bindName = self.bindVariable(named: name) else {
           fatalError()
         }
         names.append(bindName)
@@ -146,8 +153,15 @@ extension NameBinding {
       let tyExpr = self.scopeCheckExpr(self.rebindArrows(syntax.ascription.typeExpr))
       var names = [Name]()
       for j in 0..<syntax.ascription.boundNames.count {
-        let name = syntax.ascription.boundNames[j]
-        guard let bindName = self.bindVariable(named: Name(name: name)) else {
+        let name = Name(name: syntax.ascription.boundNames[j])
+        guard !self.isBoundVariable(name) else {
+          // If this declaration does not have a unique name, diagnose it and
+          // recover by ignoring it.
+          self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
+          continue
+        }
+
+        guard let bindName = self.bindVariable(named: name) else {
           fatalError()
         }
         names.append(bindName)
