@@ -569,17 +569,23 @@ public class RecordDeclSyntax: DeclSyntax {
     case parameterList
     case typeIndices
     case whereToken
+    case leftParenToken
     case recordElementList
+    case rightParenToken
+    case trailingSemicolon
   }
 
-  public convenience init(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax?, whereToken: TokenSyntax, recordElementList: RecordElementListSyntax) {
+  public convenience init(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax?, whereToken: TokenSyntax, leftParenToken: TokenSyntax, recordElementList: RecordElementListSyntax, rightParenToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.recordDecl, [
       recordToken.raw,
       recordName.raw,
       parameterList.raw,
       typeIndices?.raw ?? RawSyntax.missing(.typeIndices),
       whereToken.raw,
+      leftParenToken.raw,
       recordElementList.raw,
+      rightParenToken.raw,
+      trailingSemicolon.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
@@ -624,11 +630,35 @@ public class RecordDeclSyntax: DeclSyntax {
     return RecordDeclSyntax(root: newRoot, data: newData)
   }
 
+  public var leftParenToken: TokenSyntax {
+    return child(at: Cursor.leftParenToken) as! TokenSyntax
+  }
+  public func withLeftParenToken(_ syntax: TokenSyntax) -> RecordDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.leftParenToken)
+    return RecordDeclSyntax(root: newRoot, data: newData)
+  }
+
   public var recordElementList: RecordElementListSyntax {
     return child(at: Cursor.recordElementList) as! RecordElementListSyntax
   }
   public func withRecordElementList(_ syntax: RecordElementListSyntax) -> RecordDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.recordElementList)
+    return RecordDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var rightParenToken: TokenSyntax {
+    return child(at: Cursor.rightParenToken) as! TokenSyntax
+  }
+  public func withRightParenToken(_ syntax: TokenSyntax) -> RecordDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.rightParenToken)
+    return RecordDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  }
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> RecordDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
     return RecordDeclSyntax(root: newRoot, data: newData)
   }
 
@@ -646,17 +676,15 @@ public final class RecordElementListSyntax: SyntaxCollection<DeclSyntax> {
 public class FieldDeclSyntax: DeclSyntax {
   public enum Cursor: Int {
     case fieldToken
-    case leftBraceToken
     case ascription
-    case rightBraceToken
+    case trailingSemicolon
   }
 
-  public convenience init(fieldToken: TokenSyntax, leftBraceToken: TokenSyntax, ascription: AscriptionSyntax, rightBraceToken: TokenSyntax) {
+  public convenience init(fieldToken: TokenSyntax, ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.fieldDecl, [
       fieldToken.raw,
-      leftBraceToken.raw,
       ascription.raw,
-      rightBraceToken.raw,
+      trailingSemicolon.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
@@ -669,14 +697,6 @@ public class FieldDeclSyntax: DeclSyntax {
     return FieldDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var leftBraceToken: TokenSyntax {
-    return child(at: Cursor.leftBraceToken) as! TokenSyntax
-  }
-  public func withLeftBraceToken(_ syntax: TokenSyntax) -> FieldDeclSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.leftBraceToken)
-    return FieldDeclSyntax(root: newRoot, data: newData)
-  }
-
   public var ascription: AscriptionSyntax {
     return child(at: Cursor.ascription) as! AscriptionSyntax
   }
@@ -685,12 +705,54 @@ public class FieldDeclSyntax: DeclSyntax {
     return FieldDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var rightBraceToken: TokenSyntax {
-    return child(at: Cursor.rightBraceToken) as! TokenSyntax
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
   }
-  public func withRightBraceToken(_ syntax: TokenSyntax) -> FieldDeclSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.rightBraceToken)
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> FieldDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
     return FieldDeclSyntax(root: newRoot, data: newData)
+  }
+
+}
+
+public class RecordConstructorDeclSyntax: DeclSyntax {
+  public enum Cursor: Int {
+    case constructorToken
+    case constructorName
+    case trailingSemicolon
+  }
+
+  public convenience init(constructorToken: TokenSyntax, constructorName: TokenSyntax, trailingSemicolon: TokenSyntax) {
+    let raw = RawSyntax.node(.recordConstructorDecl, [
+      constructorToken.raw,
+      constructorName.raw,
+      trailingSemicolon.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var constructorToken: TokenSyntax {
+    return child(at: Cursor.constructorToken) as! TokenSyntax
+  }
+  public func withConstructorToken(_ syntax: TokenSyntax) -> RecordConstructorDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.constructorToken)
+    return RecordConstructorDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var constructorName: TokenSyntax {
+    return child(at: Cursor.constructorName) as! TokenSyntax
+  }
+  public func withConstructorName(_ syntax: TokenSyntax) -> RecordConstructorDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.constructorName)
+    return RecordConstructorDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  }
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> RecordConstructorDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
+    return RecordConstructorDeclSyntax(root: newRoot, data: newData)
   }
 
 }

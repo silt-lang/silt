@@ -199,7 +199,9 @@ extension Parser {
     case .moduleKeyword:
       return try self.parseModule()
     case .dataKeyword:
-      return try self.parseDataDeclaration()
+      return try self.parseDataDecl()
+    case .recordKeyword:
+      return try self.parseRecordDecl()
     case .openKeyword:
       return try self.parseOpenImportDecl()
     case .importKeyword:
@@ -313,14 +315,20 @@ extension Parser {
     let paramList = try parseTypedParameterList()
     let indices = peek() == .colon ? try parseTypeIndices() : nil
     let whereTok = try consume(.whereKeyword)
+    let leftTok = try consume(.leftBrace)
     let elemList = try parseRecordElementList()
+    let rightTok = try consume(.rightBrace)
+    let trailingSemi = try consume(.semicolon)
     return RecordDeclSyntax(
       recordToken: recordTok,
       recordName: recName,
       parameterList: paramList,
       typeIndices: indices,
       whereToken: whereTok,
-      recordElementList: elemList
+      leftParenToken: leftTok,
+      recordElementList: elemList,
+      rightParenToken: rightTok,
+      trailingSemicolon: trailingSemi
     )
   }
 
@@ -332,6 +340,8 @@ extension Parser {
         pieces.append(try parseFunctionDeclOrClause())
       case .fieldKeyword:
         pieces.append(try parseFieldDecl())
+      case .constructorKeyword:
+        pieces.append(try parseRecordConstructorDecl())
       default:
         break loop
       }
@@ -345,6 +355,8 @@ extension Parser {
       return try self.parseFieldDecl()
     case .identifier(_):
       return try self.parseFunctionDeclOrClause()
+    case .constructorKeyword:
+      return try parseRecordConstructorDecl()
     default:
       throw expected("field or function declaration")
     }
@@ -352,14 +364,23 @@ extension Parser {
 
   func parseFieldDecl() throws -> FieldDeclSyntax {
     let fieldTok = try consume(.fieldKeyword)
-    let leftTok = try consume(.leftBrace)
     let ascription = try parseAscription()
-    let rightTok = try consume(.rightBrace)
+    let trailingSemi = try consume(.semicolon)
     return FieldDeclSyntax(
       fieldToken: fieldTok,
-      leftBraceToken: leftTok,
       ascription: ascription,
-      rightBraceToken: rightTok
+      trailingSemicolon: trailingSemi
+    )
+  }
+
+  func parseRecordConstructorDecl() throws -> RecordConstructorDeclSyntax {
+    let constrTok = try consume(.constructorKeyword)
+    let constrName = try parseIdentifierToken()
+    let trailingSemi = try consume(.semicolon)
+    return RecordConstructorDeclSyntax(
+      constructorToken: constrTok,
+      constructorName: constrName,
+      trailingSemicolon: trailingSemi
     )
   }
 }
@@ -431,7 +452,7 @@ extension Parser {
 }
 
 extension Parser {
-  func parseDataDeclaration() throws -> DataDeclSyntax {
+  func parseDataDecl() throws -> DataDeclSyntax {
     let dataTok = try consume(.dataKeyword)
     let dataId = try parseIdentifierToken()
     let paramList = try parseTypedParameterList()

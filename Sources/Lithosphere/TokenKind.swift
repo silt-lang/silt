@@ -23,6 +23,7 @@ public enum TokenKind: Equatable {
   case rightParen
   case colon
   case openKeyword
+  case constructorKeyword
   case unknown(Character)
   case equals
   case arrowSymbol
@@ -57,6 +58,7 @@ public enum TokenKind: Equatable {
     case ")": self = .rightParen
     case ":": self = .colon
     case "open": self = .openKeyword
+    case "constructor": self = .constructorKeyword
     case "=": self = .equals
     case "→": self = .arrowSymbol
     case "data": self = .dataKeyword
@@ -92,6 +94,7 @@ public enum TokenKind: Equatable {
     case .rightParen: return ")"
     case .colon: return ":"
     case .openKeyword: return "open"
+    case .constructorKeyword: return "constructor"
     case .unknown(let text): return text.description
     case .equals: return "="
     case .arrowSymbol: return "→"
@@ -128,6 +131,7 @@ public enum TokenKind: Equatable {
     case (.rightParen, .rightParen): return true
     case (.colon, .colon): return true
     case (.openKeyword, .openKeyword): return true
+    case (.constructorKeyword, .constructorKeyword): return true
     case (.unknown(let l),
           .unknown(let r)): return l == r
     case (.equals, .equals): return true

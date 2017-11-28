@@ -56,7 +56,7 @@ let syntaxNodes = [
 
   // MARK: Data types
 
-  // data-decl ::= 'data' <id> <typed-parameter-list>? <type-indices>? 'where' <constructor-list>
+  // data-decl ::= 'data' <id> <typed-parameter-list>? <type-indices>? 'where' '{' <constructor-list> '}' ';'
 
   Node("DataDecl", kind: "Decl", children: [
     Child("dataToken", kind: "DataToken"),
@@ -109,7 +109,7 @@ let syntaxNodes = [
   ]),
 
   // constructor-list ::= <constructor-decl>
-  //                    | <constructor-decl> <constructor-decl-list>
+  //                    | <constructor-decl> ';' <constructor-decl-list>
 
   Node("ConstructorList", element: "ConstructorDecl"),
 
@@ -123,7 +123,7 @@ let syntaxNodes = [
 
   // MARK: Records
 
-  // record-decl ::= 'record' <id> <typed-parameter-list>? <type-indices>? 'where' <record-element-list>?
+  // record-decl ::= 'record' <id> <typed-parameter-list>? <type-indices>? 'where' '{' <record-element-list>? '}' ';'
 
   Node("RecordDecl", kind: "Decl", children: [
     Child("recordToken", kind: "RecordToken"),
@@ -131,24 +131,35 @@ let syntaxNodes = [
     Child("parameterList", kind: "TypedParameterList"),
     Child("typeIndices", kind: "TypeIndices", isOptional: true),
     Child("whereToken", kind: "WhereToken"),
-    Child("recordElementList", kind: "RecordElementList")
+    Child("leftParenToken", kind: "LeftParenToken"),
+    Child("recordElementList", kind: "RecordElementList"),
+    Child("rightParenToken", kind: "RightParenToken"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
   // record-element-list ::= <record-element>
-  //                       | <record-element> <record-element-list>
+  //                       | <record-element> ';' <record-element-list>
 
   Node("RecordElementList", element: "Decl"),
 
   // record-element ::= <field-decl>
   //                  | <function-decl>
+  //                  | <record-constructor-decl>
 
   // field-decl ::= 'field' <ascription>
 
   Node("FieldDecl", kind: "Decl", children: [
     Child("fieldToken", kind: "FieldToken"),
-    Child("leftBraceToken", kind: "LeftBraceToken"),
     Child("ascription", kind: "Ascription"),
-    Child("rightBraceToken", kind: "RightBraceToken"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
+  ]),
+
+  // record-constructor-decl ::= 'constructor' <id>
+
+  Node("RecordConstructorDecl", kind: "Decl", children: [
+    Child("constructorToken", kind: "ConstructorToken"),
+    Child("constructorName", kind: "IdentifierToken"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
   // record-field-assignment-list ::= <record-field-assignment>

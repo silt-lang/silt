@@ -3,3 +3,11 @@ module DataTypes where
 data N : Type where
   | zero : N
   | succ : N -> N
+
+record Person : Type where
+  constructor MkPerson
+  field
+    firstName middleName lastName : String
+  field
+    age : N
+
