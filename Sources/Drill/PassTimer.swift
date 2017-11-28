@@ -9,26 +9,13 @@ import Foundation
 
 class PassTimer {
   private var timings = [(String, TimeInterval)]()
-  private var currentPass: String?
-  private var currentStart: TimeInterval?
 
-  func start(passName: String) {
-    guard currentPass == nil, currentStart == nil else {
-      fatalError("cannot begin measuring while measuring another pass")
+  func measure<Out>(pass: String, actions: () -> Out) -> Out {
+    let start = CFAbsoluteTimeGetCurrent()
+    defer {
+      let end = CFAbsoluteTimeGetCurrent()
+      timings.append((pass, end - start))
     }
-    currentPass = passName
-    currentStart = CFAbsoluteTimeGetCurrent()
-  }
-
-  func end(passName: String) {
-    guard let start = currentStart else {
-      fatalError("cannot end timer that has not begun")
-    }
-    guard currentPass == passName else {
-      fatalError("cannot end timer for \(currentPass!) with pass \(passName)")
-    }
-    timings.append((passName, CFAbsoluteTimeGetCurrent() - start))
-    currentStart = nil
-    currentPass = nil
+    return actions()
   }
 }

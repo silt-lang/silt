@@ -38,7 +38,9 @@ struct Pass<In, Out>: PassProtocol {
   }
 
   func run(_ input: In, in context: PassContext) -> Out? {
-    return actions(input, context)
+    return context.timer.measure(pass: name) {
+      actions(input, context)
+    }
   }
 }
 
