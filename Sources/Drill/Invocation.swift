@@ -29,6 +29,18 @@ public struct Invocation {
 
   public typealias HadErrors = Bool
 
+  private func makeVerifyPass<PassTy: PassProtocol>(
+    url: URL, pass: PassTy, context: PassContext) -> Pass<PassTy.Input, Bool> {
+    return Pass(name: "Diagnostic Verification") { input, ctx in
+      _ = pass.run(input, in: ctx)
+      let verifier =
+        DiagnosticVerifier(url: url,
+                           producedDiagnostics: ctx.engine.diagnostics)
+      verifier.verify()
+      return verifier.engine.hasErrors()
+    }
+  }
+
   public func run() throws -> HadErrors {
     let engine = DiagnosticEngine()
     let printingConsumer = PrintingDiagnosticConsumer(stream: &stderrStream)
@@ -46,61 +58,77 @@ public struct Invocation {
       return true
     }
 
+    let context = PassContext(engine: engine)
+
+    let lexerPass = Pass<URL, [TokenSyntax]>(name: "Lexer") { url, ctx in
+      let contents = try! String(contentsOf: url, encoding: .utf8)
+      let lexer = Lexer(input: contents, filePath: url.path)
+      return lexer.tokenize()
+    }
+
+    let shinePass = lexerPass |> Pass(name: "Shine") { tokens, ctx in
+      layout(tokens)
+    }
+
+    let parsePass =
+      shinePass |> Pass(name: "Parse") { tokens, ctx -> ModuleDeclSyntax? in
+        let parser = Parser(diagnosticEngine: ctx.engine, tokens: tokens)
+        return parser.parseTopLevelModule()
+      }
+
+    let scopeCheckPass =
+      parsePass |> Pass(name: "Scope Check") { module, ctx -> DeclaredModule? in
+        let binder = NameBinding(topLevel: module, engine: ctx.engine)
+        return binder.performScopeCheck(topLevel: module)
+      }
+
     for path in sourceFiles {
       let url = URL(fileURLWithPath: path)
-      let contents = try String(contentsOf: url, encoding: .utf8)
-      let lexer = Lexer(input: contents, filePath: path)
-      let tokens = lexer.tokenize()
+
+      func run<PassTy: PassProtocol>(_ pass: PassTy) -> PassTy.Output?
+        where PassTy.Input == URL {
+          return pass.run(url, in: context)
+      }
+
       switch options.mode {
       case .compile:
         fatalError("only Parse is implemented")
       case .dump(.tokens):
-        TokenDescriber.describe(tokens, to: &stdoutStream)
+        run(lexerPass |> Pass(name: "Describe Tokens") { tokens, _ in
+          TokenDescriber.describe(tokens, to: &stdoutStream)
+        })
       case .dump(.file):
-        for token in tokens {
-          token.writeSourceText(to: &stdoutStream, includeImplicit: false)
-        }
+        run(lexerPass |> Pass(name: "Reprint File") { tokens, _ in
+          for token in tokens {
+            token.writeSourceText(to: &stdoutStream, includeImplicit: false)
+          }
+        })
       case .dump(.shined):
-        let layoutTokens = layout(tokens)
-        for token in layoutTokens {
-          token.writeSourceText(to: &stdoutStream, includeImplicit: true)
-        }
+        run(shinePass |> Pass(name: "Dump Shined") { tokens, _ in
+          for token in tokens {
+            token.writeSourceText(to: &stdoutStream, includeImplicit: true)
+          }
+        })
       case .dump(.parse):
-        let layoutTokens = layout(tokens)
-        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
-        if let module = parser.parseTopLevelModule() {
+        run(parsePass |> Pass(name: "Dump Parsed") { module, _ in
           SyntaxDumper(stream: &stderrStream).dump(module)
-        }
+        })
       case .dump(.scopes):
         let layoutTokens = layout(tokens)
         let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
         let module = parser.parseTopLevelModule()!
         let binder = NameBinding(topLevel: module, engine: engine)
         print(binder.performScopeCheck(topLevel: module))
-      case .verify(.parse):
+      case .verify(let verification):
         engine.unregister(printingConsumerToken)
-        let layoutTokens = layout(tokens)
-        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
-        _ = parser.parseTopLevelModule()
-        let verifier =
-          DiagnosticVerifier(input: contents,
-                             producedDiagnostics: engine.diagnostics)
-        verifier.verify()
-        return verifier.engine.hasErrors()
-      case .verify(.scopes):
-        engine.unregister(printingConsumerToken)
-        let layoutTokens = layout(tokens)
-        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
-        guard let module = parser.parseTopLevelModule() else {
-          return true
+        switch verification {
+        case .parse:
+          return run(makeVerifyPass(url: url, pass: parsePass,
+                                    context: context))
+        case .scopes:
+          return run(makeVerifyPass(url: url, pass: scopeCheckPass,
+                                    context: context))
         }
-        let binder = NameBinding(topLevel: module, engine: engine)
-        _ = binder.performScopeCheck(topLevel: module)
-        let verifier =
-          DiagnosticVerifier(input: contents,
-                             producedDiagnostics: engine.diagnostics)
-        verifier.verify()
-        return verifier.engine.hasErrors()
       }
     }
     return engine.hasErrors()

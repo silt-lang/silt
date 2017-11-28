@@ -44,10 +44,10 @@ struct Pass<In, Out>: PassProtocol {
   }
 }
 
-struct JoinedPass<Input, Intermediate, Output,
+struct JoinedPass<Input, Output,
                   PassA: PassProtocol, PassB: PassProtocol>: PassProtocol
-   where PassA.Input == Input, PassA.Output == Intermediate,
-         PassB.Input == Intermediate, PassB.Output == Output {
+   where PassA.Input == Input, PassA.Output == PassB.Input,
+         PassB.Output == Output {
   let name = "JoinedPass"
   let passA: PassA
   let passB: PassB
@@ -59,8 +59,9 @@ struct JoinedPass<Input, Intermediate, Output,
   }
 }
 
-func |<Input, Intermediate, Output, PassA: PassProtocol, PassB: PassProtocol>(
-  passA: PassA, passB: PassB) -> JoinedPass<Input, Intermediate, Output,
-                                            PassA, PassB> {
+infix operator |> : AdditionPrecedence
+
+func |><Input, Output, PassA: PassProtocol, PassB: PassProtocol>(
+  passA: PassA, passB: PassB) -> JoinedPass<Input, Output, PassA, PassB> {
   return JoinedPass(passA: passA, passB: passB)
 }
