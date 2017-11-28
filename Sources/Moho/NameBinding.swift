@@ -104,7 +104,11 @@ extension NameBinding {
     }
 
     guard mbNames.count == 1 else {
-      engine.diagnose(.ambiguousName(n, mbNames))
+      engine.diagnose(.ambiguousName(n), node: n.syntax) {
+        for cand in mbNames {
+          $0.note(.ambiguousCandidate(cand))
+        }
+      }
       return .none
     }
 
@@ -321,9 +325,8 @@ extension NameBinding {
       default:
         fatalError()
       }
-      for i in 0..<names.count {
-        let n = names[i]
-        scope.fixities[n] = fixity
+      for name in names {
+        scope.fixities[name] = fixity
       }
       return true
     }
@@ -343,7 +346,7 @@ extension NameBinding {
       return false
     }
     if let (qn, _) = self.lookupLocalName(n) {
-      engine.diagnose(.nameShadows(n, local: qn))
+      engine.diagnose(.nameShadows(n, qn))
       return false
     }
     return true

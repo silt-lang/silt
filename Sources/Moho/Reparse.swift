@@ -135,13 +135,10 @@ extension NameBinding {
   /// a scope.
   func walkNotations(_ module: ModuleDeclSyntax) -> Scope {
     return self.underScope { (scope) -> Scope in
-      for i in 0..<module.declList.count {
-        let d = module.declList[i]
-
+      for d in module.declList {
         switch d {
         case let node as FunctionDeclSyntax:
-          for i in 0..<node.ascription.boundNames.count {
-            let name = node.ascription.boundNames[i]
+          for name in node.ascription.boundNames {
             guard self.lookupLocalName(Name(name: name)) != nil else {
               return scope
             }
@@ -159,9 +156,7 @@ extension NameBinding {
               return scope
             }
           }
-        case _ where d is NonFixDeclSyntax
-                  || d is LeftFixDeclSyntax
-                  || d is RightFixDeclSyntax:
+        case is NonFixDeclSyntax, is LeftFixDeclSyntax, is RightFixDeclSyntax:
           guard let fd = d as? FixityDeclSyntax else {
             fatalError("Switch case cast bug")
           }
@@ -246,35 +241,7 @@ extension NameBinding {
           continue
         }
 
-        let fixity: Fixity
-        switch fds {
-        case let fds as NonFixDeclSyntax:
-          guard
-            case let .identifier(num) = fds.precedence.tokenKind,
-            let prec = Int(num, radix: 10)
-            else {
-              fatalError()
-          }
-          fixity = Fixity(level: .related(prec), assoc: .non)
-        case let fds as RightFixDeclSyntax:
-          guard
-            case let .identifier(num) = fds.precedence.tokenKind,
-            let prec = Int(num, radix: 10)
-            else {
-              fatalError()
-          }
-          fixity = Fixity(level: .related(prec), assoc: .right)
-        case let fds as LeftFixDeclSyntax:
-          guard
-            case let .identifier(num) = fds.precedence.tokenKind,
-            let prec = Int(num, radix: 10)
-            else {
-              fatalError()
-          }
-          fixity = Fixity(level: .related(prec), assoc: .left)
-        default:
-          fatalError()
-        }
+        let fixity = fds.fixity
         let (secs, names) = teaseNotation(name)
         let notation = NewNotation(name: name, names: names, fixity: fixity,
                                    notation: secs)
@@ -297,7 +264,43 @@ extension NameBinding {
   }
 }
 
-public typealias NotationDAG = DAG<Fixity.PrecedenceLevel, NewNotation>
+extension FixityDeclSyntax {
+  /// Converts a fixity declaration to an internal fixity.
+  var fixity: Fixity {
+    let fixity: Fixity
+    switch self {
+    case let fds as NonFixDeclSyntax:
+      guard
+        case let .identifier(num) = fds.precedence.tokenKind,
+        let prec = Int(num, radix: 10)
+        else {
+          fatalError()
+      }
+      fixity = Fixity(level: .related(prec), assoc: .non)
+    case let fds as RightFixDeclSyntax:
+      guard
+        case let .identifier(num) = fds.precedence.tokenKind,
+        let prec = Int(num, radix: 10)
+        else {
+          fatalError()
+      }
+      fixity = Fixity(level: .related(prec), assoc: .right)
+    case let fds as LeftFixDeclSyntax:
+      guard
+        case let .identifier(num) = fds.precedence.tokenKind,
+        let prec = Int(num, radix: 10)
+        else {
+          fatalError()
+      }
+      fixity = Fixity(level: .related(prec), assoc: .left)
+    default:
+      fatalError("Non-exhaustive switch over FixityDecls?")
+    }
+    return fixity
+  }
+}
+
+public typealias NotationDAG = PrecedenceDAG<Fixity.PrecedenceLevel, NewNotation>
 
 /*
 public final class Reparser {

@@ -1,4 +1,4 @@
-/// Graph.swift
+/// PrecedenceDAG.swift
 ///
 /// Copyright 2017, The Silt Language Project.
 ///
@@ -7,7 +7,7 @@
 
 /// A graph structure capable of answering queries about precedence of keys and
 /// values.
-public final class DAG<K: Comparable & Hashable, T> {
+public final class PrecedenceDAG<K: Comparable & Hashable, T> {
   var map = [K: [T]]()
   var keys = [K]()
   var hasSortedKeys = true

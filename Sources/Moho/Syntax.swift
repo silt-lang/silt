@@ -7,64 +7,218 @@
 
 import Lithosphere
 
+/// Represents a module declared in source with child declarations that are all
+/// known to be well-scoped.
 public struct DeclaredModule {
+  /// The name of the module.
   let moduleName: QualifiedName
+  /// The parameter list of the module, in user-declared order.
   let params: [([Name], Expr)]
+  /// The namespace of the module.
   let namespace: NameSpace
+  /// The child declarations.
   let decls: [Decl]
 }
 
+/// Represents a well-scoped declaration.
 enum Decl {
+  /// A type ascription.
+  ///
+  /// ```
+  /// x y z : forall {A B : Type} -> A -> (B -> ...
+  /// ```
   case ascription(TypeSignature)
+  /// A type ascription representing a postulate - a constant term with no body
+  /// that thus contains no proof to lower.  Code referencing postulates will
+  /// crash when evaluated at runtime, but will succeed when normalized at
+  /// compile-time.
+  ///
+  /// ```
+  /// postulate
+  ///   extensionality : forall {S : Type}{T : S -> Type}
+  ///                           (f g : (s : S) -> T s) ->
+  ///                           ((s : S) -> f s ≃ g s) -> f ≃ g
+  /// ```
   case postulate(TypeSignature)
+  /// A type ascription representing a data declaration.
+  ///
+  /// E.g. this portion of the standard definition of
+  /// the Peano naturals:
+  ///
+  /// ```
+  /// data N : Type where
+  /// ```
   case dataSignature(TypeSignature)
+  /// A type ascription representing a record declaration.
+  ///
+  /// E.g. this portion of a record:
+  ///
+  /// ```
+  /// record Person : Type where
+  /// ```
   case recordSignature(TypeSignature)
+  /// The body of a function with clauses attached.
+  ///
+  /// The signature of the function is not immediately available, but may be
+  /// acquired by querying the context with the qualified name.
   case function(QualifiedName, [Clause])
+  /// The body of a data declaration.
+  ///
+  /// E.g. this portion of the standard definition of
+  /// the Peano naturals:
+  ///
+  /// ```
+  ///   | Z : N
+  ///   | S : N -> N
+  /// ```
+  ///
+  /// The signature of the parent data declaration is not immediately available,
+  /// but may be acquired by querying the context with the qualified name.
   case data(QualifiedName, [Name], [TypeSignature])
+  /// The body of a record declaration.
+  ///
+  /// The signature of the parent record declaration is not immediately
+  /// available, but may be acquired by querying the context with the
+  /// qualified name.
   case record(QualifiedName, [Name], QualifiedName, [TypeSignature])
+  /// A module declaration.
+  ///
+  /// ```
+  /// module Foo where
+  /// ```
   case module(DeclaredModule)
+  /// An import declaration that brings module-qualified names into the current
+  /// scope.
   case importDecl(QualifiedName, [Expr])
+  /// An open-and-import declaration that brings module-qualified names as well
+  /// as unqualified open names into the current scope.
+  ///
+  /// Declarations that have been opened appear in scope as though they were
+  /// defined in the current module.  By now, any conflicts this might cause
+  /// have been resolved by Scope Check.
   case openImport(QualifiedName)
 }
 
+/// Represents a type signature - a name and an expression.
 public struct TypeSignature {
   let name: QualifiedName
   let type: Expr
 }
 
+/// Represents a fully scope-checked pattern.
+public enum Pattern {
+  /// A wildcard pattern.
+  ///
+  /// ```
+  /// foo _ _ _ = ...
+  /// ```
+  case wild
+  /// A variable pattern.
+  ///
+  /// ```
+  /// foo x y z = ...
+  /// ```
+  case variable(QualifiedName)
+  /// A constructor pattern.
+  ///
+  /// ```
+  /// foo [] x y          = ...
+  /// foo (cons x xs) y z = ...
+  /// ```
+  case constructor(QualifiedName, [Pattern])
+}
+
+/// Represents a clause in a pattern.
 struct Clause {
   let patterns: [Pattern]
-  let body: ClauseBody
+  let body: Body
+
+  /// Represents the body of a clause.
+  enum Body {
+    /// A function clause may have an empty body if a clause introduces an
+    /// absurd pattern.
+    case empty
+    /// A normal function body.
+    case body(Expr, [Decl])
+  }
 }
 
-enum ClauseBody {
-  case empty
-  case body(Expr, [Decl])
+/// Represents an intermediate pattern that better conveys structure than the
+/// syntax tree.
+///
+/// FIXME: Look into whether this can be removed entirely.
+public enum DeclaredPattern {
+  case wild
+  case variable(Name)
+  case constructor(QualifiedName, [DeclaredPattern])
 }
 
+
+/// Expressions - well-scoped but not necessarily well-formed.
 public indirect enum Expr: Equatable {
-  case lambda(([Name], Expr), Expr)
-  case pi(Name, Expr, Expr)
-  case function(Expr, Expr)
-  case equal(Expr, Expr, Expr)
+  /// An application of a head to a body of eliminators.
+  ///
+  /// The head may by a local variable or a definition while the eliminators
+  /// are either applications or projections.  The idea is that one form of
+  /// a neutral term is the case where we have no eliminators left to apply.
+  /// This also means that we do not need an explicit case for variables (yet) -
+  /// a variable is just a `variable` head applied to no eliminators.
   case apply(ApplyHead, [Elimination])
+  /// A dependent function, or Π, type.
+  ///
+  /// A pi type captures a dependent function space mapping terms from its
+  /// domain to terms in its codomain that may depend on the terms of the
+  /// domain.
+  case pi(Name, Expr, Expr)
+  /// The "traditional" non-dependent function space.
+  case function(Expr, Expr)
+  /// A lambda binding some variables of the same type to some output expression
+  /// that may depend on those variables.
+  case lambda(([Name], Expr), Expr)
+  /// A type constructor for a term.
   case constructor(QualifiedName, [Expr])
+  /// The "Type" sort.
+  ///
+  /// Yeah, it's probably not a good idea to call a sort "Type", but it's better
+  /// than "Set".
   case type
+  /// A representation of a metavariable - an unknown expression that requires
+  /// the aid of the type checker to determine.
+  ///
+  /// In a dependently-typed setting, we are not restricted to merely binding
+  /// types to metas.  Because types and terms are the same thing, we may engage
+  /// in proof search in order to determine a program that inhabits a type, or a
+  /// type that corresponds to a program - (Both is out of scope).
   case meta
+  /// A term representing a proof of equality between two terms of one
+  /// particular type.
+  ///
+  /// Silt terms take an intensional view of equality meaning we need little
+  /// more than to check deep syntactic equality of terms (after a little
+  /// reduction) to declare that they are equal.  This also means it can be
+  /// a pain in the neck to try to prove anything outside of the ensemble of
+  /// constructors you have to work with.
+  ///
+  /// For a discussion of intensionality and extensionality, see
+  /// Hillary Putnam's ["The Meaning of Meaning"](www.goo.gl/W42JBa).
+  case equal(Expr, Expr, Expr)
+  /// Represents `refl`, the only inhabitant of the proof of intensional
+  /// equality of terms.
   case refl
 
+  /// Deep syntactic equality of terms.
   public static func == (l: Expr, r: Expr) -> Bool {
     switch (l, r) {
-    case let (.lambda((x, tl), e), .lambda((y, tr), f)):
-      return x == y && tl == tr && e == f
-    case let (.pi(x, a, b), .pi(y, c, d)):
-      return x == y && a == c && b == d
-    case let (.function(a, b), .function(c, d)):
-      return a == c && b == d
-    case let (.equal(a, x, y), .equal(b, z, w)):
-      return a == b && x == z && w == y
-    case let (.apply(h, es), .apply(g, fs)):
-      return h == g && es == fs
+    case let (.lambda((lhsBind, lhsBody), e), .lambda((rhsBind, rhsBody), f)):
+      return lhsBind == rhsBind && lhsBody == rhsBody && e == f
+    case let (.pi(lhsBind, lhsDom, lhsCod), .pi(rhsBind, rhsDom, rhsCod)):
+      return lhsBind == rhsBind && lhsDom == rhsDom && lhsCod == rhsCod
+    case let (.function(lhsDom, lhsCod), .function(rhsDom, rhsCod)):
+      return lhsDom == rhsDom && lhsCod == rhsCod
+    case let (.equal(lhsEqTy, lhsTm1, lhsTm2), .equal(rhsEqTy, rhsTm1, rhsTm2)):
+      return lhsEqTy == rhsEqTy && lhsTm1 == rhsTm1 && rhsTm2 == lhsTm2
+    case let (.apply(lhsHead, lhsElims), .apply(rhsHead, rhsElims)):
+      return lhsHead == rhsHead && lhsElims == rhsElims
     case (.type, .type):
       return true
     case (.meta, .meta):
@@ -77,8 +231,23 @@ public indirect enum Expr: Equatable {
   }
 }
 
+/// Represents the "head" of an application expression.
 public enum ApplyHead: Equatable {
+  /// The head is a local variable.
+  ///
+  /// E.g. The `f` and `g` terms in:
+  ///
+  /// ```
+  /// s f g x y = f x (g y)
+  /// ```
   case variable(Name)
+  /// The head is a definition.
+  ///
+  /// E.g. The `cons` in:
+  ///
+  /// ```
+  /// c x xs = (cons x xs)
+  /// ```
   case definition(QualifiedName)
 
   public static func == (l: ApplyHead, r: ApplyHead) -> Bool {
@@ -93,8 +262,11 @@ public enum ApplyHead: Equatable {
   }
 }
 
+/// An elimination for an expression.
 public enum Elimination: Equatable {
+  /// Apply an expression to the nearest bindable thing on hand.
   case apply(Expr)
+  /// Project the named field from a record.
   case projection(QualifiedName)
 
   public static func == (l: Elimination, r: Elimination) -> Bool {
@@ -107,16 +279,4 @@ public enum Elimination: Equatable {
       return false
     }
   }
-}
-
-public enum DeclaredPattern {
-  case wild
-  case variable(Name)
-  case constructor(QualifiedName, [DeclaredPattern])
-}
-
-public enum Pattern {
-  case wild
-  case variable(QualifiedName)
-  case constructor(QualifiedName, [Pattern])
 }

@@ -150,7 +150,7 @@ public struct SyntaxCollectionIterator<Element: Syntax>: IteratorProtocol {
     guard
       !(self.collection.isEmpty || self.index == self.collection.endIndex)
     else {
-        return nil
+      return nil
     }
 
     let result = collection[index]
