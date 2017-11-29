@@ -40,6 +40,10 @@ extension Diagnostic.Message {
     return .init(.error,
                  "diagnostic '\(diagnostic.text)' found with no location")
   }
+
+  static func couldNotReadInput(_ url: URL) -> Diagnostic.Message {
+    return .init(.error, "could not read input file at '\(url.path)'")
+  }
 }
 
 /// A regex that matches expected-(error|note|warning) @<line>, similar to
@@ -102,10 +106,10 @@ public final class DiagnosticVerifier {
   /// Creates a diagnostic verifier that uses the provided token stream and
   /// set of produced diagnostics to find and verify the set of expectations
   /// in the original file.
-  public init(input: String, producedDiagnostics: [Diagnostic]) {
+  public init(url: URL, producedDiagnostics: [Diagnostic]) {
     self.producedDiagnostics = producedDiagnostics
     self.expectations =
-      DiagnosticVerifier.parseExpectations(input: input, engine: self.engine)
+      DiagnosticVerifier.parseExpectations(url: url, engine: self.engine)
   }
 
   private func matches(_ diagnostic: Diagnostic,
@@ -122,6 +126,10 @@ public final class DiagnosticVerifier {
   }
 
   public func verify() {
+    // There's nothing to verify if we've already registered an error in
+    // our diagnostic engine.
+    if self.engine.hasErrors() { return }
+
     // Keep a list of expectations we haven't matched yet.
     var unmatched = expectations
 
@@ -215,8 +223,12 @@ public final class DiagnosticVerifier {
   /// provided token stream. This provides the set of expectations that the
   /// real diagnostics will be verified against.
   private static func parseExpectations(
-    input: String, engine: DiagnosticEngine) -> Set<Expectation> {
+    url: URL, engine: DiagnosticEngine) -> Set<Expectation> {
     var expectations = Set<Expectation>()
+    guard let input = try? String(contentsOf: url, encoding: .utf8) else {
+      engine.diagnose(.couldNotReadInput(url))
+      return []
+    }
     let lines = input.split(separator: "\n",
                             omittingEmptySubsequences: false)
     for (lineNum, line) in lines.enumerated() {

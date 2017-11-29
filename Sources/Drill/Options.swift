@@ -45,11 +45,13 @@ public enum Mode {
 }
 
 public struct Options {
-    public let mode: Mode
-    public let colorsEnabled: Bool
+  public let mode: Mode
+  public let colorsEnabled: Bool
+  public let shouldPrintTiming: Bool
 
-    public init(mode: Mode, colorsEnabled: Bool) {
-        self.mode = mode
-        self.colorsEnabled = colorsEnabled
-    }
+  public init(mode: Mode, colorsEnabled: Bool, shouldPrintTiming: Bool) {
+    self.mode = mode
+    self.colorsEnabled = colorsEnabled
+    self.shouldPrintTiming = shouldPrintTiming
+  }
 }

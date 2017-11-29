@@ -29,8 +29,11 @@ func parseOptions() -> (Options, Set<String>) {
       helpMessage: "Run the compiler in diagnostic verifier mode.")
   let disableColors =
     BoolOption(longFlag: "no-colors",
-               helpMessage: "Disable ANSI colors in printed output.")
-  cli.addOptions(dumpOption, verify, disableColors)
+      helpMessage: "Disable ANSI colors in printed output.")
+  let printTiming =
+    BoolOption(longFlag: "debug-print-timing",
+      helpMessage: "Print the elapsed time for each pass of the compiler")
+  cli.addOptions(dumpOption, verify, disableColors, printTiming)
 
   do {
     try cli.parse()
@@ -49,7 +52,8 @@ func parseOptions() -> (Options, Set<String>) {
   }
 
   return (Options(mode: mode,
-                  colorsEnabled: !disableColors.value),
+                  colorsEnabled: !disableColors.value,
+                  shouldPrintTiming: printTiming.value),
           Set(cli.unparsedArguments))
 }
 

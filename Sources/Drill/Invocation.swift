@@ -23,16 +23,38 @@ public struct Invocation {
   public let sourceFiles: Set<String>
 
   public init(options: Options, paths: Set<String>) {
-      self.options = options
-      self.sourceFiles = paths
+    self.options = options
+    self.sourceFiles = paths
   }
 
+  /// Clearly denotes a function as returning `true` if errors occurred.
   public typealias HadErrors = Bool
 
+  /// Makes a pass that runs a provided pass and then performs diagnostic
+  /// verification after it.
+  /// - parameters:
+  ///   - url: The URL of the file to read.
+  ///   - pass: The pass to run before verifying.
+  ///   - context: The context in which to run the pass.
+  /// - note: The pass this function returns will never return `nil`, it will
+  ///         return `true` if the verifier produced errors and `false`
+  ///         otherwise. It is safe to force-unwrap.
+  private func makeVerifyPass<PassTy: PassProtocol>(url: URL, pass: PassTy,
+    context: PassContext) -> Pass<PassTy.Input, HadErrors> {
+    return Pass(name: "Diagnostic Verification") { input, ctx in
+      _ = pass.run(input, in: ctx)
+      let verifier =
+        DiagnosticVerifier(url: url,
+                           producedDiagnostics: ctx.engine.diagnostics)
+      verifier.verify()
+      return verifier.engine.hasErrors()
+    }
+  }
+
   public func run() throws -> HadErrors {
-    let engine = DiagnosticEngine()
+    let context = PassContext()
     let printingConsumer = PrintingDiagnosticConsumer(stream: &stderrStream)
-    let printingConsumerToken = engine.register(printingConsumer)
+    let printingConsumerToken = context.engine.register(printingConsumer)
 
     Rainbow.enabled = options.colorsEnabled
 
@@ -42,67 +64,70 @@ public struct Invocation {
     }
 
     if sourceFiles.isEmpty {
-      engine.diagnose(.noInputFiles)
+      context.engine.diagnose(.noInputFiles)
       return true
     }
 
+    defer {
+      if options.shouldPrintTiming {
+        context.timer.dump(to: &stdoutStream)
+      }
+    }
+
+    // Create passes that perform the whole readFile->...->finalPass pipeline.
+    let lexFile = Passes.readFile |> Passes.lex
+    let shineFile = lexFile |> Passes.shine
+    let parseFile = shineFile |> Passes.parse
+    let scopeCheckFile = parseFile |> Passes.scopeCheck
+
     for path in sourceFiles {
       let url = URL(fileURLWithPath: path)
-      let contents = try String(contentsOf: url, encoding: .utf8)
-      let lexer = Lexer(input: contents, filePath: path)
-      let tokens = lexer.tokenize()
+
+      func run<PassTy: PassProtocol>(_ pass: PassTy) -> PassTy.Output?
+        where PassTy.Input == URL
+      {
+        return pass.run(url, in: context)
+      }
+
       switch options.mode {
       case .compile:
         fatalError("only Parse is implemented")
       case .dump(.tokens):
-        TokenDescriber.describe(tokens, to: &stdoutStream)
+        run(lexFile |> Pass(name: "Describe Tokens") { tokens, _ in
+          TokenDescriber.describe(tokens, to: &stdoutStream)
+        })
       case .dump(.file):
-        for token in tokens {
-          token.writeSourceText(to: &stdoutStream, includeImplicit: false)
-        }
+        run(lexFile |> Pass(name: "Reprint File") { tokens, _ -> Void in
+          for token in tokens {
+            token.writeSourceText(to: &stdoutStream, includeImplicit: false)
+          }
+        })
       case .dump(.shined):
-        let layoutTokens = layout(tokens)
-        for token in layoutTokens {
-          token.writeSourceText(to: &stdoutStream, includeImplicit: true)
-        }
+        run(shineFile |> Pass(name: "Dump Shined") { tokens, _ in
+          for token in tokens {
+            token.writeSourceText(to: &stdoutStream, includeImplicit: true)
+          }
+        })
       case .dump(.parse):
-        let layoutTokens = layout(tokens)
-        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
-        if let module = parser.parseTopLevelModule() {
+        run(parseFile |> Pass(name: "Dump Parsed") { module, _ in
           SyntaxDumper(stream: &stderrStream).dump(module)
-        }
+        })
       case .dump(.scopes):
-        let layoutTokens = layout(tokens)
-        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
-        let module = parser.parseTopLevelModule()!
-        let binder = NameBinding(topLevel: module, engine: engine)
-        print(binder.performScopeCheck(topLevel: module))
-      case .verify(.parse):
-        engine.unregister(printingConsumerToken)
-        let layoutTokens = layout(tokens)
-        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
-        _ = parser.parseTopLevelModule()
-        let verifier =
-          DiagnosticVerifier(input: contents,
-                             producedDiagnostics: engine.diagnostics)
-        verifier.verify()
-        return verifier.engine.hasErrors()
-      case .verify(.scopes):
-        engine.unregister(printingConsumerToken)
-        let layoutTokens = layout(tokens)
-        let parser = Parser(diagnosticEngine: engine, tokens: layoutTokens)
-        guard let module = parser.parseTopLevelModule() else {
-          return true
+        run(scopeCheckFile |> Pass(name: "Dump Scopes") { module, _ in
+          print(module)
+        })
+      case .verify(let verification):
+        context.engine.unregister(printingConsumerToken)
+        switch verification {
+        case .parse:
+          return run(makeVerifyPass(url: url, pass: parseFile,
+                                    context: context))!
+        case .scopes:
+          return run(makeVerifyPass(url: url, pass: scopeCheckFile,
+                                    context: context))!
         }
-        let binder = NameBinding(topLevel: module, engine: engine)
-        _ = binder.performScopeCheck(topLevel: module)
-        let verifier =
-          DiagnosticVerifier(input: contents,
-                             producedDiagnostics: engine.diagnostics)
-        verifier.verify()
-        return verifier.engine.hasErrors()
       }
     }
-    return engine.hasErrors()
+    return context.engine.hasErrors()
   }
 }
