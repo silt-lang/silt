@@ -23,8 +23,8 @@ public struct Invocation {
   public let sourceFiles: Set<String>
 
   public init(options: Options, paths: Set<String>) {
-      self.options = options
-      self.sourceFiles = paths
+    self.options = options
+    self.sourceFiles = paths
   }
 
   public typealias HadErrors = Bool
@@ -66,32 +66,10 @@ public struct Invocation {
       }
     }
 
-    let lexerPass = Pass<URL, [TokenSyntax]>(name: "Lex") { url, ctx in
-      do {
-        let contents = try String(contentsOf: url, encoding: .utf8)
-        let lexer = Lexer(input: contents, filePath: url.path)
-        return lexer.tokenize()
-      } catch {
-        ctx.engine.diagnose(.couldNotReadInput(url))
-        return nil
-      }
-    }
-
-    let shinePass = lexerPass |> Pass(name: "Shine") { tokens, ctx in
-      layout(tokens)
-    }
-
-    let parsePass =
-      shinePass |> Pass(name: "Parse") { tokens, ctx -> ModuleDeclSyntax? in
-        let parser = Parser(diagnosticEngine: ctx.engine, tokens: tokens)
-        return parser.parseTopLevelModule()
-      }
-
-    let scopeCheckPass =
-      parsePass |> Pass(name: "Scope Check") { module, ctx -> DeclaredModule? in
-        let binder = NameBinding(topLevel: module, engine: ctx.engine)
-        return binder.performScopeCheck(topLevel: module)
-      }
+    let shineFile = Passes.lex |> Passes.shine
+    let parseFile = Passes.lex |> Passes.shine |> Passes.parse
+    let scopeCheckFile =
+      Passes.lex |> Passes.shine |> Passes.parse |> Passes.scopeCheck
 
     for path in sourceFiles {
       let url = URL(fileURLWithPath: path)
@@ -105,37 +83,37 @@ public struct Invocation {
       case .compile:
         fatalError("only Parse is implemented")
       case .dump(.tokens):
-        run(lexerPass |> Pass(name: "Describe Tokens") { tokens, _ in
+        run(Passes.lex |> Pass(name: "Describe Tokens") { tokens, _ in
           TokenDescriber.describe(tokens, to: &stdoutStream)
         })
       case .dump(.file):
-        run(lexerPass |> Pass(name: "Reprint File") { tokens, _ in
+        run(Passes.lex |> Pass(name: "Reprint File") { tokens, _ -> Void in
           for token in tokens {
             token.writeSourceText(to: &stdoutStream, includeImplicit: false)
           }
         })
       case .dump(.shined):
-        run(shinePass |> Pass(name: "Dump Shined") { tokens, _ in
+        run(shineFile |> Pass(name: "Dump Shined") { tokens, _ in
           for token in tokens {
             token.writeSourceText(to: &stdoutStream, includeImplicit: true)
           }
         })
       case .dump(.parse):
-        run(parsePass |> Pass(name: "Dump Parsed") { module, _ in
+        run(parseFile |> Pass(name: "Dump Parsed") { module, _ in
           SyntaxDumper(stream: &stderrStream).dump(module)
         })
       case .dump(.scopes):
-        run(scopeCheckPass |> Pass(name: "Dump Scopes") { module, _ in
+        run(scopeCheckFile |> Pass(name: "Dump Scopes") { module, _ in
           print(module)
         })
       case .verify(let verification):
         engine.unregister(printingConsumerToken)
         switch verification {
         case .parse:
-          return run(makeVerifyPass(url: url, pass: parsePass,
+          return run(makeVerifyPass(url: url, pass: parseFile,
                                     context: context)) ?? true
         case .scopes:
-          return run(makeVerifyPass(url: url, pass: scopeCheckPass,
+          return run(makeVerifyPass(url: url, pass: scopeCheckFile,
                                     context: context)) ?? true
         }
       }

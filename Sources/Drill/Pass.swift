@@ -44,11 +44,11 @@ struct Pass<In, Out>: PassProtocol {
   }
 }
 
-struct JoinedPass<Input, Output,
-                  PassA: PassProtocol, PassB: PassProtocol>: PassProtocol
+struct PassComposition<Input, Output,
+                       PassA: PassProtocol, PassB: PassProtocol>: PassProtocol
    where PassA.Input == Input, PassA.Output == PassB.Input,
          PassB.Output == Output {
-  let name = "JoinedPass"
+  let name = "PassComposition"
   let passA: PassA
   let passB: PassB
 
@@ -62,6 +62,6 @@ struct JoinedPass<Input, Output,
 infix operator |> : AdditionPrecedence
 
 func |><Input, Output, PassA: PassProtocol, PassB: PassProtocol>(
-  passA: PassA, passB: PassB) -> JoinedPass<Input, Output, PassA, PassB> {
-  return JoinedPass(passA: passA, passB: passB)
+  passA: PassA, passB: PassB) -> PassComposition<Input, Output, PassA, PassB> {
+  return PassComposition(passA: passA, passB: passB)
 }
