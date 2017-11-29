@@ -73,10 +73,8 @@ struct Pass<In, Out>: PassProtocol {
 /// A PassComposition, analogous to function composition, executes one pass
 /// and pipes its output to the second pass. It converts two passes `(A) -> B`
 /// and `(B) -> C` into one pass, `(A) -> C`.
-struct PassComposition<Input, Output, PassA: PassProtocol,
-                       PassB: PassProtocol>: PassProtocol
-   where PassA.Input == Input, PassA.Output == PassB.Input,
-         PassB.Output == Output {
+struct PassComposition<PassA: PassProtocol, PassB: PassProtocol>: PassProtocol
+   where PassA.Output == PassB.Input {
   let name = "PassComposition"
 
   /// The first pass to execute.
@@ -93,7 +91,7 @@ struct PassComposition<Input, Output, PassA: PassProtocol,
   ///   - input: The input to the first pass.
   ///   - context: The context in which to execute the passes.
   /// - Returns: The output of the second pass, or `nil` if either pass failed.
-  func run(_ input: Input, in context: PassContext) -> Output? {
+  func run(_ input: PassA.Input, in context: PassContext) -> PassB.Output? {
     return passA.run(input, in: context).flatMap {
       passB.run($0, in: context)
     }
@@ -140,7 +138,7 @@ infix operator |> : AdditionPrecedence
 ///   - passA: The first pass to run.
 ///   - passB: The second pass to run if the first succeeds.
 /// - Returns: The output of the second pass, or `nil` if either pass failed.
-func |><Input, Output, PassA: PassProtocol, PassB: PassProtocol>(
-  passA: PassA, passB: PassB) -> PassComposition<Input, Output, PassA, PassB> {
+func |><PassA: PassProtocol, PassB: PassProtocol>(
+  passA: PassA, passB: PassB) -> PassComposition<PassA, PassB> {
   return PassComposition(passA: passA, passB: passB)
 }
