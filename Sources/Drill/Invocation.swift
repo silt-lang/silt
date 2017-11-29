@@ -67,9 +67,9 @@ public struct Invocation {
     }
 
     let shineFile = Passes.lex |> Passes.shine
-    let parseFile = Passes.lex |> Passes.shine |> Passes.parse
+    let parseFile = shineFile |> Passes.parse
     let scopeCheckFile =
-      Passes.lex |> Passes.shine |> Passes.parse |> Passes.scopeCheck
+      parseFile |> Passes.scopeCheck
 
     for path in sourceFiles {
       let url = URL(fileURLWithPath: path)

@@ -8,22 +8,28 @@
 import Foundation
 
 class PassTimer {
-  private var timings = [(String, TimeInterval)]()
+  private var passOrder = [String]()
+  private var timings = [String: TimeInterval]()
 
   func measure<Out>(pass: String, actions: () -> Out) -> Out {
     // FIXME: Date() is wasteful here...
     let start = Date()
     defer {
-      timings.append((pass, Date().timeIntervalSince(start)))
+      passOrder.append(pass)
+      timings[pass, default: 0] += Date().timeIntervalSince(start)
     }
     return actions()
   }
 
   func dump<Target: TextOutputStream>(to target: inout Target) {
     var columns = [Column(title: "Pass"), Column(title: "Time")]
-    for (pass, time) in timings {
+    for pass in passOrder {
       columns[0].rows.append(pass)
-      columns[1].rows.append(format(time: time))
+      if let time = timings[pass] {
+        columns[1].rows.append(format(time: time))
+      } else {
+        columns[1].rows.append("N/A")
+      }
     }
     TableFormatter(columns: columns).write(to: &target)
   }

@@ -59,6 +59,27 @@ struct PassComposition<Input, Output,
   }
 }
 
+struct DiagnosticGatePass<PassTy: PassProtocol>: PassProtocol {
+  typealias Input = PassTy.Input
+  typealias Output = PassTy.Output
+
+  var name: String {
+    return pass.name
+  }
+  let pass: PassTy
+
+  init(_ pass: PassTy) {
+    self.pass = pass
+  }
+
+  /// Runs the underlying pass, but doesn't forward the value if the
+  /// Diagnostic Engine registered an error.
+  func run(_ input: Input, in context: PassContext) -> Output? {
+    let output = pass.run(input, in: context)
+    return context.engine.hasErrors() ? nil : output
+  }
+}
+
 infix operator |> : AdditionPrecedence
 
 func |><Input, Output, PassA: PassProtocol, PassB: PassProtocol>(

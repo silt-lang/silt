@@ -35,8 +35,10 @@ enum Passes {
     }
 
   static let scopeCheck =
-    Pass<ModuleDeclSyntax, DeclaredModule>(name: "Scope Check") { module, ctx in
-      let binder = NameBinding(topLevel: module, engine: ctx.engine)
-      return binder.performScopeCheck(topLevel: module)
-    }
+    DiagnosticGatePass(
+      Pass<ModuleDeclSyntax, DeclaredModule>(name: "Scope Check") {
+        module, ctx in
+        let binder = NameBinding(topLevel: module, engine: ctx.engine)
+        return binder.performScopeCheck(topLevel: module)
+      })
 }
