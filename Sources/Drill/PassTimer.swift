@@ -7,10 +7,24 @@
 
 import Foundation
 
+/// A class that keeps track of the elapsed time of a sequence of compiler
+/// passes. It also includes behavior to dump a table of values representing the
+/// times of all passes run in the compile session.
 class PassTimer {
+  /// The order of passes executed.
   private var passOrder = [String]()
+
+  /// The time taken for each pass.
   private var timings = [String: TimeInterval]()
 
+
+  /// Measures the time taken for the underlying block, and returns whatever
+  /// value the underlying block returns.
+  ///
+  /// - Parameters:
+  ///   - pass: The name of the pass being executed.
+  ///   - actions: A function corresponding to the pass's actions.
+  /// - Returns: The return value of the pass.
   func measure<Out>(pass: String, actions: () -> Out) -> Out {
     // FIXME: Date() is wasteful here...
     let start = Date()
@@ -21,36 +35,51 @@ class PassTimer {
     return actions()
   }
 
+
+  /// Dumps a formatted table of timings to the provided stream.
+  ///
+  /// - Parameter target: The stream to write the table to.
   func dump<Target: TextOutputStream>(to target: inout Target) {
     var columns = [Column(title: "Pass"), Column(title: "Time")]
     for pass in passOrder {
       columns[0].rows.append(pass)
       if let time = timings[pass] {
-        columns[1].rows.append(format(time: time))
+        columns[1].rows.append(format(interval: time))
       } else {
         columns[1].rows.append("N/A")
       }
     }
-    TableFormatter(columns: columns).write(to: &target)
+    TableFormatter.write(columns: columns, to: &target)
   }
 }
 
-private func format(time: Double) -> String {
-  var time = time
-  let unit: String
+/// A NumberFormatter used for printing formatted time intervals.
+private let intervalFormatter: NumberFormatter = {
   let formatter = NumberFormatter()
   formatter.maximumFractionDigits = 1
-  if time > 1.0 {
+  return formatter
+}()
+
+/// Formats a time interval at second, millisecond, microsecond, and nanosecond
+/// boundaries.
+///
+/// - Parameter interval: The interval you're formatting.
+/// - Returns: A stringified version of the time interval, including the most
+///            appropriate unit.
+private func format(interval: TimeInterval) -> String {
+  var interval = interval
+  let unit: String
+  if interval > 1.0 {
     unit = "s"
-  } else if time > 0.001 {
+  } else if interval > 0.001 {
     unit = "ms"
-    time *= 1_000
-  } else if time > 0.000_001 {
+    interval *= 1_000
+  } else if interval > 0.000_001 {
     unit = "µs"
-    time *= 1_000_000
+    interval *= 1_000_000
   } else {
     unit = "ns"
-    time *= 1_000_000_000
+    interval *= 1_000_000_000
   }
-  return formatter.string(from: NSNumber(value: time))! + unit
+  return intervalFormatter.string(from: NSNumber(value: interval))! + unit
 }

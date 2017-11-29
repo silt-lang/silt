@@ -1,20 +1,26 @@
-///
 /// TableFormatter.swift
 ///
-/// Copyright 2016-2017 the Trill project authors.
-/// Licensed under the MIT License.
+/// Copyright 2017, The Silt Language Project.
 ///
-/// Full license text available at https://github.com/trill-lang/trill
-///
+/// This project is released under the MIT license, a copy of which is
+/// available in the repository.
 
 import Foundation
 
+/// Represents a column of tabular values, including a title and rows.
 struct Column {
+  /// The column's title.
   let title: String
+
+  /// the rows in the column.
   var rows = [String]()
+
+  /// Creates an empty column with the provided title.
   init(title: String) {
     self.title = title
   }
+
+  /// The length of the longest line in this column.
   var width: Int {
     var longest = self.title.count
     for row in self.rows where row.count > longest {
@@ -24,14 +30,25 @@ struct Column {
   }
 }
 
-class TableFormatter<StreamType: TextOutputStream> {
-  let columns: [Column]
-
-  init(columns:  [Column]) {
-    self.columns = columns
-  }
-
-  func write(to stream: inout StreamType) {
+/// An object that formats a set of columns to an output stream as an ASCII
+/// table.
+enum TableFormatter {
+  /// Writes the provided columns as an ASCII table to the provided output
+  /// stream. It takes into account the lengths of the columns and ensures a
+  /// perfectly-formatted box.
+  /// Example:
+  /// ```
+  /// ┏━━━━━━━━━━━━━┳━━━━━━━━━┓
+  /// ┃ Pass        ┃ Time    ┃
+  /// ┣━━━━━━━━━━━━━╋━━━━━━━━━┫
+  /// ┃ Lex         ┃ 7.4ms   ┃
+  /// ┃ Shine       ┃ 1.1ms   ┃
+  /// ┃ Parse       ┃ 3ms     ┃
+  /// ┃ Dump Parsed ┃ 136.8ms ┃
+  /// ┗━━━━━━━━━━━━━┻━━━━━━━━━┛
+  /// ```
+  static func write<StreamType: TextOutputStream>(
+    columns: [Column], to stream: inout StreamType) {
     let widths = columns.map { $0.width }
     stream.write("┏")
     for (idx, width) in widths.enumerated() {
@@ -67,6 +84,8 @@ class TableFormatter<StreamType: TextOutputStream> {
 }
 
 extension String {
+  /// Right-pads the given string to the provided length, optionally accepting
+  /// a different padding string.
   func padded(to length: Int, with padding: String = " ") -> String {
     let padded = String(repeating: padding, count: length - count)
     return self + padded
