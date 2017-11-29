@@ -23,61 +23,62 @@ enum Action {
 
 class SyntaxTestRunner: XCTestCase {
   var engine: DiagnosticEngine!
+  var siltFiles = [URL]()
 
   override func setUp() {
+    if siltFiles.isEmpty {
+      let filesURL = URL(fileURLWithPath: #file)
+        .deletingLastPathComponent()
+        .appendingPathComponent("Resources")
+      do {
+        let fm = FileManager.default
+        siltFiles = try fm.contentsOfDirectory(at: filesURL,
+                                               includingPropertiesForKeys: nil)
+                          .filter { $0.pathExtension == "silt" }
+      } catch {
+        XCTFail("Could not read silt files in directory: \(error)")
+      }
+    }
     Rainbow.enabled = false
     engine = DiagnosticEngine()
     engine.register(XCTestFailureConsumer())
   }
 
-  func testSyntax() {
-
-    let filesURL = URL(fileURLWithPath: #file)
-      .deletingLastPathComponent()
-      .appendingPathComponent("Resources")
-    let siltFiles: [URL]
-    do {
-        siltFiles = try
-          FileManager.default.contentsOfDirectory(at: filesURL,
-            includingPropertiesForKeys: nil)
-    } catch {
-      XCTFail("Could not read silt files in directory: \(error)")
-      return
-    }
-
-    for file in siltFiles.filter({ $0.pathExtension == "silt" }) {
-      guard let siltFile = try? String(contentsOfFile: file.path,
+  func filecheckEachSiltFile(adjustPath: (URL) -> URL,
+                             actions: (String, String) -> Void) {
+    for file in siltFiles {
+      guard let contents = try? String(contentsOfFile: file.path,
                                        encoding: .utf8) else {
         XCTFail("Could not read silt file at path \(file.absoluteString)")
         return
       }
 
-      let syntaxFile = file.appendingPathExtension("syntax").path
+      let syntaxFile = adjustPath(file).path
       if FileManager.default.fileExists(atPath: syntaxFile) {
         XCTAssert(fileCheckOutput(against: .filePath(syntaxFile)) {
-          describe(siltFile, at: file.absoluteString, by: .describingTokens)
+          actions(contents, file.path)
         }, "failed while dumping syntax file \(syntaxFile)")
       } else {
-        print("No corresponding syntax file found at \(syntaxFile)")
+        XCTFail("no corresponding syntax file found at \(syntaxFile)")
       }
+    }
+  }
 
-      let astFile = file.appendingPathExtension("ast").path
-      if FileManager.default.fileExists(atPath: astFile) {
-        XCTAssert(fileCheckOutput(against: .filePath(astFile)) {
-          describe(siltFile, at: file.absoluteString, by: .dumpingParse)
-        }, "failed while dumping AST file \(astFile)")
-      } else {
-        print("No corresponding syntax file found at \(syntaxFile)")
-      }
+  func testAST() {
+    filecheckEachSiltFile(adjustPath: { $0.appendingPathExtension("ast") }) {
+      describe($0, at: $1, by: .dumpingParse)
+    }
+  }
 
-      if FileManager.default.fileExists(atPath: astFile) {
-        let shineFile = file.appendingPathExtension("shined").path
-        XCTAssert(fileCheckOutput(against: .filePath(shineFile)) {
-          describe(siltFile, at: file.absoluteString, by: .dumpingShined)
-        }, "failed while dumping Shined file \(shineFile)")
-      } else {
-        print("No corresponding syntax file found at \(syntaxFile)")
-      }
+  func testShined() {
+    filecheckEachSiltFile(adjustPath: { $0.appendingPathExtension("shined") }) {
+      describe($0, at: $1, by: .dumpingShined)
+    }
+  }
+
+  func testSyntax() {
+    filecheckEachSiltFile(adjustPath: { $0.appendingPathExtension("syntax") }) {
+      describe($0, at: $1, by: .describingTokens)
     }
   }
 
@@ -112,7 +113,9 @@ class SyntaxTestRunner: XCTestCase {
 
   #if !os(macOS)
   static var allTests = testCase([
+    ("testAST", testAST),
     ("testSyntax", testSyntax),
+    ("testShined", testShined),
   ])
   #endif
 }
