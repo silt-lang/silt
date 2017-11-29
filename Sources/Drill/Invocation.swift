@@ -36,6 +36,9 @@ public struct Invocation {
   ///   - url: The URL of the file to read.
   ///   - pass: The pass to run before verifying.
   ///   - context: The context in which to run the pass.
+  /// - note: The pass this function returns will never return `nil`, it will
+  ///         return `true` if the verifier produced errors and `false`
+  ///         otherwise. It is safe to force-unwrap.
   private func makeVerifyPass<PassTy: PassProtocol>(url: URL, pass: PassTy,
     context: PassContext) -> Pass<PassTy.Input, HadErrors> {
     return Pass(name: "Diagnostic Verification") { input, ctx in
@@ -118,10 +121,10 @@ public struct Invocation {
         switch verification {
         case .parse:
           return run(makeVerifyPass(url: url, pass: parseFile,
-                                    context: context)) ?? true
+                                    context: context))!
         case .scopes:
           return run(makeVerifyPass(url: url, pass: scopeCheckFile,
-                                    context: context)) ?? true
+                                    context: context))!
         }
       }
     }
