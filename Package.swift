@@ -33,7 +33,7 @@ let package = Package(
       dependencies: ["Drill", "Symbolic", "SwiftShell", "CommandLine"]),
     .target(
       name: "lite",
-      dependencies: ["LiteSupport"]),
+      dependencies: ["LiteSupport", "silt"]),
     .target(
       name: "Moho",
       dependencies: ["Lithosphere", "Crust"]),

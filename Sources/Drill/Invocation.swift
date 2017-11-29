@@ -27,10 +27,17 @@ public struct Invocation {
     self.sourceFiles = paths
   }
 
+  /// Clearly denotes a function as returning `true` if errors occurred.
   public typealias HadErrors = Bool
 
-  private func makeVerifyPass<PassTy: PassProtocol>(
-    url: URL, pass: PassTy, context: PassContext) -> Pass<PassTy.Input, Bool> {
+  /// Makes a pass that runs a provided pass and then performs diagnostic
+  /// verification after it.
+  /// - parameters:
+  ///   - url: The URL of the file to read.
+  ///   - pass: The pass to run before verifying.
+  ///   - context: The context in which to run the pass.
+  private func makeVerifyPass<PassTy: PassProtocol>(url: URL, pass: PassTy,
+    context: PassContext) -> Pass<PassTy.Input, HadErrors> {
     return Pass(name: "Diagnostic Verification") { input, ctx in
       _ = pass.run(input, in: ctx)
       let verifier =
@@ -42,9 +49,9 @@ public struct Invocation {
   }
 
   public func run() throws -> HadErrors {
-    let engine = DiagnosticEngine()
+    let context = PassContext()
     let printingConsumer = PrintingDiagnosticConsumer(stream: &stderrStream)
-    let printingConsumerToken = engine.register(printingConsumer)
+    let printingConsumerToken = context.engine.register(printingConsumer)
 
     Rainbow.enabled = options.colorsEnabled
 
@@ -54,11 +61,9 @@ public struct Invocation {
     }
 
     if sourceFiles.isEmpty {
-      engine.diagnose(.noInputFiles)
+      context.engine.diagnose(.noInputFiles)
       return true
     }
-
-    let context = PassContext(engine: engine)
 
     defer {
       if options.shouldPrintTiming {
@@ -66,28 +71,30 @@ public struct Invocation {
       }
     }
 
-    let shineFile = Passes.lex |> Passes.shine
+    // Create passes that perform the whole readFile->...->finalPass pipeline.
+    let lexFile = Passes.readFile |> Passes.lex
+    let shineFile = lexFile |> Passes.shine
     let parseFile = shineFile |> Passes.parse
-    let scopeCheckFile =
-      parseFile |> Passes.scopeCheck
+    let scopeCheckFile = parseFile |> Passes.scopeCheck
 
     for path in sourceFiles {
       let url = URL(fileURLWithPath: path)
 
       func run<PassTy: PassProtocol>(_ pass: PassTy) -> PassTy.Output?
-        where PassTy.Input == URL {
-          return pass.run(url, in: context)
+        where PassTy.Input == URL
+      {
+        return pass.run(url, in: context)
       }
 
       switch options.mode {
       case .compile:
         fatalError("only Parse is implemented")
       case .dump(.tokens):
-        run(Passes.lex |> Pass(name: "Describe Tokens") { tokens, _ in
+        run(lexFile |> Pass(name: "Describe Tokens") { tokens, _ in
           TokenDescriber.describe(tokens, to: &stdoutStream)
         })
       case .dump(.file):
-        run(Passes.lex |> Pass(name: "Reprint File") { tokens, _ -> Void in
+        run(lexFile |> Pass(name: "Reprint File") { tokens, _ -> Void in
           for token in tokens {
             token.writeSourceText(to: &stdoutStream, includeImplicit: false)
           }
@@ -107,7 +114,7 @@ public struct Invocation {
           print(module)
         })
       case .verify(let verification):
-        engine.unregister(printingConsumerToken)
+        context.engine.unregister(printingConsumerToken)
         switch verification {
         case .parse:
           return run(makeVerifyPass(url: url, pass: parseFile,
@@ -118,6 +125,6 @@ public struct Invocation {
         }
       }
     }
-    return engine.hasErrors()
+    return context.engine.hasErrors()
   }
 }

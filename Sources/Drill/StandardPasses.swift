@@ -11,18 +11,24 @@ import Crust
 import Moho
 
 enum Passes {
-  /// The Lex pass reads a URL from the file system and tokenizes it into a
-  /// stream of TokenSyntax nodes.
-  static let lex =
-    Pass<URL, [TokenSyntax]>(name: "Lex") { url, ctx in
+  /// Reads a file and returns both the String contents of the file and
+  /// the URL of the file.
+  static let readFile =
+    Pass<URL, (String, URL)>(name: "Read File") { url, ctx in
       do {
-        let contents = try String(contentsOf: url, encoding: .utf8)
-        let lexer = Lexer(input: contents, filePath: url.path)
-        return lexer.tokenize()
+        return (try String(contentsOf: url, encoding: .utf8), url)
       } catch {
         ctx.engine.diagnose(.couldNotReadInput(url))
         return nil
       }
+    }
+
+  /// The Lex pass reads a URL from the file system and tokenizes it into a
+  /// stream of TokenSyntax nodes.
+  static let lex =
+    Pass<(String, URL), [TokenSyntax]>(name: "Lex") { file, ctx in
+      let lexer = Lexer(input: file.0, filePath: file.1.path)
+      return lexer.tokenize()
     }
 
   /// The Shine pass takes a token stream and adds additional implicit tokens
