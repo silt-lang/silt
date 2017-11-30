@@ -32,10 +32,14 @@ extension Diagnostic.Message {
     return Diagnostic.Message(.error, "cannot shadow name '\(n)'")
   }
 
+  static func shadowsOriginal(_ n: Name) -> Diagnostic.Message {
+    return Diagnostic.Message(.note, "first declaration of '\(n)' occurs here")
+  }
+
   static func nameShadows(
     _ local: Name, _ n: FullyQualifiedName) -> Diagnostic.Message {
     return Diagnostic.Message(.error,
-      "name '\(local)' shadows shadow qualified '\(n)'")
+      "name '\(local)' shadows qualified '\(n)'")
   }
 
   static func duplicateImport(_ qn: QualifiedName) -> Diagnostic.Message {
