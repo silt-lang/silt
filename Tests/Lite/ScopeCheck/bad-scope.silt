@@ -2,7 +2,7 @@
 
 module bad-scope where
 
-id : forall {A : Type} -> A -> A
+id : forall {A : Type} -> A -> A -- expected-note {{first declaration of 'id' occurs here}}
 id x = y -- expected-error {{use of undeclared identifier 'y'}}
 
 id : forall {A : Type} -> A -> A -- expected-error {{cannot shadow name 'id'}}
@@ -22,6 +22,14 @@ body-before-sig x = x -- expected-error {{function body for 'body-before-sig' mu
 shadowing-binding : forall {A A : Type} -- expected-error {{cannot shadow name 'A'}}
                            {x x : A} -> x -- expected-error {{cannot shadow name 'x'}}
 shadowing-binding x = x
+
+bad-var : {A : Type} -> A -> A
+bad-var = \ x -> y --expected-error{{use of undeclared identifier 'y'}}
+
+bad-lambdas : {A : Type} -> A -> A -> A
+bad-lambdas = \ x -> (\ y -> (a w))
+--expected-error @-1 {{use of undeclared identifier 'a'}}
+--expected-error @-2 {{use of undeclared identifier 'w'}}
 
 data BadNat : Typo where -- expected-error {{use of undeclared identifier 'Typo'}}
   | z : BadNat

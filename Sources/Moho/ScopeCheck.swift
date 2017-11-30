@@ -487,7 +487,9 @@ extension NameBinding {
     }
     // FIXME: This is not a substitute for real mixfix operators
     let rebindExpr = self.rebindArrows(syntax.ascription.typeExpr)
-    let ascExpr = self.scopeCheckExpr(rebindExpr)
+    let ascExpr = self.underScope { _ in
+      return self.scopeCheckExpr(rebindExpr)
+    }
     let asc = Decl.ascription(TypeSignature(name: functionName, type: ascExpr))
     let clauses = syntax.clauseList.map(self.scopeCheckFunctionClause)
     let fn = Decl.function(functionName, clauses)
@@ -553,7 +555,9 @@ extension NameBinding {
           guard clauseMap[name] == nil else {
             // If this declaration does not have a unique name, diagnose it and
             // recover by ignoring it.
-            self.engine.diagnose(.nameShadows(name), node: funcDecl.ascription)
+            self.engine.diagnose(.nameShadows(name), node: funcDecl.ascription) {
+              $0.note(.shadowsOriginal(name), node: funcMap[name])
+            }
             continue
           }
           funcMap[name] = funcDecl
