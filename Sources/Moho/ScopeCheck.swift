@@ -133,9 +133,9 @@ extension NameBinding {
         let telescope = syntax.bindingList.map(self.scopeCheckParameter)
         return self.rollPi(telescope, self.scopeCheckExpr(syntax.outputExpr))
       }
-    case let syntax as TypedParameterArrowExprSyntax:
+    case let syntax as TypedParameterGroupExprSyntax:
       let telescope = syntax.parameters.map(self.scopeCheckParameter)
-      return self.rollPi(telescope, self.scopeCheckExpr(syntax.outputExpr))
+      return self.rollPi1(telescope)
     default:
       fatalError("scope checking for \(type(of: syntax)) is unimplemented")
     }
@@ -143,6 +143,25 @@ extension NameBinding {
 
   private func rollPi(_ telescope: [([Name], Expr)], _ cap : Expr) -> Expr {
     var type = cap
+    for (names, expr) in telescope {
+      for name in names {
+        type = Expr.pi(name, expr, type)
+      }
+    }
+    return type
+  }
+
+  private func rollPi1(_ telescope: [([Name], Expr)]) -> Expr {
+    precondition(!telescope.isEmpty)
+    guard let first = telescope.first else {
+      fatalError()
+    }
+
+    var type = first.1
+    for name in first.0.dropFirst() {
+      type = Expr.pi(name, first.1, type)
+    }
+
     for (names, expr) in telescope {
       for name in names {
         type = Expr.pi(name, expr, type)
@@ -318,10 +337,10 @@ extension NameBinding {
       return syntax
     case let syntax as QuantifiedExprSyntax:
       return syntax.withOutputExpr(self.rebindArrows(syntax.outputExpr))
-    case let syntax as TypedParameterArrowExprSyntax:
-      return syntax.withOutputExpr(self.rebindArrows(syntax.outputExpr))
+    case let syntax as TypedParameterGroupExprSyntax:
+      return syntax
     default:
-      fatalError("scope checking for \(type(of: syntax)) is unimplemented")
+      fatalError("arrow rebinding for \(type(of: syntax)) is unimplemented")
     }
   }
 

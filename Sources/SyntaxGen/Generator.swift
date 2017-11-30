@@ -184,9 +184,22 @@ class SwiftGenerator {
     line("""
       public class DeclSyntax: Syntax {}
       """)
+    var archetypeMap = [(key: String, value: String)]()
     for node in syntaxNodes {
-      generateStruct(node)
+      guard let archName = generateStruct(node) else { continue }
+      archetypeMap.append((key: archName,
+                           value: ".\(node.typeName.lowercaseFirstLetter)"))
     }
+
+    line("extension SyntaxCollection {")
+    line("  static var syntaxCollectionKinds: [ObjectIdentifier: SyntaxKind] {")
+    line("    return [")
+    for (key, value) in archetypeMap {
+      line("      ObjectIdentifier(\(key).self): \(value), ")
+    }
+    line("    ]")
+    line("  }")
+    line("}")
   }
 
   func makeMissing(child: Child) -> String {
@@ -200,19 +213,14 @@ class SwiftGenerator {
     }
   }
 
-  func generateStruct(_ node: Node) {
+  func generateStruct(_ node: Node) -> String? {
     switch node.kind {
     case let .collection(element):
       let elementKind = element.contains("Token") ? "Token" : element
-      line("public final class \(node.typeName)Syntax: SyntaxCollection<\(elementKind)Syntax> {")
-      line("  internal override init(root: SyntaxData, data: SyntaxData) {")
-      line("    super.init(root: root, data: data)")
-      line("  }")
-      line("  public init(elements: [\(elementKind)Syntax]) {")
-      line("    super.init(kind: .\(node.typeName.lowercaseFirstLetter), elements: elements)")
-      line("  }")
-      line("}")
+      let elementSyntaxName = "\(elementKind)Syntax"
+      line("public typealias \(node.typeName)Syntax = SyntaxCollection<\(elementSyntaxName)>")
       line()
+      return elementSyntaxName
     case let .node(kind, children):
       line("public class \(node.typeName)Syntax: \(kind)Syntax {")
       if !children.isEmpty {
@@ -264,6 +272,7 @@ class SwiftGenerator {
       }
       line("}")
       line()
+      return nil
     }
   }
 }

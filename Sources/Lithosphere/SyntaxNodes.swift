@@ -7,23 +7,9 @@
 /// available in the repository.
 public class ExprSyntax: Syntax {}
 public class DeclSyntax: Syntax {}
-public final class IdentifierListSyntax: SyntaxCollection<TokenSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [TokenSyntax]) {
-    super.init(kind: .identifierList, elements: elements)
-  }
-}
+public typealias IdentifierListSyntax = SyntaxCollection<TokenSyntax>
 
-public final class QualifiedNameSyntax: SyntaxCollection<QualifiedNamePieceSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [QualifiedNamePieceSyntax]) {
-    super.init(kind: .qualifiedName, elements: elements)
-  }
-}
+public typealias QualifiedNameSyntax = SyntaxCollection<QualifiedNamePieceSyntax>
 
 public class QualifiedNamePieceSyntax: Syntax {
   public enum Cursor: Int {
@@ -149,14 +135,7 @@ public class ModuleDeclSyntax: DeclSyntax {
 
 }
 
-public final class DeclListSyntax: SyntaxCollection<DeclSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [DeclSyntax]) {
-    super.init(kind: .declList, elements: elements)
-  }
-}
+public typealias DeclListSyntax = SyntaxCollection<DeclSyntax>
 
 public class OpenImportDeclSyntax: DeclSyntax {
   public enum Cursor: Int {
@@ -366,14 +345,7 @@ public class TypeIndicesSyntax: Syntax {
 
 }
 
-public final class TypedParameterListSyntax: SyntaxCollection<TypedParameterSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [TypedParameterSyntax]) {
-    super.init(kind: .typedParameterList, elements: elements)
-  }
-}
+public typealias TypedParameterListSyntax = SyntaxCollection<TypedParameterSyntax>
 
 public class AscriptionSyntax: Syntax {
   public enum Cursor: Int {
@@ -511,14 +483,7 @@ public class ImplicitTypedParameterSyntax: TypedParameterSyntax {
 
 }
 
-public final class ConstructorListSyntax: SyntaxCollection<ConstructorDeclSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [ConstructorDeclSyntax]) {
-    super.init(kind: .constructorList, elements: elements)
-  }
-}
+public typealias ConstructorListSyntax = SyntaxCollection<ConstructorDeclSyntax>
 
 public class ConstructorDeclSyntax: DeclSyntax {
   public enum Cursor: Int {
@@ -575,7 +540,7 @@ public class RecordDeclSyntax: DeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax?, whereToken: TokenSyntax, leftParenToken: TokenSyntax, recordElementList: RecordElementListSyntax, rightParenToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
+  public convenience init(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax?, whereToken: TokenSyntax, leftParenToken: TokenSyntax, recordElementList: DeclListSyntax, rightParenToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.recordDecl, [
       recordToken.raw,
       recordName.raw,
@@ -638,10 +603,10 @@ public class RecordDeclSyntax: DeclSyntax {
     return RecordDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var recordElementList: RecordElementListSyntax {
-    return child(at: Cursor.recordElementList) as! RecordElementListSyntax
+  public var recordElementList: DeclListSyntax {
+    return child(at: Cursor.recordElementList) as! DeclListSyntax
   }
-  public func withRecordElementList(_ syntax: RecordElementListSyntax) -> RecordDeclSyntax {
+  public func withRecordElementList(_ syntax: DeclListSyntax) -> RecordDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.recordElementList)
     return RecordDeclSyntax(root: newRoot, data: newData)
   }
@@ -662,15 +627,6 @@ public class RecordDeclSyntax: DeclSyntax {
     return RecordDeclSyntax(root: newRoot, data: newData)
   }
 
-}
-
-public final class RecordElementListSyntax: SyntaxCollection<DeclSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [DeclSyntax]) {
-    super.init(kind: .recordElementList, elements: elements)
-  }
 }
 
 public class FieldDeclSyntax: DeclSyntax {
@@ -757,14 +713,7 @@ public class RecordConstructorDeclSyntax: DeclSyntax {
 
 }
 
-public final class RecordFieldAssignmentListSyntax: SyntaxCollection<RecordFieldAssignmentSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [RecordFieldAssignmentSyntax]) {
-    super.init(kind: .recordFieldAssignmentList, elements: elements)
-  }
-}
+public typealias RecordFieldAssignmentListSyntax = SyntaxCollection<RecordFieldAssignmentSyntax>
 
 public class RecordFieldAssignmentSyntax: Syntax {
   public enum Cursor: Int {
@@ -1160,56 +1109,7 @@ public class RightFixDeclSyntax: FixityDeclSyntax {
 
 }
 
-public final class PatternClauseListSyntax: SyntaxCollection<ExprSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [ExprSyntax]) {
-    super.init(kind: .patternClauseList, elements: elements)
-  }
-}
-
-public class TypedParameterArrowExprSyntax: ExprSyntax {
-  public enum Cursor: Int {
-    case parameters
-    case arrowToken
-    case outputExpr
-  }
-
-  public convenience init(parameters: TypedParameterListSyntax, arrowToken: TokenSyntax, outputExpr: ExprSyntax) {
-    let raw = RawSyntax.node(.typedParameterArrowExpr, [
-      parameters.raw,
-      arrowToken.raw,
-      outputExpr.raw,
-    ], .present)
-    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
-    self.init(root: data, data: data)
-  }
-  public var parameters: TypedParameterListSyntax {
-    return child(at: Cursor.parameters) as! TypedParameterListSyntax
-  }
-  public func withParameters(_ syntax: TypedParameterListSyntax) -> TypedParameterArrowExprSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.parameters)
-    return TypedParameterArrowExprSyntax(root: newRoot, data: newData)
-  }
-
-  public var arrowToken: TokenSyntax {
-    return child(at: Cursor.arrowToken) as! TokenSyntax
-  }
-  public func withArrowToken(_ syntax: TokenSyntax) -> TypedParameterArrowExprSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.arrowToken)
-    return TypedParameterArrowExprSyntax(root: newRoot, data: newData)
-  }
-
-  public var outputExpr: ExprSyntax {
-    return child(at: Cursor.outputExpr) as! ExprSyntax
-  }
-  public func withOutputExpr(_ syntax: ExprSyntax) -> TypedParameterArrowExprSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.outputExpr)
-    return TypedParameterArrowExprSyntax(root: newRoot, data: newData)
-  }
-
-}
+public typealias PatternClauseListSyntax = SyntaxCollection<ExprSyntax>
 
 public class LambdaExprSyntax: ExprSyntax {
   public enum Cursor: Int {
@@ -1399,14 +1299,7 @@ public class BasicExprSyntax: ExprSyntax {
   }
 }
 
-public final class BindingListSyntax: SyntaxCollection<BindingSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [BindingSyntax]) {
-    super.init(kind: .bindingList, elements: elements)
-  }
-}
+public typealias BindingListSyntax = SyntaxCollection<BindingSyntax>
 
 public class BindingSyntax: Syntax {
 
@@ -1462,14 +1355,7 @@ public class TypedBindingSyntax: BindingSyntax {
 
 }
 
-public final class BasicExprListSyntax: SyntaxCollection<BasicExprSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [BasicExprSyntax]) {
-    super.init(kind: .basicExprList, elements: elements)
-  }
-}
+public typealias BasicExprListSyntax = SyntaxCollection<BasicExprSyntax>
 
 public class NamedBasicExprSyntax: BasicExprSyntax {
   public enum Cursor: Int {
@@ -1579,6 +1465,28 @@ public class ParenthesizedExprSyntax: BasicExprSyntax {
 
 }
 
+public class TypedParameterGroupExprSyntax: BasicExprSyntax {
+  public enum Cursor: Int {
+    case parameters
+  }
+
+  public convenience init(parameters: TypedParameterListSyntax) {
+    let raw = RawSyntax.node(.typedParameterGroupExpr, [
+      parameters.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var parameters: TypedParameterListSyntax {
+    return child(at: Cursor.parameters) as! TypedParameterListSyntax
+  }
+  public func withParameters(_ syntax: TypedParameterListSyntax) -> TypedParameterGroupExprSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.parameters)
+    return TypedParameterGroupExprSyntax(root: newRoot, data: newData)
+  }
+
+}
+
 public class RecordExprSyntax: BasicExprSyntax {
   public enum Cursor: Int {
     case recordToken
@@ -1641,14 +1549,7 @@ public class RecordExprSyntax: BasicExprSyntax {
 
 }
 
-public final class FunctionClauseListSyntax: SyntaxCollection<FunctionClauseDeclSyntax> {
-  internal override init(root: SyntaxData, data: SyntaxData) {
-    super.init(root: root, data: data)
-  }
-  public init(elements: [FunctionClauseDeclSyntax]) {
-    super.init(kind: .functionClauseList, elements: elements)
-  }
-}
+public typealias FunctionClauseListSyntax = SyntaxCollection<FunctionClauseDeclSyntax>
 
 public class ReparsedFunctionDeclSyntax: DeclSyntax {
   public enum Cursor: Int {
@@ -1714,3 +1615,19 @@ public class ReparsedApplicationExprSyntax: BasicExprSyntax {
 
 }
 
+extension SyntaxCollection {
+  static var syntaxCollectionKinds: [ObjectIdentifier: SyntaxKind] {
+    return [
+      ObjectIdentifier(TokenSyntax.self): .identifierList, 
+      ObjectIdentifier(QualifiedNamePieceSyntax.self): .qualifiedName, 
+      ObjectIdentifier(DeclSyntax.self): .declList, 
+      ObjectIdentifier(TypedParameterSyntax.self): .typedParameterList, 
+      ObjectIdentifier(ConstructorDeclSyntax.self): .constructorList, 
+      ObjectIdentifier(RecordFieldAssignmentSyntax.self): .recordFieldAssignmentList, 
+      ObjectIdentifier(ExprSyntax.self): .patternClauseList, 
+      ObjectIdentifier(BindingSyntax.self): .bindingList, 
+      ObjectIdentifier(BasicExprSyntax.self): .basicExprList, 
+      ObjectIdentifier(FunctionClauseDeclSyntax.self): .functionClauseList, 
+    ]
+  }
+}

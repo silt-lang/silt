@@ -332,7 +332,7 @@ extension Parser {
     )
   }
 
-  func parseRecordElementList() throws -> RecordElementListSyntax {
+  func parseRecordElementList() throws -> DeclListSyntax {
     var pieces = [DeclSyntax]()
     loop: while true {
       switch peek() {
@@ -346,7 +346,7 @@ extension Parser {
         break loop
       }
     }
-    return RecordElementListSyntax(elements: pieces)
+    return DeclListSyntax(elements: pieces)
   }
 
   func parseRecordElement() throws -> DeclSyntax {
@@ -564,18 +564,79 @@ extension Parser {
 
   func isStartOfBasicExpr() -> Bool {
     switch peek() {
-    case .underscore, .typeKeyword, .leftParen, .recordKeyword, .identifier(_):
+    case .underscore, .typeKeyword,
+         .leftParen, .leftBrace,
+         .recordKeyword, .identifier(_):
       return true
     default:
       return false
     }
   }
 
-  func parseExpr() throws -> ExprSyntax {
-    if isStartOfTypedParameter() {
-      return try self.parseTypedParameterArrowExpr()
+  // Breaks the ambiguity in parsing the beginning of a typed parameter
+  //
+  // (a b c ... : <expr>)
+  //
+  // and the beginning of an application expression
+  //
+  // (a b c ...)
+  func parseParenthesizedExpr() throws -> BasicExprSyntax {
+    var pieces = [TokenSyntax]()
+    let leftParen = try consume(.leftParen)
+    // If we've hit a non-identifier token, start parsing a parenthesized
+    // expression.
+    guard case .identifier(_) = peek() else {
+      let expr = try parseExpr()
+      let rightParen = try consume(.rightParen)
+      return ParenthesizedExprSyntax(
+        leftParenToken: leftParen,
+        expr: expr,
+        rightParenToken: rightParen
+      )
     }
 
+    // Gather all the identifiers.
+    while case .identifier(_) = peek() {
+      pieces.append(currentToken!)
+      advance()
+    }
+
+    // If we've not hit the matching closing paren, we must be parsing a typed
+    // parameter group
+    //
+    // (a b c ... : <expr>) {d e f ... : <expr>} ...
+    if case .colon = peek() {
+      return try self.finishParsingTypedParameterGroupExpr(leftParen, pieces)
+    }
+
+    // Else consume the closing paren.
+    let rightParen = try consume(.rightParen)
+    let basicExprs = pieces.map { token in
+      return NamedBasicExprSyntax(name: QualifiedNameSyntax(elements: [
+        QualifiedNamePieceSyntax(name: token, trailingPeriod: nil)
+      ]))
+    }
+
+    // If there's only one named expression like '(a)', return it.
+    guard basicExprs.count >= 1 else {
+      return ParenthesizedExprSyntax(
+        leftParenToken: leftParen,
+        expr: basicExprs[0],
+        rightParenToken: rightParen
+      )
+    }
+
+    // Else form an application expression.
+    let app = ApplicationExprSyntax(exprs:
+                                    BasicExprListSyntax(elements: basicExprs))
+    return ParenthesizedExprSyntax(
+      leftParenToken: leftParen,
+      expr: app,
+      rightParenToken: rightParen
+    )
+  }
+
+  func parseExpr() throws -> ExprSyntax {
     switch peek() {
     case .forwardSlash:
       return try self.parseLambdaExpr()
@@ -609,17 +670,35 @@ extension Parser {
     }
   }
 
-  func parseTypedParameterArrowExpr() throws -> TypedParameterArrowExprSyntax {
+  func parseTypedParameterGroupExpr() throws -> TypedParameterGroupExprSyntax {
     let parameters = try parseTypedParameterList()
     guard !parameters.isEmpty else {
       throw expected("type ascription")
     }
-    let arrow = try consume(.arrow)
-    let outputExpr = try parseExpr()
-    return TypedParameterArrowExprSyntax(
-      parameters: parameters,
-      arrowToken: arrow,
-      outputExpr: outputExpr
+    return TypedParameterGroupExprSyntax(
+      parameters: parameters
+    )
+  }
+
+  func finishParsingTypedParameterGroupExpr(
+    _ leftParen: TokenSyntax, _ pieces: [TokenSyntax]
+  ) throws -> TypedParameterGroupExprSyntax {
+    let colonTok = try consume(.colon)
+    let identList = IdentifierListSyntax(elements: pieces)
+    let typeExpr = try self.parseExpr()
+    let ascription = AscriptionSyntax(boundNames: identList,
+                                      colonToken: colonTok,
+                                      typeExpr: typeExpr)
+    let rightParen = try consume(.rightParen)
+    let firstParam = ExplicitTypedParameterSyntax(leftParenToken: leftParen,
+                                                  ascription: ascription,
+                                                  rightParenToken: rightParen)
+    let parameters = try parseTypedParameterList().prepending(firstParam)
+    guard !parameters.isEmpty else {
+      throw expected("type ascription")
+    }
+    return TypedParameterGroupExprSyntax(
+      parameters: parameters
     )
   }
 
@@ -687,6 +766,8 @@ extension Parser {
       return try self.parseTypeBasicExpr()
     case .leftParen:
       return try self.parseParenthesizedExpr()
+    case .leftBrace:
+      return try self.parseTypedParameterGroupExpr()
     case .recordKeyword:
       return try self.parseRecordExpr()
     case .identifier(_):
@@ -746,17 +827,6 @@ extension Parser {
   func parseTypeBasicExpr() throws -> TypeBasicExprSyntax {
     let typeTok = try consume(.typeKeyword)
     return TypeBasicExprSyntax(typeToken: typeTok)
-  }
-
-  func parseParenthesizedExpr() throws -> ParenthesizedExprSyntax {
-    let leftParen = try consume(.leftParen)
-    let expr = try parseExpr()
-    let rightParen = try consume(.rightParen)
-    return ParenthesizedExprSyntax(
-      leftParenToken: leftParen,
-      expr: expr,
-      rightParenToken: rightParen
-    )
   }
 
   func parseBindingList() throws -> BindingListSyntax {

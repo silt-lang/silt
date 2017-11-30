@@ -61,7 +61,7 @@
 -- CHECK-NEXT:            (typeBasicExpr datatypes.silt:7:16
 -- CHECK-NEXT:              (typeKeyword datatypes.silt:7:16)))))
 -- CHECK-NEXT:      (whereKeyword datatypes.silt:7:21)
--- CHECK-NEXT:      (recordElementList datatypes.silt:8:2
+-- CHECK-NEXT:      (declList datatypes.silt:8:2
 -- CHECK-NEXT:        (recordConstructorDecl datatypes.silt:8:2
 -- CHECK-NEXT:          (constructorKeyword datatypes.silt:8:2)
 -- CHECK-NEXT:          (identifier "MkPerson" datatypes.silt:8:14))
