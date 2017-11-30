@@ -137,11 +137,6 @@ let syntaxNodes = [
     Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
-  // record-element-list ::= <record-element>
-  //                       | <record-element> ';' <record-element-list>
-
-  Node("RecordElementList", element: "Decl"),
-
   // record-element ::= <field-decl>
   //                  | <function-decl>
   //                  | <record-constructor-decl>
@@ -243,19 +238,12 @@ let syntaxNodes = [
 
   // Expressions
 
-  // expr ::= <typed-parameter-list> '->' <expr>
-  //        | <basic-expr-list> '->' <expr>
+  // expr ::= <basic-expr-list> '->' <expr>
   //        | '\' <binding-list> <expr>
   //        | 'forall' <typed-parameter-list> '->' <expr>
   //        | 'let' <decl-list> 'in' <expr>
   //        | <application>
   //        | <basic-expr>
-
-  Node("TypedParameterArrowExpr", kind: "Expr", children: [
-    Child("parameters", kind: "TypedParameterList"),
-    Child("arrowToken", kind: "ArrowToken"),
-    Child("outputExpr", kind: "Expr")
-  ]),
 
   Node("LambdaExpr", kind: "Expr", children: [
     Child("slashToken", kind: "ForwardSlashToken"),
@@ -311,6 +299,7 @@ let syntaxNodes = [
   // basic-expr ::= <qualified-name>
   //              | '_'
   //              | 'Type'
+  //              | <typed-parameter-list>
   //              | '(' <expr> ')'
   //              | 'record' <basic-expr>? '{' <record-field-assignment-list>? '}'
 
@@ -330,6 +319,10 @@ let syntaxNodes = [
     Child("leftParenToken", kind: "LeftParenToken"),
     Child("expr", kind: "Expr"),
     Child("rightParenToken", kind: "RightParenToken")
+  ]),
+
+  Node("TypedParameterGroupExpr", kind: "BasicExpr", children: [
+    Child("parameters", kind: "TypedParameterList"),
   ]),
 
   Node("RecordExpr", kind: "BasicExpr", children: [
