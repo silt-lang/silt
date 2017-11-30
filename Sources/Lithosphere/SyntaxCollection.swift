@@ -15,12 +15,19 @@ import Foundation
 /// Represents a collection of Syntax nodes of a specific type. SyntaxCollection
 /// behaves as a regular Swift collection, and has accessors that return new
 /// versions of the collection with different children.
-public class SyntaxCollection<SyntaxElement: Syntax>: Syntax {
+public final class SyntaxCollection<SyntaxElement: Syntax>: Syntax {
   internal override init(root: SyntaxData, data: SyntaxData) {
     super.init(root: root, data: data)
   }
 
-  internal init(kind: SyntaxKind, elements: [SyntaxElement]) {
+  public init(elements: [SyntaxElement]) {
+    let syntaxId = ObjectIdentifier(SyntaxElement.self)
+    guard let kind = SyntaxCollection.syntaxCollectionKinds[syntaxId] else {
+      fatalError("""
+                 Attempted to initialize syntax collection with unknown syntax \
+                 type '\(type(of: SyntaxElement.self))'
+                 """)
+    }
     let list = elements.map { $0.raw }
     let sd = SyntaxData(raw: .node(kind, list, .present))
     super.init(root: sd, data: sd)

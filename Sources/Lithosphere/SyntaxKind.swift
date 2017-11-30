@@ -25,7 +25,6 @@ public enum SyntaxKind {
   case constructorList
   case constructorDecl
   case recordDecl
-  case recordElementList
   case fieldDecl
   case recordConstructorDecl
   case recordFieldAssignmentList
@@ -39,7 +38,6 @@ public enum SyntaxKind {
   case leftFixDecl
   case rightFixDecl
   case patternClauseList
-  case typedParameterArrowExpr
   case lambdaExpr
   case quantifiedExpr
   case letExpr
@@ -54,6 +52,7 @@ public enum SyntaxKind {
   case underscoreExpr
   case typeBasicExpr
   case parenthesizedExpr
+  case typedParameterGroupExpr
   case recordExpr
   case functionClauseList
   case reparsedFunctionDecl
@@ -115,8 +114,6 @@ extension Syntax {
       return ConstructorDeclSyntax(root: root, data: data)
     case .recordDecl:
       return RecordDeclSyntax(root: root, data: data)
-    case .recordElementList:
-      return RecordElementListSyntax(root: root, data: data)
     case .fieldDecl:
       return FieldDeclSyntax(root: root, data: data)
     case .recordConstructorDecl:
@@ -143,8 +140,6 @@ extension Syntax {
       return RightFixDeclSyntax(root: root, data: data)
     case .patternClauseList:
       return PatternClauseListSyntax(root: root, data: data)
-    case .typedParameterArrowExpr:
-      return TypedParameterArrowExprSyntax(root: root, data: data)
     case .lambdaExpr:
       return LambdaExprSyntax(root: root, data: data)
     case .quantifiedExpr:
@@ -173,6 +168,8 @@ extension Syntax {
       return TypeBasicExprSyntax(root: root, data: data)
     case .parenthesizedExpr:
       return ParenthesizedExprSyntax(root: root, data: data)
+    case .typedParameterGroupExpr:
+      return TypedParameterGroupExprSyntax(root: root, data: data)
     case .recordExpr:
       return RecordExprSyntax(root: root, data: data)
     case .functionClauseList:

@@ -132,7 +132,7 @@ let syntaxNodes = [
     Child("typeIndices", kind: "TypeIndices", isOptional: true),
     Child("whereToken", kind: "WhereToken"),
     Child("leftParenToken", kind: "LeftParenToken"),
-    Child("recordElementList", kind: "RecordElementList"),
+    Child("recordElementList", kind: "DeclList"),
     Child("rightParenToken", kind: "RightParenToken"),
     Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
