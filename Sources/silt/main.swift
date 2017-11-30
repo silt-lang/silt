@@ -57,15 +57,10 @@ func parseOptions() -> (Options, Set<String>) {
           Set(cli.unparsedArguments))
 }
 
-func main() throws -> Int {
+func main() -> Int32 {
   let (options, paths) = parseOptions()
   let invocation = Invocation(options: options, paths: paths)
-  return try invocation.run() ? -1 : 0
+  return invocation.run() ? -1 : 0
 }
 
-do {
-  exit(Int32(try main()))
-} catch {
-  print("error: \(error)")
-  exit(-1)
-}
+exit(main())
