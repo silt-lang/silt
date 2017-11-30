@@ -112,15 +112,16 @@ public final class DiagnosticVerifier {
       DiagnosticVerifier.parseExpectations(url: url, engine: self.engine)
   }
 
-  private func matches(_ diagnostic: Diagnostic,
-                       expectation: Expectation) -> Bool {
+  private func matches(_ message: Diagnostic.Message,
+                           node: Syntax?,
+                           expectation: Expectation) -> Bool {
     let expectedLine = expectation.line
-    if expectedLine != diagnostic.node?.startLoc?.line {
+    if expectedLine != node?.startLoc?.line {
       return false
     }
-    let nsString = NSString(string: diagnostic.message.text)
+    let nsString = NSString(string: message.text)
     let range = NSRange(location: 0, length: nsString.length)
-    let match = expectation.messageRegex.firstMatch(in: diagnostic.message.text,
+    let match = expectation.messageRegex.firstMatch(in: message.text,
                                                     range: range)
     return match != nil
   }
@@ -149,9 +150,19 @@ public final class DiagnosticVerifier {
       var found = false
       for (idx, exp) in zip(unmatched.indices, unmatched) {
         // If it matches, remove this from the set of expectations
-        if matches(diagnostic, expectation: exp) {
+        if matches(diagnostic.message, node: diagnostic.node,
+                   expectation: exp) {
           found = true
           unmatched.remove(at: idx)
+          break
+        }
+
+        // Next match the notes.  Remove any matches from the expectation set.
+        for note in diagnostic.notes {
+          if matches(note.message, node: note.node, expectation: exp) {
+            found = true
+            unmatched.remove(at: idx)
+          }
           break
         }
       }
