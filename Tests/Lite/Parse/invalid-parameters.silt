@@ -1,0 +1,6 @@
+-- RUN: --verify parse
+
+module InvalidParameters where
+
+foo : {A.x : Type} -> A -> A --expected-error{{qualified name 'A.x' is not allowed in this position}}
+foo x = x

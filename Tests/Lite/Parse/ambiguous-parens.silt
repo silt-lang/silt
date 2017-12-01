@@ -6,3 +6,6 @@ module ambiguous-parens where
 -- parameter list.
 foo a b c = (a b c)
 
+-- This should parse just fine
+bar a b c = (M.a M.b (\x -> M.c))
+
