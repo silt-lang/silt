@@ -65,21 +65,27 @@ class SyntaxTestRunner: XCTestCase {
   }
 
   func testAST() {
-    filecheckEachSiltFile(adjustPath: { $0.appendingPathExtension("ast") }) {
+    filecheckEachSiltFile(adjustPath: { p in
+      return p.appendingPathExtension("ast")
+    }, actions: {
       describe($0, at: $1, by: .dumpingParse)
-    }
+    })
   }
 
   func testShined() {
-    filecheckEachSiltFile(adjustPath: { $0.appendingPathExtension("shined") }) {
+    filecheckEachSiltFile(adjustPath: { p in
+      return p.appendingPathExtension("shined")
+    }, actions: {
       describe($0, at: $1, by: .dumpingShined)
-    }
+    })
   }
 
   func testSyntax() {
-    filecheckEachSiltFile(adjustPath: { $0.appendingPathExtension("syntax") }) {
+    filecheckEachSiltFile(adjustPath: { p in
+      return p.appendingPathExtension("syntax")
+    }, actions: {
       describe($0, at: $1, by: .describingTokens)
-    }
+    })
   }
 
   func describe(_ input: String, at path: String, by action: Action) {

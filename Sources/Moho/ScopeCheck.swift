@@ -141,7 +141,7 @@ extension NameBinding {
     }
   }
 
-  private func rollPi(_ telescope: [([Name], Expr)], _ cap : Expr) -> Expr {
+  private func rollPi(_ telescope: [([Name], Expr)], _ cap: Expr) -> Expr {
     var type = cap
     for (names, expr) in telescope {
       for name in names {
@@ -555,7 +555,8 @@ extension NameBinding {
           guard clauseMap[name] == nil else {
             // If this declaration does not have a unique name, diagnose it and
             // recover by ignoring it.
-            self.engine.diagnose(.nameShadows(name), node: funcDecl.ascription) {
+            self.engine.diagnose(.nameShadows(name),
+                                 node: funcDecl.ascription) {
               $0.note(.shadowsOriginal(name), node: funcMap[name])
             }
             continue

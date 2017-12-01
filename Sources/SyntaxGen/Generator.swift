@@ -18,7 +18,7 @@ extension FileHandle: TextOutputStream {
     }
 }
 
-class SwiftGenerator {
+final class SwiftGenerator {
   let outputDir: URL
   private var file: FileHandle?
   let tokenMap: [String: Token]
@@ -59,12 +59,6 @@ class SwiftGenerator {
     """)
   }
 
-  func generate() {
-    generateSyntaxKindEnum()
-    generateStructs()
-    generateTokenKindEnum()
-  }
-
   func startWriting(to filename: String) {
     // swiftlint:disable force_try
     let url = outputDir.appendingPathComponent(filename)
@@ -74,6 +68,16 @@ class SwiftGenerator {
     _ = FileManager.default.createFile(atPath: url.path, contents: nil)
     file = try! FileHandle(forWritingTo: url)
     writeHeaderComment(filename: filename)
+  }
+}
+
+// MARK: Syntax Generation
+
+extension SwiftGenerator {
+  func generate() {
+    generateSyntaxKindEnum()
+    generateStructs()
+    generateTokenKindEnum()
   }
 
   func generateTokenKindEnum() {

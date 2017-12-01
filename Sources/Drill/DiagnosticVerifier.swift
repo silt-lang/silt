@@ -112,9 +112,8 @@ public final class DiagnosticVerifier {
       DiagnosticVerifier.parseExpectations(url: url, engine: self.engine)
   }
 
-  private func matches(_ message: Diagnostic.Message,
-                           node: Syntax?,
-                           expectation: Expectation) -> Bool {
+  private func matches(_ message: Diagnostic.Message, node: Syntax?,
+                       expectation: Expectation) -> Bool {
     let expectedLine = expectation.line
     if expectedLine != node?.startLoc?.line {
       return false

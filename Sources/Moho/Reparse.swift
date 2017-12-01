@@ -300,7 +300,8 @@ extension FixityDeclSyntax {
   }
 }
 
-public typealias NotationDAG = PrecedenceDAG<Fixity.PrecedenceLevel, NewNotation>
+public typealias NotationDAG
+  = PrecedenceDAG<Fixity.PrecedenceLevel, NewNotation>
 
 /*
 public final class Reparser {

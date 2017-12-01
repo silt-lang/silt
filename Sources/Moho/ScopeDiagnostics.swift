@@ -20,7 +20,8 @@ extension Diagnostic.Message {
     return Diagnostic.Message(.error, "ambiguous use of name '\(n)'")
   }
 
-  static func ambiguousCandidate(_ n: FullyQualifiedName) -> Diagnostic.Message {
+  static func ambiguousCandidate(
+    _ n: FullyQualifiedName) -> Diagnostic.Message {
     return Diagnostic.Message(.note, "candidate has name '\(n)")
   }
 

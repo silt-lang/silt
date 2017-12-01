@@ -39,8 +39,9 @@ public struct Invocation {
   /// - note: The pass this function returns will never return `nil`, it will
   ///         return `true` if the verifier produced errors and `false`
   ///         otherwise. It is safe to force-unwrap.
-  private func makeVerifyPass<PassTy: PassProtocol>(url: URL, pass: PassTy,
-    context: PassContext) -> Pass<PassTy.Input, HadErrors> {
+  private func makeVerifyPass<PassTy: PassProtocol>(
+    url: URL, pass: PassTy, context: PassContext
+  ) -> Pass<PassTy.Input, HadErrors> {
     return Pass(name: "Diagnostic Verification") { input, ctx in
       _ = pass.run(input, in: ctx)
       let verifier =
@@ -84,8 +85,7 @@ public struct Invocation {
       let url = URL(fileURLWithPath: path)
 
       func run<PassTy: PassProtocol>(_ pass: PassTy) -> PassTy.Output?
-        where PassTy.Input == URL
-      {
+        where PassTy.Input == URL {
         return pass.run(url, in: context)
       }
 

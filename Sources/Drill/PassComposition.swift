@@ -12,8 +12,7 @@ import Lithosphere
 /// and pipes its output to the second pass. It converts two passes `(A) -> B`
 /// and `(B) -> C` into one pass, `(A) -> C`.
 struct PassComposition<PassA: PassProtocol, PassB: PassProtocol>: PassProtocol
-  where PassA.Output == PassB.Input
-{
+  where PassA.Output == PassB.Input {
   let name = "PassComposition"
 
   /// The first pass to execute.

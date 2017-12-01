@@ -26,7 +26,7 @@ enum Passes {
   /// The Lex pass reads a URL from the file system and tokenizes it into a
   /// stream of TokenSyntax nodes.
   static let lex =
-    Pass<(String, URL), [TokenSyntax]>(name: "Lex") { file, ctx in
+    Pass<(String, URL), [TokenSyntax]>(name: "Lex") { file, _ in
       let lexer = Lexer(input: file.0, filePath: file.1.path)
       return lexer.tokenize()
     }
@@ -34,7 +34,7 @@ enum Passes {
   /// The Shine pass takes a token stream and adds additional implicit tokens
   /// representing the beginning and ends of scopes.
   static let shine =
-    Pass<[TokenSyntax], [TokenSyntax]>(name: "Shine") { tokens, ctx in
+    Pass<[TokenSyntax], [TokenSyntax]>(name: "Shine") { tokens, _ in
       layout(tokens)
     }
 
@@ -50,9 +50,8 @@ enum Passes {
   /// unreachable variables.
   static let scopeCheck =
     DiagnosticGatePass(
-      Pass<ModuleDeclSyntax, DeclaredModule>(name: "Scope Check") {
-        module, ctx in
-        let binder = NameBinding(topLevel: module, engine: ctx.engine)
-        return binder.performScopeCheck(topLevel: module)
+      Pass<ModuleDeclSyntax, DeclaredModule>(name: "Scope Check") { mod, ctx in
+        let binder = NameBinding(topLevel: mod, engine: ctx.engine)
+        return binder.performScopeCheck(topLevel: mod)
       })
 }
