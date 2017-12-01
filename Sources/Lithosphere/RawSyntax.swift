@@ -139,23 +139,28 @@ extension RawSyntax {
   /// Prints the RawSyntax node, and all of its children, to the provided
   /// stream. This implementation must be source-accurate.
   /// - Parameter stream: The stream on which to output this node.
-  func writeSourceText<Target: TextOutputStream>(to target: inout Target,
-                                                 includeImplicit: Bool) {
+  func writeSourceText<Target: TextOutputStream>(
+    to target: inout Target, includeImplicit: Bool, includeTrivia: Bool) {
     switch self {
     case .node(_, let layout, _):
       for child in layout {
-        child.writeSourceText(to: &target, includeImplicit: includeImplicit)
+        child.writeSourceText(to: &target, includeImplicit: includeImplicit,
+                              includeTrivia: includeTrivia)
       }
     case let .token(kind, leadingTrivia, trailingTrivia, presence, _):
       switch presence {
       case .present,
            .implicit where includeImplicit:
-        for piece in leadingTrivia {
-          piece.writeSourceText(to: &target)
+        if includeTrivia {
+          for piece in leadingTrivia {
+            piece.writeSourceText(to: &target)
+          }
         }
         target.write(kind.text)
-        for piece in trailingTrivia {
-          piece.writeSourceText(to: &target)
+        if includeTrivia {
+          for piece in trailingTrivia {
+            piece.writeSourceText(to: &target)
+          }
         }
       default: break
       }

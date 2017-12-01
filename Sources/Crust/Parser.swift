@@ -42,9 +42,10 @@ extension Diagnostic.Message {
 
   static func unexpectedQualifiedName(
     _ syntax: QualifiedNameSyntax) -> Diagnostic.Message {
+    let txt = syntax.triviaFreeSourceText
     return Diagnostic.Message(
       .error,
-      "qualified name '\(syntax.sourceText)' is not allowed in this position")
+      "qualified name '\(txt)' is not allowed in this position")
   }
 }
 
@@ -171,17 +172,35 @@ extension Parser {
     return QualifiedNameSyntax(elements: pieces)
   }
 
-  func parseIdentifierList() -> IdentifierListSyntax {
-    var pieces = [TokenSyntax]()
+  /// Ensures all of the QualifiedNameSyntax nodes passed in are basic names,
+  /// not actually fully qualified names.
+  func ensureAllNamesSimple(
+    _ names: [QualifiedNameSyntax]) throws -> [TokenSyntax] {
+    return try names.map { qn -> TokenSyntax in
+      guard
+        let name = qn.first,
+        name.trailingPeriod == nil,
+        qn.count == 1 else {
+          throw engine.diagnose(.unexpectedQualifiedName(qn), node: qn) {
+            $0.highlight(qn)
+          }
+      }
+      return name.name
+    }
+  }
+
+  func parseIdentifierList() throws -> IdentifierListSyntax {
+    var names = [QualifiedNameSyntax]()
     loop: while true {
       switch peek() {
       case .identifier(_), .underscore:
-        pieces.append(currentToken!)
-        advance()
+        // Parse qualified names, then verify they are all identifiers.
+        names.append(try parseQualifiedName())
       default: break loop
       }
     }
-    return IdentifierListSyntax(elements: pieces)
+    let ids = try ensureAllNamesSimple(names)
+    return IdentifierListSyntax(elements: ids)
   }
 }
 
@@ -271,7 +290,7 @@ extension Parser {
   func parseNonFixDecl() throws -> NonFixDeclSyntax {
     let tok = try consume(.infixKeyword)
     let prec = try parseIdentifierToken()
-    let ids = parseIdentifierList()
+    let ids = try parseIdentifierList()
     let semi = try consume(.semicolon)
     return NonFixDeclSyntax(
       infixToken: tok,
@@ -284,7 +303,7 @@ extension Parser {
   func parseLeftFixDecl() throws -> LeftFixDeclSyntax {
     let tok = try consume(.infixlKeyword)
     let prec = try parseIdentifierToken()
-    let ids = parseIdentifierList()
+    let ids = try parseIdentifierList()
     let semi = try consume(.semicolon)
     return LeftFixDeclSyntax(
       infixlToken: tok,
@@ -297,7 +316,7 @@ extension Parser {
   func parseRightFixDecl() throws -> RightFixDeclSyntax {
     let tok = try consume(.infixrKeyword)
     let prec = try parseIdentifierToken()
-    let ids = parseIdentifierList()
+    let ids = try parseIdentifierList()
     let semi = try consume(.semicolon)
     return RightFixDeclSyntax(
       infixrToken: tok,
@@ -441,7 +460,7 @@ extension Parser {
   }
 
   func parseAscription() throws -> AscriptionSyntax {
-    let boundNames = parseIdentifierList()
+    let boundNames = try parseIdentifierList()
     let colonToken = try consume(.colon)
     let expr = try parseExpr()
     return AscriptionSyntax(
@@ -511,11 +530,12 @@ extension Parser {
     let colonTok = try self.consume(.colon)
     let boundNames = IdentifierListSyntax(elements: try exprs.map { expr in
       guard let namedExpr = expr as? NamedBasicExprSyntax else {
-        throw Diagnostic.Message.expectedNameInFuncDecl
+        throw engine.diagnose(.expectedNameInFuncDecl, node: expr)
       }
 
       guard let name = namedExpr.name.first, namedExpr.name.count == 1 else {
-        throw Diagnostic.Message.unexpectedQualifiedName(namedExpr.name)
+        throw engine.diagnose(.unexpectedQualifiedName(namedExpr.name),
+                              node: namedExpr)
       }
       return name.name
     })
@@ -581,7 +601,6 @@ extension Parser {
   //
   // (a b c ...)
   func parseParenthesizedExpr() throws -> BasicExprSyntax {
-    var pieces = [TokenSyntax]()
     let leftParen = try consume(.leftParen)
     // If we've hit a non-identifier token, start parsing a parenthesized
     // expression.
@@ -595,10 +614,10 @@ extension Parser {
       )
     }
 
-    // Gather all the identifiers.
-    while case .identifier(_) = peek() {
-      pieces.append(currentToken!)
-      advance()
+    // Gather all the subexpressions.
+    var exprs = [BasicExprSyntax]()
+    while isStartOfBasicExpr() {
+      exprs.append(try parseBasicExpr())
     }
 
     // If we've not hit the matching closing paren, we must be parsing a typed
@@ -606,29 +625,24 @@ extension Parser {
     //
     // (a b c ... : <expr>) {d e f ... : <expr>} ...
     if case .colon = peek() {
-      return try self.finishParsingTypedParameterGroupExpr(leftParen, pieces)
+      return try self.finishParsingTypedParameterGroupExpr(leftParen, exprs)
     }
 
     // Else consume the closing paren.
     let rightParen = try consume(.rightParen)
-    let basicExprs = pieces.map { token in
-      return NamedBasicExprSyntax(name: QualifiedNameSyntax(elements: [
-        QualifiedNamePieceSyntax(name: token, trailingPeriod: nil)
-      ]))
-    }
 
     // If there's only one named expression like '(a)', return it.
-    guard basicExprs.count >= 1 else {
+    guard exprs.count >= 1 else {
       return ParenthesizedExprSyntax(
         leftParenToken: leftParen,
-        expr: basicExprs[0],
+        expr: exprs[0],
         rightParenToken: rightParen
       )
     }
 
     // Else form an application expression.
     let app = ApplicationExprSyntax(exprs:
-                                    BasicExprListSyntax(elements: basicExprs))
+                                    BasicExprListSyntax(elements: exprs))
     return ParenthesizedExprSyntax(
       leftParenToken: leftParen,
       expr: app,
@@ -681,10 +695,22 @@ extension Parser {
   }
 
   func finishParsingTypedParameterGroupExpr(
-    _ leftParen: TokenSyntax, _ pieces: [TokenSyntax]
+    _ leftParen: TokenSyntax, _ exprs: [ExprSyntax]
   ) throws -> TypedParameterGroupExprSyntax {
     let colonTok = try consume(.colon)
-    let identList = IdentifierListSyntax(elements: pieces)
+
+    // Ensure all expressions are simple names
+    let names = try exprs.map { expr -> QualifiedNameSyntax in
+      guard let namedExpr = expr as? NamedBasicExprSyntax else {
+        throw engine.diagnose(.expected("identifier"), node: expr) {
+          $0.highlight(expr)
+        }
+      }
+      return namedExpr.name
+    }
+
+    let tokens = try ensureAllNamesSimple(names)
+    let identList = IdentifierListSyntax(elements: tokens)
     let typeExpr = try self.parseExpr()
     let ascription = AscriptionSyntax(boundNames: identList,
                                       colonToken: colonTok,
@@ -697,9 +723,7 @@ extension Parser {
     guard !parameters.isEmpty else {
       throw expected("type ascription")
     }
-    return TypedParameterGroupExprSyntax(
-      parameters: parameters
-    )
+    return TypedParameterGroupExprSyntax(parameters: parameters)
   }
 
   func parseLambdaExpr() throws -> LambdaExprSyntax {
