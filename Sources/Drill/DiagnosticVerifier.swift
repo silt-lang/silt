@@ -93,7 +93,7 @@ public final class DiagnosticVerifier {
   let expectations: Set<Expectation>
 
   /// The set of diagnostics that have been parsed.
-  let producedDiagnostics: [Diagnostic]
+  let producedDiagnostics: [(message: Diagnostic.Message, node: Syntax?)]
 
   /// The temporary diagnostic engine into which we'll be pushing diagnostics
   /// for verification errors.
@@ -107,12 +107,20 @@ public final class DiagnosticVerifier {
   /// set of produced diagnostics to find and verify the set of expectations
   /// in the original file.
   public init(url: URL, producedDiagnostics: [Diagnostic]) {
-    self.producedDiagnostics = producedDiagnostics
+    // Combine both the diagnostics and their notes into one big set of
+    // node/message pairs.
+    self.producedDiagnostics =
+      producedDiagnostics.flatMap {
+        [($0.message, $0.node)] + $0.notes.map {
+          ($0.message, $0.node)
+        }
+      }
     self.expectations =
       DiagnosticVerifier.parseExpectations(url: url, engine: self.engine)
   }
 
-  private func matches(_ message: Diagnostic.Message, node: Syntax?,
+  private func matches(message: Diagnostic.Message,
+                       node: Syntax?,
                        expectation: Expectation) -> Bool {
     let expectedLine = expectation.line
     if expectedLine != node?.startLoc?.line {
@@ -135,38 +143,28 @@ public final class DiagnosticVerifier {
 
     // Maintain a list of unexpected diagnostics and the line they
     // occurred on.
-    var unexpected = [Int: [Diagnostic]]()
+    var unexpected = [Int: [(Diagnostic.Message, Syntax?)]]()
 
     // Go through each diagnostic we've produced.
-    for diagnostic in producedDiagnostics {
+    for (message, node) in producedDiagnostics {
 
       // Expectations require a line.
-      guard let node = diagnostic.node, let loc = node.startLoc else {
-        engine.diagnose(.diagnosticWithNoNode(diagnostic.message))
+      guard let node = node, let loc = node.startLoc else {
+        engine.diagnose(.diagnosticWithNoNode(message))
         continue
       }
 
       var found = false
       for (idx, exp) in zip(unmatched.indices, unmatched) {
         // If it matches, remove this from the set of expectations
-        if matches(diagnostic.message, node: diagnostic.node,
-                   expectation: exp) {
+        if matches(message: message, node: node, expectation: exp) {
           found = true
           unmatched.remove(at: idx)
           break
         }
-
-        // Next match the notes.  Remove any matches from the expectation set.
-        for note in diagnostic.notes {
-          if matches(note.message, node: note.node, expectation: exp) {
-            found = true
-            unmatched.remove(at: idx)
-          }
-          break
-        }
       }
       if !found {
-        unexpected[loc.line, default: []].append(diagnostic)
+        unexpected[loc.line, default: []].append((message, node))
       }
     }
 
@@ -175,10 +173,10 @@ public final class DiagnosticVerifier {
     let remaining = unmatched.sorted { $0.line < $1.line }
     for expectation in remaining {
       if let diags = unexpected[expectation.line] {
-        for diag in diags {
-          engine.diagnose(.incorrectDiagnostic(got: diag.message),
-                          node: diag.node) {
-            $0.note(.expected(expectation), node: diag.node)
+        for (message, node) in diags {
+          engine.diagnose(.incorrectDiagnostic(got: message),
+                          node: node) {
+            $0.note(.expected(expectation), node: node)
           }
         }
         unexpected.removeValue(forKey: expectation.line)
@@ -186,9 +184,9 @@ public final class DiagnosticVerifier {
         engine.diagnose(.diagnosticNotRaised(expectation))
       }
     }
-    for diagnostic in unexpected.values.flatMap({ $0 }) {
-      engine.diagnose(.unexpectedDiagnostic(diagnostic.message),
-                      node: diagnostic.node)
+    for (message, node) in unexpected.values.flatMap({ $0 }) {
+      engine.diagnose(.unexpectedDiagnostic(message),
+                      node: node)
     }
   }
 
