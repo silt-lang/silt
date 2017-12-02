@@ -9,8 +9,8 @@ let package = Package(
     .package(url: "https://github.com/jatoben/CommandLine.git", .branch("master")),
     .package(url: "https://github.com/trill-lang/FileCheck.git", from: "0.0.4"),
     .package(url: "https://github.com/silt-lang/Symbolic.git", from: "0.0.1"),
-    .package(url: "https://github.com/onevcat/Rainbow", from: "3.0.0"),
-    .package(url: "https://github.com/kareman/SwiftShell.git", from: "4.0.0"),
+    .package(url: "https://github.com/onevcat/Rainbow.git", from: "3.0.0"),
+    .package(url: "https://github.com/silt-lang/Lite.git", from: "0.0.3"),
   ],
   targets: [
     .target(
@@ -29,11 +29,8 @@ let package = Package(
       name: "SyntaxGen",
       dependencies: ["CommandLine"]),
     .target(
-      name: "LiteSupport",
-      dependencies: ["Drill", "Symbolic", "SwiftShell", "CommandLine"]),
-    .target(
       name: "lite",
-      dependencies: ["LiteSupport", "silt"]),
+      dependencies: ["Symbolic", "LiteSupport", "silt"]),
     .target(
       name: "Moho",
       dependencies: ["Lithosphere", "Crust"]),
@@ -43,9 +40,6 @@ let package = Package(
     .target(
       name: "Seismography",
       dependencies: ["Lithosphere", "Drill"]),
-    .testTarget(
-      name: "LiteTests",
-      dependencies: ["LiteSupport"]),
     .testTarget(
       name: "SyntaxTests",
       dependencies: ["Drill", "Lithosphere", "Crust",

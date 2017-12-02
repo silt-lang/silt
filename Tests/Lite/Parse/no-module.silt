@@ -1,4 +1,4 @@
--- RUN: --verify parse
+-- RUN: %silt --verify parse %s
 id : ∀ {A: Type} A -> A
 -- expected-error@-1 {{missing required top level module}}
 id x = x

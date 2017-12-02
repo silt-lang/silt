@@ -1,5 +1,0 @@
--- RUN-NOT: --verify parse
--- expected-error {{this is a bogus error and should fail}}
-module Foo where
-
-id x = x
