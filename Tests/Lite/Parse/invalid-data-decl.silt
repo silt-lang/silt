@@ -1,4 +1,4 @@
--- RUN: --verify parse
+-- RUN: %silt --verify parse %s
 module DataDecl where
 
 data Foo : Set where

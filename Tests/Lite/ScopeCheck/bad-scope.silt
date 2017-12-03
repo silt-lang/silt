@@ -1,4 +1,4 @@
--- RUN: --verify scopes
+-- RUN: %silt --verify scopes %s
 
 module bad-scope where
 
