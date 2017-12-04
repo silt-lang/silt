@@ -18,7 +18,8 @@ func findAdjacentBinary(_ name: String) -> URL? {
   return siltURL
 }
 
-/// Finds the `silt` executable relative to the location of the `lite` executable.
+/// Finds the `silt` executable relative to the location of the `lite`
+/// executable.
 func findSiltExecutable() -> URL? {
   return findAdjacentBinary("silt")
 }

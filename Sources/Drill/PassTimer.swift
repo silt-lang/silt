@@ -61,8 +61,8 @@ extension TimeInterval {
     return formatter
   }()
 
-  /// Formats a time interval at second, millisecond, microsecond, and nanosecond
-  /// boundaries.
+  /// Formats a time interval at second, millisecond, microsecond, and
+  /// nanosecond boundaries.
   ///
   /// - Parameter interval: The interval you're formatting.
   /// - Returns: A stringified version of the time interval, including the most
