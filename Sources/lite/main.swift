@@ -48,8 +48,14 @@ func run() -> Int {
     return -1
   }
 
+  var substitutions = [("silt", url.path.quoted)]
+
+  if let filecheckURL = findFileCheckExecutable() {
+    substitutions.append(("FileCheck", filecheckURL.path.quoted))
+  }
+
   do {
-    let allPassed = try runLite(substitutions: [("silt", url.path)],
+    let allPassed = try runLite(substitutions: substitutions,
                                 pathExtensions: ["silt"],
                                 testDirPath: testDir.value,
                                 testLinePrefix: "--")

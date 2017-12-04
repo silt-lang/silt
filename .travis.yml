@@ -8,25 +8,16 @@ matrix:
       osx_image: xcode9
       before_install:
         - brew install swiftlint
-        - gem install xcpretty
       script:
         - swiftlint
         - swift build
         - swift run lite
-        - swift test 2>&1 | xcpretty && exit ${PIPESTATUS[0]}
     - os: linux
       language: generic
-      rvm:
-        - 2.2
-        - jruby
-        - 2.0.0-p247
       sudo: required
       dist: trusty
-      before_install:
-        - gem install xcpretty
       install:
         - eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
       script:
         - swift build
         - swift run lite
-        - swift test 2>&1 | xcpretty && exit ${PIPESTATUS[0]}

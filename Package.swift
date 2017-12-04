@@ -32,20 +32,13 @@ let package = Package(
       name: "lite",
       dependencies: ["Symbolic", "LiteSupport", "silt"]),
     .target(
+      name: "file-check",
+      dependencies: ["Drill", "FileCheck", "CommandLine"]),
+    .target(
       name: "Moho",
       dependencies: ["Lithosphere", "Crust"]),
     .target(
       name: "Mantle",
       dependencies: ["Lithosphere", "Moho"]),
-    .target(
-      name: "Seismography",
-      dependencies: ["Lithosphere", "Drill"]),
-    .testTarget(
-      name: "SyntaxTests",
-      dependencies: ["Drill", "Lithosphere", "Crust",
-                     "Seismography", "FileCheck"]),
-    .testTarget(
-      name: "DiagnosticTests",
-      dependencies: ["Lithosphere", "Seismography"]),
   ]
 )
