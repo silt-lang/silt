@@ -105,8 +105,6 @@ infixr _o_
 -- CHECK-AST:         application
 -- CHECK-AST:           identifier "B"
 -- CHECK-AST:           identifier "a"
--- CHECK-AST:         arrow
--- CHECK-AST:           identifier "k"
 -- CHECK-SHINED: _o_ : forall {i j k : Level}
 -- CHECK-SHINED:              {A : Type i}{B : A -> Type j}{C : (a : A) -> B a -> Type k} ->
 -- CHECK-SHINED:              (f : {a : A}(b : B a) -> C a b) ->
@@ -119,14 +117,14 @@ _o_ : forall {i j k : Level}
              (a : A) -> C a (g a)
 
 -- CHECK-AST: normalFunctionClauseDecl
--- CHECK-AST: application
--- CHECK-AST:   basicExprList
--- CHECK-AST:     identifier "f"
--- CHECK-AST:     identifier "o"
--- CHECK-AST:     identifier "g"
+-- CHECK-AST: basicExprList
+-- CHECK-AST:   identifier "f"
+-- CHECK-AST:   identifier "o"
+-- CHECK-AST:   identifier "g"
 -- CHECK-AST: equals
 -- CHECK-AST:   lambdaExpr
--- CHECK-AST:     basicExprList
+-- CHECK-AST:     forwardSlash
+-- CHECK-AST:     bindingList
 -- CHECK-AST:       identifier "a"
 -- CHECK-AST:     arrow
 -- CHECK-AST:     application
