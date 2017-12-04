@@ -7,7 +7,7 @@
 
 import Foundation
 import Drill
-import CommandLineKit
+import CommandLine
 import LiteSupport
 import Lithosphere
 import Rainbow
@@ -27,7 +27,7 @@ func run() -> Int {
     helpMessage: "The path to the `silt` executable. " +
                  "Defaults to the executable next to `lite`.")
 
-  let cli = CommandLineKit.CommandLine()
+  let cli = CLI()
   cli.addOptions(testDir, siltExe)
 
   do {

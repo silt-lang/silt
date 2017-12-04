@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
   name: "silt",
   dependencies: [
-    .package(url: "https://github.com/jatoben/CommandLine.git", .branch("master")),
+    .package(url: "https://github.com/silt-lang/CommandLine.git", from: "4.0.0"),
     .package(url: "https://github.com/trill-lang/FileCheck.git", from: "0.0.4"),
     .package(url: "https://github.com/silt-lang/Symbolic.git", from: "0.0.1"),
     .package(url: "https://github.com/onevcat/Rainbow.git", from: "3.0.0"),
