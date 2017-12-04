@@ -5,7 +5,7 @@
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 
-import CommandLineKit
+import CommandLine
 import Foundation
 
 extension OutputStream: TextOutputStream {
@@ -17,7 +17,7 @@ extension OutputStream: TextOutputStream {
   }
 }
 
-let cli = CommandLineKit.CommandLine()
+let cli = CLI()
 let outputPath = StringOption(shortFlag: "o",
                               longFlag: "output-dir",
                               required: true,

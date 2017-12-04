@@ -13,13 +13,13 @@ import Glibc
 
 import Foundation
 import Drill
-import CommandLineKit
+import CommandLine
 
 
 /// Parses the command-line options into an Options struct and a list of file
 /// paths.
 func parseOptions() -> (Options, Set<String>) {
-  let cli = CommandLineKit.CommandLine()
+  let cli = CLI()
   let dumpOption =
     EnumOption<Mode.DumpKind>(longFlag: "dump", required: false,
                               helpMessage:
