@@ -1,0 +1,141 @@
+-- RUN: %silt %s --dump parse --no-colors 2>&1 | %FileCheck %s --prefixes CHECK-AST
+-- RUN: %silt %s --dump shined 2>&1 | %FileCheck %s --prefixes CHECK-SHINED
+
+-- CHECK-AST: moduleDecl
+-- CHECK-AST: identifier "Basics"
+-- CHECK-AST: whereKeyword
+-- CHECK-SHINED: module Basics where {
+module Basics where
+
+-- CHECK-AST: functionDecl
+-- CHECK-AST: ascription
+-- CHECK-AST: identifier "id"
+-- CHECK-AST: quantifiedExpr
+-- CHECK-AST: ascription
+-- CHECK-AST: identifier "k"
+-- CHECK-AST: identifier "Level"
+-- CHECK-AST: ascription
+-- CHECK-AST: identifier "X"
+-- CHECK-AST: typeKeyword
+-- CHECK-AST: arrow
+-- CHECK-AST: identifier "X"
+-- CHECK-AST: arrow
+-- CHECK-AST: identifier "X"
+-- CHECK-SHINED: id : forall {k : Level} {X : Type k} -> X -> X;
+id : forall {k : Level} {X : Type k} -> X -> X
+
+-- CHECK-AST: normalFunctionClauseDecl
+-- CHECK-AST:   basicExprList
+-- CHECK-AST:     identifier "id"
+-- CHECK-AST:     identifier "x"
+-- CHECK-AST:   equals
+-- CHECK-AST:   namedBasicExpr
+-- CHECK-AST:     identifier "x"
+-- CHECK-SHINED: id x = x;
+id x = x
+
+-- CHECK-AST: functionDecl
+-- CHECK-AST:   ascription
+-- CHECK-AST:     identifier "flip"
+-- CHECK-AST:     forallKeyword
+-- CHECK-AST:     ascription
+-- CHECK-AST:       identifier "a"
+-- CHECK-AST:       identifier "b"
+-- CHECK-AST:       identifier "c"
+-- CHECK-AST:     ascription
+-- CHECK-AST:       identifier "A"
+-- CHECK-AST:       application
+-- CHECK-AST:         typeKeyword
+-- CHECK-AST:         identifier "b"
+-- CHECK-SHINED: flip : forall {a b c : Level} {A : Type a} {B : Type b} {C : A -> B -> Type c} ->
+-- CHECK-SHINED:               ((x : A) (y : B) -> C x y) -> ((y : B) (x : A) -> C x y);
+flip : forall {a b c : Level} {A : Type a} {B : Type b} {C : A -> B -> Type c} ->
+              ((x : A) (y : B) -> C x y) -> ((y : B) (x : A) -> C x y)
+
+-- CHECK-AST: normalFunctionClauseDecl
+-- CHECK-AST:   basicExprList
+-- CHECK-AST:     identifier "f"
+-- CHECK-AST:   equals
+-- CHECK-AST:   lambdaExpr
+-- CHECK-AST      basicExprList
+-- CHECK-AST:       identifier "y"
+-- CHECK-AST:       identifier "x"
+-- CHECK-AST:     arrow
+-- CHECK-AST:     application
+-- CHECK-AST:       namedBasicExpr
+-- CHECK-AST:         identifier "f"
+-- CHECK-AST:       namedBasicExpr
+-- CHECK-AST:         identifier "x"
+-- CHECK-AST:       namedBasicExpr
+-- CHECK-AST:         identifier "y"
+-- CHECK-SHINED: flip f = \ y x -> f x y;
+flip f = \ y x -> f x y
+
+-- CHECK-AST: rightFixDecl
+-- CHECK-AST:   identifier "_o_"
+-- CHECK-SHINED: infixr _o_;
+infixr _o_
+
+-- CHECK-AST: functionDecl
+-- CHECK-AST:   ascription
+-- CHECK-AST:     identifier "_o_"
+-- CHECK-AST:     forallKeyword
+-- CHECK-AST:     implicitTypedParameter
+-- CHECK-AST:       ascription
+-- CHECK-AST:         identifier "i"
+-- CHECK-AST:         identifier "j"
+-- CHECK-AST:         identifier "k"
+-- CHECK-AST:     implicitTypedParameter
+-- CHECK-AST:       ascription
+-- CHECK-AST:         identifier "A"
+-- CHECK-AST:         application
+-- CHECK-AST:           typeKeyword
+-- CHECK-AST:           identifier "i"
+-- CHECK-AST:     ascription
+-- CHECK-AST:       identifier "B"
+-- CHECK-AST:       application
+-- CHECK-AST:         identifier "j"
+-- CHECK-AST:     ascription
+-- CHECK-AST:       identifier "C"
+-- CHECK-AST:       application
+-- CHECK-AST:         explicitTypedParameter
+-- CHECK-AST:           identifier "a"
+-- CHECK-AST:           identifier "A"
+-- CHECK-AST:         arrow
+-- CHECK-AST:         application
+-- CHECK-AST:           identifier "B"
+-- CHECK-AST:           identifier "a"
+-- CHECK-AST:         arrow
+-- CHECK-AST:           identifier "k"
+-- CHECK-SHINED: _o_ : forall {i j k : Level}
+-- CHECK-SHINED:              {A : Type i}{B : A -> Type j}{C : (a : A) -> B a -> Type k} ->
+-- CHECK-SHINED:              (f : {a : A}(b : B a) -> C a b) ->
+-- CHECK-SHINED:              (g : (a : A) -> B a) ->
+-- CHECK-SHINED:              (a : A) -> C a (g a);
+_o_ : forall {i j k : Level}
+             {A : Type i}{B : A -> Type j}{C : (a : A) -> B a -> Type k} ->
+             (f : {a : A}(b : B a) -> C a b) ->
+             (g : (a : A) -> B a) ->
+             (a : A) -> C a (g a)
+
+-- CHECK-AST: normalFunctionClauseDecl
+-- CHECK-AST: application
+-- CHECK-AST:   basicExprList
+-- CHECK-AST:     identifier "f"
+-- CHECK-AST:     identifier "o"
+-- CHECK-AST:     identifier "g"
+-- CHECK-AST: equals
+-- CHECK-AST:   lambdaExpr
+-- CHECK-AST:     basicExprList
+-- CHECK-AST:       identifier "a"
+-- CHECK-AST:     arrow
+-- CHECK-AST:     application
+-- CHECK-AST:       identifier "f"
+-- CHECK-AST:     parenthesizedExpr
+-- CHECK-AST:      application
+-- CHECK-AST:       identifier "g"
+-- CHECK-AST:       identifier "a"
+-- CHECK-SHINED: f o g = \ a -> f (g a);
+f o g = \ a -> f (g a)
+
+-- CHECK-SHINED: }
