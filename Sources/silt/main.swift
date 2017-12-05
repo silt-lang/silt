@@ -53,21 +53,21 @@ func parseOptions() -> Options {
 
   binder.bind(
     option: cli.add(
-      option: "--dump",
+      option: "-dump",
       kind: Mode.DumpLayer.self,
       usage: "Dump the result of compiling up to a given layer"),
     to: { opt, r in opt.mode = .dump(r) })
   binder.bind(
     option: cli.add(
-      option: "--verify",
+      option: "-verify",
       kind: Mode.VerifyLayer.self,
       usage: "Verify the result of compiling up to a given layer"),
     to: { opt, r in opt.mode = .verify(r) })
   binder.bind(
-    option: cli.add(option: "--no-colors", kind: Bool.self),
+    option: cli.add(option: "-no-colors", kind: Bool.self),
     to: { opt, r in opt.colorsEnabled = !r })
   binder.bind(
-    option: cli.add(option: "--debug-print-timing", kind: Bool.self),
+    option: cli.add(option: "-debug-print-timing", kind: Bool.self),
     to: { opt, r in opt.shouldPrintTiming = r })
   binder.bindArray(
     positional: cli.add(
