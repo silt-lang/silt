@@ -1,4 +1,4 @@
--- RUN: %silt --verify parse %s
+-- RUN: %silt -verify parse %s
 module ambiguous-parens where
 
 -- #49: Used to have trouble parsing this because we couldn't tell the

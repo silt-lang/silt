@@ -20,7 +20,7 @@ import Glibc
 let cli = ArgumentParser(commandName: "lite", usage: "", overview: "")
 
 let testDir =
-  cli.add(option: "--test-dir", shortName: "-d",
+  cli.add(option: "-test-dir", shortName: "-d",
           kind: String.self,
           usage: """
                  The top-level directory containing tests to run. \
@@ -28,7 +28,7 @@ let testDir =
                  """)
 
 let siltExe =
-  cli.add(option: "--silt", kind: String.self,
+  cli.add(option: "-silt", kind: String.self,
           usage: """
                  The path to the `silt` executable. \
                  Defaults to the executable next to `lite`.

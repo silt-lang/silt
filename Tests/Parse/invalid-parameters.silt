@@ -1,4 +1,4 @@
--- RUN: %silt --verify parse %s
+-- RUN: %silt -verify parse %s
 
 module InvalidParameters where
 

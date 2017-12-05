@@ -1,5 +1,5 @@
--- RUN: %silt %s --dump parse --no-colors 2>&1 | %FileCheck %s --prefixes CHECK-AST
--- RUN: %silt %s --dump shined 2>&1 | %FileCheck %s --prefixes CHECK-SHINED
+-- RUN: %silt %s -dump parse -no-colors 2>&1 | %FileCheck %s -prefixes CHECK-AST
+-- RUN: %silt %s -dump shined 2>&1 | %FileCheck %s -prefixes CHECK-SHINED
 
 -- CHECK-AST: moduleDecl
 -- CHECK-AST:   identifier "DataTypes"
