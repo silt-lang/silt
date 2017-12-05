@@ -5,7 +5,8 @@
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 
-import CommandLine
+import Basic
+import Utility
 import Foundation
 
 extension OutputStream: TextOutputStream {
@@ -17,24 +18,20 @@ extension OutputStream: TextOutputStream {
   }
 }
 
-let cli = CLI()
-let outputPath = StringOption(shortFlag: "o",
-                              longFlag: "output-dir",
-                              required: true,
-                              helpMessage: "The output directory.")
+let cli = ArgumentParser(usage: "SyntaxGen", overview: "")
+let outputDir = cli.add(option: "--output-dir", shortName: "-o",
+                        kind: String.self)
 
-cli.addOptions(outputPath)
-
-do {
-  try cli.parse()
-} catch {
-  cli.printUsage()
+let args = Array(CommandLine.arguments.dropFirst())
+guard let result = try? cli.parse(args) else {
+  cli.printUsage(on: Basic.stdoutStream)
   exit(EXIT_FAILURE)
 }
 
-do {
-  let generator = try SwiftGenerator(outputDir: outputPath.value!)
-  generator.generate()
-} catch {
-  print("error: \(error)")
+guard let outputPath = result.get(outputDir) else {
+  cli.printUsage(on: Basic.stdoutStream)
+  exit(EXIT_FAILURE)
 }
+
+let generator = try SwiftGenerator(outputDir: outputPath)
+generator.generate()

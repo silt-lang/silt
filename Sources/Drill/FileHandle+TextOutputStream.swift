@@ -13,5 +13,5 @@ extension FileHandle: TextOutputStream {
     }
 }
 
-public var stderrStream = FileHandle.standardError
-public var stdoutStream = FileHandle.standardOutput
+public var stderrStreamHandle = FileHandle.standardError
+public var stdoutStreamHandle = FileHandle.standardOutput

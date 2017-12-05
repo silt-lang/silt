@@ -1,71 +1,82 @@
 import Foundation
-import CommandLine
-import FileCheck
+import Basic
+import Utility
 import Drill
+import FileCheck
 import Lithosphere
 import Rainbow
 
 func run() -> Int {
-  let cli = CLI()
-  let disableColors =
-    BoolOption(longFlag: "disable-colors",
-               helpMessage: "Disable colorized diagnostics.")
-  let strictWhitespace =
-    BoolOption(longFlag: "use-strict-whitespace",
-      helpMessage: "Do not treat all horizontal whitespace as equivalent.")
-
-  let allowEmptyInput =
-    BoolOption(shortFlag: "e", longFlag: "allow-empty-input",
-      helpMessage: """
+  let cli = ArgumentParser(usage: "FileCheck", overview: "")
+  let binder = ArgumentBinder<FileCheckOptions>()
+  //swiftlint:disable statement_position
+  binder.bind(option:
+    cli.add(option: "--disable-colors", kind: Bool.self,
+            usage: "Disable colorized diagnostics"),
+              to: { if $1 { $0.insert(.disableColors) }
+                    else { $0.remove(.disableColors) } })
+  binder.bind(option:
+    cli.add(option: "--use-strict-whitespace",
+            kind: Bool.self,
+            usage: "Do not treat all horizontal whitespace as equivalent"),
+              to: { if $1 { $0.insert(.strictWhitespace) }
+                    else { $0.remove(.strictWhitespace) } })
+  binder.bind(option:
+    cli.add(option: "--allow-empty-input", shortName: "-e",
+            kind: Bool.self,
+            usage: """
                    Allow the input file to be empty. This is useful when \
                    making checks that some error message does not occur, \
                    for example.
-                   """)
-  let matchFullLines =
-    BoolOption(longFlag: "match-full-lines",
-      helpMessage: """
+                   """),
+              to: { if $1 { $0.insert(.allowEmptyInput) }
+                    else { $0.remove(.allowEmptyInput) } })
+  binder.bind(option:
+    cli.add(option: "--match-full-lines",
+            kind: Bool.self,
+            usage: """
                    Require all positive matches to cover an entire input line. \
                    Allows leading and trailing whitespace if \
                    --strict-whitespace is not also used.
-                   """)
+                   """),
+              to: { if $1 { $0.insert(.matchFullLines) }
+                    else { $0.remove(.matchFullLines) } })
   let prefixes =
-    MultiStringOption(longFlag: "prefixes",
-      required: false,
-      helpMessage: """
+    cli.add(option: "--prefixes", kind: [String].self,
+            usage: """
                    Specifies one or more prefixes to match. By default these \
                    patterns are prefixed with “CHECK”.
                    """)
-  let inputFile =
-    StringOption(shortFlag: "i", longFlag: "input-file",
-      required: false,
-      helpMessage: "The file to use for checked input. Defaults to stdin.")
-  cli.addOptions(disableColors, strictWhitespace, allowEmptyInput,
-                 matchFullLines, prefixes, inputFile)
 
-  do {
-    try cli.parse()
-  } catch {
-    cli.printUsage()
+  let inputFile =
+    cli.add(option: "--input-file", shortName: "-i",
+            kind: String.self,
+            usage: "The file to use for checked input. Defaults to stdin.")
+
+  let file =
+    cli.add(positional: "", kind: String.self,
+            usage: "")
+
+  let args = Array(CommandLine.arguments.dropFirst())
+  guard let results = try? cli.parse(args) else {
+    cli.printUsage(on: stderrStream)
     return -1
   }
 
   let engine = DiagnosticEngine()
   engine.register(PrintingDiagnosticConsumer(stream: &stderrStream))
 
-  guard cli.unparsedArguments.count == 1 else {
+  guard let filePath = results.get(file) else {
     engine.diagnose(.requiresOneCheckFile)
     return -1
   }
 
   var options = FileCheckOptions()
-  if disableColors.value { options.insert(.disableColors) }
-  if strictWhitespace.value { options.insert(.strictWhitespace) }
-  if allowEmptyInput.value { options.insert(.allowEmptyInput) }
-  if matchFullLines.value { options.insert(.matchFullLines) }
-  Rainbow.enabled = !disableColors.value
+  binder.fill(results, into: &options)
+  Rainbow.enabled = !options.contains(.disableColors)
 
   let fileHandle: FileHandle
-  if let input = inputFile.value {
+  if let input = results.get(inputFile) {
     guard let handle = FileHandle(forReadingAtPath: input) else {
       engine.diagnose(.couldNotOpenFile(input))
       return -1
@@ -74,13 +85,13 @@ func run() -> Int {
   } else {
     fileHandle = .standardInput
   }
-  var checkPrefixes = prefixes.value ?? []
+  var checkPrefixes = results.get(prefixes) ?? []
   checkPrefixes.append("CHECK")
 
   let matchedAll = fileCheckOutput(of: .stdout,
                                    withPrefixes: checkPrefixes,
                                    checkNot: [],
-                                   against: .filePath(cli.unparsedArguments[0]),
+                                   against: .filePath(filePath),
                                    options: options) {
     // FIXME: Better way to stream this data?
     FileHandle.standardOutput.write(fileHandle.readDataToEndOfFile())
