@@ -99,7 +99,7 @@ public final class DiagnosticVerifier {
   /// for verification errors.
   public let engine: DiagnosticEngine = {
     let e = DiagnosticEngine()
-    e.register(PrintingDiagnosticConsumer(stream: &stderrStream))
+    e.register(PrintingDiagnosticConsumer(stream: &stderrStreamHandle))
     return e
   }()
 

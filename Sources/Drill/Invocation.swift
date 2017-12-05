@@ -20,11 +20,9 @@ extension Diagnostic.Message {
 
 public struct Invocation {
   public let options: Options
-  public let sourceFiles: Set<String>
 
-  public init(options: Options, paths: Set<String>) {
+  public init(options: Options) {
     self.options = options
-    self.sourceFiles = paths
   }
 
   /// Clearly denotes a function as returning `true` if errors occurred.
@@ -54,7 +52,8 @@ public struct Invocation {
 
   public func run() -> HadErrors {
     let context = PassContext()
-    let printingConsumer = PrintingDiagnosticConsumer(stream: &stderrStream)
+    let printingConsumer =
+      PrintingDiagnosticConsumer(stream: &stderrStreamHandle)
     let printingConsumerToken = context.engine.register(printingConsumer)
 
     Rainbow.enabled = options.colorsEnabled
@@ -64,14 +63,14 @@ public struct Invocation {
       Rainbow.outputTarget = .console
     }
 
-    if sourceFiles.isEmpty {
+    if options.inputPaths.isEmpty {
       context.engine.diagnose(.noInputFiles)
       return true
     }
 
     defer {
       if options.shouldPrintTiming {
-        context.timer.dump(to: &stdoutStream)
+        context.timer.dump(to: &stdoutStreamHandle)
       }
     }
 
@@ -81,7 +80,7 @@ public struct Invocation {
     let parseFile = shineFile |> Passes.parse
     let scopeCheckFile = parseFile |> Passes.scopeCheck
 
-    for path in sourceFiles {
+    for path in options.inputPaths {
       let url = URL(fileURLWithPath: path)
 
       func run<PassTy: PassProtocol>(_ pass: PassTy) -> PassTy.Output?
@@ -94,23 +93,25 @@ public struct Invocation {
         fatalError("only Parse is implemented")
       case .dump(.tokens):
         run(lexFile |> Pass(name: "Describe Tokens") { tokens, _ in
-          TokenDescriber.describe(tokens, to: &stdoutStream)
+          TokenDescriber.describe(tokens, to: &stdoutStreamHandle)
         })
       case .dump(.file):
         run(lexFile |> Pass(name: "Reprint File") { tokens, _ -> Void in
           for token in tokens {
-            token.writeSourceText(to: &stdoutStream, includeImplicit: false)
+            token.writeSourceText(to: &stdoutStreamHandle,
+                                  includeImplicit: false)
           }
         })
       case .dump(.shined):
         run(shineFile |> Pass(name: "Dump Shined") { tokens, _ in
           for token in tokens {
-            token.writeSourceText(to: &stdoutStream, includeImplicit: true)
+            token.writeSourceText(to: &stdoutStreamHandle,
+                                  includeImplicit: true)
           }
         })
       case .dump(.parse):
         run(parseFile |> Pass(name: "Dump Parsed") { module, _ in
-          SyntaxDumper(stream: &stderrStream).dump(module)
+          SyntaxDumper(stream: &stderrStreamHandle).dump(module)
         })
       case .dump(.scopes):
         run(scopeCheckFile |> Pass(name: "Dump Scopes") { module, _ in

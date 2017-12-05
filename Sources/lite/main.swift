@@ -7,7 +7,8 @@
 
 import Foundation
 import Drill
-import CommandLine
+import Basic
+import Utility
 import LiteSupport
 import Lithosphere
 import Rainbow
@@ -16,57 +17,59 @@ import Rainbow
 import Glibc
 #endif
 
-func run() -> Int {
-  let testDir =
-    StringOption(shortFlag: "d",
-      longFlag: "test-dir",
-      helpMessage: "The top-level directory containing tests to run. " +
-                   "Defaults to the current working directory.")
+let cli = ArgumentParser(commandName: "lite", usage: "", overview: "")
 
-  let siltExe = StringOption(longFlag: "silt",
-    helpMessage: "The path to the `silt` executable. " +
-                 "Defaults to the executable next to `lite`.")
+let testDir =
+  cli.add(option: "--test-dir", shortName: "-d",
+          kind: String.self,
+          usage: """
+                 The top-level directory containing tests to run. \
+                 Defaults to the current working directory.
+                 """)
 
-  let cli = CLI()
-  cli.addOptions(testDir, siltExe)
+let siltExe =
+  cli.add(option: "--silt", kind: String.self,
+          usage: """
+                 The path to the `silt` executable. \
+                 Defaults to the executable next to `lite`.
+                 """)
 
-  do {
-    try cli.parse()
-  } catch {
-    cli.printUsage()
-    return -1
+func run() -> Int32 {
+  let args = Array(CommandLine.arguments.dropFirst())
+  guard let result = try? cli.parse(args) else {
+    cli.printUsage(on: Basic.stdoutStream)
+    return EXIT_FAILURE
   }
 
   let engine = DiagnosticEngine()
-  engine.register(PrintingDiagnosticConsumer(stream: &stderrStream))
+  engine.register(PrintingDiagnosticConsumer(stream: &stderrStreamHandle))
 
   let siltExeURL =
-    siltExe.value.map(URL.init(fileURLWithPath:)) ?? findSiltExecutable()
+    result.get(siltExe).map(URL.init(fileURLWithPath:)) ?? findSiltExecutable()
 
   guard let url = siltExeURL else {
     engine.diagnose(.init(.error, "unable to infer silt binary path"))
-    return -1
+    return EXIT_FAILURE
   }
 
-  var substitutions = [("silt", url.path.quoted)]
+  var substitutions = [("silt", "\"\(url.path)\"")]
 
   if let filecheckURL = findFileCheckExecutable() {
-    substitutions.append(("FileCheck", filecheckURL.path.quoted))
+    substitutions.append(("FileCheck", "\"\(filecheckURL.path)\""))
   }
 
   do {
     let allPassed = try runLite(substitutions: substitutions,
                                 pathExtensions: ["silt"],
-                                testDirPath: testDir.value,
+                                testDirPath: result.get(testDir),
                                 testLinePrefix: "--")
-    return allPassed ? 0 : -1
+    return allPassed ? EXIT_SUCCESS : EXIT_FAILURE
   } catch let err as LiteError {
     engine.diagnose(.init(.error, err.message))
-    return -1
+    return EXIT_FAILURE
   } catch {
     engine.diagnose(.init(.error, "\(error)"))
-    return -1
+    return EXIT_FAILURE
   }
 }
-
-exit(Int32(run()))
+exit(run())

@@ -13,53 +13,82 @@ import Glibc
 
 import Foundation
 import Drill
-import CommandLine
+import Utility
+import Basic
+
+extension Mode.VerifyLayer: StringEnumArgument {
+  public static var completion: ShellCompletion {
+    return ShellCompletion.values([
+      ("parse", "Verify the result of parsing the input file(s)"),
+      ("scopes", "Verify the result of scope checking the input file(s)"),
+    ])
+  }
+}
+
+extension Mode.DumpLayer: StringEnumArgument {
+  public static var completion: ShellCompletion {
+    return ShellCompletion.values([
+      (Mode.DumpLayer.tokens.rawValue,
+          "Dump the result of tokenizing the input file(s)"),
+      (Mode.DumpLayer.parse.rawValue,
+          "Dump the result of parsing the input file(s)"),
+      (Mode.DumpLayer.file.rawValue,
+          "Dump the result of parsing and reconstructing the input file(s)"),
+      (Mode.DumpLayer.shined.rawValue,
+          "Dump the result of shining the input file(s)"),
+      (Mode.DumpLayer.scopes.rawValue,
+          "Dump the result of scope checking the input file(s)"),
+    ])
+  }
+}
 
 
 /// Parses the command-line options into an Options struct and a list of file
 /// paths.
-func parseOptions() -> (Options, Set<String>) {
-  let cli = CLI()
-  let dumpOption =
-    EnumOption<Mode.DumpKind>(longFlag: "dump", required: false,
-                              helpMessage:
-        "Dumps the compiler's input at the specified stage in the compiler.")
-  let verify =
-    EnumOption<VerifyLayer>(longFlag: "verify",
-      helpMessage: "Run the compiler in diagnostic verifier mode.")
-  let disableColors =
-    BoolOption(longFlag: "no-colors",
-      helpMessage: "Disable ANSI colors in printed output.")
-  let printTiming =
-    BoolOption(longFlag: "debug-print-timing",
-      helpMessage: "Print the elapsed time for each pass of the compiler")
-  cli.addOptions(dumpOption, verify, disableColors, printTiming)
+func parseOptions() -> Options {
+  let cli = ArgumentParser(commandName: "silt",
+                           usage: "[options] <input file(s)>",
+                           overview: "The Silt compiler frontend")
+  let binder = ArgumentBinder<Options>()
 
-  do {
-    try cli.parse()
-  } catch {
-    cli.printUsage()
+  binder.bind(
+    option: cli.add(
+      option: "--dump",
+      kind: Mode.DumpLayer.self,
+      usage: "Dump the result of compiling up to a given layer"),
+    to: { opt, r in opt.mode = .dump(r) })
+  binder.bind(
+    option: cli.add(
+      option: "--verify",
+      kind: Mode.VerifyLayer.self,
+      usage: "Verify the result of compiling up to a given layer"),
+    to: { opt, r in opt.mode = .verify(r) })
+  binder.bind(
+    option: cli.add(option: "--no-colors", kind: Bool.self),
+    to: { opt, r in opt.colorsEnabled = !r })
+  binder.bind(
+    option: cli.add(option: "--debug-print-timing", kind: Bool.self),
+    to: { opt, r in opt.shouldPrintTiming = r })
+  binder.bindArray(
+    positional: cli.add(
+      positional: "",
+      kind: [String].self,
+      usage: "One or more input file(s)",
+      completion: .filename),
+    to: { opt, fs in opt.inputPaths.formUnion(fs) })
+
+  let args = Array(CommandLine.arguments.dropFirst())
+  guard let result = try? cli.parse(args) else {
+    cli.printUsage(on: Basic.stdoutStream)
     exit(EXIT_FAILURE)
   }
-
-  let mode: Mode
-  if let layer = verify.value {
-    mode = .verify(layer)
-  } else if let dump = dumpOption.value {
-    mode = .dump(dump)
-  } else {
-    mode = .compile
-  }
-
-  return (Options(mode: mode,
-                  colorsEnabled: !disableColors.value,
-                  shouldPrintTiming: printTiming.value),
-          Set(cli.unparsedArguments))
+  var options = Options()
+  binder.fill(result, into: &options)
+  return options
 }
 
 func main() -> Int32 {
-  let (options, paths) = parseOptions()
-  let invocation = Invocation(options: options, paths: paths)
+  let invocation = Invocation(options: parseOptions())
   return invocation.run() ? -1 : 0
 }
 
