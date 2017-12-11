@@ -34,6 +34,10 @@ let siltExe =
                  Defaults to the executable next to `lite`.
                  """)
 
+let runSerial =
+  cli.add(option: "--no-parallel", kind: Bool.self,
+          usage: "Don't run tests in parallel.")
+
 func run() -> Int32 {
   let args = Array(CommandLine.arguments.dropFirst())
   guard let result = try? cli.parse(args) else {
@@ -58,11 +62,15 @@ func run() -> Int32 {
     substitutions.append(("FileCheck", "\"\(filecheckURL.path)\""))
   }
 
+  let isParallel = !(result.get(runSerial) ?? false)
+  let parallelismLevel: ParallelismLevel = isParallel ? .automatic : .none
+
   do {
     let allPassed = try runLite(substitutions: substitutions,
                                 pathExtensions: ["silt"],
                                 testDirPath: result.get(testDir),
-                                testLinePrefix: "--")
+                                testLinePrefix: "--",
+                                parallelismLevel: parallelismLevel)
     return allPassed ? EXIT_SUCCESS : EXIT_FAILURE
   } catch let err as LiteError {
     engine.diagnose(.init(.error, err.message))

@@ -30,7 +30,7 @@ let package = Package(
       dependencies: ["Utility"]),
     .target(
       name: "lite",
-      dependencies: ["Symbolic", "LiteSupport", "silt"]),
+      dependencies: ["Symbolic", "LiteSupport", "silt", "Utility"]),
     .target(
       name: "file-check",
       dependencies: ["Drill", "FileCheck", "Utility"]),
