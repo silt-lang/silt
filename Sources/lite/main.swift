@@ -36,7 +36,7 @@ let siltExe =
 
 let runSerial =
   cli.add(option: "--no-parallel", kind: Bool.self,
-          usage: "Don't run tests in order.")
+          usage: "Don't run tests in parallel.")
 
 func run() -> Int32 {
   let args = Array(CommandLine.arguments.dropFirst())
