@@ -37,6 +37,21 @@ class BottomType: TypeBase {
   }
 }
 
+class PointerType: TypeBase {
+  let pointee: TypeBase
+  init(in context: Context, pointee: TypeBase) {
+    self.pointee = pointee
+    super.init(in: context, typeOperands: [pointee])
+  }
+}
+
+/// The type of the memory monad.
+public class MemType: TypeBase {
+  init(in context: Context) {
+    super.init(in: context, typeOperands: [])
+  }
+}
+
 public class TypeBase : Hashable {
   private static var idPool: Int = 0
   private var id: Int

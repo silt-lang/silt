@@ -56,6 +56,10 @@ public class Definition: Hashable {
   }
 }
 
+public class PrimLit: Definition {
+  
+}
+
 /// A Use represents a use of a definition in the program.
 public struct Use: Hashable {
   let index : Int
