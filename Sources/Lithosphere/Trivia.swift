@@ -112,14 +112,14 @@ public struct Trivia {
     return [.formfeeds(count)]
   }
 
-  /// Return a piece of trivia for some number of newline characters
+  /// Return a piece of trivia for some number of newline (LF) characters
   /// in a row.
   public static func newlines(_ count: Int) -> Trivia {
     return [.newlines(count)]
   }
 
-  /// Return a piece of trivia for some number of newline characters
-  /// in a row.
+  /// Return a piece of trivia for some number of carriage-return (CR)
+  /// characters in a row.
   public static func carriageReturns(_ count: Int) -> Trivia {
     return [.carriageReturns(count)]
   }
