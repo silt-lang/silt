@@ -42,6 +42,9 @@ public enum TriviaPiece {
   /// A newline '\n' character.
   case newlines(Int)
 
+  /// A carriage-return '\r' character.
+  case carriageReturns(Int)
+
   /// A developer line comment, starting with '--'
   case comment(String)
 }
@@ -61,6 +64,7 @@ extension TriviaPiece {
     case let .verticalTabs(count): printRepeated("\u{2B7F}", count: count)
     case let .formfeeds(count): printRepeated("\u{240C}", count: count)
     case let .newlines(count): printRepeated("\n", count: count)
+    case let .carriageReturns(count): printRepeated("\r", count: count)
     case let .comment(text): target.write(text)
     }
   }
@@ -112,6 +116,12 @@ public struct Trivia {
   /// in a row.
   public static func newlines(_ count: Int) -> Trivia {
     return [.newlines(count)]
+  }
+
+  /// Return a piece of trivia for some number of newline characters
+  /// in a row.
+  public static func carriageReturns(_ count: Int) -> Trivia {
+    return [.carriageReturns(count)]
   }
 
   /// Return a piece of trivia for a single line of ('--') developer comment.
