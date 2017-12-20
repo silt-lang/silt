@@ -74,6 +74,9 @@ public class Lexer {
       case "\n" where includeNewlines:
         trivia.append(.newlines(1))
         advance()
+      case "\r":
+        trivia.append(.carriageReturns(1))
+        advance()
       case "-":
         if peek(ahead: 1) == "-" {
           trivia.append(.comment(collectLineComment()))
