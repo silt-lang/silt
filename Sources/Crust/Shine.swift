@@ -146,10 +146,12 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
       } else {
         while let block = layoutBlockStack.last, !block.lessThan(wsp) {
           _ = layoutBlockStack.popLast()
-          stainlessToks.append(TokenSyntax(.rightBrace,
-                                           leadingTrivia: .newlines(1),
-                                           presence: .implicit))
-          stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
+          if !layoutBlockStack.isEmpty {
+            stainlessToks.append(TokenSyntax(.rightBrace,
+                                             leadingTrivia: .newlines(1),
+                                             presence: .implicit))
+            stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
+          }
         }
 
         if layoutBlockStack.isEmpty {
@@ -184,10 +186,12 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
         stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
         while let block = layoutBlockStack.last, ws.lessThan(block) {
           _ = layoutBlockStack.popLast()
-          stainlessToks.append(TokenSyntax(.rightBrace,
-                                           leadingTrivia: .newlines(1),
-                                           presence: .implicit))
-          stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
+          if !layoutBlockStack.isEmpty {
+            stainlessToks.append(TokenSyntax(.rightBrace,
+                                             leadingTrivia: .newlines(1),
+                                             presence: .implicit))
+            stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
+          }
         }
 
         if let block = layoutBlockStack.last, !ws.equivalentTo(block) {
@@ -200,15 +204,14 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
     stainlessToks.append(tok)
   }
 
-  if !layoutBlockStack.isEmpty {
-    while let _ = layoutBlockStack.popLast() {
-      stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
-      stainlessToks.append(TokenSyntax(.rightBrace,
-                                       leadingTrivia: .newlines(1),
-                                       presence: .implicit))
-    }
+  while let _ = layoutBlockStack.popLast() {
     stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
+    stainlessToks.append(TokenSyntax(.rightBrace,
+                                     leadingTrivia: .newlines(1),
+                                     presence: .implicit))
   }
+  stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
+
 
 
   // Append the EOF on the way out
