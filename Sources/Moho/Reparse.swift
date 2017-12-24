@@ -133,8 +133,10 @@ public struct NewNotation: CustomStringConvertible {
 extension NameBinding {
   /// Walks the module and registers any encountered user-defined notations in
   /// a scope.
-  func walkNotations(_ module: ModuleDeclSyntax) -> Scope {
+  func walkNotations(
+    _ module: ModuleDeclSyntax, _ name: FullyQualifiedName) -> Scope {
     return self.underScope { (scope) -> Scope in
+      scope.nameSpace = NameSpace(name)
       for d in module.declList {
         switch d {
         case let node as FunctionDeclSyntax:
