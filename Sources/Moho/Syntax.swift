@@ -11,17 +11,17 @@ import Lithosphere
 /// known to be well-scoped.
 public struct DeclaredModule {
   /// The name of the module.
-  let moduleName: QualifiedName
+  public let moduleName: QualifiedName
   /// The parameter list of the module, in user-declared order.
-  let params: [([Name], Expr)]
+  public let params: [([Name], Expr)]
   /// The namespace of the module.
   let namespace: NameSpace
   /// The child declarations.
-  let decls: [Decl]
+  public let decls: [Decl]
 }
 
 /// Represents a well-scoped declaration.
-enum Decl {
+public enum Decl {
   /// A type ascription.
   ///
   /// ```
@@ -61,7 +61,7 @@ enum Decl {
   ///
   /// The signature of the function is not immediately available, but may be
   /// acquired by querying the context with the qualified name.
-  case function(QualifiedName, [Clause])
+  case function(QualifiedName, [DeclaredClause])
   /// The body of a data declaration.
   ///
   /// E.g. this portion of the standard definition of
@@ -101,8 +101,8 @@ enum Decl {
 
 /// Represents a type signature - a name and an expression.
 public struct TypeSignature {
-  let name: QualifiedName
-  let type: Expr
+  public let name: QualifiedName
+  public let type: Expr
 }
 
 /// Represents a fully scope-checked pattern.
@@ -129,12 +129,12 @@ public enum Pattern {
 }
 
 /// Represents a clause in a pattern.
-struct Clause {
-  let patterns: [Pattern]
-  let body: Body
+public struct DeclaredClause {
+  public let patterns: [DeclaredPattern]
+  public let body: Body
 
   /// Represents the body of a clause.
-  enum Body {
+  public enum Body {
     /// A function clause may have an empty body if a clause introduces an
     /// absurd pattern.
     case empty
@@ -155,7 +155,7 @@ public enum DeclaredPattern {
 
 
 /// Expressions - well-scoped but not necessarily well-formed.
-public indirect enum Expr: Equatable {
+public indirect enum Expr: Equatable, CustomStringConvertible {
   /// An application of a head to a body of eliminators.
   ///
   /// The head may by a local variable or a definition while the eliminators
@@ -174,7 +174,7 @@ public indirect enum Expr: Equatable {
   case function(Expr, Expr)
   /// A lambda binding some variables of the same type to some output expression
   /// that may depend on those variables.
-  case lambda(([Name], Expr), Expr)
+  case lambda((Name, Expr), Expr)
   /// A type constructor for a term.
   case constructor(QualifiedName, [Expr])
   /// The "Type" sort.
@@ -229,6 +229,40 @@ public indirect enum Expr: Equatable {
       return false
     }
   }
+
+  public var description: String {
+    switch self {
+    case .refl:
+      return "refl"
+    case .type:
+      return "Type"
+    case let .pi(name, .pi(iname, llhs, lrhs), rhs):
+      return "(\(name) : (\(iname) : \(llhs) -> \(lrhs))) -> \(rhs)"
+    case let .pi(name, lhs, rhs):
+      return "(\(name) : \(lhs)) -> \(rhs)"
+    case let .function(.function(llhs, lrhs), rhs):
+      return "(\(llhs) -> \(lrhs)) -> \(rhs)"
+    case let .function(lhs, rhs):
+      return "\(lhs) -> \(rhs)"
+    case .meta:
+      return "$META"
+    case let .lambda(body):
+      return "λ . \(body)"
+    case let .equal(eqTy, lhs, rhs):
+      return "\(lhs) =(\(eqTy))= \(rhs)"
+    case let .constructor(openTm, args):
+      return "\(openTm)(\(args.map({$0.description}).joined(separator: ", ")))"
+    case let .apply(head, elims):
+      switch head {
+      case let .definition(def):
+        guard !elims.isEmpty else { return "\(def)" }
+        return "\(def)[\(elims.map({$0.description}).joined(separator: ", "))]"
+      case let .variable(vari):
+        guard !elims.isEmpty else { return "\(vari)" }
+        return "\(vari)[\(elims.map({$0.description}).joined(separator: ", "))]"
+      }
+    }
+  }
 }
 
 /// Represents the "head" of an application expression.
@@ -263,7 +297,7 @@ public enum ApplyHead: Equatable {
 }
 
 /// An elimination for an expression.
-public enum Elimination: Equatable {
+public enum Elimination: Equatable, CustomStringConvertible {
   /// Apply an expression to the nearest bindable thing on hand.
   case apply(Expr)
   /// Project the named field from a record.
@@ -277,6 +311,15 @@ public enum Elimination: Equatable {
       return n == m
     default:
       return false
+    }
+  }
+
+  public var description: String {
+    switch self {
+    case let .apply(arg):
+      return "\(arg)"
+    case let .projection(proj):
+      return "#\(proj)"
     }
   }
 }
