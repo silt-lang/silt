@@ -152,4 +152,3 @@ It is possible for constraint solving to terminate without binding all generated
 metavariables.  In that case, the generated solution is *malformed* and should
 be examined by a diagnostics phase.
 
-
