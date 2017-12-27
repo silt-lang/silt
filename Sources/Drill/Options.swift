@@ -38,6 +38,10 @@ public enum Mode {
     case shined
 
     case scopes
+
+    /// The compiler will lex, layout, parse, scope check, then type check
+    /// the source text and dump the solving process.
+    case typecheck
   }
   case dump(DumpLayer)
   case verify(VerifyLayer)

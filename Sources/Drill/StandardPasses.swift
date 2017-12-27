@@ -9,6 +9,7 @@ import Foundation
 import Lithosphere
 import Crust
 import Moho
+import Mantle
 
 enum Passes {
   /// Reads a file and returns both the String contents of the file and
@@ -54,4 +55,12 @@ enum Passes {
         let binder = NameBinding(topLevel: mod, engine: ctx.engine)
         return binder.performScopeCheck(topLevel: mod)
       })
+
+  /// The TypeCheck pass ensures a well-scoped program is also well-typed.
+  static let typeCheck =
+    DiagnosticGatePass(
+      Pass<DeclaredModule, Module>(name: "Type Check") { module, _ in
+        let tc = TypeChecker<CheckPhaseState>(CheckPhaseState())
+        return tc.checkModule(module)
+    })
 }

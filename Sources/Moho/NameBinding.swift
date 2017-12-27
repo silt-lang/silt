@@ -40,7 +40,7 @@ public class NameBinding {
   let engine: DiagnosticEngine
 
   public init(topLevel: ModuleDeclSyntax, engine: DiagnosticEngine) {
-    self.activeScope = Scope(QualifiedName(ast: topLevel.moduleIdentifier))
+    self.activeScope = Scope(QualifiedName())
     self.engine = engine
   }
 
@@ -258,8 +258,6 @@ extension NameBinding {
 
   /// Bind a local definition in the current active scope.  Suitable for types,
   /// constructors, and functions.
-  ///
-  /// FIXME: Break this up?
   func bindDefinition(
     named n: Name, _ hidden: NumImplicitArguments) -> FullyQualifiedName? {
     return self.bindLocal(named: n, info: .definition(hidden))

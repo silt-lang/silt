@@ -41,6 +41,11 @@ public struct QualifiedName: Equatable, Hashable, CustomStringConvertible {
   let name: Name
   let module: [Name]
 
+  public init() {
+    self.name = Name(name: TokenSyntax(.identifier("")))
+    self.module = []
+  }
+
   /// Create a `QualifiedName` from a `QualifiedNameSyntax` node.
   public init(ast: QualifiedNameSyntax) {
     precondition(!ast.isEmpty)
@@ -94,7 +99,7 @@ public struct QualifiedName: Equatable, Hashable, CustomStringConvertible {
   }
 
   public var description: String {
-    return self.module.reduce("") { (acc, x) in
+    return self.module.reversed().reduce("") { (acc, x) in
       return acc + x.description + "."
     } + self.name.description
   }

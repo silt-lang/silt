@@ -39,6 +39,6 @@ let package = Package(
       dependencies: ["Lithosphere", "Crust"]),
     .target(
       name: "Mantle",
-      dependencies: ["Lithosphere", "Moho"]),
+      dependencies: ["Lithosphere", "Moho", "Utility"]),
   ]
 )

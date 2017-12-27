@@ -20,6 +20,11 @@ struct NameSpace {
   // The definitions defined in some module.
   var localNames: LocalNames
 
+  init() {
+    self.module = FullyQualifiedName()
+    self.localNames = [:]
+  }
+
   init(_ qn: FullyQualifiedName) {
     self.module = qn
     self.localNames = [:]
