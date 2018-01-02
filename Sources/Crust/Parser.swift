@@ -47,6 +47,16 @@ extension Diagnostic.Message {
       .error,
       "qualified name '\(txt)' is not allowed in this position")
   }
+
+  static let unexpectedConstructor =
+    Diagnostic.Message(.error,
+                       """
+                       data constructors may only appear within the scope of a \
+                       data declaration
+                       """)
+
+  static let expectedPipeInConstructor =
+    Diagnostic.Message(.error, "type constructors must be preceded by '|'")
 }
 
 public class Parser {
@@ -174,16 +184,15 @@ extension Parser {
 
   /// Ensures all of the QualifiedNameSyntax nodes passed in are basic names,
   /// not actually fully qualified names.
-  func ensureAllNamesSimple(
-    _ names: [QualifiedNameSyntax]) throws -> [TokenSyntax] {
-    return try names.map { qn -> TokenSyntax in
-      guard
-        let name = qn.first,
-        name.trailingPeriod == nil,
-        qn.count == 1 else {
-          throw engine.diagnose(.unexpectedQualifiedName(qn), node: qn) {
-            $0.highlight(qn)
-          }
+  func ensureAllNamesSimple(_ names: [QualifiedNameSyntax]) -> [TokenSyntax] {
+    return names.map { qn -> TokenSyntax in
+      let name = qn.first!
+      if name.trailingPeriod != nil || qn.count != 1 {
+        // Diagnose the qualified name and recover by using just the
+        // first piece.
+        engine.diagnose(.unexpectedQualifiedName(qn), node: qn) {
+          $0.highlight(qn)
+        }
       }
       return name.name
     }
@@ -199,8 +208,7 @@ extension Parser {
       default: break loop
       }
     }
-    let ids = try ensureAllNamesSimple(names)
-    return IdentifierListSyntax(elements: ids)
+    return IdentifierListSyntax(elements: ensureAllNamesSimple(names))
   }
 }
 
@@ -208,7 +216,11 @@ extension Parser {
   func parseDeclList() throws -> DeclListSyntax {
     var pieces = [DeclSyntax]()
     while peek() != .rightBrace {
-      pieces.append(try parseDecl())
+      // Recover from invalid declarations by ignoring them.
+      guard let decl = try? parseDecl() else {
+        continue
+      }
+      pieces.append(decl)
     }
     return DeclListSyntax(elements: pieces)
   }
@@ -229,7 +241,18 @@ extension Parser {
       return try self.parseInfixDecl()
     case .identifier(_):
       return try self.parseFunctionDeclOrClause()
+    // MARK: Recovery
+    case .pipe:
+      // Try to recover by parsing the constructor.
+      guard let recoveredConstr = try? self.parseConstructor() else {
+        advance()
+        throw expected("declaration")
+      }
+      throw engine.diagnose(.unexpectedConstructor, node: recoveredConstr) {
+        $0.highlight(recoveredConstr)
+      }
     default:
+      advance()
       throw expected("declaration")
     }
   }
@@ -495,14 +518,29 @@ extension Parser {
 
   func parseConstructorList() throws -> ConstructorListSyntax {
     var pieces = [ConstructorDeclSyntax]()
-    while case .pipe = peek() {
+    while peek() != .rightBrace {
+      // If we haven't hit the closing brace or a pipe, the user may have
+      // forgotten.
+      //
+      // FIXME: Recover by inserting the pipe.
+      guard peek() == .pipe else {
+        let constr = try parseConstructor(TokenSyntax(.pipe,
+                                                      presence: .missing))
+        // Diagnose the ascription because the pipe is missing.
+        engine.diagnose(.expectedPipeInConstructor, node: constr.ascription) {
+          $0.highlight(constr.ascription)
+        }
+        pieces.append(constr)
+        continue
+      }
       pieces.append(try parseConstructor())
     }
     return ConstructorListSyntax(elements: pieces)
   }
 
-  func parseConstructor() throws -> ConstructorDeclSyntax {
-    let pipe = try consume(.pipe)
+  func parseConstructor(
+    _ rpipe: TokenSyntax? = nil) throws -> ConstructorDeclSyntax {
+    let pipe = try rpipe ?? consume(.pipe)
     let ascription = try parseAscription()
     let semi = try consume(.semicolon)
     return ConstructorDeclSyntax(
@@ -709,7 +747,7 @@ extension Parser {
       return namedExpr.name
     }
 
-    let tokens = try ensureAllNamesSimple(names)
+    let tokens = ensureAllNamesSimple(names)
     let identList = IdentifierListSyntax(elements: tokens)
     let typeExpr = try self.parseExpr()
     let ascription = AscriptionSyntax(boundNames: identList,
