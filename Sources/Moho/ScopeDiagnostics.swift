@@ -7,6 +7,8 @@
 
 import Lithosphere
 
+// MARK: Scope Check
+
 extension Diagnostic.Message {
   static func undeclaredIdentifier(_ n: QualifiedName) -> Diagnostic.Message {
     return Diagnostic.Message(.error, "use of undeclared identifier '\(n)'")
@@ -56,5 +58,35 @@ extension Diagnostic.Message {
     _ n: FullyQualifiedName) -> Diagnostic.Message {
     return Diagnostic.Message(.error,
                               "record '\(n)' must have constructor declared")
+  }
+
+  static func precedenceNotIntegral(_ p: TokenSyntax) -> Diagnostic.Message {
+    return Diagnostic.Message(.error,
+                              """
+                              operator precedence '\(p.triviaFreeSourceText)' \
+                              is invalid; precedence must be a positive integer
+                              """)
+  }
+  static var assumingDefaultPrecedence: Diagnostic.Message {
+    return Diagnostic.Message(.note, "assuming default precedence of 20")
+  }
+}
+
+// MARK: Reparsing
+
+extension Diagnostic.Message {
+  static var reparseLHSFailed: Diagnostic.Message =
+    Diagnostic.Message(.error, "unable to parse function parameter clause")
+
+  static var reparseRHSFailed: Diagnostic.Message =
+    Diagnostic.Message(.error, "unable to parse expression")
+
+  static func reparseAbleToParse(_ s: Syntax) -> Diagnostic.Message {
+    return Diagnostic.Message(.note,
+              "partial parse recovered expression '\(s.diagnosticSourceText)'")
+  }
+
+  static func reparseUsedNotation(_ n: NewNotation) -> Diagnostic.Message {
+    return Diagnostic.Message(.note, "while using notation \(n.description)")
   }
 }

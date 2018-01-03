@@ -150,6 +150,12 @@ public class Syntax {
     self.writeSourceText(to: &s, includeImplicit: false, includeTrivia: false)
     return s
   }
+
+  public var diagnosticSourceText: String {
+    var s = ""
+    self.formatSourceText(to: &s)
+    return s
+  }
 }
 
 extension Syntax {
@@ -160,6 +166,13 @@ extension Syntax {
     includeTrivia: Bool = true) {
     data.raw.writeSourceText(to: &target, includeImplicit: includeImplicit,
                              includeTrivia: includeTrivia)
+  }
+
+  /// Prints the raw value of this node to the provided stream.
+  /// - Parameter stream: The stream to which to print the raw tree.
+  public func formatSourceText<Target: TextOutputStream>(
+    to target: inout Target) {
+    data.raw.formatSourceText(to: &target)
   }
 }
 

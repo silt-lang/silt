@@ -24,7 +24,7 @@ extension NameBinding {
     let qmodName = self.qualify(name: moduleName.name)
     let params = module.typedParameterList.map(self.scopeCheckParameter)
     return self.withScope(walkNotations(module, qmodName)) { _ in
-      let filteredDecls =  self.reparseDecls(module.declList)
+      let filteredDecls = self.reparseDecls(module.declList)
       return DeclaredModule(
         moduleName: self.activeScope.nameSpace.module,
         params: params,
@@ -46,6 +46,8 @@ extension NameBinding {
       return self.scopeCheckDataDecl(syntax)
     case let syntax as RecordDeclSyntax:
       return self.scopeCheckRecordDecl(syntax)
+    case let syntax as FixityDeclSyntax:
+      return self.scopeCheckFixityDecl(syntax)
       // FIXME: Implement import validation logic.
 //    case let syntax as ImportDeclSyntax:
 //    case let syntax as OpenImportDeclSyntax:
@@ -98,44 +100,39 @@ extension NameBinding {
         }
       }
     case let syntax as ReparsedApplicationExprSyntax:
-      guard syntax.exprs.count > 1 else {
-        return self.scopeCheckExpr(syntax.exprs[0])
+      guard syntax.exprs.count >= 1 else {
+        return self.scopeCheckExpr(syntax.head)
       }
 
-      switch syntax.exprs[0] {
-      case let headExpr as NamedBasicExprSyntax:
-        let n = QualifiedName(ast: headExpr.name)
-        guard n.string != "->" else {
-          assert(syntax.exprs.count == 3)
-          return .function(self.scopeCheckExpr(syntax.exprs[1]),
-                           self.scopeCheckExpr(syntax.exprs[2]))
-        }
-
-        var args = [Expr]()
-        for e in syntax.exprs.dropFirst() {
-          let elim = self.scopeCheckExpr(e)
-          args.append(elim)
-        }
-
-        let head: ApplyHead
-        if self.isBoundVariable(n.name) {
-          head = .variable(n.name)
-        } else if let (fqn, _) = self.lookupLocalName(n.name) {
-          head = .definition(fqn)
-        } else if self.lookupFullyQualifiedName(n) != nil {
-          head = .definition(n)
-        } else {
-          // If it's not a definition or a local variable, it's undefined.
-          // Recover by introducing a local variable binding anyways.
-          self.engine.diagnose(.undeclaredIdentifier(n), node: n.node)
-          head = .variable(n.name)
-        }
-
-        return .apply(head, args.map(Elimination.apply))
-
-      default:
-        fatalError("Cannot yet handle this case")
+      let headExpr = syntax.head
+      let n = QualifiedName(ast: headExpr.name)
+      guard n.string != "_->_" else {
+        assert(syntax.exprs.count == 2)
+        return .function(self.scopeCheckExpr(syntax.exprs[0]),
+                         self.scopeCheckExpr(syntax.exprs[1]))
       }
+
+      var args = [Expr]()
+      for e in syntax.exprs {
+        let elim = self.scopeCheckExpr(e)
+        args.append(elim)
+      }
+
+      let head: ApplyHead
+      if self.isBoundVariable(n.name) {
+        head = .variable(n.name)
+      } else if let (fqn, _) = self.lookupLocalName(n.name) {
+        head = .definition(fqn)
+      } else if self.lookupFullyQualifiedName(n) != nil {
+        head = .definition(n)
+      } else {
+        // If it's not a definition or a local variable, it's undefined.
+        // Recover by introducing a local variable binding anyways.
+        self.engine.diagnose(.undeclaredIdentifier(n), node: n.node)
+        head = .variable(n.name)
+      }
+
+      return .apply(head, args.map(Elimination.apply))
     case let syntax as ApplicationExprSyntax:
       guard syntax.exprs.count > 1 else {
         return self.scopeCheckExpr(syntax.exprs[0])
@@ -144,7 +141,7 @@ extension NameBinding {
       switch syntax.exprs[0] {
       case let headExpr as NamedBasicExprSyntax:
         let n = QualifiedName(ast: headExpr.name)
-        guard n.string != "->" else {
+        guard n.string != "_->_" else {
           assert(syntax.exprs.count == 3)
           return .function(self.scopeCheckExpr(syntax.exprs[1]),
                            self.scopeCheckExpr(syntax.exprs[2]))
@@ -247,7 +244,7 @@ extension NameBinding {
     switch syntax {
     case let syntax as ExplicitTypedParameterSyntax:
       let tyExpr = self.scopeCheckExpr(
-                      self.rebindArrows(syntax.ascription.typeExpr))
+                      self.reparseExpr(syntax.ascription.typeExpr))
       var names = [Name]()
       for synName in syntax.ascription.boundNames {
         let name = Name(name: synName)
@@ -268,7 +265,7 @@ extension NameBinding {
       return (names, tyExpr)
     case let syntax as ImplicitTypedParameterSyntax:
       let tyExpr = self.scopeCheckExpr(
-                      self.rebindArrows(syntax.ascription.typeExpr))
+                      self.reparseExpr(syntax.ascription.typeExpr))
       var names = [Name]()
       for synName in syntax.ascription.boundNames {
         let name = Name(name: synName)
@@ -296,7 +293,7 @@ extension NameBinding {
     _ syntax: BasicExprListSyntax) -> [DeclaredPattern] {
     assert(!syntax.isEmpty)
 
-    let pats = syntax.dropFirst().map(self.exprToDeclPattern)
+    let pats = syntax.flatMap(self.exprToDeclPattern)
     func openPatternVarsIntoScope(_ p: DeclaredPattern) -> Bool {
       switch p {
       case .wild:
@@ -322,58 +319,6 @@ extension NameBinding {
     return validPatterns
   }
 
-  // FIXME: Remove this and really implement mixfix operators, dummy.
-  private func rebindArrows(_ syntax: ExprSyntax) -> ExprSyntax {
-    switch syntax {
-    case let syntax as ParenthesizedExprSyntax:
-      return syntax.withExpr(self.rebindArrows(syntax.expr))
-    case let syntax as ApplicationExprSyntax:
-      guard syntax.exprs.count > 1 else {
-        return self.rebindArrows(syntax.exprs[0])
-      }
-
-      var precExprs = [BasicExprSyntax]()
-      for (exprIdx, expr) in syntax.exprs.enumerated() {
-        if
-          let tokExpr = expr as? NamedBasicExprSyntax,
-          QualifiedName(ast: tokExpr.name).string == "->"
-        {
-          let prevExpr = ReparsedApplicationExprSyntax(exprs:
-            BasicExprListSyntax(elements: precExprs))
-          let nextApp = ApplicationExprSyntax(exprs:
-            BasicExprListSyntax(elements:
-              Array(syntax.exprs[exprIdx+1..<syntax.exprs.endIndex])))
-          let nextExpr = ParenthesizedExprSyntax(
-              leftParenToken: TokenSyntax(.leftParen),
-              expr: rebindArrows(nextApp),
-              rightParenToken: TokenSyntax(.rightParen)
-          )
-          return ReparsedApplicationExprSyntax(exprs:
-            BasicExprListSyntax(elements: [ tokExpr, prevExpr, nextExpr ]))
-        } else {
-          precExprs.append(ParenthesizedExprSyntax(
-            leftParenToken: TokenSyntax(.leftParen),
-            expr: rebindArrows(expr),
-            rightParenToken: TokenSyntax(.rightParen)
-          ))
-        }
-      }
-      return syntax
-    case let syntax as QuantifiedExprSyntax:
-      return syntax.withOutputExpr(self.rebindArrows(syntax.outputExpr))
-    case let syntax as TypedParameterGroupExprSyntax:
-      return syntax
-    case let syntax as NamedBasicExprSyntax:
-      return syntax
-    case let syntax as TypeBasicExprSyntax:
-      return syntax
-    case let syntax as ReparsedApplicationExprSyntax:
-      return syntax
-    default:
-      fatalError("arrow rebinding for \(type(of: syntax)) is unimplemented")
-    }
-  }
-
   private func scopeCheckDataDecl(_ syntax: DataDeclSyntax) -> [Decl] {
     let dataName = Name(name: syntax.dataIdentifier)
     guard let boundDataName = self.bindDefinition(named: dataName, 0) else {
@@ -384,8 +329,7 @@ extension NameBinding {
     }
     let (sig, db) = self.underScope { (_) -> (Decl, Decl) in
       let params = syntax.typedParameterList.map(self.scopeCheckParameter)
-      // FIXME: This is not a substitute for real mixfix operators
-      let rebindExpr = self.rebindArrows(syntax.typeIndices.indexExpr)
+      let rebindExpr = self.reparseExpr(syntax.typeIndices.indexExpr)
       let (type, names) = self.rollPi(params, self.scopeCheckExpr(rebindExpr))
       let asc = Decl.dataSignature(TypeSignature(name: boundDataName,
                                                  type: type))
@@ -417,17 +361,13 @@ extension NameBinding {
     }
     return self.underScope { _ in
       let params = syntax.parameterList.map(self.scopeCheckParameter)
-      // FIXME: This is not a substitute for real mixfix operators
-      var type = syntax.typeIndices.map({
-        return self.scopeCheckExpr(self.rebindArrows($0.indexExpr))
+      let capType = syntax.typeIndices.map({
+        return self.scopeCheckExpr(self.reparseExpr($0.indexExpr))
       }) ?? Expr.type
-      for (names, expr) in params {
-        for name in names {
-          type = Expr.pi(name, expr, type)
-        }
-      }
+
+      let (ty, _) = rollPi(params, capType)
       let asc = Decl.recordSignature(TypeSignature(name: boundDataName,
-                                                   type: type))
+                                                   type: ty))
 
       var sigs = [(Name, TypeSignature)]()
       var decls = [Decl]()
@@ -471,20 +411,24 @@ extension NameBinding {
     var result = [(Name, TypeSignature)]()
     result.reserveCapacity(syntax.ascription.boundNames.count)
     for synName in syntax.ascription.boundNames {
-      let name = Name(name: synName)
+      let maybeSig = self.underScope { (_) -> (Name, TypeSignature)? in
+        let name = Name(name: synName)
 
-      // FIXME: This is not a substitute for real mixfix operators
-      let rebindExpr = self.rebindArrows(syntax.ascription.typeExpr)
-      let ascExpr = self.scopeCheckExpr(rebindExpr)
+        let rebindExpr = self.reparseExpr(syntax.ascription.typeExpr)
+        let ascExpr = self.scopeCheckExpr(rebindExpr)
 
-      guard let bindName = self.bindProjection(named: name, 0) else {
-        // If this declaration does not have a unique name, diagnose it and
-        // recover by ignoring it.
-        self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
-        continue
+        guard let bindName = self.bindProjection(named: name, 0) else {
+          // If this declaration does not have a unique name, diagnose it and
+          // recover by ignoring it.
+          self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
+          return nil
+        }
+        return (name, TypeSignature(name: bindName, type: ascExpr))
       }
 
-      result.append((name, TypeSignature(name: bindName, type: ascExpr)))
+      if let sig = maybeSig {
+        result.append(sig)
+      }
     }
     return result
   }
@@ -496,8 +440,7 @@ extension NameBinding {
     for synName in syntax.ascription.boundNames {
       let name = Name(name: synName)
 
-      // FIXME: This is not a substitute for real mixfix operators
-      let rebindExpr = self.rebindArrows(syntax.ascription.typeExpr)
+      let rebindExpr = self.reparseExpr(syntax.ascription.typeExpr)
       let ascExpr = self.scopeCheckExpr(rebindExpr)
 
       guard let bindName = self.bindConstructor(named: name, 0, 0) else {
@@ -520,8 +463,7 @@ extension NameBinding {
     guard let functionName = self.bindDefinition(named: funcName, 0) else {
       fatalError("Should have unique function names by now")
     }
-    // FIXME: This is not a substitute for real mixfix operators
-    let rebindExpr = self.rebindArrows(syntax.ascription.typeExpr)
+    let rebindExpr = self.reparseExpr(syntax.ascription.typeExpr)
     let ascExpr = self.underScope { _ in
       return self.scopeCheckExpr(rebindExpr)
     }
@@ -537,7 +479,8 @@ extension NameBinding {
     case let syntax as NormalFunctionClauseDeclSyntax:
       return self.underScope { _ in
         let pattern = self.scopeCheckPattern(syntax.basicExprList)
-        let body = self.scopeCheckExpr(syntax.rhsExpr)
+        let reparsedRHS = self.reparseExpr(syntax.rhsExpr)
+        let body = self.scopeCheckExpr(reparsedRHS)
         return DeclaredClause(patterns: pattern, body: .body(body, []))
       }
     case let syntax as WithRuleFunctionClauseDeclSyntax:
@@ -552,13 +495,13 @@ extension NameBinding {
     }
   }
 
-  private func exprToDeclPattern(_ syntax: ExprSyntax) -> DeclaredPattern {
+  private func exprToDeclPattern(_ syntax: ExprSyntax) -> [DeclaredPattern] {
     switch syntax {
     case let syntax as NamedBasicExprSyntax where syntax.name.count == 1 &&
       syntax.name[0].name.tokenKind == .underscore:
-      return .wild
+      return [.wild]
     case let syntax as NamedBasicExprSyntax:
-      return .variable(QualifiedName(ast: syntax.name).name)
+      return [.variable(QualifiedName(ast: syntax.name).name)]
     case let syntax as ApplicationExprSyntax:
       guard
         let firstExpr = syntax.exprs.first,
@@ -566,12 +509,19 @@ extension NameBinding {
       else {
         fatalError("Can't handle this kind of pattern")
       }
-      return .constructor(QualifiedName(ast: head.name),
-                          syntax.exprs.dropFirst().map(self.exprToDeclPattern))
+      let argsExpr = syntax.exprs.dropFirst().flatMap(self.exprToDeclPattern)
+      return [.constructor(QualifiedName(ast: head.name), argsExpr)]
+    case let syntax as ReparsedApplicationExprSyntax:
+      let name = QualifiedName(ast: syntax.head.name).name
+      guard case let .some(fqn, .constructor(_)) = lookupLocalName(name) else {
+        return self.exprToDeclPattern(syntax.head)
+             + syntax.exprs.flatMap(self.exprToDeclPattern)
+      }
+      return [.constructor(fqn, syntax.exprs.flatMap(self.exprToDeclPattern))]
     case let syntax as ParenthesizedExprSyntax:
       return self.exprToDeclPattern(syntax.expr)
     case _ as UnderscoreExprSyntax:
-      return .wild
+      return [.wild]
     default:
       fatalError("scope checking for \(type(of: syntax)) is unimplemented")
     }
@@ -581,9 +531,9 @@ extension NameBinding {
 extension NameBinding {
   func reparseDecls(_ ds: DeclListSyntax) -> DeclListSyntax {
     var decls = [DeclSyntax]()
-//    let notes = self.newNotations(in: self.activeScope)
     var funcMap = [Name: FunctionDeclSyntax]()
     var clauseMap = [Name: [FunctionClauseDeclSyntax]]()
+    var nameList = [Name]()
     for decl in ds {
       switch decl {
       case let funcDecl as FunctionDeclSyntax:
@@ -600,25 +550,22 @@ extension NameBinding {
           }
           funcMap[name] = funcDecl
           clauseMap[name] = []
+          nameList.append(name)
         }
       case let funcDecl as NormalFunctionClauseDeclSyntax:
-        guard
-          let namedExpr = funcDecl.basicExprList[0] as? NamedBasicExprSyntax
-        else {
-          fatalError("Can't handle this kind of function clause yet")
-        }
-        let name = QualifiedName(ast: namedExpr.name).name
+        let (name, lhs) = self.reparseLHS(funcDecl.basicExprList)
+        let reparsedDecl = funcDecl.withBasicExprList(lhs)
         guard clauseMap[name] != nil else {
           self.engine.diagnose(.bodyBeforeSignature(name), node: funcDecl)
           continue
         }
-        clauseMap[name]!.append(funcDecl)
+        clauseMap[name]!.append(reparsedDecl)
       default:
         decls.append(decl)
       }
     }
 
-    for k in funcMap.keys {
+    for k in nameList {
       let function = funcMap[k]!
       let clauses = clauseMap[k]!
       let singleton = IdentifierListSyntax(elements: [ k.syntax ])
@@ -629,5 +576,10 @@ extension NameBinding {
     }
 
     return DeclListSyntax(elements: decls)
+  }
+
+  private func scopeCheckFixityDecl(_ syntax: FixityDeclSyntax) -> [Decl] {
+    _ = fixityFromSyntax(syntax, diagnose: true)
+    return []
   }
 }

@@ -166,4 +166,21 @@ extension RawSyntax {
       }
     }
   }
+
+  func formatSourceText<Target: TextOutputStream>(
+    to target: inout Target) {
+    switch self {
+    case .node(_, let layout, _):
+      for child in layout {
+        child.formatSourceText(to: &target)
+      }
+    case let .token(kind, _, _, presence, _):
+      switch presence {
+      case .present:
+        target.write(kind.text)
+        TriviaPiece.spaces(1).writeSourceText(to: &target)
+      default: break
+      }
+    }
+  }
 }
