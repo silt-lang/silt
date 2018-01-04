@@ -333,7 +333,7 @@ public final class Environment {
       self.opened = opened
     }
   }
-  
+
   var scopes: [Scope]
   var context: Context
 

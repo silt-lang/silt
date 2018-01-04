@@ -56,7 +56,7 @@ extension TypeChecker {
   func underNewScope<A>(_ f: () -> A) -> A {
     let oldBlocks = self.environment.scopes
     let oldPending = self.environment.context
-    self.environment.scopes.append(Environment.Scope(self.environment.context, [:]))
+    self.environment.scopes.append(.init(self.environment.context, [:]))
     self.environment.context = []
     let result = f()
     self.environment.scopes = oldBlocks
