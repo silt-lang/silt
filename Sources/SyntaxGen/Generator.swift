@@ -8,7 +8,6 @@
 // Disabling line length for this specific file because it has a lot of long
 // strings that go past the length boundary.
 // swiftlint:disable line_length
-// swiftlint:disable cyclomatic_complexity
 
 import Foundation
 
