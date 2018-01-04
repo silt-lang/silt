@@ -1,0 +1,71 @@
+-- RUN: %silt --verify scopes %s
+
+module ambiguous-operators where
+
+data True : Type where
+  | tt : True
+
+data False : Type where
+
+data Bool : Type where
+  | false : Bool
+  | true  : Bool
+
+if_then_else_ : Bool -> {A : Type} -> A -> A -> A
+if true  then x else y = x
+if false then x else y = y
+
+infix 1 if_then_else_
+
+_&&_ : Bool -> Bool -> Bool
+x && y = if_then_else_ x Bool y false
+
+_||_ : Bool -> Bool -> Bool
+x || y = if_then_else_ x Bool true y
+
+
+unambiguous-homogeneous-nonfix-left : Bool -> Bool -> Bool -> Bool
+unambiguous-homogeneous-nonfix-left x y z = (x && y) && z -- no error
+
+unambiguous-homogeneous-nonfix-right : Bool -> Bool -> Bool -> Bool
+unambiguous-homogeneous-nonfix-right x y z = x && (y && z) -- no error
+
+ambiguous-homogeneous-nonfix : Bool -> Bool -> Bool -> Bool
+ambiguous-homogeneous-nonfix x y z = x && y && z -- expected-error {{unable to parse expression}}
+-- expected-note@-1 {{partial parse recovered expression '_&&_ x y '}}
+-- expected-note@-2 {{while using notation _&&_ at level 20}}
+
+ambiguous-heterogeneous-nonfix : Bool -> Bool -> Bool -> Bool
+ambiguous-heterogeneous-nonfix x y z = x || y && z -- expected-error {{unable to parse expression}}
+-- expected-note@-1 {{partial parse recovered expression '_||_ x y '}}
+-- expected-note@-2 {{while using notation _&&_ at level 20}}
+-- expected-note@-3 {{while using notation _||_ at level 20}}
+
+_**_ : Bool -> Bool -> Bool
+x ** y = if_then_else_ x Bool y false
+
+infix 1 _**_
+
+_%%_ : Bool -> Bool -> Bool
+x %% y = if_then_else_ x Bool true y
+
+infix 2 _%%_
+
+_^^_ : Bool -> Bool -> Bool
+x ^^ y = if_then_else_ x Bool true y
+
+infix 3 _^^_
+
+unambiguous-heterogeneous-nonfix1 : Bool -> Bool -> Bool -> Bool -> Bool
+unambiguous-heterogeneous-nonfix1 x y z w = x %% y ** z ^^ w
+
+unambiguous-heterogeneous-nonfix2 : Bool -> Bool -> Bool -> Bool -> Bool
+unambiguous-heterogeneous-nonfix2 x y z w = x ** y %% z ^^ w
+
+-- no errors here!
+unambiguous-homogeneous-nonfix-nest1 : Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+unambiguous-homogeneous-nonfix-nest1 c t1 t2 t3 t4 = if if c then t1 else t2 then t3 else t3
+
+unambiguous-homogeneous-nonfix-nest2 : Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+unambiguous-homogeneous-nonfix-nest2 c t1 t2 t3 t4 = if if c then t1 else t2 then if c then t1 else t2 else t3
+

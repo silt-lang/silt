@@ -48,7 +48,14 @@ final class Scope {
 
   var fixities: [Name: FixityDeclSyntax]
 
+  typealias ScopeID = UInt
+  let scopeID: ScopeID
+
+  private static var scopeIDPool: UInt = 0
+
   init(_ n: FullyQualifiedName) {
+    defer { Scope.scopeIDPool += 1 }
+    self.scopeID = Scope.scopeIDPool
     self.vars = [:]
     self.nameSpace = NameSpace(n)
     self.parentNameSpaces = []
@@ -58,6 +65,7 @@ final class Scope {
   }
 
   init(_ s: Scope) {
+    self.scopeID = s.scopeID
     self.vars = s.vars
     self.nameSpace = s.nameSpace
     self.parentNameSpaces = s.parentNameSpaces

@@ -62,7 +62,7 @@ extension Diagnostic.Message {
 public class Parser {
   let engine: DiagnosticEngine
   let tokens: [TokenSyntax]
-  var index = 0
+  public var index = 0
 
   public init(diagnosticEngine: DiagnosticEngine, tokens: [TokenSyntax]) {
     self.engine = diagnosticEngine
@@ -127,7 +127,7 @@ public class Parser {
     return tokens[index + n]
   }
 
-  func advance(_ n: Int = 1) {
+  public func advance(_ n: Int = 1) {
     index += n
   }
 }
@@ -820,7 +820,7 @@ extension Parser {
       try parseBasicExprs(diagType: "list of expressions"))
   }
 
-  func parseBasicExpr() throws -> BasicExprSyntax {
+  public func parseBasicExpr() throws -> BasicExprSyntax {
     switch peek() {
     case .underscore:
       return try self.parseUnderscoreExpr()

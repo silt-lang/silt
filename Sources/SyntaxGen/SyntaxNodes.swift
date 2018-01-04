@@ -344,6 +344,7 @@ let syntaxNodes = [
   ]),
 
   Node("ReparsedApplicationExpr", kind: "BasicExpr", children: [
-    Child("exprs", kind: "BasicExprList")
+    Child("head", kind: "NamedBasicExpr"),
+    Child("exprs", kind: "BasicExprList"),
   ]),
 ]

@@ -1595,16 +1595,26 @@ public class ReparsedFunctionDeclSyntax: DeclSyntax {
 
 public class ReparsedApplicationExprSyntax: BasicExprSyntax {
   public enum Cursor: Int {
+    case head
     case exprs
   }
 
-  public convenience init(exprs: BasicExprListSyntax) {
+  public convenience init(head: NamedBasicExprSyntax, exprs: BasicExprListSyntax) {
     let raw = RawSyntax.node(.reparsedApplicationExpr, [
+      head.raw,
       exprs.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
   }
+  public var head: NamedBasicExprSyntax {
+    return child(at: Cursor.head) as! NamedBasicExprSyntax
+  }
+  public func withHead(_ syntax: NamedBasicExprSyntax) -> ReparsedApplicationExprSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.head)
+    return ReparsedApplicationExprSyntax(root: newRoot, data: newData)
+  }
+
   public var exprs: BasicExprListSyntax {
     return child(at: Cursor.exprs) as! BasicExprListSyntax
   }

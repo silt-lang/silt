@@ -38,10 +38,14 @@ enum NameInfo {
 public class NameBinding {
   var activeScope: Scope
   let engine: DiagnosticEngine
+  let reparser: Reparser
+
+  var notationMap: [Scope.ScopeID: [NewNotation]] = [:]
 
   public init(topLevel: ModuleDeclSyntax, engine: DiagnosticEngine) {
     self.activeScope = Scope(QualifiedName())
     self.engine = engine
+    self.reparser = Reparser(engine: engine)
   }
 
   public func performScopeCheck(topLevel: ModuleDeclSyntax) -> DeclaredModule {

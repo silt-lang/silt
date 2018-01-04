@@ -47,6 +47,10 @@ public struct Fixity {
   let level: PrecedenceLevel
   let assoc: Associativity
 
+  static var `default`: Fixity {
+    return Fixity(level: .related(20), assoc: .non)
+  }
+
   /// Describes the precedence level of a user-defined notation.
   public enum PrecedenceLevel: Comparable, Hashable, CustomStringConvertible {
     /// A special value for the `_->_` declaration.
@@ -258,13 +262,12 @@ extension NameBinding {
     in scope: Scope,
     filter: NotationFilter = []
   ) -> [NewNotation] {
-//    guard let notes = self.notationMap[scope.scopeID] else {
-//      let notations = self.computeNotations(in: scope, filter: filter)
-//      self.notationMap[scope.scopeID] = notations
-//      return notations
-//    }
-//    return notes
-    fatalError()
+    guard let notes = self.notationMap[scope.scopeID] else {
+      let notations = self.computeNotations(in: scope, filter: filter)
+      self.notationMap[scope.scopeID] = notations
+      return notations
+    }
+    return notes
   }
 
   /// Builds a DAG of the notations in a given scope, ordered by precedence.
@@ -283,7 +286,7 @@ extension NameBinding {
 //          continue
 //        }
 
-        let fixity = fds.fixity
+        let fixity = self.fixityFromSyntax(fds)
         let (secs, names) = teaseNotation(name)
         let notation = NewNotation(name: name, names: names, fixity: fixity,
                                    notation: secs)
@@ -294,35 +297,58 @@ extension NameBinding {
       return notes
     }
   }
-}
 
-extension FixityDeclSyntax {
   /// Converts a fixity declaration to an internal fixity.
-  var fixity: Fixity {
+  func fixityFromSyntax(
+    _ syntax: FixityDeclSyntax, diagnose: Bool = false) -> Fixity {
     let fixity: Fixity
-    switch self {
+    switch syntax {
     case let fds as NonFixDeclSyntax:
       guard
         case let .identifier(num) = fds.precedence.tokenKind,
         let prec = Int(num, radix: 10)
-        else {
-          fatalError()
+      else {
+        _ = self.engine.transact { () -> (Bool, ()) in
+          self.engine.diagnose(.precedenceNotIntegral(fds.precedence),
+                               node: fds.precedence) {
+            $0.note(.assumingDefaultPrecedence,
+                    node: fds, highlights: [fds.precedence])
+          }
+          return (diagnose, ())
+        }
+        return Fixity.default
       }
       fixity = Fixity(level: .related(prec), assoc: .non)
     case let fds as RightFixDeclSyntax:
       guard
         case let .identifier(num) = fds.precedence.tokenKind,
         let prec = Int(num, radix: 10)
-        else {
-          fatalError()
+      else {
+        _ = self.engine.transact { () -> (Bool, ()) in
+          self.engine.diagnose(.precedenceNotIntegral(fds.precedence),
+                               node: fds.precedence) {
+            $0.note(.assumingDefaultPrecedence,
+                    node: fds, highlights: [fds.precedence])
+          }
+          return (diagnose, ())
+        }
+        return Fixity.default
       }
       fixity = Fixity(level: .related(prec), assoc: .right)
     case let fds as LeftFixDeclSyntax:
       guard
         case let .identifier(num) = fds.precedence.tokenKind,
         let prec = Int(num, radix: 10)
-        else {
-          fatalError()
+      else {
+        _ = self.engine.transact { () -> (Bool, ()) in
+          self.engine.diagnose(.precedenceNotIntegral(fds.precedence),
+                               node: fds.precedence) {
+            $0.note(.assumingDefaultPrecedence,
+                    node: fds, highlights: [fds.precedence])
+          }
+          return (diagnose, ())
+        }
+        return Fixity.default
       }
       fixity = Fixity(level: .related(prec), assoc: .left)
     default:
