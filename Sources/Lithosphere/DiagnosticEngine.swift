@@ -18,8 +18,17 @@ public final class DiagnosticEngine {
   /// The current set of emitted diagnostics.
   private(set) public var diagnostics = [Diagnostic]()
 
+  /// The set of in-flight diagnostics for a particular transaction.
+  private var transactionDiagnostics = [Int: [Diagnostic]]()
+
+  /// The current transaction.
+  private var activeTransaction: Int?
+
   /// The set of consumers receiving diagnostic notifications from this engine.
   private(set) private var consumers = [UUID: DiagnosticConsumer]()
+
+  /// The next available (unique) transaction ID.
+  private var transactionIDPool: Int = .min
 
   /// Creates a new DiagnosticEngine with no diagnostics registered.
   public init() {}
@@ -57,6 +66,35 @@ public final class DiagnosticEngine {
     return diagnostics.contains { $0.message.severity == .error }
   }
 
+  /// Enter a diagnostic transaction delimited by a function that returns
+  /// true if any diagnoses during the transaction should be emitted or false
+  /// to ignore them all.
+  public func transact<T>(_ f: () -> (shouldDiagnose: Bool, T)) -> T {
+    defer { self.transactionIDPool += 1 }
+    let lastTransactionID = self.activeTransaction
+    let newUID = self.transactionIDPool
+    self.activeTransaction = newUID
+    let (commitDiags, result) = f()
+    defer { self.activeTransaction = lastTransactionID }
+    if commitDiags {
+      guard
+        let transactionDiagnostics = self.transactionDiagnostics[newUID]
+      else {
+        return result
+      }
+
+      for diagnostic in transactionDiagnostics {
+        diagnostics.append(diagnostic)
+        for consumer in consumers.values {
+          consumer.handle(diagnostic)
+        }
+      }
+    } else {
+      self.transactionDiagnostics.removeValue(forKey: newUID)
+    }
+    return result
+  }
+
   /// Emits a diagnostic message into the engine.
   ///
   /// - Parameters:
@@ -74,6 +112,12 @@ public final class DiagnosticEngine {
     let diagnostic = Diagnostic(message: message,
                                 node: node,
                                 actions: actions)
+
+    if let activeID = self.activeTransaction {
+      self.transactionDiagnostics[activeID, default: []].append(diagnostic)
+      return message
+    }
+
     diagnostics.append(diagnostic)
     for consumer in consumers.values {
       consumer.handle(diagnostic)
