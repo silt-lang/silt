@@ -87,10 +87,10 @@ extension NameBinding {
   /// Looks up information about a locally-defined name.  If the name is in
   /// scope, its fully-qualified name and information about that name is
   /// returned.
-  func lookupLocalName(_ n: Name) -> (FullyQualifiedName, NameInfo)? {
-    return lookup(in: { ns in
-      return ns.localNames[n].map { x in
-        return (QualifiedName(cons: n, ns.module), x)
+  func lookupLocalName(_ name: Name) -> (FullyQualifiedName, NameInfo)? {
+    return lookup(in: { namespace in
+      return namespace.localNames[name].map { info in
+        return (QualifiedName(cons: name, namespace.module), info)
       }
     })
   }
