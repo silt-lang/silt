@@ -7,10 +7,10 @@ let package = Package(
   name: "silt",
   dependencies: [
     .package(url: "https://github.com/apple/swift-package-manager.git", from: "0.1.0"),
-    .package(url: "https://github.com/trill-lang/FileCheck.git", from: "0.0.4"),
-    .package(url: "https://github.com/silt-lang/Symbolic.git", from: "0.0.1"),
+    .package(url: "https://github.com/llvm-swift/FileCheck.git", from: "0.0.4"),
+    .package(url: "https://github.com/llvm-swift/Symbolic.git", from: "0.0.1"),
     .package(url: "https://github.com/onevcat/Rainbow.git", from: "3.0.0"),
-    .package(url: "https://github.com/silt-lang/Lite.git", from: "0.0.3"),
+    .package(url: "https://github.com/llvm-swift/Lite.git", from: "0.0.3"),
   ],
   targets: [
     .target(
