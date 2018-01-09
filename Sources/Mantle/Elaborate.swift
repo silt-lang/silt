@@ -129,23 +129,26 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
       guard case let .dataConstructor(tyCon, _, dataConType) = dc else {
         fatalError()
       }
-      let tyConTy = self.getTypeOfOpenedDefinition(dc)
-      let tyConArgs = self.fillPiWithMetas(tyConTy)
+      let (_, parentTy) = self.getOpenedDefinition(tyCon.key)
+      let dataConTy = self.getTypeOfOpenedDefinition(parentTy)
+      let dataConArgs = self.fillPiWithMetas(dataConTy)
 
-      precondition(dataConType.telescope.count == tyConArgs.count)
-      var appliedDataConTy = self.instantiate(dataConType.inside, tyConArgs)
-      var dataConArgs = [Term<TT>]()
+      precondition(dataConType.telescope.count == dataConArgs.count)
+      let instDataConTy = self.forceInstantiate(dataConType.inside, dataConArgs)
+      var appliedConTy = self.toWeakHeadNormalForm(instDataConTy).ignoreBlocking
+      var conArgs = [Term<TT>]()
       for arg in constructorArgs {
-        guard case let .pi(domain, codomain) = appliedDataConTy else {
+        guard case let .pi(domain, codomain) = appliedConTy else {
           fatalError()
         }
         let elabArg = self.elaborate(arg, expecting: domain)
-        appliedDataConTy = self.instantiate(codomain, [elabArg])
-        dataConArgs.append(elabArg)
+        let instCodomain = self.forceInstantiate(codomain, [elabArg])
+        appliedConTy = self.toWeakHeadNormalForm(instCodomain).ignoreBlocking
+        conArgs.append(elabArg)
       }
-      let conTy = TT.apply(.definition(tyCon), tyConArgs.map(Elim<TT>.apply))
+      let conTy = TT.apply(.definition(tyCon), dataConArgs.map(Elim<TT>.apply))
       return self.expect(exType, conTy,
-                         TT.constructor(openedCon, dataConArgs), from: syntax)
+                         TT.constructor(openedCon, conArgs), from: syntax)
 
     case let .apply(h, elims):
       return self.elaborateApp(exType, h, elims.reversed(), syntax)
@@ -188,24 +191,24 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
   // pushing an ever-growing pi-type backwards, else we risk expecting the wrong
   // type during elaboration.
   func elaborateApp(
-    _ type_: Type<TT>, _ head: ApplyHead, _ elims: [Elimination], _ from: Expr
+    _ type: Type<TT>, _ head: ApplyHead, _ elims: [Elimination], _ from: Expr
   ) -> Term<TT> {
     guard let first = elims.first, case let .apply(arg) = first else {
       assert(elims.isEmpty)
       let (t, hType) = self.elaborate(head)
-      return self.expect(type_, hType, t, from: from)
+      return self.expect(type, hType, t, from: from)
     }
     let dm = self.addMeta(in: self.environment.asContext,
                           from: from, expect: TT.type)
     let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
     let cd = self.underExtendedEnvironment([(Name(name: name), dm)]) {
       return self.addMeta(in: self.environment.asContext,
-                          from: from, expect: TT.type)
+                          from: arg, expect: TT.type)
     }
     let pi = TT.pi(dm, cd)
     let elabArgTy = self.elaborate(arg, expecting: dm)
     let f = self.elaborateApp(pi, head, [Elimination](elims.dropFirst()), from)
-    return self.expect(type_, self.instantiate(cd, [elabArgTy]),
+    return self.expect(type, self.forceInstantiate(cd, [elabArgTy]),
                        self.eliminate(f, [.apply(elabArgTy)]),
                        from: from)
   }
@@ -243,7 +246,21 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
 
   // Takes a Pi-type and replaces all it's elements with metavariables.
   private func fillPiWithMetas(_ ty: Type<TT>) -> [Term<TT>] {
-    fatalError()
+    var type = self.toWeakHeadNormalForm(ty).ignoreBlocking
+    var metas = [Term<TT>]()
+    while true {
+      switch type {
+      case let .pi(domain, codomain):
+        let argMeta = self.addMeta(in: self.environment.asContext, expect: domain)
+        let instCodomain = self.forceInstantiate(codomain, [argMeta])
+        type = self.toWeakHeadNormalForm(instCodomain).ignoreBlocking
+        metas.append(argMeta)
+      case .type:
+        return metas
+      default:
+        fatalError("Expected Pi")
+      }
+    }
   }
 
   private func writeConstraint(_ c: Constraint) {
