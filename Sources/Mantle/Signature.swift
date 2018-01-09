@@ -150,11 +150,25 @@ extension Signature {
 
   @available(*, deprecated, message: "Only for use in the debugger!")
   func dumpMetas() {
-    for (mv, mb) in self.metaBindings {
-      print(mv, ":", self.metaTypes[mv]!.description)
+    print("=========SOLVED META BINDINGS=========")
+    for mv in self.metaTypes.keys.sorted() {
+      guard let mt = self.metaTypes[mv] else {
+        fatalError("Failed to retrieve with metaTypes' own keys?")
+      }
+
+      print(mv, ":", mt.description)
+      guard let mb = self.metaBindings[mv] else {
+        print(mv, ":=", "[NO BINDING]")
+        continue
+      }
+      guard let metaSource = self.metaSources[mv] else {
+        print(mv, ":=", mb.internalize.description)
+        continue
+      }
       print(mv, ":=", mb.internalize.description,
-            "[ from", self.metaSources[mv]!.description, "]")
+            "[ from", metaSource.description, "]")
     }
+    print("======================================")
   }
 }
 
