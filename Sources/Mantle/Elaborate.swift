@@ -251,10 +251,10 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
     while true {
       switch type {
       case let .pi(domain, codomain):
-        let argMeta = self.addMeta(in: self.environment.asContext, expect: domain)
-        let instCodomain = self.forceInstantiate(codomain, [argMeta])
+        let meta = self.addMeta(in: self.environment.asContext, expect: domain)
+        let instCodomain = self.forceInstantiate(codomain, [meta])
         type = self.toWeakHeadNormalForm(instCodomain).ignoreBlocking
-        metas.append(argMeta)
+        metas.append(meta)
       case .type:
         return metas
       default:

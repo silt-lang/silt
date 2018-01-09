@@ -174,7 +174,9 @@ public struct Substitution {
     case let (_, .lift(n, _)) where n == 0:
       fatalError()
     case let (.instantiate(u, rho), .lift(n, sgm)):
-      return Substitution.instantiate(u, Substitution(raw: rho).compose(.lift(n-1, Substitution(raw: sgm))))
+      let innerSub = Substitution(raw: rho)
+                      .compose(.lift(n-1, Substitution(raw: sgm)))
+      return Substitution.instantiate(u, innerSub)
     default:
       fatalError("FIXME: Finish composition")
     }

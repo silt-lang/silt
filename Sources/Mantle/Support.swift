@@ -380,7 +380,8 @@ public final class Environment {
     for (n, ty) in self.asContext.reversed() {
       defer { ix += 1 }
       guard name != n else {
-        return (Var(name, ix), ty.forceApplySubstitution(.weaken(Int(ix) + 1), elim))
+        return (Var(name, ix),
+                ty.forceApplySubstitution(.weaken(Int(ix) + 1), elim))
       }
     }
     return nil

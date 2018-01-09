@@ -56,7 +56,8 @@ extension NameBinding {
     }
   }
 
-  private func formCompleteApply(_ n : FullyQualifiedName, _ args: [Expr]) -> Expr {
+  private func formCompleteApply(
+    _ n: FullyQualifiedName, _ args: [Expr]) -> Expr {
     let head: ApplyHead
     if self.isBoundVariable(n.name) {
       head = .variable(n.name)
@@ -485,7 +486,8 @@ extension NameBinding {
       return [.wild]
     case let syntax as NamedBasicExprSyntax:
       let headName = QualifiedName(ast: syntax.name).name
-      if case let .some((fullName, .constructor(_, _))) = self.lookupLocalName(headName) {
+      let localName = self.lookupLocalName(headName)
+      if case let .some((fullName, .constructor(_, _))) = localName {
         return [.constructor(fullName, [])]
       }
       return [.variable(headName)]
@@ -498,7 +500,8 @@ extension NameBinding {
       }
       let argsExpr = syntax.exprs.dropFirst().flatMap(self.exprToDeclPattern)
       let headName = QualifiedName(ast: head.name).name
-      guard case let .some((fullName, .constructor(_, _))) = self.lookupLocalName(headName) else {
+      let localName = self.lookupLocalName(headName)
+      guard case let .some((fullName, .constructor(_, _))) = localName else {
         fatalError()
       }
       return [.constructor(fullName, argsExpr)]

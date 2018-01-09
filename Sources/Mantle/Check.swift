@@ -349,8 +349,6 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         type = self.toWeakHeadNormalForm(nextType).ignoreBlocking
         pats.append(pat)
       default:
-        self.signature.dumpMetas()
-        print("")
         fatalError()
       }
     }
@@ -393,7 +391,8 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         fatalError("General syntax failure??")
       }
 
-      // Next, try to pull out the matching pattern type.
+      // Next, try to pull out the matching pattern type which should be the
+      // parent type of the constructor.
       switch self.toWeakHeadNormalForm(patType).ignoreBlocking {
       case let .apply(.definition(patternCon), arguments)
         where tyCon == patternCon.key:
@@ -407,6 +406,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         guard case let .dataConstructor(_, _, dataConType) = contextDef else {
           fatalError()
         }
+        // Apply available arguments up to the type of the constructor itself.
         let appliedDataConType = self.openContextualType(dataConType, tyConArgs)
         let (telescope, _) = self.unrollPi(appliedDataConType)
         let teleSeq = zip((0..<telescope.count).reversed(), telescope)
@@ -414,16 +414,20 @@ extension TypeChecker where PhaseState == CheckPhaseState {
           let (nm, _) = t
           return TT.apply(.variable(Var(nm, UInt(i))), [])
         })
-        // Now
+        // Now weaken the opened type up to the parameters we're
+        // going to open into scope.
         let numDataConArgs = telescope.count
         let rho = Substitution.instantiate(t)
                               .compose(.lift(1, .weaken(numDataConArgs)))
         let substType = type.forceApplySubstitution(rho, self.eliminate)
         let innerPatType = self.rollPi(in: telescope, final: substType)
+        // And check the inner patterns against it.
         let (pats, retTy) = self.checkPatterns(synPats, innerPatType)
         return (.constructor(openDataCon, pats), retTy)
-      default:
+      case .apply(.definition(_), _):
         // FIXME: Should be a diagnostic.
+        fatalError("Pattern type does not match parent type of constructor")
+      default:
         fatalError()
       }
       print(dataCon, synPats)

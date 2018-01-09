@@ -20,5 +20,10 @@ append : forall (A : Type) -> List A -> List A -> List A
 append A Nil ys = ys
 append A (Cons x xs) ys = Cons x (append A xs ys)
 
+data N : Type where
+  | Z : N
+  | S : N -> N
 
+seven : N
+seven = S (S (S (S (S (S (S Z))))))
 
