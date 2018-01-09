@@ -117,6 +117,10 @@ extension TypeChecker {
         return FreeVariables()
       case .refl:
         return FreeVariables()
+      case let .constructor(_, args):
+        return args.map({ (t) -> FreeVariables in
+          return go(strength, t)
+        }).reduce(FreeVariables([], []), { $1.append($0) })
       default:
         fatalError()
       }
