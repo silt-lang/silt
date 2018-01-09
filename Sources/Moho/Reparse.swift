@@ -537,7 +537,7 @@ extension NameBinding {
         fatalError()
       }
       let name = QualifiedName(ast: namedSyntax.name)
-      return (name.name, syntax)
+      return (name.name, syntax.removingFirst())
     }
 
     let dag = NotationDAG()
