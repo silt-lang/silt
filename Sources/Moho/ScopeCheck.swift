@@ -56,37 +56,43 @@ extension NameBinding {
     }
   }
 
+  private func formCompleteApply(_ n : FullyQualifiedName, _ args: [Expr]) -> Expr {
+    let head: ApplyHead
+    if self.isBoundVariable(n.name) {
+      head = .variable(n.name)
+    } else if let (fqn, info) = self.lookupLocalName(n.name) {
+      switch info {
+      case .constructor(_, _):
+        return .constructor(fqn, args)
+      default:
+        head = .definition(fqn)
+      }
+    } else if self.lookupFullyQualifiedName(n) != nil {
+      head = .definition(n)
+    } else {
+      // If it's not a definition or a local variable, it's undefined.
+      // Recover by introducing a local variable binding anyways.
+      self.engine.diagnose(.undeclaredIdentifier(n), node: n.node)
+      head = .variable(n.name)
+    }
+
+    return .apply(head, args.map(Elimination.apply))
+  }
+
   /// Scope check and validate an expression.
   private func scopeCheckExpr(_ syntax: ExprSyntax) -> Expr {
     switch syntax {
     case let syntax as NamedBasicExprSyntax:
       let n = QualifiedName(ast: syntax.name)
-      let head: ApplyHead
-      if self.isBoundVariable(n.name) {
-        head = .variable(n.name)
-      } else if let nameInfo = self.lookupFullyQualifiedName(n) {
-        guard case .definition(_) = nameInfo else {
-          return .constructor(n, [])
-        }
-        head = .definition(n)
-      } else if let (fqn, nameInfo) = self.lookupLocalName(n.name) {
-        guard case .definition(_) = nameInfo else {
-          return .constructor(fqn, [])
-        }
-        head = .definition(fqn)
-      } else {
-        // If it's not a definition or a local variable, it's undefined.
-        // Recover by introducing a local variable binding anyways.
-        self.engine.diagnose(.undeclaredIdentifier(n), node: n.node)
-        head = .variable(n.name)
-      }
-      return .apply(head, [])
+      return formCompleteApply(n, [])
     case _ as TypeBasicExprSyntax:
       return .type
     case _ as UnderscoreExprSyntax:
       return .meta
     case let syntax as ParenthesizedExprSyntax:
-      return self.scopeCheckExpr(syntax.expr)
+      return self.underScope { _ in
+        return self.scopeCheckExpr(syntax.expr)
+      }
     case let syntax as LambdaExprSyntax:
       return self.underScope { _ in
         let bindings = self.scopeCheckBindingList(syntax.bindingList)
@@ -108,6 +114,10 @@ extension NameBinding {
       let n = QualifiedName(ast: headExpr.name)
       guard n.string != "_->_" else {
         assert(syntax.exprs.count == 2)
+        if let piParams = syntax.exprs[0] as? TypedParameterGroupExprSyntax {
+          return rollPi(piParams.parameters.map(self.scopeCheckParameter),
+                        self.scopeCheckExpr(syntax.exprs[1])).0
+        }
         return .function(self.scopeCheckExpr(syntax.exprs[0]),
                          self.scopeCheckExpr(syntax.exprs[1]))
       }
@@ -118,21 +128,7 @@ extension NameBinding {
         args.append(elim)
       }
 
-      let head: ApplyHead
-      if self.isBoundVariable(n.name) {
-        head = .variable(n.name)
-      } else if let (fqn, _) = self.lookupLocalName(n.name) {
-        head = .definition(fqn)
-      } else if self.lookupFullyQualifiedName(n) != nil {
-        head = .definition(n)
-      } else {
-        // If it's not a definition or a local variable, it's undefined.
-        // Recover by introducing a local variable binding anyways.
-        self.engine.diagnose(.undeclaredIdentifier(n), node: n.node)
-        head = .variable(n.name)
-      }
-
-      return .apply(head, args.map(Elimination.apply))
+      return formCompleteApply(n, args)
     case let syntax as ApplicationExprSyntax:
       guard syntax.exprs.count > 1 else {
         return self.scopeCheckExpr(syntax.exprs[0])
@@ -143,6 +139,10 @@ extension NameBinding {
         let n = QualifiedName(ast: headExpr.name)
         guard n.string != "_->_" else {
           assert(syntax.exprs.count == 3)
+          if let piParams = syntax.exprs[1] as? TypedParameterGroupExprSyntax {
+            return rollPi(piParams.parameters.map(self.scopeCheckParameter),
+                          self.scopeCheckExpr(syntax.exprs[2])).0
+          }
           return .function(self.scopeCheckExpr(syntax.exprs[1]),
                            self.scopeCheckExpr(syntax.exprs[2]))
         }
@@ -153,22 +153,7 @@ extension NameBinding {
           args.append(elim)
         }
 
-        let head: ApplyHead
-        if self.isBoundVariable(n.name) {
-          head = .variable(n.name)
-        } else if let (fqn, _) = self.lookupLocalName(n.name) {
-          head = .definition(fqn)
-        } else if self.lookupFullyQualifiedName(n) != nil {
-          head = .definition(n)
-        } else {
-          // If it's not a definition or a local variable, it's undefined.
-          // Recover by introducing a local variable binding anyways.
-          self.engine.diagnose(.undeclaredIdentifier(n), node: n.node)
-          head = .variable(n.name)
-        }
-
-        return .apply(head, args.map(Elimination.apply))
-
+        return formCompleteApply(n, args)
       default:
         fatalError("Cannot yet handle this case")
       }
@@ -291,8 +276,6 @@ extension NameBinding {
 
   private func scopeCheckPattern(
     _ syntax: BasicExprListSyntax) -> [DeclaredPattern] {
-    assert(!syntax.isEmpty)
-
     let pats = syntax.flatMap(self.exprToDeclPattern)
     func openPatternVarsIntoScope(_ p: DeclaredPattern) -> Bool {
       switch p {
@@ -501,7 +484,11 @@ extension NameBinding {
       syntax.name[0].name.tokenKind == .underscore:
       return [.wild]
     case let syntax as NamedBasicExprSyntax:
-      return [.variable(QualifiedName(ast: syntax.name).name)]
+      let headName = QualifiedName(ast: syntax.name).name
+      if case let .some((fullName, .constructor(_, _))) = self.lookupLocalName(headName) {
+        return [.constructor(fullName, [])]
+      }
+      return [.variable(headName)]
     case let syntax as ApplicationExprSyntax:
       guard
         let firstExpr = syntax.exprs.first,
@@ -510,7 +497,11 @@ extension NameBinding {
         fatalError("Can't handle this kind of pattern")
       }
       let argsExpr = syntax.exprs.dropFirst().flatMap(self.exprToDeclPattern)
-      return [.constructor(QualifiedName(ast: head.name), argsExpr)]
+      let headName = QualifiedName(ast: head.name).name
+      guard case let .some((fullName, .constructor(_, _))) = self.lookupLocalName(headName) else {
+        fatalError()
+      }
+      return [.constructor(fullName, argsExpr)]
     case let syntax as ReparsedApplicationExprSyntax:
       let name = QualifiedName(ast: syntax.head.name).name
       guard case let .some(fqn, .constructor(_)) = lookupLocalName(name) else {
