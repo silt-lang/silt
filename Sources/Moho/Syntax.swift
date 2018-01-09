@@ -277,10 +277,10 @@ public enum ApplyHead: Equatable {
   case variable(Name)
   /// The head is a definition.
   ///
-  /// E.g. The `cons` in:
+  /// E.g. The `List` in:
   ///
   /// ```
-  /// c x xs = (cons x xs)
+  /// f A = List A
   /// ```
   case definition(QualifiedName)
 

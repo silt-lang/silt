@@ -88,8 +88,8 @@ extension TypeChecker {
           return Elim<TT>.project(p)
         }
       })
-    default:
-      fatalError()
+    case let .constructor(dataCon, args):
+      return TT.constructor(dataCon, args.map { self.pruneTerm(vs, $0) })
     }
   }
 
@@ -139,12 +139,20 @@ extension TypeChecker {
     var ty = terminal
     var piPrunes = [Named<Bool>]()
     for (param, needsPrune) in zip(params, prunes).reversed() {
-      guard !needsPrune else {
+      guard needsPrune else {
+        ty = TT.pi(param.1, ty)
         piPrunes.append(Named<Bool>(param.0, false))
         continue
       }
+      guard
+        let substTy = try? ty.applySubstitution(.strengthen(1), self.eliminate)
+      else {
+        ty = TT.pi(param.1, ty)
+        piPrunes.append(Named<Bool>(param.0, false))
+        continue
+      }
+      ty = substTy
       piPrunes.append(Named<Bool>(param.0, true))
-      ty = TT.pi(param.1, ty)
     }
     return (ty, piPrunes)
   }

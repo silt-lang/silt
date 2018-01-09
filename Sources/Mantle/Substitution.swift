@@ -133,7 +133,10 @@ public struct Substitution {
         guard case let .success(tm) = rec else {
           return rec
         }
-        return .success(tm.applySubstitution(.weaken(n), elim))
+        guard let substTm = try? tm.applySubstitution(.weaken(n), elim) else {
+          return .failure(BadStrengthen.name(variable.name))
+        }
+        return .success(substTm)
       case let .instantiate(u, rho2):
         if i == 0 {
           return .success(u)
@@ -152,28 +155,74 @@ public struct Substitution {
         guard case let .success(tm) = rec else {
           return rec
         }
-        return .success(tm.applySubstitution(.weaken(n), elim))
+        guard let substTm = try? tm.applySubstitution(.weaken(n), elim) else {
+          return .failure(BadStrengthen.name(variable.name))
+        }
+        return .success(substTm)
       }
     }
     return go(self, variable.index, elim)
+  }
+
+  // FIXME: Stolen from Agda because I'm too lazy to figure it out myself.
+  func compose(_ rho2: Substitution) -> Substitution {
+    switch (self.raw, rho2.raw) {
+    case (_, .id): return self
+    case (.id, _): return rho2
+    case let (_, .strengthen(n, sgm)):
+      return .strengthen(n, self.compose(Substitution(raw: sgm)))
+    case let (_, .lift(n, _)) where n == 0:
+      fatalError()
+    case let (.instantiate(u, rho), .lift(n, sgm)):
+      let innerSub = Substitution(raw: rho)
+                      .compose(.lift(n-1, Substitution(raw: sgm)))
+      return Substitution.instantiate(u, innerSub)
+    default:
+      fatalError("FIXME: Finish composition")
+    }
   }
 }
 
 public protocol Substitutable {
   func applySubstitution(
-    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) -> Self
+    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) throws -> Self
+}
+
+extension Substitutable {
+  func forceApplySubstitution(
+    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) -> Self {
+    guard let substTm = try? self.applySubstitution(subst, elim) else {
+      fatalError()
+    }
+    return substTm
+  }
 }
 
 extension TypeChecker {
-  func instantiate<A: Substitutable>(_ t: A, _ ts: [Term<TT>]) -> A {
-    return t.applySubstitution(ts.reduce(Substitution(), { acc, next in
+  func forceInstantiate<A: Substitutable>(_ t: A, _ ts: [Term<TT>]) -> A {
+    guard let substTm = try? self.instantiate(t, ts) else {
+      fatalError()
+    }
+    return substTm
+  }
+
+  func instantiate<A: Substitutable>(_ t: A, _ ts: [Term<TT>]) throws -> A {
+    return try t.applySubstitution(ts.reduce(Substitution(), { acc, next in
       return Substitution.instantiate(next, acc)
     }), self.eliminate)
   }
 
   // FIXME: Conditional conformances obviate this overload
-  func instantiate(_ t: TT, _ ts: [Term<TT>]) -> TT {
-    return t.applySubstitution(ts.reduce(Substitution(), { acc, next in
+  func forceInstantiate(_ t: TT, _ ts: [Term<TT>]) -> TT {
+    guard let substTm = try? self.instantiate(t, ts) else {
+      fatalError()
+    }
+    return substTm
+  }
+
+  // FIXME: Conditional conformances obviate this overload
+  func instantiate(_ t: TT, _ ts: [Term<TT>]) throws -> TT {
+    return try t.applySubstitution(ts.reduce(Substitution(), { acc, next in
       return Substitution.instantiate(next, acc)
     }), self.eliminate)
   }
@@ -182,11 +231,11 @@ extension TypeChecker {
 extension Contextual where T == TT, A: Substitutable {
   public func applySubstitution(
     _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT
-  ) -> Contextual<T, A> {
-    return Contextual(telescope: self.telescope.map {
-                                   ($0.0, $0.1.applySubstitution(subst, elim))
+  ) throws -> Contextual<T, A> {
+    return Contextual(telescope: try self.telescope.map {
+                          return ($0.0, try $0.1.applySubstitution(subst, elim))
                                  },
-                      inside: self.inside.applySubstitution(
+                      inside: try self.inside.applySubstitution(
                                             .lift(self.telescope.count, subst),
                                             elim))
   }
@@ -195,26 +244,48 @@ extension Contextual where T == TT, A: Substitutable {
 extension Contextual where T == TT {
   public func applySubstitution(
     _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT
-  ) -> Contextual<T, A> {
-    return Contextual(telescope: self.telescope.map {
-                                   ($0.0, $0.1.applySubstitution(subst, elim))
+  ) throws -> Contextual<T, A> {
+    return Contextual(telescope: try self.telescope.map {
+                          return ($0.0, try $0.1.applySubstitution(subst, elim))
                                  },
                       inside: self.inside)
   }
 }
 
 extension Opened where T == TT {
+  func forceApplySubstitution(
+    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) -> Opened<K, T> {
+    guard let substTm = try? self.applySubstitution(subst, elim) else {
+      fatalError()
+    }
+    return substTm
+  }
+
   public func applySubstitution(
     _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT
-  ) -> Opened<K, T> {
-    return Opened(self.key, self.args.map {$0.applySubstitution(subst, elim)})
+  ) throws -> Opened<K, T> {
+    return Opened(self.key, try self.args.map {
+      return try $0.applySubstitution(subst, elim)
+    })
   }
 }
 
+public enum LookupError: Error {
+  case failed(Var)
+}
+
 extension TypeTheory where T == Expr {
+  func forceApplySubstitution(
+    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) -> TypeTheory<T> {
+    guard let substTm = try? self.applySubstitution(subst, elim) else {
+      fatalError()
+    }
+    return substTm
+  }
+
   public func applySubstitution(
     _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT
-  ) -> TypeTheory<T> {
+  ) throws -> TypeTheory<T> {
     guard !subst.isIdentity else {
       return self
     }
@@ -225,32 +296,32 @@ extension TypeTheory where T == Expr {
     case .refl:
       return .refl
     case let .lambda(body):
-      return .lambda(body.applySubstitution(.lift(1, subst), elim))
+      return .lambda(try body.applySubstitution(.lift(1, subst), elim))
     case let .pi(domain, codomain):
-      let substDomain = domain.applySubstitution(subst, elim)
-      let substCodomain = codomain.applySubstitution(.lift(1, subst), elim)
+      let substDomain = try domain.applySubstitution(subst, elim)
+      let substCodomain = try codomain.applySubstitution(.lift(1, subst), elim)
       return .pi(substDomain, substCodomain)
     case let .constructor(dataCon, args):
-      let substArgs = args.map { $0.applySubstitution(subst, elim) }
+      let substArgs = try args.map { try $0.applySubstitution(subst, elim) }
       return .constructor(dataCon, substArgs)
     case let .apply(head, elims):
-      let substElims = elims.map { $0.applySubstitution(subst, elim) }
+      let substElims = try elims.map { try $0.applySubstitution(subst, elim) }
       switch head {
       case let .variable(v):
         guard case let .success(u) = subst.lookup(v, elim) else {
-          fatalError()
+          throw LookupError.failed(v)
         }
         return elim(u, substElims)
       case let .definition(d):
-        let substDef = d.applySubstitution(subst, elim)
+        let substDef = try d.applySubstitution(subst, elim)
         return .apply(.definition(substDef), substElims)
       case let .meta(mv):
         return .apply(.meta(mv), substElims)
       }
     case let .equal(type, lhs, rhs):
-      let substType = type.applySubstitution(subst, elim)
-      let substLHS = lhs.applySubstitution(subst, elim)
-      let substRHS = rhs.applySubstitution(subst, elim)
+      let substType = try type.applySubstitution(subst, elim)
+      let substLHS = try lhs.applySubstitution(subst, elim)
+      let substRHS = try rhs.applySubstitution(subst, elim)
       return .equal(substType, substLHS, substRHS)
     }
   }
@@ -258,41 +329,42 @@ extension TypeTheory where T == Expr {
 
 extension Clause: Substitutable {
   public func applySubstitution(
-    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) -> Clause {
-    return
-      Clause(pattern: self.pattern,
-             body: self.body.applySubstitution(.lift(self.boundCount, subst),
-                                               elim))
+    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) throws -> Clause {
+    let substBody = try self.body
+                            .applySubstitution(.lift(self.boundCount, subst),
+                                               elim)
+    return Clause(pattern: self.pattern, body: substBody)
   }
 }
 
 extension Elim: Substitutable {
   public func applySubstitution(
-    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) -> Elim<T> {
+    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) throws -> Elim<T> {
     fatalError()
   }
 }
 
 extension Elim where T == TT {
   public func applySubstitution(
-    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) -> Elim<T> {
+    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) throws -> Elim<T> {
     switch self {
     case let .project(p):
       return .project(p)
     case let .apply(t):
-      return .apply(t.applySubstitution(subst, elim))
+      return .apply(try t.applySubstitution(subst, elim))
     }
   }
 }
 
 extension Instantiability: Substitutable {
   public func applySubstitution(
-    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) -> Instantiability {
+    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT
+  ) throws -> Instantiability {
     switch self {
     case .open:
       return self
     case .invertible(let i):
-      return .invertible(i.applySubstitution(subst, elim))
+      return .invertible(try i.applySubstitution(subst, elim))
     }
   }
 }
@@ -300,30 +372,30 @@ extension Instantiability: Substitutable {
 extension Instantiability.Invertibility: Substitutable {
   public func applySubstitution(
     _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT
-  ) -> Instantiability.Invertibility {
+  ) throws -> Instantiability.Invertibility {
     switch self {
     case .notInvertible(let cs):
-      return .notInvertible(cs.map {$0.applySubstitution(subst, elim)})
+      return .notInvertible(try cs.map {try $0.applySubstitution(subst, elim)})
     case .invertible(let cs):
-      return .invertible(cs.map {$0.applySubstitution(subst, elim)})
+      return .invertible(try cs.map {try $0.applySubstitution(subst, elim)})
     }
   }
 }
 
 extension Definition: Substitutable {
   public func applySubstitution(
-    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) -> Definition {
+    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT
+  ) throws -> Definition {
     switch self {
     case let .constant(type, constant):
-      return .constant(type.applySubstitution(subst, elim),
-                       constant.applySubstitution(subst, elim))
+      return .constant(try type.applySubstitution(subst, elim),
+                       try constant.applySubstitution(subst, elim))
     case let .dataConstructor(tyCon, args, dataConType):
       return .dataConstructor(tyCon, args,
-                              dataConType.applySubstitution(subst, elim))
+                              try dataConType.applySubstitution(subst, elim))
     case let .module(mod):
-      return .module(Module(telescope: mod.telescope.map {
-                                         ($0.0,
-                                          $0.1.applySubstitution(subst, elim))
+      return .module(Module(telescope: try mod.telescope.map {
+                        return ($0.0, try $0.1.applySubstitution(subst, elim))
                                        },
                             inside: mod.inside))
     }
@@ -333,10 +405,10 @@ extension Definition: Substitutable {
 extension Definition.Constant: Substitutable {
   public func applySubstitution(
     _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT
-  ) -> Definition.Constant {
+  ) throws -> Definition.Constant {
     switch self {
     case .function(let inst):
-      return .function(inst.applySubstitution(subst, elim))
+      return .function(try inst.applySubstitution(subst, elim))
     default:
       return self
     }
@@ -345,18 +417,18 @@ extension Definition.Constant: Substitutable {
 
 extension OpenedDefinition: Substitutable {
   public func applySubstitution(
-    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) -> OpenedDefinition {
+    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT
+  ) throws -> OpenedDefinition {
     switch self {
     case let .constant(type, constant):
-      return .constant(type.applySubstitution(subst, elim),
-                       constant.applySubstitution(subst, elim))
+      return .constant(try type.applySubstitution(subst, elim),
+                       try constant.applySubstitution(subst, elim))
     case let .dataConstructor(tyCon, args, dataConType):
       return .dataConstructor(tyCon, args,
-                              dataConType.applySubstitution(subst, elim))
+                              try dataConType.applySubstitution(subst, elim))
     case let .module(mod):
-      return .module(Module(telescope: mod.telescope.map {
-                                         ($0.0,
-                                          $0.1.applySubstitution(subst, elim))
+      return .module(Module(telescope: try mod.telescope.map {
+                          return ($0.0, try $0.1.applySubstitution(subst, elim))
                                        },
                             inside: mod.inside))
     }
@@ -366,10 +438,10 @@ extension OpenedDefinition: Substitutable {
 extension OpenedDefinition.Constant: Substitutable {
   public func applySubstitution(
     _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT
-  ) -> OpenedDefinition.Constant {
+  ) throws -> OpenedDefinition.Constant {
     switch self {
     case .function(let i):
-      return .function(i.applySubstitution(subst, elim))
+      return .function(try i.applySubstitution(subst, elim))
     default:
       return self
     }

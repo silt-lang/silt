@@ -32,7 +32,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
             fatalError()
           }
           self.checkTT(arg, hasType: dom, in: ctx)
-          type = self.instantiate(cod, [arg])
+          type = self.forceInstantiate(cod, [arg])
           head = self.eliminate(head, [.apply(arg)])
         case let .project(proj):
           print(proj)

@@ -139,8 +139,8 @@ extension TypeChecker where PhaseState == SolvePhaseState {
       guard let (_, substVar) = subst.first(where: { $0.0 == v }) else {
         return .left(v)
       }
-      return .right(substVar.applySubstitution(.weaken(Int(str)),
-                                               self.eliminate))
+      return .right(substVar.forceApplySubstitution(.weaken(Int(str)),
+                                                    self.eliminate))
     }
 
     func applyInversion(

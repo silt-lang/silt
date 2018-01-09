@@ -110,15 +110,15 @@ extension TypeChecker where PhaseState == CheckPhaseState {
     let conTys
       = self.underExtendedEnvironment(dataPars) { () -> [CheckedConstructor] in
       // We need to weaken the opened type up to the number of parameters.
-      let weakTy = openTyName.applySubstitution(.weaken(dataPars.count),
-                                                self.eliminate)
+      let weakTy = openTyName.forceApplySubstitution(.weaken(dataPars.count),
+                                                     self.eliminate)
       let elimDataTy = self.eliminate(TT.apply(.definition(weakTy), []),
                                       self.forEachVariable(in: dataPars) { v in
         return Elim<TT>.apply(TT.apply(.variable(v), []))
       })
 
-      return tyConSignatures.map { dc in
-        return self.checkConstructor(elimDataTy, dc)
+      return tyConSignatures.map { signature in
+        return self.checkConstructor(elimDataTy, signature)
       }
     }
 
@@ -130,7 +130,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
                                     Contextual(telescope: dataPars,
                                                inside: checkedConstr.type))
       _ = self.openDefinition(checkedConstr.name,
-                                 self.environment.forEachVariable { envVar in
+                              self.environment.forEachVariable { envVar in
         return TT.apply(.variable(envVar), [])
       })
     }
@@ -142,15 +142,15 @@ extension TypeChecker where PhaseState == CheckPhaseState {
     _ sig: TypeSignature
   ) -> CheckedConstructor {
     let dataConType = self.checkExpr(sig.type, TT.type)
-    let (vsTel, endType) = self.unrollPi(dataConType)
-    self.underExtendedEnvironment(vsTel, { () -> Void in
-      let weakTy = parentTy.applySubstitution(.weaken(vsTel.count),
-                                              self.eliminate)
+    let (conTel, endType) = self.unrollPi(dataConType)
+    self.underExtendedEnvironment(conTel, { () -> Void in
+      let weakTy = parentTy.forceApplySubstitution(.weaken(conTel.count),
+                                                   self.eliminate)
       self.checkDefinitionallyEqual(self.environment.asContext,
                                     TT.type, weakTy, endType)
     })
     return CheckedConstructor(name: sig.name,
-                              count: UInt(vsTel.count), type: dataConType)
+                              count: UInt(conTel.count), type: dataConType)
   }
 
   private func checkRecordSignature(
@@ -213,8 +213,8 @@ extension TypeChecker where PhaseState == CheckPhaseState {
       fieldsCtx.append((Name(name: sig.name.node), fieldType))
     }
     // We need to weaken the opened type up to the number of parameters.
-    let weakTy = openTyName.applySubstitution(.weaken(recPars.count),
-                                              self.eliminate)
+    let weakTy = openTyName.forceApplySubstitution(.weaken(recPars.count),
+                                                   self.eliminate)
     let elimDataTy = self.eliminate(TT.apply(.definition(weakTy), []),
                                     self.forEachVariable(in: recPars) { v in
       return Elim<TT>.apply(TT.apply(.variable(v), []))
@@ -225,8 +225,8 @@ extension TypeChecker where PhaseState == CheckPhaseState {
                           fieldSigs.map { $0.name }, fieldsCtx)
 
     // Finally, introduce the constructor.
-    let weakDataTy = elimDataTy.applySubstitution(.weaken(fieldsCtx.count),
-                                                  self.eliminate)
+    let weakDataTy = elimDataTy.forceApplySubstitution(.weaken(fieldsCtx.count),
+                                                       self.eliminate)
     let conType
       = self.rollPi(in: fieldsCtx, final: weakDataTy)
     self.signature.addConstructor(named: conName, toType: openTyName,
@@ -283,7 +283,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
           fatalError()
         }
         self.checkDefinitionallyEqual(ctx, dom, arg1, arg2)
-        type = cod.applySubstitution(.instantiate(arg1), self.eliminate)
+        type = cod.forceApplySubstitution(.instantiate(arg1), self.eliminate)
         head = head.map { self.eliminate($0, [.apply(arg1)]) }
       default:
         print(type.description, elims1, elims2)
@@ -368,6 +368,68 @@ extension TypeChecker where PhaseState == CheckPhaseState {
       self.extendEnvironment([(Name(name: name), patType)])
       return (.variable, type)
     case let .constructor(dataCon, synPats):
+      // Use the data constructor to locate back up the parent so we can
+      // retrieve its argument telescope.
+      guard let data = self.signature.lookupDefinition(dataCon) else {
+        fatalError()
+      }
+      guard case let .dataConstructor(tyCon, _, _) = data.inside else {
+        fatalError()
+      }
+      guard let ty = self.signature.lookupDefinition(tyCon) else {
+        fatalError()
+      }
+
+      // Check that we've got only data.
+      switch ty.inside {
+      case .constant(_, .data(_)):
+        break
+      case .constant(_, .record(_, _)):
+        // FIXME: Should be a diagnostic.
+        fatalError("Can't pattern match on record")
+      default:
+        fatalError("General syntax failure??")
+      }
+
+      // Next, try to pull out the matching pattern type which should be the
+      // parent type of the constructor.
+      switch self.toWeakHeadNormalForm(patType).ignoreBlocking {
+      case let .apply(.definition(patternCon), arguments)
+        where tyCon == patternCon.key:
+        guard let tyConArgs = arguments.mapM({ $0.applyTerm }) else {
+          fatalError()
+        }
+        // Next, open the constructor type and apply any parameters on the
+        // parent data decl.
+        let openDataCon = Opened(dataCon, patternCon.args)
+        let contextDef = self.openContextualDefinition(data, patternCon.args)
+        guard case let .dataConstructor(_, _, dataConType) = contextDef else {
+          fatalError()
+        }
+        // Apply available arguments up to the type of the constructor itself.
+        let appliedDataConType = self.openContextualType(dataConType, tyConArgs)
+        let (telescope, _) = self.unrollPi(appliedDataConType)
+        let teleSeq = zip((0..<telescope.count).reversed(), telescope)
+        let t = TT.constructor(openDataCon, teleSeq.map { (i, t) in
+          let (nm, _) = t
+          return TT.apply(.variable(Var(nm, UInt(i))), [])
+        })
+        // Now weaken the opened type up to the parameters we're
+        // going to open into scope.
+        let numDataConArgs = telescope.count
+        let rho = Substitution.instantiate(t)
+                              .compose(.lift(1, .weaken(numDataConArgs)))
+        let substType = type.forceApplySubstitution(rho, self.eliminate)
+        let innerPatType = self.rollPi(in: telescope, final: substType)
+        // And check the inner patterns against it.
+        let (pats, retTy) = self.checkPatterns(synPats, innerPatType)
+        return (.constructor(openDataCon, pats), retTy)
+      case .apply(.definition(_), _):
+        // FIXME: Should be a diagnostic.
+        fatalError("Pattern type does not match parent type of constructor")
+      default:
+        fatalError()
+      }
       print(dataCon, synPats)
       fatalError()
     }
@@ -375,7 +437,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
 
   func checkClause(_ ty: Type<TT>, _ clause: DeclaredClause) -> Clause {
     let (pats, type) = self.checkPatterns(clause.patterns, ty)
-    return self.underNewScope {
+    return self.underExtendedEnvironment([]) {
       switch clause.body {
       case .empty:
         // FIXME: Implement absurd patterns.
@@ -393,7 +455,9 @@ extension TypeChecker where PhaseState == CheckPhaseState {
     let (fun, funDef) = self.getOpenedDefinition(name)
     switch funDef {
     case let .constant(ty, .function(.open)):
-      let clauses = clauses.map { self.checkClause(ty, $0) }
+      let clauses = clauses.map { clause in
+        return self.underNewScope { self.checkClause(ty, clause) }
+      }
       let inv = self.inferInvertibility(clauses)
       self.signature.addFunctionClauses(fun, inv)
       return fun
@@ -408,9 +472,9 @@ extension TypeChecker where PhaseState == CheckPhaseState {
 // MARK: Expressions
 
 extension TypeChecker where PhaseState == CheckPhaseState {
-  func checkExpr(_ synT: Expr, _ ty: Type<TT>) -> Term<TT> {
+  func checkExpr(_ syntax: Expr, _ ty: Type<TT>) -> Term<TT> {
     return self.underExtendedEnvironment([]) {
-      let (elabTm, constraints) = self.elaborate(ty, synT)
+      let (elabTm, constraints) = self.elaborate(ty, syntax)
       print("=========UNSOLVED CONSTRAINTS=========")
       for c in constraints {
         print(c)

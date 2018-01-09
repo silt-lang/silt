@@ -115,6 +115,11 @@ extension TypeChecker {
 }
 
 extension TypeChecker {
+  func openContextualType(_ ctxt: ContextualType, _ args: [Term<TT>]) -> TT {
+    assert(ctxt.telescope.count == args.count)
+    return self.forceInstantiate(ctxt.inside, args)
+  }
+
   func openContextualDefinition(
       _ ctxt: ContextualDefinition, _ args: [Term<TT>]) -> OpenedDefinition {
     func openAccessor<T>(_ accessor: T) -> Opened<T, TT> {
@@ -135,7 +140,7 @@ extension TypeChecker {
     }
 
     precondition(ctxt.telescope.count == args.count)
-    switch self.instantiate(ctxt.inside, args) {
+    switch self.forceInstantiate(ctxt.inside, args) {
     case let .constant(type, constant):
       return .constant(type, openConstant(constant))
     case let .dataConstructor(dataCon, openArgs, type):
@@ -166,7 +171,9 @@ extension TypeChecker {
       var n = self.environment.context.count
       for block in self.environment.scopes {
         if let args = block.opened[name] {
-          return args.map { $0.applySubstitution(.weaken(n), self.eliminate) }
+          return args.map {
+            return $0.forceApplySubstitution(.weaken(n), self.eliminate)
+          }
         } else {
           n += block.context.count
         }

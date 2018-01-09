@@ -1,3 +1,5 @@
+-- RUN: %silt --dump typecheck %s
+
 module bad-types where
 
 id : forall {A : Type} -> A -> A
@@ -12,9 +14,16 @@ flip _ _ _ f = \ y x -> f x y
 
 data List (A : Type) : Type where
   | Nil  : List A
-  | Cons : A -> (List A) -> (List A)
+  | Cons : A -> List A -> List A
 
--- append : forall (A : Type) -> (List A) -> (List A) -> (List A)
--- append A Nil ys = ys
--- append A (Cons x xs) ys = Cons x (append A xs ys)
+append : forall (A : Type) -> List A -> List A -> List A
+append A Nil ys = ys
+append A (Cons x xs) ys = Cons x (append A xs ys)
+
+data N : Type where
+  | Z : N
+  | S : N -> N
+
+seven : N
+seven = S (S (S (S (S (S (S Z))))))
 
