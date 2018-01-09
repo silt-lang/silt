@@ -74,7 +74,7 @@ extension TypeChecker {
       }
 
       let clauses = inv.ignoreInvertibility.map { clause in
-        return self.instantiate(clause, name.args)
+        return self.forceInstantiate(clause, name.args)
       }
       print(clauses)
       print(es)
@@ -117,7 +117,7 @@ extension TypeChecker {
         }
         term = args[ix]
       case let (.lambda(body), .apply(argument)):
-        term = self.instantiate(body, [argument])
+        term = self.forceInstantiate(body, [argument])
       case let (.apply(h, es1), _):
         return TT.apply(h, es1 + elims)
       default:
@@ -151,7 +151,7 @@ extension TypeChecker {
       case .lambda(_):
         return term
       default:
-        let tp = term.applySubstitution(.weaken(1), self.eliminate)
+        let tp = term.forceApplySubstitution(.weaken(1), self.eliminate)
         return TT.lambda(self.eliminate(tp, [.apply(v)]))
       }
     default:
@@ -176,7 +176,7 @@ extension TypeChecker {
       }
       assert(v.index == 0)
       return TT.apply(h, [Elim<TT>](elims.dropLast()))
-               .applySubstitution(.strengthen(1), self.eliminate)
+               .forceApplySubstitution(.strengthen(1), self.eliminate)
     case let .constructor(dataCon, args):
       let (_, openedData) = self.getOpenedDefinition(dataCon.key)
       guard case let .dataConstructor(tyCon, _, _) = openedData else {

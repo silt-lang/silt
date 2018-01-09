@@ -240,10 +240,10 @@ public enum Head<T: Equatable>: Equatable {
   case variable(Var)
   /// The head is a definition opened by the type checker.
   ///
-  /// E.g. The `cons` in:
+  /// E.g. The `List` in:
   ///
   /// ```
-  /// c x xs = (cons x xs)
+  /// f A = List A
   /// ```
   case definition(Opened<QualifiedName, T>)
   /// The head is a metavariable.
@@ -380,7 +380,7 @@ public final class Environment {
     for (n, ty) in self.asContext.reversed() {
       defer { ix += 1 }
       guard name != n else {
-        return (Var(name, ix), ty.applySubstitution(.weaken(Int(ix) + 1), elim))
+        return (Var(name, ix), ty.forceApplySubstitution(.weaken(Int(ix) + 1), elim))
       }
     }
     return nil
@@ -394,7 +394,7 @@ public final class Environment {
       return nil
     }
     let type = ctx[ctx.count - Int(v.index) - 1].1
-    return type.applySubstitution(.weaken(Int(v.index + 1)), elim)
+    return type.forceApplySubstitution(.weaken(Int(v.index + 1)), elim)
   }
 
   @available(*, deprecated, message: "Only for use in the debugger!")

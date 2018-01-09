@@ -321,7 +321,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
       return []
     case let (.pi(dom, cod), .lambda(body1), .lambda(body2)):
       let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
-      let ctx2 = [(Name(name: name), dom)] + ctx
+      let ctx2 = ctx + [(Name(name: name), dom)]
       return self.unify((ctx2, cod, body1, body2))
     case let (_, .apply(head1, elims1), .apply(head2, elims2)):
       guard head1 == head2 else {
@@ -369,26 +369,24 @@ extension TypeChecker where PhaseState == SolvePhaseState {
       switch (elim1, elim2) {
       case let (.apply(arg1), .apply(arg2)):
         let piType = self.toWeakHeadNormalForm(type).ignoreBlocking
-        guard case let .pi(dom, cod) = piType else {
+        guard case let .pi(domain, codomain) = piType else {
           fatalError()
         }
-        let argFrame: UnifyFrame = (ctx, dom, arg1, arg2)
-        let res1 = self.unify(argFrame)
-        constrs.append(contentsOf: res1)
-        if let head2Elim = head {
-          type = cod.applySubstitution(.strengthen(1), self.eliminate)
-          head = self.eliminate(head2Elim, [Elim<TT>.apply(arg1)])
-          continue
-        }
-        let codp = cod.applySubstitution(.instantiate(arg1), self.eliminate)
-        guard !res1.isEmpty else {
+        let argFrame: UnifyFrame = (ctx, domain, arg1, arg2)
+        let unifyFrame = self.unify(argFrame)
+        switch try? codomain.applySubstitution(.strengthen(1), self.eliminate) {
+        case .none:
+          let instCod = codomain
+                    .forceApplySubstitution(.instantiate(arg1), self.eliminate)
           let unifyRestOfSpine: SolverConstraint =
-            .unifySpines(ctx, codp, head,
+            .unifySpines(ctx, instCod, head,
                          [Elim<TT>](elims1.dropFirst(idx)),
                          [Elim<TT>](elims2.dropFirst(idx)))
-          return self.solveConstraint(unifyRestOfSpine)
+          return unifyFrame + self.solveConstraint(unifyRestOfSpine)
+        case let .some(substCodomain):
+          type = substCodomain
+          constrs.append(contentsOf: unifyFrame)
         }
-        fatalError()
       //      case let (.project(proj1), .project(proj2)):
       default:
         print(type.description, elims1, elims2)
