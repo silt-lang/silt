@@ -718,6 +718,12 @@ extension Parser {
       if exprs.isEmpty {
         throw expected("expression")
       }
+
+      // If there's only one expression in this "application", then just return
+      // it without constructing an application.
+      guard exprs.count > 1 else {
+        return exprs[0]
+      }
       return ApplicationExprSyntax(exprs: BasicExprListSyntax(elements: exprs))
     }
   }
