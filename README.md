@@ -1,4 +1,5 @@
 # silt [![Build Status](https://travis-ci.org/silt-lang/silt.svg?branch=master)](https://travis-ci.org/silt-lang/silt)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fsilt-lang%2Fsilt.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fsilt-lang%2Fsilt?ref=badge_shield)
 
 Silt is an in-progress dependently typed functional programming language. Its
 syntax and type system are reminiscent of Idris and Agda, but it compiles
@@ -18,6 +19,9 @@ and an executable will be produced at `.build/debug/silt`.
 
 Silt is released under the MIT License, a copy of which is available in this
 repository.
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fsilt-lang%2Fsilt.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fsilt-lang%2Fsilt?ref=badge_large)
 
 # Contributing
 
