@@ -57,24 +57,37 @@ extension NameBinding {
   }
 
   private func formCompleteApply(
-    _ n: FullyQualifiedName, _ args: [Expr]) -> Expr {
+    _ n: FullyQualifiedName, _ argBuf: [Expr]) -> Expr {
     let head: ApplyHead
+    var args = [Expr]()
+    args.reserveCapacity(argBuf.count)
     if self.isBoundVariable(n.name) {
       head = .variable(n.name)
+      args.append(contentsOf: argBuf)
     } else if let (fqn, info) = self.lookupLocalName(n.name) {
       switch info {
       case .constructor(_, _):
+        args.append(contentsOf: argBuf)
         return .constructor(fqn, args)
+      case let .definition(plicity):
+        head = .definition(fqn)
+        let (result, _) = self.consumeArguments(argBuf, plicity,
+                                                Expr.meta, { [$0] },
+                                                allowExtraneous: true)
+        args.append(contentsOf: result)
       default:
         head = .definition(fqn)
+        args.append(contentsOf: argBuf)
       }
     } else if self.lookupFullyQualifiedName(n) != nil {
       head = .definition(n)
+      args.append(contentsOf: argBuf)
     } else {
       // If it's not a definition or a local variable, it's undefined.
       // Recover by introducing a local variable binding anyways.
       self.engine.diagnose(.undeclaredIdentifier(n), node: n.node)
       head = .variable(n.name)
+      args.append(contentsOf: argBuf)
     }
 
     return .apply(head, args.map(Elimination.apply))
@@ -99,10 +112,10 @@ extension NameBinding {
         let bindings = self.scopeCheckBindingList(syntax.bindingList)
         let ee = self.scopeCheckExpr(syntax.bodyExpr)
         return bindings.reversed().reduce(ee) { (acc, next) -> Expr in
-          let boundNames: [Name] = next.0
-          let nameTy: Expr = next.1
-          return boundNames.dropFirst().reduce(nameTy) { (acc, nm) -> Expr in
-            return Expr.lambda((nm, nameTy), acc)
+          let boundNames: [Name] = next.names
+          let paramAsc: Expr = next.ascription
+          return boundNames.dropFirst().reduce(paramAsc) { (acc, nm) -> Expr in
+            return Expr.lambda((nm, paramAsc), acc)
           }
         }
       }
@@ -113,7 +126,7 @@ extension NameBinding {
 
       let headExpr = syntax.head
       let n = QualifiedName(ast: headExpr.name)
-      guard n.string != "_->_" else {
+      guard n.string != NewNotation.arrowNotation.name.string else {
         assert(syntax.exprs.count == 2)
         if let piParams = syntax.exprs[0] as? TypedParameterGroupExprSyntax {
           return rollPi(piParams.parameters.map(self.scopeCheckParameter),
@@ -138,7 +151,7 @@ extension NameBinding {
       switch syntax.exprs[0] {
       case let headExpr as NamedBasicExprSyntax:
         let n = QualifiedName(ast: headExpr.name)
-        guard n.string != "_->_" else {
+        guard n.string != NewNotation.arrowNotation.name.string else {
           assert(syntax.exprs.count == 3)
           if let piParams = syntax.exprs[1] as? TypedParameterGroupExprSyntax {
             return rollPi(piParams.parameters.map(self.scopeCheckParameter),
@@ -171,41 +184,45 @@ extension NameBinding {
     }
   }
 
+  // swiftlint:disable large_tuple
   private func rollPi(
-    _ telescope: [([Name], Expr)], _ cap: Expr) -> (Expr, [Name]) {
+    _ telescope: [DeclaredParameter], _ cap: Expr
+  ) -> (Expr, [Name], [ArgumentPlicity]) {
     var type = cap
     var piNames = [Name]()
-    for (names, expr) in telescope.reversed() {
-      for name in names.reversed() {
-        type = Expr.pi(name, expr, type)
+    var plicities = [ArgumentPlicity]()
+    for param in telescope.reversed() {
+      for name in param.names.reversed() {
+        type = Expr.pi(name, param.ascription, type)
         piNames.append(name)
+        plicities.append(param.plicity)
       }
     }
-    return (type, piNames)
+    return (type, piNames, plicities)
   }
 
-  private func rollPi1(_ telescope: [([Name], Expr)]) -> Expr {
+  private func rollPi1(_ telescope: [DeclaredParameter]) -> Expr {
     precondition(!telescope.isEmpty)
     guard let first = telescope.last else {
       fatalError()
     }
 
-    var type = first.1
-    for name in first.0.dropLast().reversed() {
-      type = Expr.pi(name, first.1, type)
+    var type = first.ascription
+    for name in first.names.dropLast().reversed() {
+      type = Expr.pi(name, first.ascription, type)
     }
 
-    for (names, expr) in telescope.dropLast().reversed() {
-      for name in names.reversed() {
-        type = Expr.pi(name, expr, type)
+    for param in telescope.dropLast().reversed() {
+      for name in param.names.reversed() {
+        type = Expr.pi(name, param.ascription, type)
       }
     }
     return type
   }
 
   private func scopeCheckBindingList(
-    _ syntax: BindingListSyntax) -> [([Name], Expr)] {
-    var bs = [([Name], Expr)]()
+    _ syntax: BindingListSyntax) -> [DeclaredParameter] {
+    var bs = [DeclaredParameter]()
     for binding in syntax {
       switch binding {
       case let binding as NamedBindingSyntax:
@@ -215,7 +232,7 @@ extension NameBinding {
           // ignore it.
           continue
         }
-        bs.append(([bindName], .meta))
+        bs.append(DeclaredParameter([bindName], .meta, .explicit))
       case let binding as TypedBindingSyntax:
         bs.append(self.scopeCheckParameter(binding.parameter))
       default:
@@ -226,7 +243,7 @@ extension NameBinding {
   }
 
   private func scopeCheckParameter(
-    _ syntax: TypedParameterSyntax) -> ([Name], Expr) {
+    _ syntax: TypedParameterSyntax) -> DeclaredParameter {
     switch syntax {
     case let syntax as ExplicitTypedParameterSyntax:
       let tyExpr = self.scopeCheckExpr(
@@ -248,7 +265,7 @@ extension NameBinding {
         }
         names.append(bindName)
       }
-      return (names, tyExpr)
+      return DeclaredParameter(names, tyExpr, .explicit)
     case let syntax as ImplicitTypedParameterSyntax:
       let tyExpr = self.scopeCheckExpr(
                       self.reparseExpr(syntax.ascription.typeExpr))
@@ -269,15 +286,30 @@ extension NameBinding {
         }
         names.append(bindName)
       }
-      return (names, tyExpr)
+      return DeclaredParameter(names, tyExpr, .implicit)
     default:
       fatalError("scope checking for \(type(of: syntax)) is unimplemented")
     }
   }
 
   private func scopeCheckPattern(
-    _ syntax: BasicExprListSyntax) -> [DeclaredPattern] {
-    let pats = syntax.flatMap(self.exprToDeclPattern)
+    _ syntax: BasicExprListSyntax, _ plicity: [ArgumentPlicity]
+  ) -> [DeclaredPattern] {
+    let (pats, maybeError) = self.consumeArguments(syntax, plicity,
+                                                   DeclaredPattern.wild,
+                                                   self.exprToDeclPattern)
+    if let err = maybeError {
+      switch err {
+      case let .extraneousArguments(expected, have, implicit, leftoverStart):
+        let diag: Diagnostic.Message =
+          .tooManyPatternsInLHS(expected, have, implicit)
+        self.engine.diagnose(diag, node: syntax) {
+          for i in leftoverStart..<syntax.count {
+            $0.note(.ignoringExcessPattern, node: syntax[i])
+          }
+        }
+      }
+    }
     func openPatternVarsIntoScope(_ p: DeclaredPattern) -> Bool {
       switch p {
       case .wild:
@@ -304,26 +336,39 @@ extension NameBinding {
   }
 
   private func scopeCheckDataDecl(_ syntax: DataDeclSyntax) -> [Decl] {
+    typealias ScopeCheckType = (Decl, [TypeSignature], Decl, [ArgumentPlicity])?
+    let scopedValues = self.underScope { (_) -> ScopeCheckType in
+      let params = syntax.typedParameterList.map(self.scopeCheckParameter)
+      let rebindExpr = self.reparseExpr(syntax.typeIndices.indexExpr)
+      let (type, names, plicity)
+        = self.rollPi(params, self.scopeCheckExpr(rebindExpr))
+      let dataName = Name(name: syntax.dataIdentifier)
+      guard
+        let boundDataName = self.bindDefinition(named: dataName, plicity)
+      else {
+        // If this declaration does not have a unique name, diagnose it and
+        // recover by ignoring it.
+        self.engine.diagnose(.nameShadows(dataName), node: syntax)
+        return nil
+      }
+
+      let asc = Decl.dataSignature(TypeSignature(name: boundDataName,
+                                                 type: type,
+                                                 plicity: plicity))
+      let cs = syntax.constructorList.flatMap(self.scopeCheckConstructor)
+      return (asc, cs, Decl.data(boundDataName, names, cs), plicity)
+    }
+
+    guard let (asc, cs, dataBody, plicity) = scopedValues else {
+      return []
+    }
+
     let dataName = Name(name: syntax.dataIdentifier)
-    guard let boundDataName = self.bindDefinition(named: dataName, 0) else {
+    guard self.bindDefinition(named: dataName, plicity) != nil else {
       // If this declaration does not have a unique name, diagnose it and
       // recover by ignoring it.
       self.engine.diagnose(.nameShadows(dataName), node: syntax)
       return []
-    }
-    let (sig, db) = self.underScope { (_) -> (Decl, Decl) in
-      let params = syntax.typedParameterList.map(self.scopeCheckParameter)
-      let rebindExpr = self.reparseExpr(syntax.typeIndices.indexExpr)
-      let (type, names) = self.rollPi(params, self.scopeCheckExpr(rebindExpr))
-      let asc = Decl.dataSignature(TypeSignature(name: boundDataName,
-                                                 type: type))
-      let cs = syntax.constructorList.flatMap(self.scopeCheckConstructor)
-      let dataBody = Decl.data(boundDataName, names, cs)
-      return (asc, dataBody)
-    }
-
-    guard case let .data(_, _, cs) = db else {
-      fatalError()
     }
 
     for constr in cs {
@@ -332,12 +377,13 @@ extension NameBinding {
       }
     }
 
-    return [ sig, db ]
+    return [ asc, dataBody ]
   }
 
   private func scopeCheckRecordDecl(_ syntax: RecordDeclSyntax) -> [Decl] {
     let recName = Name(name: syntax.recordName)
-    guard let boundDataName = self.bindDefinition(named: recName, 0) else {
+    // FIXME: Compute plicity
+    guard let boundDataName = self.bindDefinition(named: recName, []) else {
       // If this declaration does not have a unique name, diagnose it and
       // recover by ignoring it.
       self.engine.diagnose(.nameShadows(recName), node: syntax)
@@ -349,9 +395,10 @@ extension NameBinding {
         return self.scopeCheckExpr(self.reparseExpr($0.indexExpr))
       }) ?? Expr.type
 
-      let (ty, _) = rollPi(params, capType)
+      let (ty, _, plicity) = self.rollPi(params, capType)
       let asc = Decl.recordSignature(TypeSignature(name: boundDataName,
-                                                   type: ty))
+                                                   type: ty,
+                                                   plicity: plicity))
 
       var sigs = [(Name, TypeSignature)]()
       var decls = [Decl]()
@@ -407,7 +454,8 @@ extension NameBinding {
           self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
           return nil
         }
-        return (name, TypeSignature(name: bindName, type: ascExpr))
+        fatalError("\(ascExpr), \(bindName)")
+//      return (name, TypeSignature(name: bindName, type: ascExpr, plicity: []))
       }
 
       if let sig = maybeSig {
@@ -434,7 +482,7 @@ extension NameBinding {
         continue
       }
 
-      result.append(TypeSignature(name: bindName, type: ascExpr))
+      result.append(TypeSignature(name: bindName, type: ascExpr, plicity: []))
     }
     return result
   }
@@ -443,33 +491,77 @@ extension NameBinding {
     _ syntax: ReparsedFunctionDeclSyntax) -> [Decl] {
     precondition(syntax.ascription.boundNames.count == 1)
 
-    let funcName = Name(name: syntax.ascription.boundNames[0])
-    guard let functionName = self.bindDefinition(named: funcName, 0) else {
+    let rebindExpr = self.reparseExpr(syntax.ascription.typeExpr)
+    let (ascExpr, plicity) = self.underScope { _ in
+      return (self.scopeCheckExpr(rebindExpr), computePlicity(rebindExpr))
+    }
+    let name = Name(name: syntax.ascription.boundNames[0])
+    guard let functionName = self.bindDefinition(named: name, plicity) else {
       fatalError("Should have unique function names by now")
     }
-    let rebindExpr = self.reparseExpr(syntax.ascription.typeExpr)
-    let ascExpr = self.underScope { _ in
-      return self.scopeCheckExpr(rebindExpr)
-    }
-    let asc = Decl.ascription(TypeSignature(name: functionName, type: ascExpr))
-    let clauses = syntax.clauseList.map(self.scopeCheckFunctionClause)
+    let ascription = TypeSignature(name: functionName,
+                                   type: ascExpr, plicity: plicity)
+    let clauses = syntax.clauseList.map({ clause in
+      return self.scopeCheckFunctionClause(clause, plicity)
+    })
     let fn = Decl.function(functionName, clauses)
-    return [asc, fn]
+    return [Decl.ascription(ascription), fn]
+  }
+
+  private func computePlicity(_ syntax: ExprSyntax) -> [ArgumentPlicity] {
+    var plicities = [ArgumentPlicity]()
+    func go(_ syntax: ExprSyntax) {
+      switch syntax {
+      case let syntax as ReparsedApplicationExprSyntax:
+        let headExpr = syntax.head
+        let n = QualifiedName(ast: headExpr.name)
+        guard n.string == NewNotation.arrowNotation.name.string else {
+          return
+        }
+        assert(syntax.exprs.count == 2)
+        if let piParams = syntax.exprs[0] as? TypedParameterGroupExprSyntax {
+          for param in piParams.parameters {
+            switch param {
+            case let itps as ImplicitTypedParameterSyntax:
+              for _ in itps.ascription.boundNames {
+                plicities.append(.implicit)
+              }
+            case let etps as ExplicitTypedParameterSyntax:
+              for _ in etps.ascription.boundNames {
+                plicities.append(.explicit)
+              }
+            default:
+              fatalError()
+            }
+          }
+        } else {
+          plicities.append(.explicit)
+        }
+        go(syntax.exprs[1])
+      case _ as ParenthesizedExprSyntax:
+        plicities.append(.explicit)
+      default:
+        return
+      }
+    }
+    _ = go(syntax)
+    return plicities
   }
 
   private func scopeCheckFunctionClause(
-    _ syntax: FunctionClauseDeclSyntax) -> DeclaredClause {
+    _ syntax: FunctionClauseDeclSyntax, _ plicity: [ArgumentPlicity]
+  ) -> DeclaredClause {
     switch syntax {
     case let syntax as NormalFunctionClauseDeclSyntax:
       return self.underScope { _ in
-        let pattern = self.scopeCheckPattern(syntax.basicExprList)
+        let pattern = self.scopeCheckPattern(syntax.basicExprList, plicity)
         let reparsedRHS = self.reparseExpr(syntax.rhsExpr)
         let body = self.scopeCheckExpr(reparsedRHS)
         return DeclaredClause(patterns: pattern, body: .body(body, []))
       }
     case let syntax as WithRuleFunctionClauseDeclSyntax:
       return self.underScope { _ in
-        let pattern = self.scopeCheckPattern(syntax.basicExprList)
+        let pattern = self.scopeCheckPattern(syntax.basicExprList, plicity)
         let body = self.scopeCheckExpr(syntax.rhsExpr)
         // FIXME: Introduce the with variables binding too.
         return DeclaredClause(patterns: pattern, body: .body(body, []))
@@ -575,5 +667,82 @@ extension NameBinding {
   private func scopeCheckFixityDecl(_ syntax: FixityDeclSyntax) -> [Decl] {
     _ = fixityFromSyntax(syntax, diagnose: true)
     return []
+  }
+}
+
+extension NameBinding {
+  fileprivate enum ArgumentConsumptionError {
+    case extraneousArguments(expected: Int, have: Int,
+                             implicit: Int, leftoverStart: Int)
+  }
+
+  /// Consumes arguments of a given plicity and returns an array of all valid
+  /// arguments.
+  ///
+  /// This function may be used to validate both the LHS and RHS of a
+  /// declaration.
+  ///
+  /// Matching parameters is an iterative process that tries to drag as many
+  /// implicit arguments into scope as possible as long as they are anchored by
+  /// a named argument.  For example, given the declaration:
+  ///
+  /// ```
+  /// f : {A B : Type} -> A -> B -> {C : Type} -> C -> A
+  /// f x y c = x
+  /// ```
+  ///
+  /// The parameters `A, B` are dragged into scope by the introduction of `x`,
+  /// and `c` drags `C` into scope.  Items implicitly dragged into scope are
+  /// represented by the value in the `implicit` parameter; either a wildcard
+  /// pattern for LHSes or metavariables for RHSes.
+  fileprivate func consumeArguments<C, T>(
+    _ syntax: C, _ plicity: [ArgumentPlicity], _ implicit: T,
+    _ valuesFn: (C.Element) -> [T], allowExtraneous: Bool = false
+  ) -> ([T], ArgumentConsumptionError?)
+    where C: Collection, C.IndexDistance == Int, C.Indices.Index == Int {
+    var arguments = [T]()
+    var lastExplicit = -1
+    var syntaxIdx = 0
+    var implicitCount = 0
+    for i in 0..<plicity.count {
+      guard syntaxIdx < syntax.count else {
+        for trailingImplIdx in i..<plicity.count {
+          guard case .implicit = plicity[trailingImplIdx] else {
+            break
+          }
+          arguments.append(implicit)
+        }
+        break
+      }
+
+      guard case .explicit = plicity[i] else {
+        implicitCount += 1
+        continue
+      }
+      if i - lastExplicit - 1 > 0 || (lastExplicit == -1 && i > 0) {
+        let extra = (lastExplicit == -1)
+                  ? i
+                  : (i - lastExplicit - 1)
+        let wildCards = repeatElement(implicit,
+                                      count: extra)
+        arguments.append(contentsOf: wildCards)
+      }
+      let val = valuesFn(syntax[syntaxIdx])
+      arguments.append(contentsOf: val)
+      syntaxIdx += 1
+      lastExplicit = i
+    }
+    guard syntaxIdx >= syntax.count || allowExtraneous else {
+      let err = ArgumentConsumptionError
+        .extraneousArguments(expected: arguments.count, have: syntax.count,
+                             implicit: implicitCount, leftoverStart: syntaxIdx)
+      return (arguments, err)
+    }
+    if allowExtraneous && syntaxIdx < syntax.count {
+      for i in syntaxIdx..<syntax.count {
+        arguments.append(contentsOf: valuesFn(syntax[i]))
+      }
+    }
+    return (arguments, nil)
   }
 }
