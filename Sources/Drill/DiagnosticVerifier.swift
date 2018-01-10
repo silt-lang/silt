@@ -90,7 +90,7 @@ public final class DiagnosticVerifier {
   }
 
   /// The set of expected-{severity} comments in the file.
-  let expectations: Set<Expectation>
+  let expectations: [Expectation]
 
   /// The set of diagnostics that have been parsed.
   let producedDiagnostics: [(message: Diagnostic.Message, node: Syntax?)]
@@ -154,16 +154,13 @@ public final class DiagnosticVerifier {
         continue
       }
 
-      var found = false
-      for (idx, exp) in zip(unmatched.indices, unmatched) {
-        // If it matches, remove this from the set of expectations
-        if matches(message: message, node: node, expectation: exp) {
-          found = true
-          unmatched.remove(at: idx)
-          break
-        }
-      }
-      if !found {
+      // If any of the as-of-yet unmatched expectations fit this diagnostic,
+      // remove it.
+      if let idx = unmatched.index(where: { exp in
+        return matches(message: message, node: node, expectation: exp)
+      }) {
+        unmatched.remove(at: idx)
+      } else {
         unexpected[loc.line, default: []].append((message, node))
       }
     }
@@ -231,8 +228,8 @@ public final class DiagnosticVerifier {
   /// provided token stream. This provides the set of expectations that the
   /// real diagnostics will be verified against.
   private static func parseExpectations(
-    url: URL, engine: DiagnosticEngine) -> Set<Expectation> {
-    var expectations = Set<Expectation>()
+    url: URL, engine: DiagnosticEngine) -> [Expectation] {
+    var expectations = [Expectation]()
     guard let input = try? String(contentsOf: url, encoding: .utf8) else {
       engine.diagnose(.couldNotReadInput(url))
       return []
@@ -244,7 +241,7 @@ public final class DiagnosticVerifier {
                                        lineNumber: lineNum + 1) else {
         continue
       }
-      expectations.insert(exp)
+      expectations.append(exp)
     }
     return expectations
   }
