@@ -19,7 +19,15 @@ public final class CheckPhaseState {
 // MARK: Declarations
 
 extension TypeChecker where PhaseState == CheckPhaseState {
-  public func checkModule(_ syntax: DeclaredModule) -> Module {
+  public func checkTopLevelModule(_ syntax: DeclaredModule) -> Module {
+    let module = checkModule(syntax)
+    if options.contains(.debugMetas) {
+      self.signature.dumpMetas()
+    }
+    return module
+  }
+
+  private func checkModule(_ syntax: DeclaredModule) -> Module {
     // First, build up the initial parameter context.
     var paramCtx = Context()
     for (paramNames, synType) in syntax.params {
@@ -475,15 +483,21 @@ extension TypeChecker where PhaseState == CheckPhaseState {
   func checkExpr(_ syntax: Expr, _ ty: Type<TT>) -> Term<TT> {
     return self.underExtendedEnvironment([]) {
       let (elabTm, constraints) = self.elaborate(ty, syntax)
-      print("=========UNSOLVED CONSTRAINTS=========")
-      for c in constraints {
-        print(c)
+      if self.options.contains(.debugConstraints) {
+        dumpConstraints(constraints)
       }
-      print("======================================")
       let solvedEnv = self.solve(constraints)
       self.checkTT(elabTm, hasType: ty, in: solvedEnv.asContext)
       return elabTm
     }
+  }
+
+  func dumpConstraints(_ constraints: [Constraint]) {
+    print("=========UNSOLVED CONSTRAINTS=========")
+    for c in constraints {
+      print(c)
+    }
+    print("======================================")
   }
 }
 

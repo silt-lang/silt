@@ -8,8 +8,21 @@
 import Moho
 import Lithosphere
 
+public struct TypeCheckerDebugOptions: OptionSet {
+  public let rawValue: UInt32
+  public init(rawValue: RawValue) {
+    self.rawValue = rawValue
+  }
+  public static let debugMetas =
+    TypeCheckerDebugOptions(rawValue: 1 << 0)
+  public static let debugConstraints =
+    TypeCheckerDebugOptions(rawValue: 1 << 1)
+}
+
 public final class TypeChecker<PhaseState> {
+
   var state: State<PhaseState>
+  let options: TypeCheckerDebugOptions
 
   final class State<S> {
     fileprivate var signature: Signature
@@ -23,11 +36,14 @@ public final class TypeChecker<PhaseState> {
     }
   }
 
-  public convenience init(_ state: PhaseState) {
-    self.init(Signature(), Environment([]), state)
+  public convenience init(_ state: PhaseState,
+                          options: TypeCheckerDebugOptions = []) {
+    self.init(Signature(), Environment([]), state, options)
   }
 
-  init(_ sig: Signature, _ env: Environment, _ state: PhaseState) {
+  init(_ sig: Signature, _ env: Environment, _ state: PhaseState,
+       _ options: TypeCheckerDebugOptions) {
+    self.options = options
     self.state = State<PhaseState>(sig, env, state)
   }
 

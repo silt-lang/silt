@@ -6,6 +6,7 @@
 /// available in the repository.
 
 import Foundation
+import Mantle
 
 /// The mode the compiler will be executing in.
 public enum Mode {
@@ -53,6 +54,7 @@ public class Options {
   public var colorsEnabled: Bool = true
   public var shouldPrintTiming: Bool = false
   public var inputPaths: Set<String> = []
+  public var typeCheckerDebugOptions: TypeCheckerDebugOptions = []
 
   public init() {}
 }

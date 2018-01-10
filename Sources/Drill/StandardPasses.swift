@@ -59,8 +59,10 @@ enum Passes {
   /// The TypeCheck pass ensures a well-scoped program is also well-typed.
   static let typeCheck =
     DiagnosticGatePass(
-      Pass<DeclaredModule, Module>(name: "Type Check") { module, _ in
-        let tc = TypeChecker<CheckPhaseState>(CheckPhaseState())
-        return tc.checkModule(module)
+      Pass<DeclaredModule, Module>(name: "Type Check") { module, context in
+        let tc =
+          TypeChecker<CheckPhaseState>(CheckPhaseState(),
+              options: context.options.typeCheckerDebugOptions)
+        return tc.checkTopLevelModule(module)
     })
 }

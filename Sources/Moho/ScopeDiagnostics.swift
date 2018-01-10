@@ -61,7 +61,7 @@ extension Diagnostic.Message {
   }
 
   static func precedenceNotIntegral(_ p: TokenSyntax) -> Diagnostic.Message {
-    return Diagnostic.Message(.error,
+    return Diagnostic.Message(.warning,
                               """
                               operator precedence '\(p.triviaFreeSourceText)' \
                               is invalid; precedence must be a positive integer

@@ -69,6 +69,20 @@ func parseOptions() -> Options {
   binder.bind(
     option: cli.add(option: "--debug-print-timing", kind: Bool.self),
     to: { opt, r in opt.shouldPrintTiming = r })
+  binder.bind(
+    option: cli.add(option: "--debug-constraints", kind: Bool.self),
+    to: { opt, r in
+      if r {
+        opt.typeCheckerDebugOptions.insert(.debugConstraints)
+      }
+    })
+  binder.bind(
+    option: cli.add(option: "--debug-metas", kind: Bool.self),
+    to: { opt, r in
+      if r {
+        opt.typeCheckerDebugOptions.insert(.debugMetas)
+      }
+    })
   binder.bindArray(
     positional: cli.add(
       positional: "",

@@ -148,7 +148,6 @@ extension Signature {
                                                 inside: newDef))
   }
 
-  @available(*, deprecated, message: "Only for use in the debugger!")
   func dumpMetas() {
     print("=========SOLVED META BINDINGS=========")
     for mv in self.metaTypes.keys.sorted() {

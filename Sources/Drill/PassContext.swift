@@ -17,4 +17,11 @@ final class PassContext {
   /// The diagnostic engine which passes should use to diagnose errors and
   /// warnings.
   let engine = DiagnosticEngine()
+
+  /// The command-line options used to invoke the compiler.
+  let options: Options
+
+  init(options: Options) {
+    self.options = options
+  }
 }

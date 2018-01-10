@@ -63,7 +63,8 @@ extension TypeChecker {
   func solve(_ constraints: [Constraint]) -> Environment {
     let solver = TypeChecker<SolvePhaseState>(self.signature,
                                               self.environment,
-                                              SolvePhaseState())
+                                              SolvePhaseState(),
+                                              options)
     // We can solve in any order because we're using dynamic unification.
     // Anecdotally tho, walking backwards seems to do the trick better
     // than walking forwards.

@@ -51,7 +51,7 @@ public struct Invocation {
   }
 
   public func run() -> HadErrors {
-    let context = PassContext()
+    let context = PassContext(options: options)
     let printingConsumer =
       PrintingDiagnosticConsumer(stream: &stderrStreamHandle)
     let printingConsumerToken = context.engine.register(printingConsumer)

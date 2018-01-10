@@ -22,7 +22,8 @@ extension TypeChecker {
   func elaborate(_ ty: Type<TT>, _ expr: Expr) -> (Term<TT>, [Constraint]) {
     let elaborator = TypeChecker<ElaboratePhaseState>(self.signature,
                                                       self.environment,
-                                                      ElaboratePhaseState())
+                                                      ElaboratePhaseState(),
+                                                      options)
     let ttExpr = elaborator.elaborate(expr, expecting: ty)
     return (ttExpr, elaborator.state.state.constraints)
   }

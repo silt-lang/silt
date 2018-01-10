@@ -117,7 +117,7 @@ public class Lexer {
       "{": .leftBrace, "}": .rightBrace,
       "(": .leftParen, ")": .rightParen,
       "\\": .forwardSlash,
-      ".": .period, ":": .colon
+      ".": .period
     ]
 
     if let kind = singleTokMap[char] {
