@@ -173,3 +173,12 @@ public struct Diagnostic {
     self = builder.build(message: message, node: node)
   }
 }
+
+extension Diagnostic.Message {
+  /// Returns a string of the appropriate pluralization given a count.
+  public static func pluralize(
+    singular: String, plural: String, _ count: Int
+  ) -> String {
+    return (count == 1) ? singular : plural
+  }
+}
