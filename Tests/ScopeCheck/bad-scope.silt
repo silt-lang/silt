@@ -32,16 +32,16 @@ bad-lambdas = \ x -> (\ y -> (a w))
 --expected-error @-2 {{use of undeclared identifier 'w'}}
 
 data BadNat : Typo where -- expected-error {{use of undeclared identifier 'Typo'}}
-  | z : BadNat
-  | s : BadNat -> BadNot -- expected-error {{use of undeclared identifier 'BadNot'}}
+  z : BadNat
+  s : BadNat -> BadNot -- expected-error {{use of undeclared identifier 'BadNot'}}
 
 data N : Type where
-  | zero : N
-  | succ : N -> N
+  zero : N
+  succ : N -> N
 
 data Vec (X : Type) : N -> Type where
-  | [] : Vec X zero
-  | cons : {n : N} -> X -> Vec X n -> Vec X (succ n)
+  [] : Vec X zero
+  cons : {n : N} -> X -> Vec X n -> Vec X (succ n)
 
 bad-head : forall {n : N}{X : Type} -> Vec X (suc n) -> X -- expected-error {{use of undeclared identifier 'suc'}}
 bad-head (cons x xs) = x

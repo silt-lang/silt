@@ -3,13 +3,13 @@
 module ambiguous-operators where
 
 data True : Type where
-  | tt : True
+  tt : True
 
-data False : Type where
+data False : Type
 
 data Bool : Type where
-  | false : Bool
-  | true  : Bool
+  false : Bool
+  true  : Bool
 
 if_then_else_ : Bool -> {A : Type} -> A -> A -> A
 if true  then x else y = x

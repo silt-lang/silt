@@ -313,6 +313,68 @@ public class DataDeclSyntax: DeclSyntax {
 
 }
 
+public class EmptyDataDeclSyntax: DeclSyntax {
+  public enum Cursor: Int {
+    case dataToken
+    case dataIdentifier
+    case typedParameterList
+    case typeIndices
+    case trailingSemicolon
+  }
+
+  public convenience init(dataToken: TokenSyntax, dataIdentifier: TokenSyntax, typedParameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax, trailingSemicolon: TokenSyntax) {
+    let raw = RawSyntax.node(.emptyDataDecl, [
+      dataToken.raw,
+      dataIdentifier.raw,
+      typedParameterList.raw,
+      typeIndices.raw,
+      trailingSemicolon.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var dataToken: TokenSyntax {
+    return child(at: Cursor.dataToken) as! TokenSyntax
+  }
+  public func withDataToken(_ syntax: TokenSyntax) -> EmptyDataDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.dataToken)
+    return EmptyDataDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var dataIdentifier: TokenSyntax {
+    return child(at: Cursor.dataIdentifier) as! TokenSyntax
+  }
+  public func withDataIdentifier(_ syntax: TokenSyntax) -> EmptyDataDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.dataIdentifier)
+    return EmptyDataDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var typedParameterList: TypedParameterListSyntax {
+    return child(at: Cursor.typedParameterList) as! TypedParameterListSyntax
+  }
+  public func withTypedParameterList(_ syntax: TypedParameterListSyntax) -> EmptyDataDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.typedParameterList)
+    return EmptyDataDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var typeIndices: TypeIndicesSyntax {
+    return child(at: Cursor.typeIndices) as! TypeIndicesSyntax
+  }
+  public func withTypeIndices(_ syntax: TypeIndicesSyntax) -> EmptyDataDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.typeIndices)
+    return EmptyDataDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  }
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> EmptyDataDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
+    return EmptyDataDeclSyntax(root: newRoot, data: newData)
+  }
+
+}
+
 public class TypeIndicesSyntax: Syntax {
   public enum Cursor: Int {
     case colonToken
@@ -487,28 +549,18 @@ public typealias ConstructorListSyntax = SyntaxCollection<ConstructorDeclSyntax>
 
 public class ConstructorDeclSyntax: DeclSyntax {
   public enum Cursor: Int {
-    case pipeToken
     case ascription
     case trailingSemicolon
   }
 
-  public convenience init(pipeToken: TokenSyntax, ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) {
+  public convenience init(ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.constructorDecl, [
-      pipeToken.raw,
       ascription.raw,
       trailingSemicolon.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
   }
-  public var pipeToken: TokenSyntax {
-    return child(at: Cursor.pipeToken) as! TokenSyntax
-  }
-  public func withPipeToken(_ syntax: TokenSyntax) -> ConstructorDeclSyntax {
-    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.pipeToken)
-    return ConstructorDeclSyntax(root: newRoot, data: newData)
-  }
-
   public var ascription: AscriptionSyntax {
     return child(at: Cursor.ascription) as! AscriptionSyntax
   }

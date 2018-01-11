@@ -44,6 +44,8 @@ extension NameBinding {
       return self.scopeCheckFunctionDecl(syntax)
     case let syntax as DataDeclSyntax:
       return self.scopeCheckDataDecl(syntax)
+    case let syntax as EmptyDataDeclSyntax:
+      return self.scopeCheckEmptyDataDecl(syntax)
     case let syntax as RecordDeclSyntax:
       return self.scopeCheckRecordDecl(syntax)
     case let syntax as FixityDeclSyntax:
@@ -333,6 +335,32 @@ extension NameBinding {
       validPatterns.append(pat)
     }
     return validPatterns
+  }
+
+  private func scopeCheckEmptyDataDecl(
+    _ syntax: EmptyDataDeclSyntax) -> [Decl] {
+    typealias ScopeCheckType = (Expr, [ArgumentPlicity])
+    let (type, plicity) = self.underScope { (_) -> ScopeCheckType in
+      let params = syntax.typedParameterList.map(self.scopeCheckParameter)
+      let rebindExpr = self.reparseExpr(syntax.typeIndices.indexExpr)
+      let (type, _, plicity)
+        = self.rollPi(params, self.scopeCheckExpr(rebindExpr))
+      return (type, plicity)
+    }
+
+    let dataName = Name(name: syntax.dataIdentifier)
+    guard
+      let boundDataName = self.bindDefinition(named: dataName, plicity)
+      else {
+        // If this declaration does not have a unique name, diagnose it and
+        // recover by ignoring it.
+        self.engine.diagnose(.nameShadows(dataName), node: syntax)
+        return []
+    }
+
+    return [Decl.dataSignature(TypeSignature(name: boundDataName,
+                                             type: type,
+                                             plicity: plicity))]
   }
 
   private func scopeCheckDataDecl(_ syntax: DataDeclSyntax) -> [Decl] {

@@ -56,7 +56,7 @@ let syntaxNodes = [
 
   // MARK: Data types
 
-  // data-decl ::= 'data' <id> <typed-parameter-list>? <type-indices>? 'where' '{' <constructor-list> '}' ';'
+  // data-decl ::= 'data' <id> <typed-parameter-list>? <type-indices>? 'where'? '{' <constructor-list> '}' ';'
 
   Node("DataDecl", kind: "Decl", children: [
     Child("dataToken", kind: "DataToken"),
@@ -67,6 +67,14 @@ let syntaxNodes = [
     Child("leftBraceToken", kind: "LeftBraceToken"),
     Child("constructorList", kind: "ConstructorList"),
     Child("rightBraceToken", kind: "RightBraceToken"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
+  ]),
+
+  Node("EmptyDataDecl", kind: "Decl", children: [
+    Child("dataToken", kind: "DataToken"),
+    Child("dataIdentifier", kind: "IdentifierToken"),
+    Child("typedParameterList", kind: "TypedParameterList"),
+    Child("typeIndices", kind: "TypeIndices"),
     Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
@@ -116,7 +124,6 @@ let syntaxNodes = [
   // constructor-decl ::= '|' <ascription>
 
   Node("ConstructorDecl", kind: "Decl", children: [
-    Child("pipeToken", kind: "PipeToken"),
     Child("ascription", kind: "Ascription"),
     Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),

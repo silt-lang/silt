@@ -4,6 +4,7 @@ id-list ::= <id> | <id-list>
 # Declarations
 
 decl ::= <data-decl>
+       | <empty-data-decl>
        | <record-decl>
        | <module-decl>
        | <import-decl>
@@ -12,7 +13,8 @@ decl ::= <data-decl>
 
 ## Data types
 
-data-decl ::= 'data' <id> <typed-parameter-list>? <type-indices>? 'where' '{ ' <constructor-list> '}' ';'
+empty-data-decl ::= 'data' <id> <typed-parameter-list> <type-indices>
+data-decl ::= 'data' <id> <typed-parameter-list> <type-indices> 'where' '{ ' <constructor-list> '}' ';'
 type-indices ::= ':' <expr>
 typed-parameter-list ::= <typed-parameter>
                       | <typed-parameter> <typed-parameter-list>
@@ -21,7 +23,7 @@ typed-parameter ::= '(' <ascription> ')'
                   | '{' <ascription> '}'
 constructor-list ::= <constructor-decl>
                    | <constructor-decl> <constructor-decl-list>
-constructor-decl ::= '|' <ascription> ';'
+constructor-decl ::= <ascription> ';'
 
 ## Records
 

@@ -16,6 +16,7 @@ public enum SyntaxKind {
   case openImportDecl
   case importDecl
   case dataDecl
+  case emptyDataDecl
   case typeIndices
   case typedParameterList
   case ascription
@@ -96,6 +97,8 @@ extension Syntax {
       return ImportDeclSyntax(root: root, data: data)
     case .dataDecl:
       return DataDeclSyntax(root: root, data: data)
+    case .emptyDataDecl:
+      return EmptyDataDeclSyntax(root: root, data: data)
     case .typeIndices:
       return TypeIndicesSyntax(root: root, data: data)
     case .typedParameterList:
