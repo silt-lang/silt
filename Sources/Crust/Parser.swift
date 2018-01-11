@@ -830,12 +830,16 @@ extension Parser {
 
   func parseLetExpr() throws -> LetExprSyntax {
     let letTok = try consume(.letKeyword)
+    let leftBrace = try consume(.leftBrace)
     let declList = try parseDeclList()
+    let rightBrace = try consume(.rightBrace)
     let inTok = try consume(.inKeyword)
     let outputExpr = try parseExpr()
     return LetExprSyntax(
       letToken: letTok,
+      leftBraceToken: leftBrace,
       declList: declList,
+      rightBraceToken: rightBrace,
       inToken: inTok,
       outputExpr: outputExpr)
   }
