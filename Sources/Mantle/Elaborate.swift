@@ -85,8 +85,7 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
       return self.expect(exType, TT.type, t, from: syntax)
     // Just lift non-dependent function spaces to dependent ones.
     case let .function(domain, codomain):
-      let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
-      return self.elaborate(.pi(Name(name: name), domain, codomain),
+      return self.elaborate(.pi(wildcardName, domain, codomain),
                             expecting: exType)
 
     //       Γ, x : A ⊢ t : B
@@ -151,6 +150,15 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
       return self.expect(exType, conTy,
                          TT.constructor(openedCon, conArgs), from: syntax)
 
+    case let .let(decls, rhsExpr):
+      return self.underNewScope {
+        let tc =
+          TypeChecker<CheckPhaseState>(signature, environment,
+                                       CheckPhaseState(), options)
+        _ = decls.map(tc.checkDecl)
+        return elaborate(rhsExpr, expecting: exType)
+      }
+
     case let .apply(h, elims):
       return self.elaborateApp(exType, h, elims.reversed(), syntax)
       /*
@@ -168,8 +176,7 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
         case let .apply(arg):
           let dm = self.addMeta(in: self.environment.asContext,
                                 from: arg, expect: TT.type)
-          let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
-          let cd = self.underExtendedEnvironment([(Name(name: name), dm)]) {
+          let cd = self.underExtendedEnvironment([(wildcardName, dm)]) {
             return self.addMeta(in: self.environment.asContext,
                                 from: arg, expect: TT.type)
           }
@@ -203,8 +210,7 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
     }
     let dm = self.addMeta(in: self.environment.asContext,
                           from: from, expect: TT.type)
-    let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
-    let cd = self.underExtendedEnvironment([(Name(name: name), dm)]) {
+    let cd = self.underExtendedEnvironment([(wildcardName, dm)]) {
       return self.addMeta(in: self.environment.asContext,
                           from: arg, expect: TT.type)
     }
@@ -245,25 +251,6 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
     let t = self.addMeta(in: ctx, from: node, expect: expectedType)
     self.writeConstraint(.equal(ctx, expectedType, t, givenType, term))
     return t
-  }
-
-  // Takes a Pi-type and replaces all it's elements with metavariables.
-  private func fillPiWithMetas(_ ty: Type<TT>) -> [Term<TT>] {
-    var type = self.toWeakHeadNormalForm(ty).ignoreBlocking
-    var metas = [Term<TT>]()
-    while true {
-      switch type {
-      case let .pi(domain, codomain):
-        let meta = self.addMeta(in: self.environment.asContext, expect: domain)
-        let instCodomain = self.forceInstantiate(codomain, [meta])
-        type = self.toWeakHeadNormalForm(instCodomain).ignoreBlocking
-        metas.append(meta)
-      case .type:
-        return metas
-      default:
-        fatalError("Expected Pi")
-      }
-    }
   }
 
   private func writeConstraint(_ c: Constraint) {

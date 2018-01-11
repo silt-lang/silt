@@ -135,6 +135,14 @@ extension Signature {
                                             inside: newDef))
   }
 
+  func addLetBinding(_ name: QualifiedName, type: Type<TT>,
+                     _ tel: Telescope<TT>) {
+    let definition = Definition.constant(type, .function(.open))
+    self.addDefinition(name,
+                       ContextualDefinition(telescope: tel,
+                                            inside: definition))
+  }
+
   func addFunctionClauses(
     _ name: Opened<QualifiedName, TT>, _ inv: Instantiability.Invertibility) {
     let def = self.lookupDefinition(name.key)!
