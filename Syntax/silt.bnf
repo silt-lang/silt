@@ -6,6 +6,7 @@ int ::= [0-9]+
 # Declarations
 
 decl ::= <data-decl>
+      || <empty-data-decl>
        | <record-decl>
        | <module-decl>
        | <import-decl>
@@ -15,7 +16,8 @@ decl ::= <data-decl>
 
 ## Data types
 
-data-decl ::= 'data' <id> <typed-parameter-list>? <type-indices>? 'where'? <constructor-list>
+empty-data-decl ::= 'data' <id> <typed-parameter-list> <type-indices>
+data-decl ::= 'data' <id> <typed-parameter-list> <type-indices> 'where' <constructor-list>
 type-indices ::= ':' <expr>
 typed-parameter-list ::= <typed-parameter>
                       | <typed-parameter> <typed-parameter-list>
