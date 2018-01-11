@@ -1270,15 +1270,19 @@ public class QuantifiedExprSyntax: ExprSyntax {
 public class LetExprSyntax: ExprSyntax {
   public enum Cursor: Int {
     case letToken
+    case leftBraceToken
     case declList
+    case rightBraceToken
     case inToken
     case outputExpr
   }
 
-  public convenience init(letToken: TokenSyntax, declList: DeclListSyntax, inToken: TokenSyntax, outputExpr: ExprSyntax) {
+  public convenience init(letToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, inToken: TokenSyntax, outputExpr: ExprSyntax) {
     let raw = RawSyntax.node(.letExpr, [
       letToken.raw,
+      leftBraceToken.raw,
       declList.raw,
+      rightBraceToken.raw,
       inToken.raw,
       outputExpr.raw,
     ], .present)
@@ -1293,11 +1297,27 @@ public class LetExprSyntax: ExprSyntax {
     return LetExprSyntax(root: newRoot, data: newData)
   }
 
+  public var leftBraceToken: TokenSyntax {
+    return child(at: Cursor.leftBraceToken) as! TokenSyntax
+  }
+  public func withLeftBraceToken(_ syntax: TokenSyntax) -> LetExprSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.leftBraceToken)
+    return LetExprSyntax(root: newRoot, data: newData)
+  }
+
   public var declList: DeclListSyntax {
     return child(at: Cursor.declList) as! DeclListSyntax
   }
   public func withDeclList(_ syntax: DeclListSyntax) -> LetExprSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.declList)
+    return LetExprSyntax(root: newRoot, data: newData)
+  }
+
+  public var rightBraceToken: TokenSyntax {
+    return child(at: Cursor.rightBraceToken) as! TokenSyntax
+  }
+  public func withRightBraceToken(_ syntax: TokenSyntax) -> LetExprSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.rightBraceToken)
     return LetExprSyntax(root: newRoot, data: newData)
   }
 

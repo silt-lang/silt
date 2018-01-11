@@ -6,16 +6,9 @@
 /// available in the repository.
 import Lithosphere
 
-private enum LayoutBlock {
-  case implicit(TokenSyntax)
-  case explicit(TokenSyntax)
-
-  var isImplicit: Bool {
-    switch self {
-    case .implicit(_): return true
-    default: return false
-    }
-  }
+enum LayoutBlockSource {
+  case letKeyword
+  case whereKeyword
 }
 
 struct WhitespaceSummary {
@@ -30,7 +23,37 @@ struct WhitespaceSummary {
       default: return false
       }
     }
+
+    static func < (lhs: Spacer, rhs: Spacer) -> Bool {
+      switch (lhs, rhs) {
+      case let (.spaces(l), .spaces(r)): return l < r
+      case let (.tabs(l), .tabs(r)): return l < r
+      default: return false
+      }
+    }
+
+    static func <= (lhs: Spacer, rhs: Spacer) -> Bool {
+      switch (lhs, rhs) {
+      case let (.spaces(l), .spaces(r)): return l <= r
+      case let (.tabs(l), .tabs(r)): return l <= r
+      default: return false
+      }
+    }
   }
+
+  func asTrivia(_ newline: Bool) -> Trivia {
+    var trivia: Trivia = newline ? .newlines(1) : []
+    for val in self.sequence {
+      switch val {
+      case let .spaces(n):
+        trivia.append(.spaces(n))
+      case let .tabs(n):
+        trivia.append(.tabs(n))
+      }
+    }
+    return trivia
+  }
+
   let sequence: [Spacer]
   let totals: (Int, Int)
   let hasNewline: Bool
@@ -88,12 +111,26 @@ struct WhitespaceSummary {
   }
 
   func lessThan(_ other: WhitespaceSummary) -> Bool {
-    guard self.sequence.count < other.sequence.count else {
+    guard self.sequence.count <= other.sequence.count else {
       return false
     }
 
     for (l, r) in zip(self.sequence, other.sequence) {
-      guard l == r else {
+      guard l < r else {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  func lessThanOrEqual(_ other: WhitespaceSummary) -> Bool {
+    guard self.sequence.count <= other.sequence.count else {
+      return false
+    }
+
+    for (l, r) in zip(self.sequence, other.sequence) {
+      guard l <= r else {
         return false
       }
     }
@@ -119,6 +156,12 @@ fileprivate extension TokenSyntax {
 /// inserting layout markers in the appropriate places.  This ensures that we
 /// have an explicitly-scoped input to the Parser before we even try to do a
 /// Scope Check.
+public func dumpToks(_ toks: [TokenSyntax]) {
+  for tok in toks {
+    print(tok.shinedSourceText, terminator: "")
+  }
+}
+
 public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
   var toks = ts
   if toks.isEmpty {
@@ -126,16 +169,45 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
   }
 
   var stainlessToks = [TokenSyntax]()
-  var layoutBlockStack = [WhitespaceSummary]()
+  var layoutBlockStack = [(LayoutBlockSource, WhitespaceSummary)]()
   while toks[0].tokenKind != .eof {
     let tok = toks.removeFirst()
     let peekTok = toks[0]
 
+    let wsp = WhitespaceSummary(peekTok.leadingTrivia)
     let ws = WhitespaceSummary(tok.leadingTrivia)
+    guard tok.tokenKind != .letKeyword else {
+      stainlessToks.append(tok)
+      layoutBlockStack.append((.letKeyword, wsp))
+      stainlessToks.append(TokenSyntax(.leftBrace,
+                                       leadingTrivia: .spaces(1),
+                                       presence: .implicit))
+      stainlessToks.append(toks.removeFirst())
+      continue
+    }
+
+    guard tok.tokenKind != .inKeyword else {
+      while let (src, block) = layoutBlockStack.last, src != .letKeyword {
+        _ = layoutBlockStack.popLast()
+        if !layoutBlockStack.isEmpty {
+          stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
+          stainlessToks.append(TokenSyntax(.rightBrace,
+                                           leadingTrivia: block.asTrivia(true),
+                                           presence: .implicit))
+        }
+      }
+      stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
+      stainlessToks.append(TokenSyntax(.rightBrace,
+                                       leadingTrivia: .spaces(1),
+                                       presence: .implicit))
+      _ = layoutBlockStack.popLast()
+      stainlessToks.append(tok)
+      continue
+    }
+
+
     guard tok.tokenKind != .whereKeyword else {
       stainlessToks.append(tok)
-
-      let wsp = WhitespaceSummary(peekTok.leadingTrivia)
 
       if ws.equivalentTo(wsp) && !layoutBlockStack.isEmpty {
         stainlessToks.append(TokenSyntax(.leftBrace, leadingTrivia: .spaces(1),
@@ -144,7 +216,7 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
                                          presence: .implicit))
         continue
       } else {
-        while let block = layoutBlockStack.last, !block.lessThan(wsp) {
+        while let (_, block) = layoutBlockStack.last, !block.lessThanOrEqual(wsp) {
           _ = layoutBlockStack.popLast()
           if !layoutBlockStack.isEmpty {
             stainlessToks.append(TokenSyntax(.rightBrace,
@@ -155,10 +227,10 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
         }
 
         if layoutBlockStack.isEmpty {
-          layoutBlockStack.append(wsp)
-        } else if let block = layoutBlockStack.last, !wsp.equivalentTo(block) {
+          layoutBlockStack.append((.whereKeyword, wsp))
+        } else if let (_, block) = layoutBlockStack.last, !wsp.equivalentTo(block) {
           // If we must, begin a new layout block
-          layoutBlockStack.append(wsp)
+          layoutBlockStack.append((.whereKeyword, wsp))
         }
 
         stainlessToks.append(TokenSyntax(.leftBrace, leadingTrivia: .spaces(1),
@@ -179,12 +251,12 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
       break
     }
 
-    if ws.hasNewline, let lastBlock = layoutBlockStack.last {
+    if ws.hasNewline, let (_, lastBlock) = layoutBlockStack.last {
       if ws.equivalentTo(lastBlock) {
         stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
       } else if ws.lessThan(lastBlock) {
         stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
-        while let block = layoutBlockStack.last, ws.lessThan(block) {
+        while let (_, block) = layoutBlockStack.last, !block.lessThanOrEqual(ws) {
           _ = layoutBlockStack.popLast()
           if !layoutBlockStack.isEmpty {
             stainlessToks.append(TokenSyntax(.rightBrace,
@@ -194,9 +266,9 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
           }
         }
 
-        if let block = layoutBlockStack.last, !ws.equivalentTo(block) {
+        if let (_, block) = layoutBlockStack.last, !ws.equivalentTo(block) {
           // If we must, begin a new layout block
-          layoutBlockStack.append(ws)
+          layoutBlockStack.append((.whereKeyword, ws))
         }
       }
     }
@@ -211,8 +283,6 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
                                      presence: .implicit))
   }
   stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
-
-
 
   // Append the EOF on the way out
   guard let lastTok = toks.last, case .eof = lastTok.tokenKind else {

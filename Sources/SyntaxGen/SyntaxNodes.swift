@@ -268,7 +268,9 @@ let syntaxNodes = [
 
   Node("LetExpr", kind: "Expr", children: [
     Child("letToken", kind: "LetToken"),
+    Child("leftBraceToken", kind: "LeftBraceToken"),
     Child("declList", kind: "DeclList"),
+    Child("rightBraceToken", kind: "RightBraceToken"),
     Child("inToken", kind: "InToken"),
     Child("outputExpr", kind: "Expr")
   ]),
