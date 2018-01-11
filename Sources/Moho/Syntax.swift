@@ -13,7 +13,7 @@ public struct DeclaredModule {
   /// The name of the module.
   public let moduleName: QualifiedName
   /// The parameter list of the module, in user-declared order.
-  public let params: [([Name], Expr)]
+  public let params: [DeclaredParameter]
   /// The namespace of the module.
   let namespace: NameSpace
   /// The child declarations.
@@ -99,10 +99,36 @@ public enum Decl {
   case openImport(QualifiedName)
 }
 
+/// Represents a used-declared parameter - a list of names, an ascription
+/// expression, and whether it is implicit or explicit.
+public struct DeclaredParameter {
+  /// The names bound by this parameter.
+  public let names: [Name]
+  /// The type ascription for this parameter.
+  public let ascription: Expr
+  /// Whether this parameter is implicit or explicit.
+  public let plicity: ArgumentPlicity
+
+  public init(_ names: [Name], _ ascription: Expr, _ plicity: ArgumentPlicity) {
+    self.names = names
+    self.ascription = ascription
+    self.plicity = plicity
+  }
+}
+
+/// Represents information about whether a parameter is implicit or explicit.
+public enum ArgumentPlicity {
+  /// The parameter is explicit.
+  case explicit
+  /// The parameter is implicit.
+  case implicit
+}
+
 /// Represents a type signature - a name and an expression.
 public struct TypeSignature {
   public let name: QualifiedName
   public let type: Expr
+  public let plicity: [ArgumentPlicity]
 }
 
 /// Represents a fully scope-checked pattern.

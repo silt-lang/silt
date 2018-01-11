@@ -70,6 +70,27 @@ extension Diagnostic.Message {
   static var assumingDefaultPrecedence: Diagnostic.Message {
     return Diagnostic.Message(.note, "assuming default precedence of 20")
   }
+
+  static func tooManyPatternsInLHS(
+    _ expectedArgCount: Int, _ haveArgs: Int, _ implArgs: Int
+  ) -> Diagnostic.Message {
+    let argsPlural = self.pluralize(
+      singular: "argument", plural: "arguments", expectedArgCount)
+    let patternPlural = self.pluralize(
+      singular: "pattern", plural: "patterns", haveArgs)
+    let implPatternPlural = self.pluralize(
+      singular: "pattern", plural: "patterns", implArgs)
+    return Diagnostic.Message(.error,
+      """
+      function expects \(expectedArgCount) \(argsPlural) but has \
+      \(haveArgs) declared \(patternPlural) and \(implArgs) implicit \
+      \(implPatternPlural); extra patterns will be ignored
+      """)
+  }
+
+  static var ignoringExcessPattern: Diagnostic.Message {
+    return Diagnostic.Message(.note, "extra pattern will be ignored")
+  }
 }
 
 // MARK: Reparsing

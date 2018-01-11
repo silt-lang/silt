@@ -30,10 +30,10 @@ extension TypeChecker where PhaseState == CheckPhaseState {
   private func checkModule(_ syntax: DeclaredModule) -> Module {
     // First, build up the initial parameter context.
     var paramCtx = Context()
-    for (paramNames, synType) in syntax.params {
-      for paramName in paramNames {
+    for param in syntax.params {
+      for paramName in param.names {
         let paramType = self.underExtendedEnvironment(paramCtx) {
-          return self.checkExpr(synType, TT.type)
+          return self.checkExpr(param.ascription, TT.type)
         }
         paramCtx.append((paramName, paramType))
       }

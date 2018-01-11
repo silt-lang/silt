@@ -21,7 +21,7 @@ body-before-sig x = x -- expected-error {{function body for 'body-before-sig' mu
 
 shadowing-binding : forall {A A : Type} -- expected-error {{cannot shadow name 'A'}}
                            {x x : A} -> x -- expected-error {{cannot shadow name 'x'}}
-shadowing-binding x = x
+shadowing-binding = x --expected-error{{use of undeclared identifier 'x'}}
 
 bad-var : {A : Type} -> A -> A
 bad-var = \ x -> y --expected-error{{use of undeclared identifier 'y'}}

@@ -17,7 +17,7 @@ typealias NumImplicitArguments = Int
 /// Specific information about a name returned from Lookup.
 enum NameInfo {
   /// The result was a definition, retrieves the number of implicit arguments.
-  case definition(NumImplicitArguments)
+  case definition([ArgumentPlicity])
   /// The result was a constructor, retrieves the number of implicit and
   /// explicit arguments.
   case constructor(NumImplicitArguments, NumExplicitArguments)
@@ -161,7 +161,7 @@ extension NameBinding {
   /// This function should be called if the name is known to be in scope and
   /// that name resolves to a definition.  It throws an exception if not.
   func resolveLocalDefinition(
-    _ n: Name) throws -> Resolution<NumImplicitArguments> {
+    _ n: Name) throws -> Resolution<[ArgumentPlicity]> {
     let rln = try self.resolveLocalName(n)
     guard case let .definition(hidden) = rln.info else {
       fatalError("\(n) should be a definition")
@@ -263,7 +263,7 @@ extension NameBinding {
   /// Bind a local definition in the current active scope.  Suitable for types,
   /// constructors, and functions.
   func bindDefinition(
-    named n: Name, _ hidden: NumImplicitArguments) -> FullyQualifiedName? {
+    named n: Name, _ hidden: [ArgumentPlicity]) -> FullyQualifiedName? {
     return self.bindLocal(named: n, info: .definition(hidden))
   }
 
@@ -335,7 +335,7 @@ extension NameBinding {
   }
 
   private func checkNotReserved(_ n: Name) -> Bool {
-    if Set(["Type"]).contains(n.string) {
+    if Set([TokenKind.typeKeyword.text]).contains(n.string) {
       engine.diagnose(.nameReserved(n))
       return false
     }
