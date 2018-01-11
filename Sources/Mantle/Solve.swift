@@ -104,7 +104,7 @@ indirect enum SolverConstraint: CustomDebugStringConvertible {
   var debugDescription: String {
     switch self {
     case let .unify(_, ty, tm1, tm2):
-      return "\(tm1): \(ty) == \(tm2): \(ty)"
+      return "\(tm1) : \(ty) == \(tm2): \(ty)"
     case let .suppose(con1, con2):
       return "(\(con1.debugDescription)) => (\(con2.debugDescription))"
     case let .conjoin(cs):
@@ -113,7 +113,7 @@ indirect enum SolverConstraint: CustomDebugStringConvertible {
       let desc = zip(elims1, elims2).map({ (e1, e2) in
         return "\(e1) == \(e2)"
       }).joined(separator: " , ")
-      return "(\(mbH?.description ?? "??")[\(desc)]: \(ty))"
+      return "(\(mbH?.description ?? "??")[\(desc)] : \(ty))"
     }
   }
 
@@ -341,8 +341,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
                               constrArgs1.map(Elim<TT>.apply),
                               constrArgs2.map(Elim<TT>.apply))
     case let (.pi(dom, cod), .lambda(body1), .lambda(body2)):
-      let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
-      let ctx2 = ctx + [(Name(name: name), dom)]
+      let ctx2 = ctx + [(wildcardName, dom)]
       return self.unify((ctx2, cod, body1, body2))
     case let (_, .apply(head1, elims1), .apply(head2, elims2)):
       guard head1 == head2 else {
@@ -354,8 +353,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
       return self.equalSpines(ctx, headTy, headTm, elims1, elims2)
     case let (.type, .pi(dom1, cod1), .pi(dom2, cod2)):
       let piType = { () -> Type<TT> in
-        let name = TokenSyntax(.identifier("A")) // FIXME: Try harder, maybe
-        let avar = TT.apply(.variable(Var(Name(name: name), 0)), [])
+        let avar = TT.apply(.variable(Var(wildcardName, 0)), [])
         return TT.pi(.type, .pi(.pi(avar, .type), .type))
       }()
       let cod1p = TT.lambda(cod1)
