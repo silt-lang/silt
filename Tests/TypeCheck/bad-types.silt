@@ -13,16 +13,16 @@ flip : forall {A B : Type} {C : A -> B -> Type} ->
 flip f = \ y x -> f x y
 
 data List (A : Type) : Type where
-  | Nil  : List A
-  | Cons : A -> List A -> List A
+  Nil  : List A
+  Cons : A -> List A -> List A
 
 append : forall {A : Type} -> List A -> List A -> List A
 append Nil ys = ys
 append (Cons x xs) ys = Cons x (append xs ys)
 
 data N : Type where
-  | Z : N
-  | S : N -> N
+  Z : N
+  S : N -> N
 
 seven : N
 seven = S (S (S (S (S (S (S Z))))))

@@ -2,12 +2,10 @@
 module DataDecl where
 
 data Foo : Type where
-  | Foo : nat -> nat -> Foo
-  | Bar : nat -> Foo
+  Foo : nat -> nat -> Foo
+  Bar : nat -> Foo
 
-data Bar : Type where
-| Bar : nat -> nat -> Bar -- expected-error {{data constructors may only appear within the scope of a data declaration}}
-| Baz : nat -> Bar -- expected-error {{data constructors may only appear within the scope of a data declaration}}
-
-data UnePipe : Type where
-  ceciNestPas : UnePipe -- expected-error {{type constructors must be preceded by '|'}}
+data Bar : Type where -- expected-error {{data declaration with no constructors cannot have a 'where' clause}}
+-- expected-note @-1 {{remove 'where' to make an empty data declaration}}
+Bar : nat -> nat -> Bar -- expected-error {{data constructors may only appear within the scope of a data declaration}}
+-- expected-note @-1 {{indent this declaration to make it a constructor}}

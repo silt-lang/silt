@@ -21,16 +21,14 @@ data N : Type where
 -- CHECK-AST: constructorList
 
 -- CHECK-AST: constructorDecl
--- CHECK-AST:   pipe
 -- CHECK-AST:   ascription
 -- CHECK-AST      identifier "zero"
 -- CHECK-AST:     colon
 -- CHECK-AST      identifier "N"
--- CHECK-SHINED: | zero : N;
-  | zero : N
+-- CHECK-SHINED: zero : N;
+  zero : N
 
 -- CHECK-AST: constructorDecl
--- CHECK-AST:   pipe
 -- CHECK-AST:   ascription
 -- CHECK-AST      identifier "succ"
 -- CHECK-AST:     colon
@@ -39,8 +37,8 @@ data N : Type where
 -- CHECK-AST          identifier "N"
 -- CHECK-AST          arrow
 -- CHECK-AST          identifier "N"
--- CHECK-SHINED: | succ : N -> N;
-  | succ : N -> N
+-- CHECK-SHINED: succ : N -> N;
+  succ : N -> N
 
 -- CHECK-SHINED: };
 

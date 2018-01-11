@@ -55,8 +55,22 @@ extension Diagnostic.Message {
                        data declaration
                        """)
 
-  static let expectedPipeInConstructor =
-    Diagnostic.Message(.error, "type constructors must be preceded by '|'")
+  static let emptyDataDeclWithWhere =
+    Diagnostic.Message(.error,
+                       """
+                       data declaration with no constructors cannot have a \
+                       'where' clause
+                       """)
+
+  static let indentToMakeConstructor =
+    Diagnostic.Message(.note, """
+                              indent this declaration to make it a constructor
+                              """)
+
+  static let removeWhereClause =
+    Diagnostic.Message(.note, """
+                              remove 'where' to make an empty data declaration
+                              """)
 }
 
 public class Parser {
@@ -108,6 +122,17 @@ public class Parser {
         $0.highlight(tok)
       }
     }
+  }
+
+  func consumeIf(_ kinds: TokenKind...) throws -> TokenSyntax? {
+    guard let token = currentToken else {
+      throw unexpectedToken(expected: kinds.first)
+    }
+    if kinds.contains(token.tokenKind) {
+      advance()
+      return token
+    }
+    return nil
   }
 
   func consume(_ kinds: TokenKind...) throws -> TokenSyntax {
@@ -220,6 +245,18 @@ extension Parser {
       guard let decl = try? parseDecl() else {
         continue
       }
+
+      // If this is a function declaration directly after an empty data
+      // declaration with a `where` clause (which should have caused an error),
+      // diagnose this as a possible constructor.
+      if decl is FunctionDeclSyntax,
+         let lastData = pieces.last as? DataDeclSyntax,
+         lastData.constructorList.isEmpty {
+        throw engine.diagnose(.unexpectedConstructor, node: decl) {
+          $0.highlight(decl)
+          $0.note(.indentToMakeConstructor, node: decl)
+        }
+      }
       pieces.append(decl)
     }
     return DeclListSyntax(elements: pieces)
@@ -230,7 +267,19 @@ extension Parser {
     case .moduleKeyword:
       return try self.parseModule()
     case .dataKeyword:
-      return try self.parseDataDecl()
+      let decl = try self.parseDataDecl()
+
+      // If there's a regular data decl and an empty constructor list,
+      // throw an error.
+      if let dataDecl = decl as? DataDeclSyntax,
+        dataDecl.constructorList.isEmpty {
+        engine.diagnose(.emptyDataDeclWithWhere, node: decl) {
+          $0.highlight(decl)
+          $0.note(.removeWhereClause, node: dataDecl.whereToken,
+                  highlights: [dataDecl.whereToken])
+        }
+      }
+      return decl
     case .recordKeyword:
       return try self.parseRecordDecl()
     case .openKeyword:
@@ -241,16 +290,6 @@ extension Parser {
       return try self.parseInfixDecl()
     case .identifier(_):
       return try self.parseFunctionDeclOrClause()
-    // MARK: Recovery
-    case .pipe:
-      // Try to recover by parsing the constructor.
-      guard let recoveredConstr = try? self.parseConstructor() else {
-        advance()
-        throw expected("declaration")
-      }
-      throw engine.diagnose(.unexpectedConstructor, node: recoveredConstr) {
-        $0.highlight(recoveredConstr)
-      }
     default:
       advance()
       throw expected("declaration")
@@ -494,57 +533,50 @@ extension Parser {
 }
 
 extension Parser {
-  func parseDataDecl() throws -> DataDeclSyntax {
+  func parseDataDecl() throws -> DeclSyntax {
     let dataTok = try consume(.dataKeyword)
     let dataId = try parseIdentifierToken()
     let paramList = try parseTypedParameterList()
     let indices = try parseTypeIndices()
-    let whereTok = try consume(.whereKeyword)
-    let leftBrace = try consume(.leftBrace)
-    let constrList = try parseConstructorList()
-    let rightBrace = try consume(.rightBrace)
-    let semi = try consume(.semicolon)
-    return DataDeclSyntax(
-      dataToken: dataTok,
-      dataIdentifier: dataId,
-      typedParameterList: paramList,
-      typeIndices: indices,
-      whereToken: whereTok,
-      leftBraceToken: rightBrace,
-      constructorList: constrList,
-      rightBraceToken: leftBrace,
-      trailingSemicolon: semi)
+    if peek() == .whereKeyword {
+      let whereTok = try consume(.whereKeyword)
+      let leftBrace = try consume(.leftBrace)
+      let constrList = try parseConstructorList()
+      let rightBrace = try consume(.rightBrace)
+      let semi = try consume(.semicolon)
+      return DataDeclSyntax(
+        dataToken: dataTok,
+        dataIdentifier: dataId,
+        typedParameterList: paramList,
+        typeIndices: indices,
+        whereToken: whereTok,
+        leftBraceToken: leftBrace,
+        constructorList: constrList,
+        rightBraceToken: rightBrace,
+        trailingSemicolon: semi)
+    } else {
+      let semi = try consume(.semicolon)
+      return EmptyDataDeclSyntax(
+        dataToken: dataTok,
+        dataIdentifier: dataId,
+        typedParameterList: paramList,
+        typeIndices: indices,
+        trailingSemicolon: semi)
+    }
   }
 
   func parseConstructorList() throws -> ConstructorListSyntax {
     var pieces = [ConstructorDeclSyntax]()
     while peek() != .rightBrace {
-      // If we haven't hit the closing brace or a pipe, the user may have
-      // forgotten.
-      //
-      // FIXME: Recover by inserting the pipe.
-      guard peek() == .pipe else {
-        let constr = try parseConstructor(TokenSyntax(.pipe,
-                                                      presence: .missing))
-        // Diagnose the ascription because the pipe is missing.
-        engine.diagnose(.expectedPipeInConstructor, node: constr.ascription) {
-          $0.highlight(constr.ascription)
-        }
-        pieces.append(constr)
-        continue
-      }
       pieces.append(try parseConstructor())
     }
     return ConstructorListSyntax(elements: pieces)
   }
 
-  func parseConstructor(
-    _ rpipe: TokenSyntax? = nil) throws -> ConstructorDeclSyntax {
-    let pipe = try rpipe ?? consume(.pipe)
+  func parseConstructor() throws -> ConstructorDeclSyntax {
     let ascription = try parseAscription()
     let semi = try consume(.semicolon)
     return ConstructorDeclSyntax(
-      pipeToken: pipe,
       ascription: ascription,
       trailingSemicolon: semi)
   }
@@ -552,6 +584,7 @@ extension Parser {
 
 extension Parser {
   func parseFunctionDeclOrClause() throws -> DeclSyntax {
+
     let exprs = try parseBasicExprList()
     switch peek() {
     case .colon:

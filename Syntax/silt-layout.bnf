@@ -21,7 +21,7 @@ typed-parameter ::= '(' <ascription> ')'
                   | '{' <ascription> '}'
 constructor-list ::= <constructor-decl>
                    | <constructor-decl> <constructor-decl-list>
-constructor-decl ::= '|' <ascription> ';'
+constructor-decl ::= <ascription> ';'
 
 ## Records
 
