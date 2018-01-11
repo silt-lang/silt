@@ -538,8 +538,7 @@ extension Parser {
     let dataId = try parseIdentifierToken()
     let paramList = try parseTypedParameterList()
     let indices = try parseTypeIndices()
-    if peek() == .whereKeyword {
-      let whereTok = try consume(.whereKeyword)
+    if let whereTok = try consumeIf(.whereKeyword) {
       let leftBrace = try consume(.leftBrace)
       let constrList = try parseConstructorList()
       let rightBrace = try consume(.rightBrace)
