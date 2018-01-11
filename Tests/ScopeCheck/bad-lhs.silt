@@ -14,3 +14,9 @@ extra-args-implicit a b c x y z = z -- expected-error {{function expects 6 argum
 -- expected-note@-3 {{extra pattern will be ignored}}
 -- expected-error@-4 {{use of undeclared identifier 'z'}}
 
+id : {A : Type} -> A -> A
+id x = let
+        y = x
+        data List (A : Type) : Type where
+          [] : List A
+       in y

@@ -97,6 +97,12 @@ public enum Decl {
   /// defined in the current module.  By now, any conflicts this might cause
   /// have been resolved by Scope Check.
   case openImport(QualifiedName)
+  /// A function declaration without a signature in a `let` binding.
+  ///
+  /// ```
+  /// let x = 4 + 5 in x
+  /// ```
+  case letBinding(QualifiedName, DeclaredClause)
 }
 
 /// Represents a used-declared parameter - a list of names, an ascription
@@ -166,17 +172,28 @@ public struct DeclaredClause {
     case empty
     /// A normal function body.
     case body(Expr, [Decl])
+
+    public var expr: Expr? {
+      guard case .body(let e, _) = self else { return nil }
+      return e
+    }
   }
 }
 
 /// Represents an intermediate pattern that better conveys structure than the
 /// syntax tree.
-///
-/// FIXME: Look into whether this can be removed entirely.
 public enum DeclaredPattern {
   case wild
   case variable(Name)
   case constructor(QualifiedName, [DeclaredPattern])
+
+  public var name: Name? {
+    switch self {
+    case .variable(let name): return name
+    case .wild: return Name(name: .implicit(.identifier("_")))
+    case .constructor(_, _): return nil
+    }
+  }
 }
 
 
@@ -232,6 +249,13 @@ public indirect enum Expr: Equatable, CustomStringConvertible {
   /// equality of terms.
   case refl
 
+  /// Represents a `let` binding of the form
+  ///
+  /// ```
+  /// let <decl>+ in <expr>
+  /// ```
+  case `let`([Decl], Expr)
+
   /// Deep syntactic equality of terms.
   public static func == (l: Expr, r: Expr) -> Bool {
     switch (l, r) {
@@ -272,8 +296,11 @@ public indirect enum Expr: Equatable, CustomStringConvertible {
       return "\(lhs) -> \(rhs)"
     case .meta:
       return "$META"
-    case let .lambda(body):
-      return "λ . \(body)"
+    case let .lambda((name, ty), body):
+      return "λ (\(name) : \(ty)) . \(body)"
+    case let .let(decls, expr):
+      let declDesc = decls.map { "\($0)" }.joined(separator: "; ")
+      return "let \(declDesc) in \(expr)"
     case let .equal(eqTy, lhs, rhs):
       return "\(lhs) =(\(eqTy))= \(rhs)"
     case let .constructor(openTm, args):

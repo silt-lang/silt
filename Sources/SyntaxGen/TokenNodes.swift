@@ -18,7 +18,6 @@ let tokenNodes = [
   Token(name: "RightBrace", .punctuation("}")),
   Token(name: "Semicolon", .punctuation(";")),
   Token(name: "Colon", .punctuation(":")),
-  Token(name: "Arrow", .punctuation("->")),
   Token(name: "Period", .punctuation(".")),
   Token(name: "Pipe", .punctuation("|")),
   Token(name: "Underscore", .punctuation("_")),

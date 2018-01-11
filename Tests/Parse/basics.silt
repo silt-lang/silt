@@ -17,9 +17,9 @@ module Basics where
 -- CHECK-AST: ascription
 -- CHECK-AST: identifier "X"
 -- CHECK-AST: typeKeyword
--- CHECK-AST: arrow
+-- CHECK-AST: identifier "->"
 -- CHECK-AST: identifier "X"
--- CHECK-AST: arrow
+-- CHECK-AST: identifier "->"
 -- CHECK-AST: identifier "X"
 -- CHECK-SHINED: id : forall {k : Level} {X : Type k} -> X -> X;
 id : forall {k : Level} {X : Type k} -> X -> X
@@ -60,7 +60,7 @@ flip : forall {a b c : Level} {A : Type a} {B : Type b} {C : A -> B -> Type c} -
 -- CHECK-AST      basicExprList
 -- CHECK-AST:       identifier "y"
 -- CHECK-AST:       identifier "x"
--- CHECK-AST:     arrow
+-- CHECK-AST:     identifier "->"
 -- CHECK-AST:     application
 -- CHECK-AST:       namedBasicExpr
 -- CHECK-AST:         identifier "f"
@@ -101,7 +101,7 @@ infixr _o_
 -- CHECK-AST:         explicitTypedParameter
 -- CHECK-AST:           identifier "a"
 -- CHECK-AST:           identifier "A"
--- CHECK-AST:         arrow
+-- CHECK-AST:         identifier "->"
 -- CHECK-AST:         application
 -- CHECK-AST:           identifier "B"
 -- CHECK-AST:           identifier "a"
@@ -126,7 +126,7 @@ _o_ : forall {i j k : Level}
 -- CHECK-AST:     forwardSlash
 -- CHECK-AST:     bindingList
 -- CHECK-AST:       identifier "a"
--- CHECK-AST:     arrow
+-- CHECK-AST:     identifier "->"
 -- CHECK-AST:     application
 -- CHECK-AST:       identifier "f"
 -- CHECK-AST:     parenthesizedExpr

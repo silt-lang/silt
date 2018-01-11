@@ -209,6 +209,14 @@ let syntaxNodes = [
     Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
+  Node("LetBindingDecl", kind: "Decl", children: [
+    Child("head", kind: "NamedBasicExpr"),
+    Child("basicExprList", kind: "BasicExprList"),
+    Child("equalsToken", kind: "EqualsToken"),
+    Child("boundExpr", kind: "Expr"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
+  ]),
+
   // MARK: Fixity
 
   // fixity-decl ::= 'infix' <int> <id-list>

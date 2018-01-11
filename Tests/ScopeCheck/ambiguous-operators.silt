@@ -24,19 +24,19 @@ _||_ : Bool -> Bool -> Bool
 x || y = if_then_else_ x Bool true y
 
 
-unambiguous-homogeneous-nonfix-left : Bool -> Bool -> Bool -> Bool
-unambiguous-homogeneous-nonfix-left x y z = (x && y) && z -- no error
+unambiguousHomogeneousNonfixLeft : Bool -> Bool -> Bool -> Bool
+unambiguousHomogeneousNonfixLeft x y z = (x && y) && z -- no error
 
-unambiguous-homogeneous-nonfix-right : Bool -> Bool -> Bool -> Bool
-unambiguous-homogeneous-nonfix-right x y z = x && (y && z) -- no error
+unambiguousHomogeneousNonfixRight : Bool -> Bool -> Bool -> Bool
+unambiguousHomogeneousNonfixRight x y z = x && (y && z) -- no error
 
-ambiguous-homogeneous-nonfix : Bool -> Bool -> Bool -> Bool
-ambiguous-homogeneous-nonfix x y z = x && y && z -- expected-error {{unable to parse expression}}
+ambiguousHomogeneousNonfix : Bool -> Bool -> Bool -> Bool
+ambiguousHomogeneousNonfix x y z = x && y && z -- expected-error {{unable to parse expression}}
 -- expected-note@-1 {{partial parse recovered expression '_&&_ x y '}}
 -- expected-note@-2 {{while using notation _&&_ at level 20}}
 
-ambiguous-heterogeneous-nonfix : Bool -> Bool -> Bool -> Bool
-ambiguous-heterogeneous-nonfix x y z = x || y && z -- expected-error {{unable to parse expression}}
+ambiguousHeterogeneousNonfix : Bool -> Bool -> Bool -> Bool
+ambiguousHeterogeneousNonfix x y z = x || y && z -- expected-error {{unable to parse expression}}
 -- expected-note@-1 {{partial parse recovered expression '_||_ x y '}}
 -- expected-note@-2 {{while using notation _&&_ at level 20}}
 -- expected-note@-3 {{while using notation _||_ at level 20}}
@@ -56,16 +56,16 @@ x ^^ y = if_then_else_ x Bool true y
 
 infix 3 _^^_
 
-unambiguous-heterogeneous-nonfix1 : Bool -> Bool -> Bool -> Bool -> Bool
-unambiguous-heterogeneous-nonfix1 x y z w = x %% y ** z ^^ w
+unambiguousHeterogeneousNonfix1 : Bool -> Bool -> Bool -> Bool -> Bool
+unambiguousHeterogeneousNonfix1 x y z w = x %% y ** z ^^ w
 
-unambiguous-heterogeneous-nonfix2 : Bool -> Bool -> Bool -> Bool -> Bool
-unambiguous-heterogeneous-nonfix2 x y z w = x ** y %% z ^^ w
+unambiguousHeterogeneousNonfix2 : Bool -> Bool -> Bool -> Bool -> Bool
+unambiguousHeterogeneousNonfix2 x y z w = x ** y %% z ^^ w
 
 -- no errors here!
-unambiguous-homogeneous-nonfix-nest1 : Bool -> Bool -> Bool -> Bool -> Bool -> Bool
-unambiguous-homogeneous-nonfix-nest1 c t1 t2 t3 t4 = if if c then t1 else t2 then t3 else t3
+unambiguousHomogeneousNonfixNest1 : Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+unambiguousHomogeneousNonfixNest1 c t1 t2 t3 t4 = if if c then t1 else t2 then t3 else t3
 
-unambiguous-homogeneous-nonfix-nest2 : Bool -> Bool -> Bool -> Bool -> Bool -> Bool
-unambiguous-homogeneous-nonfix-nest2 c t1 t2 t3 t4 = if if c then t1 else t2 then if c then t1 else t2 else t3
+unambiguousHomogeneousNonfixNest2 : Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+unambiguousHomogeneousNonfixNest2 c t1 t2 t3 t4 = if if c then t1 else t2 then if c then t1 else t2 else t3
 

@@ -32,6 +32,19 @@ extension Diagnostic.Message {
     return Diagnostic.Message(.error, "expected \(name)")
   }
 
+  static func dataWithNoIndices(
+    _ typeName: TokenSyntax) -> Diagnostic.Message {
+      return .init(.error,
+                   """
+                   declaration of '\(typeName.triviaFreeSourceText)' is \
+                   missing type ascription
+                   """)
+  }
+
+  /// FIXME: Fix-It Candidate
+  static let addBasicTypeIndex =
+    Diagnostic.Message(.note, "add a type ascription; e.g. ': Type'")
+
   static let expectedTopLevelModule =
     Diagnostic.Message(
       .error, "missing required top level module")
@@ -252,7 +265,7 @@ extension Parser {
       if decl is FunctionDeclSyntax,
          let lastData = pieces.last as? DataDeclSyntax,
          lastData.constructorList.isEmpty {
-        throw engine.diagnose(.unexpectedConstructor, node: decl) {
+        engine.diagnose(.unexpectedConstructor, node: decl) {
           $0.highlight(decl)
           $0.note(.indentToMakeConstructor, node: decl)
         }
@@ -533,11 +546,31 @@ extension Parser {
 }
 
 extension Parser {
+  func implicitNamedExpr(_ name: TokenKind) -> NamedBasicExprSyntax {
+    let tok = TokenSyntax.implicit(name)
+    let piece = QualifiedNamePieceSyntax(name: tok, trailingPeriod: nil)
+    return NamedBasicExprSyntax(name: QualifiedNameSyntax(elements: [piece]))
+  }
+
   func parseDataDecl() throws -> DeclSyntax {
     let dataTok = try consume(.dataKeyword)
     let dataId = try parseIdentifierToken()
     let paramList = try parseTypedParameterList()
-    let indices = try parseTypeIndices()
+    let indices: TypeIndicesSyntax
+
+    // If we see a semicolon or 'where' after the identifier, the
+    // user likely forgot to provide indices for this data type.
+    // Recover by inserting `: Type`.
+    if [.semicolon, .whereKeyword].contains(peek()) {
+      indices = TypeIndicesSyntax(colonToken: .implicit(.colon),
+                                  indexExpr: implicitNamedExpr(.typeKeyword))
+      engine.diagnose(.dataWithNoIndices(dataId), node: dataId) {
+        $0.highlight(dataId)
+        $0.note(.addBasicTypeIndex, node: dataId)
+      }
+    } else {
+      indices = try parseTypeIndices()
+    }
     if let whereTok = try consumeIf(.whereKeyword) {
       let leftBrace = try consume(.leftBrace)
       let constrList = try parseConstructorList()
@@ -938,7 +971,7 @@ extension Parser {
     while true {
       if isStartOfTypedParameter() {
         pieces.append(try parseTypedBinding())
-      } else if case .identifier(_) = peek() {
+      } else if case .identifier(_) = peek(), peek() != .arrow {
         pieces.append(try parseNamedBinding())
       } else {
         break

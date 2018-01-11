@@ -9,3 +9,7 @@ data Bar : Type where -- expected-error {{data declaration with no constructors 
 -- expected-note @-1 {{remove 'where' to make an empty data declaration}}
 Bar : nat -> nat -> Bar -- expected-error {{data constructors may only appear within the scope of a data declaration}}
 -- expected-note @-1 {{indent this declaration to make it a constructor}}
+
+data NoIndices where -- expected-error {{declaration of 'NoIndices' is missing type ascription}}
+-- expected-note @-1 {{add a type ascription; e.g. ': Type'}}
+  x : NoIndices

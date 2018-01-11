@@ -34,6 +34,7 @@ public enum SyntaxKind {
   case functionClauseDecl
   case withRuleFunctionClauseDecl
   case normalFunctionClauseDecl
+  case letBindingDecl
   case fixityDecl
   case nonFixDecl
   case leftFixDecl
@@ -133,6 +134,8 @@ extension Syntax {
       return WithRuleFunctionClauseDeclSyntax(root: root, data: data)
     case .normalFunctionClauseDecl:
       return NormalFunctionClauseDeclSyntax(root: root, data: data)
+    case .letBindingDecl:
+      return LetBindingDeclSyntax(root: root, data: data)
     case .fixityDecl:
       return FixityDeclSyntax(root: root, data: data)
     case .nonFixDecl:
