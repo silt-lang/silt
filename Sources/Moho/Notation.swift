@@ -172,22 +172,12 @@ extension NameBinding {
       scope.nameSpace = NameSpace(name)
       for d in module.declList {
         switch d {
-        case let node as FunctionDeclSyntax:
-          for name in node.ascription.boundNames {
-            guard name.triviaFreeSourceText.contains("_" as Character) else {
-              continue
-            }
-
-            let defaultFix = NonFixDeclSyntax(
-              infixToken: TokenSyntax(.infixKeyword),
-              precedence: TokenSyntax(.identifier("20")),
-              names: IdentifierListSyntax(elements: [ name ]),
-              trailingSemicolon: TokenSyntax(.semicolon)
-            )
-            guard self.bindFixity(defaultFix) else {
-              return scope
-            }
+        case let node as DataDeclSyntax:
+          for constr in node.constructorList {
+            bindNotationInAscription(constr.ascription, scope)
           }
+        case let node as FunctionDeclSyntax:
+          bindNotationInAscription(node.ascription, scope)
         case is NonFixDeclSyntax, is LeftFixDeclSyntax, is RightFixDeclSyntax:
           guard let fd = d as? FixityDeclSyntax else {
             fatalError("Switch case cast bug")
@@ -243,6 +233,20 @@ extension NameBinding {
     }
 
     return (secs, names)
+  }
+
+  /// Walk all names in an ascription that act as notation and bind their
+  /// fixities into the current scope.
+  private func bindNotationInAscription(
+    _ ascription: AscriptionSyntax, _ scope: Scope) {
+    for name in ascription.boundNames {
+      guard name.triviaFreeSourceText.contains("_" as Character) else {
+        continue
+      }
+      guard self.bindFixity(NonFixDeclSyntax.defaultFix(for: name)) else {
+        return
+      }
+    }
   }
 }
 
@@ -355,6 +359,17 @@ extension NameBinding {
       fatalError("Non-exhaustive switch over FixityDecls?")
     }
     return fixity
+  }
+}
+
+extension NonFixDeclSyntax {
+  static func defaultFix(for name: TokenSyntax) -> NonFixDeclSyntax {
+    return  NonFixDeclSyntax(
+      infixToken: TokenSyntax(.infixKeyword),
+      precedence: TokenSyntax(.identifier("20")),
+      names: IdentifierListSyntax(elements: [ name ]),
+      trailingSemicolon: TokenSyntax(.semicolon)
+    )
   }
 }
 
