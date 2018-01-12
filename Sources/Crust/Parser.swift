@@ -288,7 +288,7 @@ extension Parser {
       return try self.parseImportDecl()
     case .infixKeyword, .infixlKeyword, .infixrKeyword:
       return try self.parseInfixDecl()
-    case .identifier(_):
+    case _ where isStartOfBasicExpr():
       return try self.parseFunctionDeclOrClause()
     default:
       advance()
