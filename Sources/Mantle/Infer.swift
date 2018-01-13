@@ -19,8 +19,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
       return .type
     case let .pi(domain, codomain):
       self.checkTT(domain, hasType: TT.type, in: ctx)
-      let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
-      self.checkTT(codomain, hasType: TT.type, in: [(Name(name: name), domain)])
+      self.checkTT(codomain, hasType: TT.type, in: [(wildcardName, domain)])
       return TT.type
     case let .apply(head, elims):
       var type = self.infer(head, in: ctx)

@@ -54,6 +54,16 @@ public final class TypeChecker<PhaseState> {
   public var environment: Environment {
     return self.state.environment
   }
+
+  /// FIXME: Try harder, maybe
+  public var wildcardToken: TokenSyntax {
+    return TokenSyntax.implicit(.underscore)
+  }
+
+  /// FIXME: Try harder, maybe
+  public var wildcardName: Name {
+    return Name(name: wildcardToken)
+  }
 }
 
 extension TypeChecker {
