@@ -191,8 +191,6 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
       }
       return term
  */
-    case .let(_, _):
-      fatalError("typechecking for let bindings is not implemented")
     }
   }
 
