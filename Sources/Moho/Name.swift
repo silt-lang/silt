@@ -99,9 +99,9 @@ public struct QualifiedName: Equatable, Hashable, CustomStringConvertible {
   }
 
   public var description: String {
-    return self.module.reversed().reduce("") { (acc, x) in
-      return acc + x.description + "."
-    } + self.name.description
+    var pieces = module.reversed().dropFirst().map { $0.description }
+    pieces.append(name.description)
+    return pieces.joined(separator: ".")
   }
 
   public var string: String {

@@ -16,6 +16,14 @@ public class TokenSyntax: Syntax {
     self.init(root: data, data: data)
   }
 
+  public static func implicit(_ kind: TokenKind) -> TokenSyntax {
+    return TokenSyntax(kind, presence: .implicit)
+  }
+
+  public static func missing(_ kind: TokenKind) -> TokenSyntax {
+    return TokenSyntax(kind, presence: .missing)
+  }
+
   public var sourceRange: SourceRange? {
     guard case let .token(_, _, _, _, sourceRange) = raw else {
       fatalError("non-token TokenSyntax?")
@@ -73,5 +81,11 @@ public class TokenSyntax: Syntax {
       data.replacingSelf(.token(kind, leadingTrivia,
                                 trailingTrivia, presence, range))
     return TokenSyntax(root: newRoot, data: newData)
+  }
+}
+
+extension TokenKind {
+  public static var arrow: TokenKind {
+    return .identifier("->")
   }
 }

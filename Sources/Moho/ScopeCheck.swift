@@ -38,6 +38,8 @@ extension NameBinding {
     precondition(!(syntax is FunctionDeclSyntax ||
       syntax is FunctionClauseDeclSyntax))
     switch syntax {
+    case let syntax as LetBindingDeclSyntax:
+      return self.scopeCheckLetBinding(syntax)
     case let syntax as ModuleDeclSyntax:
       return [.module(self.scopeCheckModule(syntax))]
     case let syntax as ReparsedFunctionDeclSyntax:
@@ -181,6 +183,14 @@ extension NameBinding {
     case let syntax as TypedParameterGroupExprSyntax:
       let telescope = syntax.parameters.map(self.scopeCheckParameter)
       return self.rollPi1(telescope)
+    case let syntax as LetExprSyntax:
+      return self.underScope { scope in
+        let reparsedDecls = self.reparseDecls(syntax.declList,
+                                              allowOmittingSignatures: true)
+        let decls = reparsedDecls.flatMap(scopeCheckDecl)
+        let output = scopeCheckExpr(syntax.outputExpr)
+        return Expr.let(decls, output)
+      }
     default:
       fatalError("scope checking for \(type(of: syntax)) is unimplemented")
     }
@@ -244,6 +254,30 @@ extension NameBinding {
     return bs
   }
 
+  private func scopeCheckLetBinding(_ syntax: LetBindingDeclSyntax) -> [Decl] {
+    typealias ScopeCheckType =
+      (QualifiedName, Expr, [ArgumentPlicity], [DeclaredPattern])
+    let (qualName, body, plicity, patterns) =
+      self.underScope { _ -> ScopeCheckType in
+      let plicity = Array(repeating: ArgumentPlicity.explicit,
+                          count: syntax.basicExprList.count)
+      let patterns = self.scopeCheckPattern(syntax.basicExprList, plicity)
+      let reparsedRHS = self.reparseExpr(syntax.boundExpr)
+      let body = self.scopeCheckExpr(reparsedRHS)
+      let qualName = QualifiedName(ast: syntax.head.name)
+      return (qualName, body, plicity, patterns)
+    }
+
+    guard let name = self.bindDefinition(named: qualName.name, plicity) else {
+      engine.diagnose(.nameShadows(qualName.name), node: syntax.head) {
+        $0.highlight(syntax.head)
+      }
+      return []
+    }
+    let clause = DeclaredClause(patterns: patterns, body: .body(body, []))
+    return [Decl.letBinding(name, clause)]
+  }
+
   private func scopeCheckParameter(
     _ syntax: TypedParameterSyntax) -> DeclaredParameter {
     switch syntax {
@@ -256,7 +290,9 @@ extension NameBinding {
         guard !self.isBoundVariable(name) else {
           // If this declaration does not have a unique name, diagnose it and
           // recover by ignoring it.
-          self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
+          self.engine.diagnose(.nameShadows(name), node: syntax.ascription) {
+            $0.highlight(syntax.ascription)
+          }
           continue
         }
 
@@ -277,7 +313,9 @@ extension NameBinding {
         guard !self.isBoundVariable(name) else {
           // If this declaration does not have a unique name, diagnose it and
           // recover by ignoring it.
-          self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
+          self.engine.diagnose(.nameShadows(name), node: syntax.ascription) {
+            $0.highlight(syntax.ascription)
+          }
           continue
         }
 
@@ -643,7 +681,8 @@ extension NameBinding {
 }
 
 extension NameBinding {
-  func reparseDecls(_ ds: DeclListSyntax) -> DeclListSyntax {
+  func reparseDecls(_ ds: DeclListSyntax,
+                    allowOmittingSignatures: Bool = false) -> DeclListSyntax {
     var decls = [DeclSyntax]()
     var funcMap = [Name: FunctionDeclSyntax]()
     var clauseMap = [Name: [FunctionClauseDeclSyntax]]()
@@ -669,9 +708,21 @@ extension NameBinding {
       case let funcDecl as NormalFunctionClauseDeclSyntax:
         let (name, lhs) = self.reparseLHS(funcDecl.basicExprList)
         let reparsedDecl = funcDecl.withBasicExprList(lhs)
-        guard clauseMap[name] != nil else {
-          self.engine.diagnose(.bodyBeforeSignature(name), node: funcDecl)
-          continue
+        if clauseMap[name] == nil {
+          if allowOmittingSignatures {
+            let bindingDecl =
+              LetBindingDeclSyntax(
+                head: NamedBasicExprSyntax(identifier: name.syntax),
+                basicExprList: lhs,
+                equalsToken: funcDecl.equalsToken,
+                boundExpr: funcDecl.rhsExpr,
+                trailingSemicolon: funcDecl.trailingSemicolon)
+            decls.append(bindingDecl)
+            continue
+          } else {
+            self.engine.diagnose(.bodyBeforeSignature(name), node: funcDecl)
+            continue
+          }
         }
         clauseMap[name]!.append(reparsedDecl)
       default:
@@ -772,5 +823,20 @@ extension NameBinding {
       }
     }
     return (arguments, nil)
+  }
+}
+
+extension NamedBasicExprSyntax {
+  convenience init(identifier: TokenSyntax) {
+    guard case .identifier(_) = identifier.tokenKind else {
+      fatalError("""
+                 cannot create named basic expr syntax with \
+                 non-identifier token
+                 """)
+    }
+    let qualName = QualifiedNameSyntax(elements: [
+      QualifiedNamePieceSyntax(name: identifier, trailingPeriod: nil)
+    ])
+    self.init(name: qualName)
   }
 }

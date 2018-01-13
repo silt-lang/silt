@@ -11,7 +11,6 @@ public enum TokenKind: Equatable {
   case infixKeyword
   case forallSymbol
   case moduleKeyword
-  case arrow
   case pipe
   case underscore
   case semicolon
@@ -46,7 +45,6 @@ public enum TokenKind: Equatable {
     case "infix": self = .infixKeyword
     case "∀": self = .forallSymbol
     case "module": self = .moduleKeyword
-    case "->": self = .arrow
     case "|": self = .pipe
     case "_": self = .underscore
     case ";": self = .semicolon
@@ -82,7 +80,6 @@ public enum TokenKind: Equatable {
     case .infixKeyword: return "infix"
     case .forallSymbol: return "∀"
     case .moduleKeyword: return "module"
-    case .arrow: return "->"
     case .pipe: return "|"
     case .underscore: return "_"
     case .semicolon: return ";"
@@ -119,7 +116,6 @@ public enum TokenKind: Equatable {
     case (.infixKeyword, .infixKeyword): return true
     case (.forallSymbol, .forallSymbol): return true
     case (.moduleKeyword, .moduleKeyword): return true
-    case (.arrow, .arrow): return true
     case (.pipe, .pipe): return true
     case (.underscore, .underscore): return true
     case (.semicolon, .semicolon): return true

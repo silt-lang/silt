@@ -290,9 +290,7 @@ extension Reparser {
     }
 
     let headName = notation.name.syntax.withTrailingTrivia(.spaces(1))
-    let headSyntax = NamedBasicExprSyntax(name: QualifiedNameSyntax(elements: [
-      QualifiedNamePieceSyntax(name: headName, trailingPeriod: nil)
-    ]))
+    let headSyntax = NamedBasicExprSyntax(identifier: headName)
     let exprList = BasicExprListSyntax(elements: exprs)
     return ReparsedApplicationExprSyntax(head: headSyntax, exprs: exprList)
   }
@@ -340,9 +338,7 @@ extension Reparser {
     }
 
     let headName = notation.name.syntax.withTrailingTrivia(.spaces(1))
-    let headSyntax = NamedBasicExprSyntax(name: QualifiedNameSyntax(elements: [
-      QualifiedNamePieceSyntax(name: headName, trailingPeriod: nil)
-    ]))
+    let headSyntax = NamedBasicExprSyntax(identifier: headName)
 
     let exprList = BasicExprListSyntax(elements: exprs)
     let left = ReparsedApplicationExprSyntax(head: headSyntax, exprs: exprList)
@@ -386,9 +382,7 @@ extension Reparser {
     }
 
     let headName = notation.name.syntax.withTrailingTrivia(.spaces(1))
-    let headSyntax = NamedBasicExprSyntax(name: QualifiedNameSyntax(elements: [
-      QualifiedNamePieceSyntax(name: headName, trailingPeriod: nil)
-    ]))
+    let headSyntax = NamedBasicExprSyntax(identifier: headName)
 
     guard let recur = tryParseRightfix(notation) else {
       guard let expr = self.parseExpression(at: notation.fixity.level) else {
@@ -412,16 +406,12 @@ extension Reparser {
       switch peek() {
       case let .identifier(s) where self.closedNames.contains(s):
         let syntax = consume(peek())!
-        return NamedBasicExprSyntax(name: QualifiedNameSyntax(elements: [
-          QualifiedNamePieceSyntax(name: syntax, trailingPeriod: nil)
-        ]))
+        return NamedBasicExprSyntax(identifier: syntax)
       case .identifier(_):
         return nil
       case .arrow where self.closedNames.contains(TokenKind.arrow.text):
         let syntax = consume(peek())!
-        return NamedBasicExprSyntax(name: QualifiedNameSyntax(elements: [
-          QualifiedNamePieceSyntax(name: syntax, trailingPeriod: nil)
-        ]))
+        return NamedBasicExprSyntax(identifier: syntax)
       case .typeKeyword
         where self.closedNames.contains(TokenKind.typeKeyword.text):
         let syntax = consume(peek())!
@@ -508,6 +498,15 @@ extension NameBinding {
   ///   (_-_ (_+_ n n) n)
   /// ```
   func reparseExpr(_ syntax: ExprSyntax) -> ExprSyntax {
+    switch syntax {
+    case let syntax as LetExprSyntax:
+      return syntax.withOutputExpr(self.reparseExpr(syntax.outputExpr))
+    default:
+      return reparseRHS(syntax)
+    }
+  }
+
+  func reparseRHS(_ syntax: ExprSyntax) -> ExprSyntax {
     let (toks, activeNotes, closedNames) = retokenize(syntax)
     guard !activeNotes.isEmpty else {
       return syntax

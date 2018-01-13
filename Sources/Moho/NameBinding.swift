@@ -343,17 +343,7 @@ extension NameBinding {
   }
 
   private func checkNotShadowing(_ n: Name) -> Bool {
-    if let synNode = self.activeScope.vars[n] {
-      engine.diagnose(.nameShadows(n), node: synNode) {
-        $0.note(.shadowsOriginal(n))
-      }
-      return false
-    }
-    if let (qn, _) = self.lookupLocalName(n) {
-      engine.diagnose(.nameShadows(n, qn))
-      return false
-    }
-    return true
+    return self.activeScope.vars[n] == nil && self.lookupLocalName(n) == nil
   }
 }
 

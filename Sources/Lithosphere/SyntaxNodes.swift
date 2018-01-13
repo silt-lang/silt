@@ -995,6 +995,68 @@ public class NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax {
 
 }
 
+public class LetBindingDeclSyntax: DeclSyntax {
+  public enum Cursor: Int {
+    case head
+    case basicExprList
+    case equalsToken
+    case boundExpr
+    case trailingSemicolon
+  }
+
+  public convenience init(head: NamedBasicExprSyntax, basicExprList: BasicExprListSyntax, equalsToken: TokenSyntax, boundExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
+    let raw = RawSyntax.node(.letBindingDecl, [
+      head.raw,
+      basicExprList.raw,
+      equalsToken.raw,
+      boundExpr.raw,
+      trailingSemicolon.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var head: NamedBasicExprSyntax {
+    return child(at: Cursor.head) as! NamedBasicExprSyntax
+  }
+  public func withHead(_ syntax: NamedBasicExprSyntax) -> LetBindingDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.head)
+    return LetBindingDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var basicExprList: BasicExprListSyntax {
+    return child(at: Cursor.basicExprList) as! BasicExprListSyntax
+  }
+  public func withBasicExprList(_ syntax: BasicExprListSyntax) -> LetBindingDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.basicExprList)
+    return LetBindingDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var equalsToken: TokenSyntax {
+    return child(at: Cursor.equalsToken) as! TokenSyntax
+  }
+  public func withEqualsToken(_ syntax: TokenSyntax) -> LetBindingDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.equalsToken)
+    return LetBindingDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var boundExpr: ExprSyntax {
+    return child(at: Cursor.boundExpr) as! ExprSyntax
+  }
+  public func withBoundExpr(_ syntax: ExprSyntax) -> LetBindingDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.boundExpr)
+    return LetBindingDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  }
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> LetBindingDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
+    return LetBindingDeclSyntax(root: newRoot, data: newData)
+  }
+
+}
+
 public class FixityDeclSyntax: DeclSyntax {
 
   public convenience init() {

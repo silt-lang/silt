@@ -1,0 +1,15 @@
+-- RUN: %silt --verify scopes %s
+
+module LetBinding where
+
+data Unit : Type where
+  TT : Unit
+
+letWithBadScope : Unit
+letWithBadScope = let y = x in y -- expected-error {{use of undeclared identifier 'x'}}
+
+letShouldNotLeak : Unit
+letShouldNotLeak = let x = let z = TT in z in z -- expected-error {{use of undeclared identifier 'z'}}
+
+letShouldNotShadow : Unit
+letShouldNotShadow = let y = TT in let y = y in y -- expected-error {{cannot shadow name 'y'}}
