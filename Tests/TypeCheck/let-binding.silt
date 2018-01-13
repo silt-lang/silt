@@ -1,0 +1,14 @@
+-- RUN-XFAIL: %silt --dump typecheck %s
+
+module LetBinding where
+
+infix 20 _$_
+
+_$_ : {A : Type} -> {B : Type} -> (A -> B) -> A -> B
+f $ x = f x
+
+testSimpleLetBinding : {A : Type} -> A -> A
+testSimpleLetBinding x = let y = x in y
+
+testComplexLetBinding : {A : Type} -> {B : Type} -> (A -> B) -> A -> B
+testComplexLetBinding f x = let g y = let z = y in f z in g x
