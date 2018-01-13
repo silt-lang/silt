@@ -1,4 +1,4 @@
--- RUN-XFAIL: %silt --dump typecheck %s
+-- RUN: %silt --dump typecheck %s
 
 module LetBinding where
 
