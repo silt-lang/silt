@@ -251,6 +251,25 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
     return t
   }
 
+  // Takes a Pi-type and replaces all it's elements with metavariables.
+  func fillPiWithMetas(_ ty: Type<TT>) -> [Term<TT>] {
+    var type = self.toWeakHeadNormalForm(ty).ignoreBlocking
+    var metas = [Term<TT>]()
+    while true {
+      switch type {
+      case let .pi(domain, codomain):
+        let meta = self.addMeta(in: self.environment.asContext, expect: domain)
+        let instCodomain = self.forceInstantiate(codomain, [meta])
+        type = self.toWeakHeadNormalForm(instCodomain).ignoreBlocking
+        metas.append(meta)
+      case .type:
+        return metas
+      default:
+        fatalError("Expected Pi")
+      }
+    }
+  }
+
   private func writeConstraint(_ c: Constraint) {
     self.state.state.constraints.append(c)
   }
