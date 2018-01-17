@@ -7,6 +7,7 @@
 
 import Lithosphere
 import Moho
+import PrettyStackTrace
 
 /// The elaboration phase lowers well-scoped syntactic forms to core type theory
 /// terms.  Along the way, elaboration generates metavariables and
@@ -20,12 +21,14 @@ final class ElaboratePhaseState {
 
 extension TypeChecker {
   func elaborate(_ ty: Type<TT>, _ expr: Expr) -> (Term<TT>, [Constraint]) {
-    let elaborator = TypeChecker<ElaboratePhaseState>(self.signature,
-                                                      self.environment,
-                                                      ElaboratePhaseState(),
-                                                      options)
-    let ttExpr = elaborator.elaborate(expr, expecting: ty)
-    return (ttExpr, elaborator.state.state.constraints)
+    return trace("elaborating expression '\(expr)' expecting type '\(ty)'") {
+      let elaborator = TypeChecker<ElaboratePhaseState>(self.signature,
+                                                        self.environment,
+                                                        ElaboratePhaseState(),
+                                                        options)
+      let ttExpr = elaborator.elaborate(expr, expecting: ty)
+      return (ttExpr, elaborator.state.state.constraints)
+    }
   }
 }
 

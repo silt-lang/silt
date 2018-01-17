@@ -11,6 +11,7 @@ let package = Package(
     .package(url: "https://github.com/llvm-swift/Symbolic.git", from: "0.0.1"),
     .package(url: "https://github.com/onevcat/Rainbow.git", from: "3.0.0"),
     .package(url: "https://github.com/llvm-swift/Lite.git", from: "0.0.3"),
+    .package(url: "https://github.com/llvm-swift/PrettyStackTrace.git", from: "0.0.1"),
   ],
   targets: [
     .target(
@@ -39,6 +40,6 @@ let package = Package(
       dependencies: ["Lithosphere", "Crust"]),
     .target(
       name: "Mantle",
-      dependencies: ["Lithosphere", "Moho", "Utility"]),
+      dependencies: ["Lithosphere", "Moho", "Utility", "PrettyStackTrace"]),
   ]
 )
