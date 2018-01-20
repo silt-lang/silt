@@ -164,6 +164,8 @@ extension TypeChecker {
                               openArgs, type)
     case let .module(names):
       return .module(names)
+    case let .projection(proj, tyName, ctxType):
+      return .projection(proj, Opened<QualifiedName, TT>(tyName, args), ctxType)
     }
   }
 
@@ -207,6 +209,8 @@ extension TypeChecker {
     case let .constant(ty, _):
       return ty
     case let .dataConstructor(_, _, ct):
+      return self.rollPi(in: ct.telescope, final: ct.inside)
+    case let .projection(_, _, ct):
       return self.rollPi(in: ct.telescope, final: ct.inside)
     case .module(_):
       fatalError()

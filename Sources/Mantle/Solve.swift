@@ -320,6 +320,26 @@ extension TypeChecker where PhaseState == SolvePhaseState {
     switch (typeView, t1View, t2View) {
     case (.type, .type, .type):
       return []
+    case let (.apply(.definition(_), typeParameters),
+              .constructor(constr1, constrArgs1),
+              .constructor(constr2, constrArgs2)):
+      guard constr1 == constr2 else {
+        fatalError("Created a constraint with mismatched record constructors?")
+      }
+
+      guard let applyParams = typeParameters.mapM({ $0.applyTerm }) else {
+        fatalError()
+      }
+      let (_, openedData) = self.getOpenedDefinition(constr1.key)
+      guard case let .dataConstructor(_, _, dataConType) = openedData else {
+        fatalError()
+      }
+      // Apply available arguments up to the type of the constructor itself.
+      let appliedDataConType = self.openContextualType(dataConType,
+                                                       applyParams)
+      return self.equalSpines(ctx, appliedDataConType, nil,
+                              constrArgs1.map(Elim<TT>.apply),
+                              constrArgs2.map(Elim<TT>.apply))
     case let (.pi(dom, cod), .lambda(body1), .lambda(body2)):
       let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
       let ctx2 = ctx + [(Name(name: name), dom)]
@@ -388,7 +408,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
           type = substCodomain
           constrs.append(contentsOf: unifyFrame)
         }
-      //      case let (.project(proj1), .project(proj2)):
+      // case let (.project(proj1), .project(proj2)):
       default:
         print(type.description, elims1, elims2)
         fatalError("Spines not equal")

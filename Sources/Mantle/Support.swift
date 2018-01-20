@@ -85,6 +85,18 @@ public struct Opened<K, T> {
   }
 }
 
+extension Opened where K: Equatable, T: Equatable {
+  static func == (lhs: Opened<K, T>, rhs: Opened<K, T>) -> Bool {
+    guard lhs.key == rhs.key else {
+      return false
+    }
+    return zip(lhs.args, rhs.args).reduce(true, { (acc, next) in
+      let (l, r) = next
+      return acc && (l == r)
+    })
+  }
+}
+
 // MARK: Definitions
 
 /// Marks a definition as depending on a telescope of indices.
@@ -108,14 +120,17 @@ public enum Definition {
     case postulate
     /// A data declaration with the given list of names of constructors.
     case data([QualifiedName])
-    /// A record declaration with a given name and field projections.
-    case record(QualifiedName, [Projection])
+    /// A record declaration with a given name, constructor,
+    /// and field projections.
+    case record(QualifiedName, QualifiedName, [Projection])
     /// A function, possibly invertible.
     case function(Instantiability)
   }
 
   case constant(Type<TT>, Constant)
-  case dataConstructor(QualifiedName, UInt, Contextual<TT, Type<TT>>)
+  case dataConstructor(QualifiedName, UInt, ContextualType)
+  case projection(Projection.Field, QualifiedName, ContextualType)
+
   case module(Module)
 }
 
@@ -127,7 +142,7 @@ public enum OpenedDefinition {
     case postulate
     /// A data declaration with the given list of names of constructors.
     case data([Opened<QualifiedName, TT>])
-    /// A record declaration with a given name and field projections.
+    /// A record declaration with a given constructor and field projections.
     case record(Opened<QualifiedName, TT>, [Opened<Projection, TT>])
     /// A function, possibly invertible.
     case function(Instantiability)
@@ -136,6 +151,7 @@ public enum OpenedDefinition {
   case constant(Type<TT>, Constant)
   case dataConstructor(Opened<QualifiedName, TT>, UInt, ContextualType)
   case module(Module)
+  case projection(Projection.Field, Opened<QualifiedName, TT>, ContextualType)
 }
 
 // MARK: Expressions
