@@ -398,6 +398,8 @@ extension Definition: Substitutable {
                         return ($0.0, try $0.1.applySubstitution(subst, elim))
                                        },
                             inside: mod.inside))
+    case let .projection(proj, tyName, ctxTy):
+      return .projection(proj, tyName, try ctxTy.applySubstitution(subst, elim))
     }
   }
 }
@@ -431,6 +433,8 @@ extension OpenedDefinition: Substitutable {
                           return ($0.0, try $0.1.applySubstitution(subst, elim))
                                        },
                             inside: mod.inside))
+    case let .projection(proj, tyName, ctxTy):
+      return .projection(proj, tyName, try ctxTy.applySubstitution(subst, elim))
     }
   }
 }

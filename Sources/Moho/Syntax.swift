@@ -49,14 +49,16 @@ public enum Decl {
   /// data N : Type where
   /// ```
   case dataSignature(TypeSignature)
-  /// A type ascription representing a record declaration.
+  /// A type ascription representing a record declaration and the record's
+  /// constructor.
   ///
   /// E.g. this portion of a record:
   ///
   /// ```
   /// record Person : Type where
+  ///   constructor MkPerson
   /// ```
-  case recordSignature(TypeSignature)
+  case recordSignature(TypeSignature, QualifiedName)
   /// The body of a function with clauses attached.
   ///
   /// The signature of the function is not immediately available, but may be
@@ -161,7 +163,7 @@ public enum Pattern {
 }
 
 /// Represents a clause in a pattern.
-public struct DeclaredClause {
+public struct DeclaredClause: CustomStringConvertible {
   public let patterns: [DeclaredPattern]
   public let body: Body
 
@@ -178,11 +180,22 @@ public struct DeclaredClause {
       return e
     }
   }
+
+  public var description: String {
+    let patternDescription
+      = self.patterns.map({ $0.description }).joined(separator: " ")
+    switch self.body {
+    case .empty:
+      return "\(patternDescription) = ()"
+    case let .body(expr, _):
+      return "\(patternDescription) = \(expr)"
+    }
+  }
 }
 
 /// Represents an intermediate pattern that better conveys structure than the
 /// syntax tree.
-public enum DeclaredPattern {
+public enum DeclaredPattern: CustomStringConvertible {
   case wild
   case variable(Name)
   case constructor(QualifiedName, [DeclaredPattern])
@@ -194,6 +207,26 @@ public enum DeclaredPattern {
     case .constructor(_, _): return nil
     }
   }
+
+  public var description: String {
+    switch self {
+    case .wild: return "_"
+    case let .variable(name): return name.description
+    case let .constructor(constrName, pats):
+      return
+        """
+        \(constrName)(\(pats.map({ $0.description }).joined(separator: ", ")))
+        """
+    }
+  }
+}
+
+/// Represents an intermediate record field.
+public struct DeclaredField {
+  public let syntax: FieldDeclSyntax
+  public let name: Name
+  public let type: Expr
+  public let plicity: [ArgumentPlicity]
 }
 
 

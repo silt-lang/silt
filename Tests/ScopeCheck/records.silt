@@ -1,0 +1,28 @@
+-- RUN: %silt --verify scopes %s
+
+module records where
+
+data Nat : Type where
+  Z : Nat
+  S : Nat -> Nat
+
+data String : Type where
+  [] : String
+  _,_ : Nat -> String -> String
+
+record MissingPerson where -- expected-error {{record 'records.MissingPerson' must have constructor declared}}
+  firstName, middleName, lastName : String
+  age : Nat
+
+missing-fred : MissingPerson
+missing-fred = MkMissingPerson [] [] [] Z -- expected-error {{use of undeclared identifier 'MkMissingPerson'}}
+
+record Person where
+  constructor MkPerson
+  field
+    firstName, middleName, lastName : String
+  field
+    age : Nat
+
+fred : Person
+fred = MkPerson [] [] [] Z

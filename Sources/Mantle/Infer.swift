@@ -63,7 +63,8 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         switch self.getOpenedDefinition(name.key).1 {
         case .constant(_, .data(_)),
              .constant(_, .record(_, _)),
-             .constant(_, .postulate):
+             .constant(_, .postulate),
+             .projection(_, _, _):
           guard seenHeads.insert(.definition(name.key)).inserted else {
             return .notInvertible(cs)
           }

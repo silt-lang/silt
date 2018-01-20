@@ -62,9 +62,10 @@ extension Signature {
   }
 
   func addRecord(
-    named name: QualifiedName, _ tel: Telescope<TT>, _ type: Type<TT>) {
-    let cdef = ContextualDefinition(telescope: tel,
-                                    inside: .constant(type, .record(name, [])))
+    named name: QualifiedName, constructor constr: QualifiedName,
+    _ tel: Telescope<TT>, _ type: Type<TT>) {
+    let cdef = ContextualDefinition(
+      telescope: tel, inside: .constant(type, .record(name, constr, [])))
     return self.addDefinition(name, cdef)
   }
 
@@ -88,7 +89,7 @@ extension Signature {
       self.definitions[dataKey]
         = ContextualDefinition(telescope: def.telescope,
                                inside: .constant(tyConType, .data(moreCons)))
-    case .constant(_, .record(_, _)):
+    case .constant(_, .record(_, _, _)):
       self.addDefinition(dataCon,
                          ContextualDefinition(telescope: def.telescope,
                                               inside: .dataConstructor(dataKey,
@@ -107,12 +108,13 @@ extension Signature {
   ) {
     let def = self.lookupDefinition(parentRec.key)!
     switch def.inside {
-    case let .constant(tyConType, .record(recName, existingProjs)):
+    case let .constant(tyConType, .record(recName, recConstr, existingProjs)):
       // FIXME: Good god, this is inefficient.
       let moreProj = existingProjs + [Projection(name: projName, field: projIx)]
       self.definitions[parentRec.key]
         = ContextualDefinition(telescope: def.telescope,
                                inside: .constant(tyConType, .record(recName,
+                                                                    recConstr,
                                                                     moreProj)))
     default:
       fatalError()

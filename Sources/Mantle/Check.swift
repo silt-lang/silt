@@ -59,8 +59,8 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         return self.checkAscription(sig)
       case let .function(name, clauses):
         return self.checkFunction(name, clauses)
-      case let .recordSignature(sig):
-        return self.checkRecordSignature(sig)
+      case let .recordSignature(sig, constrName):
+        return self.checkRecordSignature(sig, constrName)
       case let .record(name, paramNames, conName, fieldSigs):
         return self.checkRecord(name, paramNames, conName, fieldSigs)
       case let .module(mod):
@@ -171,7 +171,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
   }
 
   private func checkRecordSignature(
-    _ sig: TypeSignature) -> Opened<QualifiedName, TT> {
+    _ sig: TypeSignature, _ consr: QualifiedName) -> Opened<QualifiedName, TT> {
     return trace("checking record signature \(sig.name)") {
       let elabType = self.checkExpr(sig.type, TT.type)
       // Check that at the end of the expression there is a `Type`.
@@ -181,7 +181,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
                                       TT.type, endType, TT.type)
       }
 
-      self.signature.addRecord(named: sig.name,
+      self.signature.addRecord(named: sig.name, constructor: consr,
                                self.environment.asContext, elabType)
       let args = self.environment.forEachVariable { cv in
         return TT.apply(.variable(cv), [])
@@ -224,15 +224,18 @@ extension TypeChecker where PhaseState == CheckPhaseState {
       // The type is already defined and opened into scope.
       let (openTyName, openTypeDef) = self.getOpenedDefinition(name)
       let defType = self.getTypeOfOpenedDefinition(openTypeDef)
-      let (recPars, _) = self.unrollPi(defType)
+      let (recPars, _) = self.unrollPi(defType, paramNames)
 
       // First, check all the fields to build up a context.
-      var fieldsCtx = Context()
-      for sig in fieldSigs {
-        let fieldType = self.underExtendedEnvironment(fieldsCtx) {
-          return self.checkExpr(sig.type, TT.type)
+      let fieldsCtx = self.underExtendedEnvironment(recPars) { () -> Context in
+        var fieldsCtx = Context()
+        for sig in fieldSigs {
+          let fieldType = self.underExtendedEnvironment(fieldsCtx) {
+            return self.checkExpr(sig.type, TT.type)
+          }
+          fieldsCtx.append((Name(name: sig.name.node), fieldType))
         }
-        fieldsCtx.append((Name(name: sig.name.node), fieldType))
+        return fieldsCtx
       }
       // We need to weaken the opened type up to the number of parameters.
       let weakTy = openTyName.forceApplySubstitution(.weaken(recPars.count),
@@ -421,7 +424,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         switch ty.inside {
         case .constant(_, .data(_)):
           break
-        case .constant(_, .record(_, _)):
+        case .constant(_, .record(_, _, _)):
           // FIXME: Should be a diagnostic.
           fatalError("Can't pattern match on record")
         default:
