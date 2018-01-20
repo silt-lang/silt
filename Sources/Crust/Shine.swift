@@ -216,7 +216,8 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
                                          presence: .implicit))
         continue
       } else {
-        while let (_, block) = layoutBlockStack.last, !block.lessThanOrEqual(wsp) {
+        while
+          let (_, block) = layoutBlockStack.last, !block.lessThanOrEqual(wsp) {
           _ = layoutBlockStack.popLast()
           if !layoutBlockStack.isEmpty {
             stainlessToks.append(TokenSyntax(.rightBrace,
@@ -228,7 +229,8 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
 
         if layoutBlockStack.isEmpty {
           layoutBlockStack.append((.whereKeyword, wsp))
-        } else if let (_, block) = layoutBlockStack.last, !wsp.equivalentTo(block) {
+        } else if
+          let (_, block) = layoutBlockStack.last, !wsp.equivalentTo(block) {
           // If we must, begin a new layout block
           layoutBlockStack.append((.whereKeyword, wsp))
         }
@@ -256,7 +258,8 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
         stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
       } else if ws.lessThan(lastBlock) {
         stainlessToks.append(TokenSyntax(.semicolon, presence: .implicit))
-        while let (_, block) = layoutBlockStack.last, !block.lessThanOrEqual(ws) {
+        while
+          let (_, block) = layoutBlockStack.last, !block.lessThanOrEqual(ws) {
           _ = layoutBlockStack.popLast()
           if !layoutBlockStack.isEmpty {
             stainlessToks.append(TokenSyntax(.rightBrace,
