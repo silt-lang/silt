@@ -148,8 +148,8 @@ extension TypeChecker {
         return .postulate
       case let .data(dataCons):
         return .data(dataCons.map { Opened($0, args) })
-      case let .record(name, ps):
-        return .record(openAccessor(name), ps.map(openAccessor))
+      case let .record(_, constr, ps):
+        return .record(openAccessor(constr), ps.map(openAccessor))
       case let .function(inst):
         return .function(inst)
       }
