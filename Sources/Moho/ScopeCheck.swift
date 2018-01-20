@@ -70,7 +70,7 @@ extension NameBinding {
       args.append(contentsOf: argBuf)
     } else if let (fqn, info) = self.lookupLocalName(n.name) {
       switch info {
-      case .constructor(_, _):
+      case .constructor(_):
         args.append(contentsOf: argBuf)
         return .constructor(fqn, args)
       case let .definition(plicity):
@@ -102,7 +102,7 @@ extension NameBinding {
     switch syntax {
     case let syntax as NamedBasicExprSyntax:
       let n = QualifiedName(ast: syntax.name)
-      return formCompleteApply(n, [])
+      return self.formCompleteApply(n, [])
     case _ as TypeBasicExprSyntax:
       return .type
     case _ as UnderscoreExprSyntax:
@@ -146,7 +146,7 @@ extension NameBinding {
         args.append(elim)
       }
 
-      return formCompleteApply(n, args)
+      return self.formCompleteApply(n, args)
     case let syntax as ApplicationExprSyntax:
       guard syntax.exprs.count > 1 else {
         return self.scopeCheckExpr(syntax.exprs[0])
@@ -171,7 +171,7 @@ extension NameBinding {
           args.append(elim)
         }
 
-        return formCompleteApply(n, args)
+        return self.formCompleteApply(n, args)
       default:
         fatalError("Cannot yet handle this case")
       }
@@ -184,7 +184,7 @@ extension NameBinding {
       let telescope = syntax.parameters.map(self.scopeCheckParameter)
       return self.rollPi1(telescope)
     case let syntax as LetExprSyntax:
-      return self.underScope { scope in
+      return self.underScope { _ in
         let reparsedDecls = self.reparseDecls(syntax.declList,
                                               allowOmittingSignatures: true)
         let decls = reparsedDecls.flatMap(scopeCheckDecl)
@@ -210,7 +210,7 @@ extension NameBinding {
         plicities.append(param.plicity)
       }
     }
-    return (type, piNames, plicities)
+    return (type, piNames.reversed(), plicities.reversed())
   }
 
   private func rollPi1(_ telescope: [DeclaredParameter]) -> Expr {
@@ -438,7 +438,7 @@ extension NameBinding {
     }
 
     for constr in cs {
-      guard self.bindConstructor(named: constr.name.name, 0, 0) != nil else {
+      guard self.bindConstructor(named: constr.name.name, plicity) != nil else {
         fatalError("Constructor names should be unique by now!")
       }
     }
@@ -455,80 +455,98 @@ extension NameBinding {
       self.engine.diagnose(.nameShadows(recName), node: syntax)
       return []
     }
-    return self.underScope { _ in
+    typealias ScopeCheckType =
+      (TypeSignature, Name, [DeclaredField], [Name], [Decl], [ArgumentPlicity])
+    let checkedData = self.underScope {_ -> ScopeCheckType? in
       let params = syntax.parameterList.map(self.scopeCheckParameter)
       let capType = syntax.typeIndices.map({
         return self.scopeCheckExpr(self.reparseExpr($0.indexExpr))
       }) ?? Expr.type
 
-      let (ty, _, plicity) = self.rollPi(params, capType)
-      let asc = Decl.recordSignature(TypeSignature(name: boundDataName,
-                                                   type: ty,
-                                                   plicity: plicity))
-
-      var sigs = [(Name, TypeSignature)]()
+      var preSigs = [DeclaredField]()
       var decls = [Decl]()
-      var constr: QualifiedName? = nil
-      for re in syntax.recordElementList {
-        if let field = re as? FieldDeclSyntax {
-          sigs.append(contentsOf: self.scopeCheckFieldDecl(field))
+      var constr: Name? = nil
+      for re in self.reparseDecls(syntax.recordElementList) {
+        if
+          let field = re as? FieldDeclSyntax,
+          let checkedField = self.scopeCheckFieldDecl(field)
+        {
+          preSigs.append(checkedField)
           continue
         }
 
-        if let funcField = re as? FunctionDeclSyntax {
+        if let funcField = re as? ReparsedFunctionDeclSyntax {
           decls.append(contentsOf: self.scopeCheckDecl(funcField))
           continue
         }
 
         if let recConstr = re as? RecordConstructorDeclSyntax {
-          let name = Name(name: recConstr.constructorName)
-          guard let bindName = self.bindConstructor(named: name, 0, 0) else {
-            // If this declaration does not have a unique name, diagnose it and
-            // recover by ignoring it.
-            self.engine.diagnose(.nameShadows(name), node: recConstr)
-            continue
-          }
-          constr = bindName
+          constr = Name(name: recConstr.constructorName)
           continue
         }
       }
       guard let recConstr = constr else {
         self.engine.diagnose(.recordMissingConstructor(boundDataName),
                              node: syntax)
-        return []
+        return nil
       }
-      let recordDecl: Decl = .record(boundDataName, sigs.map {$0.0},
-                                     recConstr, sigs.map {$0.1})
-      return [asc, recordDecl] + decls
+
+      let (ty, names, plicity) = self.rollPi(params, capType)
+      let recordSignature = TypeSignature(name: boundDataName,
+                                          type: ty, plicity: plicity)
+      return (recordSignature, recConstr, preSigs, names, decls, plicity)
     }
+
+    guard
+      let (sig, recConstr, declFields, paramNames, decls, plicity) = checkedData
+    else {
+      return []
+    }
+
+    // Open the record projections into the current scope.
+    var sigs = [TypeSignature]()
+    for declField in declFields {
+      guard let bindName = self.bindProjection(named: declField.name, 0) else {
+        // If this declaration does not have a unique name, diagnose it and
+        // recover by ignoring it.
+        self.engine.diagnose(.nameShadows(declField.name),
+                             node: declField.syntax)
+        continue
+      }
+      sigs.append(TypeSignature(name: bindName, type: declField.type,
+                                plicity: declField.plicity))
+    }
+
+    guard let bindName = self.bindConstructor(named: recConstr, plicity) else {
+      // If this declaration does not have a unique name, diagnose it and
+      // recover by ignoring it.
+      self.engine.diagnose(.nameShadows(recConstr), node: recConstr.syntax)
+      return []
+    }
+    let asc = Decl.recordSignature(sig, bindName)
+    let recordDecl: Decl = .record(boundDataName, paramNames,
+                                   bindName, sigs)
+    return [asc, recordDecl] + decls
   }
 
   private func scopeCheckFieldDecl(
-    _ syntax: FieldDeclSyntax) -> [(Name, TypeSignature)] {
-    var result = [(Name, TypeSignature)]()
-    result.reserveCapacity(syntax.ascription.boundNames.count)
-    for synName in syntax.ascription.boundNames {
-      let maybeSig = self.underScope { (_) -> (Name, TypeSignature)? in
-        let name = Name(name: synName)
-
-        let rebindExpr = self.reparseExpr(syntax.ascription.typeExpr)
-        let ascExpr = self.scopeCheckExpr(rebindExpr)
-
-        guard let bindName = self.bindProjection(named: name, 0) else {
-          // If this declaration does not have a unique name, diagnose it and
-          // recover by ignoring it.
-          self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
-          return nil
-        }
-        fatalError("\(ascExpr), \(bindName)")
-//      return (name, TypeSignature(name: bindName, type: ascExpr, plicity: []))
-      }
-
-      if let sig = maybeSig {
-        result.append(sig)
-      }
+    _ syntax: FieldDeclSyntax) -> DeclaredField? {
+    assert(syntax.ascription.boundNames.count == 1)
+    let (ascExpr, plicity) = self.underScope { _ -> (Expr, [ArgumentPlicity]) in
+      let rebindExpr = self.reparseExpr(syntax.ascription.typeExpr)
+      let plicity = self.computePlicity(rebindExpr)
+      let ascExpr = self.scopeCheckExpr(rebindExpr)
+      return (ascExpr, plicity)
     }
-    return result
+    let name = Name(name: syntax.ascription.boundNames[0])
+    guard self.bindVariable(named: name) != nil else {
+      // If this declaration does not have a unique name, diagnose it and
+      // recover by ignoring it.
+      self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
+      return nil
+    }
+    return DeclaredField(syntax: syntax, name: name,
+                         type: ascExpr, plicity: plicity)
   }
 
   private func scopeCheckConstructor(
@@ -540,15 +558,17 @@ extension NameBinding {
 
       let rebindExpr = self.reparseExpr(syntax.ascription.typeExpr)
       let ascExpr = self.scopeCheckExpr(rebindExpr)
+      let plicity = self.computePlicity(rebindExpr)
 
-      guard let bindName = self.bindConstructor(named: name, 0, 0) else {
+      guard let bindName = self.bindConstructor(named: name, plicity) else {
         // If this declaration does not have a unique name, diagnose it and
         // recover by ignoring it.
         self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
         continue
       }
 
-      result.append(TypeSignature(name: bindName, type: ascExpr, plicity: []))
+      result.append(TypeSignature(name: bindName,
+                                  type: ascExpr, plicity: plicity))
     }
     return result
   }
@@ -558,9 +578,10 @@ extension NameBinding {
     precondition(syntax.ascription.boundNames.count == 1)
 
     let rebindExpr = self.reparseExpr(syntax.ascription.typeExpr)
-    let (ascExpr, plicity) = self.underScope { _ in
-      return (self.scopeCheckExpr(rebindExpr), computePlicity(rebindExpr))
+    let ascExpr = self.underScope { _ in
+      return self.scopeCheckExpr(rebindExpr)
     }
+    let plicity = self.computePlicity(rebindExpr)
     let name = Name(name: syntax.ascription.boundNames[0])
     guard let functionName = self.bindDefinition(named: name, plicity) else {
       fatalError("Should have unique function names by now")
@@ -645,7 +666,7 @@ extension NameBinding {
     case let syntax as NamedBasicExprSyntax:
       let headName = QualifiedName(ast: syntax.name).name
       let localName = self.lookupLocalName(headName)
-      if case let .some((fullName, .constructor(_, _))) = localName {
+      if case let .some((fullName, .constructor(_))) = localName {
         return [.constructor(fullName, [])]
       }
       return [.variable(headName)]
@@ -659,7 +680,7 @@ extension NameBinding {
       let argsExpr = syntax.exprs.dropFirst().flatMap(self.exprToDeclPattern)
       let headName = QualifiedName(ast: head.name).name
       let localName = self.lookupLocalName(headName)
-      guard case let .some((fullName, .constructor(_, _))) = localName else {
+      guard case let .some((fullName, .constructor(_))) = localName else {
         fatalError()
       }
       return [.constructor(fullName, argsExpr)]
@@ -725,6 +746,16 @@ extension NameBinding {
           }
         }
         clauseMap[name]!.append(reparsedDecl)
+      case let fieldDecl as FieldDeclSyntax:
+        for synName in fieldDecl.ascription.boundNames {
+          let singleAscript = fieldDecl.ascription
+                .withBoundNames(IdentifierListSyntax(elements: [synName]))
+          let newField = FieldDeclSyntax(
+            fieldToken: fieldDecl.fieldToken,
+            ascription: singleAscript,
+            trailingSemicolon: fieldDecl.trailingSemicolon)
+          decls.append(newField)
+        }
       default:
         decls.append(decl)
       }

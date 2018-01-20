@@ -20,7 +20,7 @@ enum NameInfo {
   case definition([ArgumentPlicity])
   /// The result was a constructor, retrieves the number of implicit and
   /// explicit arguments.
-  case constructor(NumImplicitArguments, NumExplicitArguments)
+  case constructor([ArgumentPlicity])
   /// The result was a record projection, retrieves the number of implicit
   /// arguments.
   case projection(NumImplicitArguments)
@@ -28,7 +28,7 @@ enum NameInfo {
   case module(LocalNames)
 
   var isConstructor: Bool {
-    guard case .constructor(_, _) = self else {
+    guard case .constructor(_) = self else {
       return false
     }
     return true
@@ -183,16 +183,14 @@ extension NameBinding {
     }
   }
 
-  typealias ArgCount
-    = (implicit: NumImplicitArguments, explicit: NumExplicitArguments)
-
   /// Given the qualified name of a constructor, resolves it to a
   /// fully-qualified name and returns information about the constructor itself.
-  func resolveConstructor(_ m: QualifiedName) throws -> Resolution<ArgCount> {
+  func resolveConstructor(
+    _ m: QualifiedName) throws -> Resolution<[ArgumentPlicity]> {
     let lkup = try self.resolveQualifiedName(m)
     switch lkup {
-    case let .some(.nameInfo(qn, .constructor(hidden, args))):
-      return Resolution(qualifiedName: qn, info: (hidden, args))
+    case let .some(.nameInfo(qn, .constructor(plicity))):
+      return Resolution(qualifiedName: qn, info: plicity)
     case .none:
       fatalError("\(m) is not in scope")
     default:
@@ -275,11 +273,8 @@ extension NameBinding {
 
   /// Bind a data constructor in the current active scope.
   func bindConstructor(
-    named n: Name,
-    _ hidden: NumImplicitArguments,
-    _ shown: NumExplicitArguments
-  ) -> FullyQualifiedName? {
-    return self.bindLocal(named: n, info: .constructor(hidden, shown))
+    named n: Name, _ plicity: [ArgumentPlicity]) -> FullyQualifiedName? {
+    return self.bindLocal(named: n, info: .constructor(plicity))
   }
 
   /// Bind a local variable in the current active scope.

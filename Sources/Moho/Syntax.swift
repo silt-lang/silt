@@ -221,6 +221,12 @@ public enum DeclaredPattern: CustomStringConvertible {
   }
 }
 
+/// Represents an intermediate record field.
+public struct DeclaredField {
+  public let syntax: FieldDeclSyntax
+  public let name: Name
+  public let type: Expr
+  public let plicity: [ArgumentPlicity]
 }
 
 
