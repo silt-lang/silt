@@ -136,7 +136,7 @@ let syntaxNodes = [
     Child("recordToken", kind: "RecordToken"),
     Child("recordName", kind: "IdentifierToken"),
     Child("parameterList", kind: "TypedParameterList"),
-    Child("typeIndices", kind: "TypeIndices", isOptional: true),
+    Child("typeIndices", kind: "TypeIndices"),
     Child("whereToken", kind: "WhereToken"),
     Child("leftParenToken", kind: "LeftParenToken"),
     Child("recordElementList", kind: "DeclList"),

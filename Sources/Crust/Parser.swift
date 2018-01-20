@@ -32,7 +32,7 @@ extension Diagnostic.Message {
     return Diagnostic.Message(.error, "expected \(name)")
   }
 
-  static func dataWithNoIndices(
+  static func declRequiresIndices(
     _ typeName: TokenSyntax) -> Diagnostic.Message {
       return .init(.error,
                    """
@@ -407,7 +407,21 @@ extension Parser {
     let recordTok = try consume(.recordKeyword)
     let recName = try parseIdentifierToken()
     let paramList = try parseTypedParameterList()
-    let indices = peek() == .colon ? try parseTypeIndices() : nil
+    let indices: TypeIndicesSyntax
+
+    // If we see a semicolon or 'where' after the identifier, the
+    // user likely forgot to provide indices for this data type.
+    // Recover by inserting `: Type`.
+    if [.semicolon, .whereKeyword].contains(peek()) {
+      indices = TypeIndicesSyntax(colonToken: .implicit(.colon),
+                                  indexExpr: implicitNamedExpr(.typeKeyword))
+      engine.diagnose(.declRequiresIndices(recName), node: recName) {
+        $0.highlight(recName)
+        $0.note(.addBasicTypeIndex, node: recName)
+      }
+    } else {
+      indices = try parseTypeIndices()
+    }
     let whereTok = try consume(.whereKeyword)
     let leftTok = try consume(.leftBrace)
     let elemList = try parseRecordElementList()
@@ -564,7 +578,7 @@ extension Parser {
     if [.semicolon, .whereKeyword].contains(peek()) {
       indices = TypeIndicesSyntax(colonToken: .implicit(.colon),
                                   indexExpr: implicitNamedExpr(.typeKeyword))
-      engine.diagnose(.dataWithNoIndices(dataId), node: dataId) {
+      engine.diagnose(.declRequiresIndices(dataId), node: dataId) {
         $0.highlight(dataId)
         $0.note(.addBasicTypeIndex, node: dataId)
       }
