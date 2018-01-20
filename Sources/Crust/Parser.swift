@@ -407,21 +407,7 @@ extension Parser {
     let recordTok = try consume(.recordKeyword)
     let recName = try parseIdentifierToken()
     let paramList = try parseTypedParameterList()
-    let indices: TypeIndicesSyntax
-
-    // If we see a semicolon or 'where' after the identifier, the
-    // user likely forgot to provide indices for this data type.
-    // Recover by inserting `: Type`.
-    if [.semicolon, .whereKeyword].contains(peek()) {
-      indices = TypeIndicesSyntax(colonToken: .implicit(.colon),
-                                  indexExpr: implicitNamedExpr(.typeKeyword))
-      engine.diagnose(.declRequiresIndices(recName), node: recName) {
-        $0.highlight(recName)
-        $0.note(.addBasicTypeIndex, node: recName)
-      }
-    } else {
-      indices = try parseTypeIndices()
-    }
+    let indices = try parseTypeIndices(recName)
     let whereTok = try consume(.whereKeyword)
     let leftTok = try consume(.leftBrace)
     let elemList = try parseRecordElementList()
@@ -542,10 +528,23 @@ extension Parser {
       rightBraceToken: rightBrace)
   }
 
-  func parseTypeIndices() throws -> TypeIndicesSyntax {
-    let colon = try consume(.colon)
-    let expr = try parseExpr()
-    return TypeIndicesSyntax(colonToken: colon, indexExpr: expr)
+  func parseTypeIndices(_ parentName: TokenSyntax) throws -> TypeIndicesSyntax {
+    // If we see a semicolon or 'where' after the identifier, the
+    // user likely forgot to provide indices for this data type.
+    // Recover by inserting `: Type`.
+    guard [.semicolon, .whereKeyword].contains(peek()) else {
+      let colon = try consume(.colon)
+      let expr = try parseExpr()
+      return TypeIndicesSyntax(colonToken: colon, indexExpr: expr)
+    }
+
+    let indices = TypeIndicesSyntax(colonToken: .implicit(.colon),
+                                    indexExpr: implicitNamedExpr(.typeKeyword))
+    engine.diagnose(.declRequiresIndices(parentName), node: parentName) {
+      $0.highlight(parentName)
+      $0.note(.addBasicTypeIndex, node: parentName)
+    }
+    return indices
   }
 
   func parseAscription() throws -> AscriptionSyntax {
@@ -570,21 +569,7 @@ extension Parser {
     let dataTok = try consume(.dataKeyword)
     let dataId = try parseIdentifierToken()
     let paramList = try parseTypedParameterList()
-    let indices: TypeIndicesSyntax
-
-    // If we see a semicolon or 'where' after the identifier, the
-    // user likely forgot to provide indices for this data type.
-    // Recover by inserting `: Type`.
-    if [.semicolon, .whereKeyword].contains(peek()) {
-      indices = TypeIndicesSyntax(colonToken: .implicit(.colon),
-                                  indexExpr: implicitNamedExpr(.typeKeyword))
-      engine.diagnose(.declRequiresIndices(dataId), node: dataId) {
-        $0.highlight(dataId)
-        $0.note(.addBasicTypeIndex, node: dataId)
-      }
-    } else {
-      indices = try parseTypeIndices()
-    }
+    let indices = try parseTypeIndices(dataId)
     if let whereTok = try consumeIf(.whereKeyword) {
       let leftBrace = try consume(.leftBrace)
       let constrList = try parseConstructorList()
