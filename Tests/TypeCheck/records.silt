@@ -10,7 +10,7 @@ data String : Type where
   [] : String
   _,,_ : Nat -> String -> String
 
-record Person where
+record Person : Type where
   constructor MkPerson
   field
     firstName, middleName, lastName : String

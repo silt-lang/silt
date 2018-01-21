@@ -459,9 +459,8 @@ extension NameBinding {
       (TypeSignature, Name, [DeclaredField], [Name], [Decl], [ArgumentPlicity])
     let checkedData = self.underScope {_ -> ScopeCheckType? in
       let params = syntax.parameterList.map(self.scopeCheckParameter)
-      let capType = syntax.typeIndices.map({
-        return self.scopeCheckExpr(self.reparseExpr($0.indexExpr))
-      }) ?? Expr.type
+      let indices = self.reparseExpr(syntax.typeIndices.indexExpr)
+      let checkedIndices = self.scopeCheckExpr(indices)
 
       var preSigs = [DeclaredField]()
       var decls = [Decl]()
@@ -491,7 +490,7 @@ extension NameBinding {
         return nil
       }
 
-      let (ty, names, plicity) = self.rollPi(params, capType)
+      let (ty, names, plicity) = self.rollPi(params, checkedIndices)
       let recordSignature = TypeSignature(name: boundDataName,
                                           type: ty, plicity: plicity)
       return (recordSignature, recConstr, preSigs, names, decls, plicity)

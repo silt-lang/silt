@@ -13,3 +13,7 @@ Bar : nat -> nat -> Bar -- expected-error {{data constructors may only appear wi
 data NoIndices where -- expected-error {{declaration of 'NoIndices' is missing type ascription}}
 -- expected-note @-1 {{add a type ascription; e.g. ': Type'}}
   x : NoIndices
+
+record MissingIndices where -- expected-error {{declaration of 'MissingIndices' is missing type ascription}}
+-- expected-note@-1 {{add a type ascription; e.g. ': Type'}}
+

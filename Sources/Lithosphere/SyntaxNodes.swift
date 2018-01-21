@@ -592,12 +592,12 @@ public class RecordDeclSyntax: DeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax?, whereToken: TokenSyntax, leftParenToken: TokenSyntax, recordElementList: DeclListSyntax, rightParenToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
+  public convenience init(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax, whereToken: TokenSyntax, leftParenToken: TokenSyntax, recordElementList: DeclListSyntax, rightParenToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.recordDecl, [
       recordToken.raw,
       recordName.raw,
       parameterList.raw,
-      typeIndices?.raw ?? RawSyntax.missing(.typeIndices),
+      typeIndices.raw,
       whereToken.raw,
       leftParenToken.raw,
       recordElementList.raw,
@@ -631,8 +631,8 @@ public class RecordDeclSyntax: DeclSyntax {
     return RecordDeclSyntax(root: newRoot, data: newData)
   }
 
-  public var typeIndices: TypeIndicesSyntax? {
-    return child(at: Cursor.typeIndices) as? TypeIndicesSyntax
+  public var typeIndices: TypeIndicesSyntax {
+    return child(at: Cursor.typeIndices) as! TypeIndicesSyntax
   }
   public func withTypeIndices(_ syntax: TypeIndicesSyntax) -> RecordDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.typeIndices)
