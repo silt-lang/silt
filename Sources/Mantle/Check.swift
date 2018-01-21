@@ -73,13 +73,19 @@ extension TypeChecker where PhaseState == CheckPhaseState {
     }
   }
 
-  private func checkLetBinding(_ name: QualifiedName,
-    _ clause: DeclaredClause) -> Opened<QualifiedName, TT> {
+  private func checkLetBinding(
+    _ name: QualifiedName, _ clause: DeclaredClause
+  ) -> Opened<QualifiedName, TT> {
 
+    // `let x y z ... = e` under the current environment `env`
+    // becomes `x = \ env -> \ y -> \ z -> \ ... -> e`.  This allows us to
+    // check lets independent of their parent expression and makes re-opening
+    // their type as easy as eliminating the ambient context where necessary.
     guard let bodyExpr = clause.body.expr else {
       fatalError("let binding with no body?")
     }
 
+    // Gather up the patterns as lambdas.
     let bindingLambda =
       clause.patterns.reversed().reduce(bodyExpr) { expr, pat in
         guard let name = pat.name else {
@@ -88,21 +94,22 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         return Expr.lambda((name, .meta), expr)
       }
 
-    let ctxLambda = self.environment.asContext.reversed().reduce(bindingLambda, { expr, entry in
-      return Expr.lambda((entry.0, .meta), expr)
-    })
+    // Next, gather the environment.
+    let ctxLam = self.environment.asContext.reversed().reduce(bindingLambda) {
+      return Expr.lambda(($1.0, .meta), $0)
+    }
 
     let clauseMetaVar = self.signature.addMeta(.type, from: bodyExpr)
     let clauseMeta = TT.apply(.meta(clauseMetaVar), [])
-    _ = self.checkExpr(ctxLambda, clauseMeta)
-    let elimClauseTy = self.eliminate(clauseMeta,
-                                      self.environment.forEachVariable { v in
-      return Elim<TT>.apply(TT.apply(.variable(v), []))
-    })
-    self.signature.addLetBinding(name, type: elimClauseTy,
-                                 self.environment.asContext)
-    return self.openDefinition(name, environment.forEachVariable { variable in
-      return TT.apply(.variable(variable), [])
+    // Check the let-binding independently.
+    _ = self.underEmptyEnvironment {
+      return self.checkExpr(ctxLam, clauseMeta)
+    }
+    // Add and open the binding in context.
+    self.signature.addLetBinding(name, type: clauseMeta,
+                                 tel: self.environment.asContext)
+    return self.openDefinition(name, self.environment.forEachVariable { cv in
+      return TT.apply(.variable(cv), [])
     })
   }
 
