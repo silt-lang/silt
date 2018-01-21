@@ -11,6 +11,41 @@ data Bool : Type where
   false : Bool
   true  : Bool
 
+data List (A : Type) : Type where
+  []   : List A
+  _::_ : A -> List A -> List
+
+head : {A : Type} -> List A -> A
+head [] = error
+head (x :: xs) = x
+
+tail : {A : Type} -> List A -> List A
+tail [] = error
+tail (x :: xs) = xs
+  
+append : {A : Type} -> A -> List A -> List A
+append x []        = x :: []
+append x (y :: ys) = y :: (append x ys)
+
+data Nat : Type
+  Z : Nat
+  S : Nat -> Nat
+
+ℕ : Type
+ℕ = Nat
+
+_+_ : Nat -> Nat -> Nat
+Z     + n = n
+(S n) + n' = S (n + n')
+
+_*_ : Nat -> Nat
+Z * n = Z
+(S n) * n' = n' + (n * n')
+
+fact : Nat -> Nat
+fact Z = (S Z)
+fact (S n) = (S n) * fact n
+
 -- An operator is declared with '_' where the arguments go
 if_then_else_ : Bool -> {A : Type} -> A -> A -> A
 if true  then x else y = x
@@ -23,7 +58,7 @@ infix 1 if_then_else_
 -- This name can be used in normal applications, for instance, if a hidden argument
 -- needs to be supplied.
 _&&_ : Bool -> Bool -> Bool
-x && y = if_then_else_ x Bool y false
+x && y = if x then y else false
 
 -- Operators can be prefix...
 ¬_ : Bool -> Bool
