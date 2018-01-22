@@ -6,8 +6,11 @@
 /// available in the repository.
 
 import Foundation
+import Mantle
 
 enum Type {
-  
-  case pi(Type, Type)
+  case metadata(TT)
+  case value
+  case record(DeclaredRecord)
+  case type(TT)
 }

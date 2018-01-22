@@ -61,8 +61,10 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         return self.checkFunction(name, clauses)
       case let .recordSignature(sig, constrName):
         return self.checkRecordSignature(sig, constrName)
-      case let .record(name, paramNames, conName, fieldSigs):
-        return self.checkRecord(name, paramNames, conName, fieldSigs)
+      case let .recordSignature(sig):
+        return self.checkRecordSignature(sig)
+      case let .record(record):
+        return self.checkRecord(record)
       case let .module(mod):
         return self.checkModuleCommon(mod)
       case let .letBinding(name, clause):
@@ -257,6 +259,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
   }
 
   private func checkRecord(
+<<<<<<< HEAD
     _ name: QualifiedName,
     _ paramNames: [Name],
     _ conName: QualifiedName,
