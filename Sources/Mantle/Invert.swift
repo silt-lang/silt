@@ -55,8 +55,7 @@ extension TypeChecker {
     }
     let zips = zip((0..<vars.count).reversed(), vars)
     let subs = zips.map({ (idx, v) -> (Var, Term<TT>) in
-      let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
-      return (v, TT.apply(.variable(Var(Name(name: name), UInt(idx))), []))
+      return (v, TT.apply(.variable(Var(wildcardName, UInt(idx))), []))
     })
     return Inversion(substitution: subs, arity: subs.count)
   }

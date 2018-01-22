@@ -63,14 +63,12 @@ extension TypeChecker {
     case .refl:
       return .refl
     case let .lambda(body):
-      let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
-      let weakBody = self.pruneTerm(weakenSet(vs, Var(Name(name: name), 0)),
+      let weakBody = self.pruneTerm(weakenSet(vs, Var(wildcardName, 0)),
                                     body)
       return TT.lambda(weakBody)
     case let .pi(domain, codomain):
-      let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
       return TT.pi(self.pruneTerm(vs, domain),
-                   self.pruneTerm(weakenSet(vs, Var(Name(name: name), 0)),
+                   self.pruneTerm(weakenSet(vs, Var(wildcardName, 0)),
                                   codomain))
     case let .equal(type, x, y):
       return TT.equal(self.pruneTerm(vs, type),

@@ -46,7 +46,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
     return Module(telescope: paramCtx, inside: Set(names))
   }
 
-  private func checkDecl(_ d: Decl) -> Opened<QualifiedName, TT> {
+  public func checkDecl(_ d: Decl) -> Opened<QualifiedName, TT> {
     return self.underExtendedEnvironment([]) {
       switch d {
       case let .dataSignature(sig):
@@ -65,10 +65,52 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         return self.checkRecord(name, paramNames, conName, fieldSigs)
       case let .module(mod):
         return self.checkModuleCommon(mod)
+      case let .letBinding(name, clause):
+        return self.checkLetBinding(name, clause)
       default:
         fatalError()
       }
     }
+  }
+
+  private func checkLetBinding(
+    _ name: QualifiedName, _ clause: DeclaredClause
+  ) -> Opened<QualifiedName, TT> {
+
+    // `let x y z ... = e` under the current environment `env`
+    // becomes `x = \ env -> \ y -> \ z -> \ ... -> e`.  This allows us to
+    // check lets independent of their parent expression and makes re-opening
+    // their type as easy as eliminating the ambient context where necessary.
+    guard let bodyExpr = clause.body.expr else {
+      fatalError("let binding with no body?")
+    }
+
+    // Gather up the patterns as lambdas.
+    let bindingLambda =
+      clause.patterns.reversed().reduce(bodyExpr) { expr, pat in
+        guard let name = pat.name else {
+          fatalError("let bindings can not have constructors")
+        }
+        return Expr.lambda((name, .meta), expr)
+      }
+
+    // Next, gather the environment.
+    let ctxLam = self.environment.asContext.reversed().reduce(bindingLambda) {
+      return Expr.lambda(($1.0, .meta), $0)
+    }
+
+    let clauseMetaVar = self.signature.addMeta(.type, from: bodyExpr)
+    let clauseMeta = TT.apply(.meta(clauseMetaVar), [])
+    // Check the let-binding independently.
+    _ = self.underEmptyEnvironment {
+      return self.checkExpr(ctxLam, clauseMeta)
+    }
+    // Add and open the binding in context.
+    self.signature.addLetBinding(name, type: clauseMeta,
+                                 tel: self.environment.asContext)
+    return self.openDefinition(name, self.environment.forEachVariable { cv in
+      return TT.apply(.variable(cv), [])
+    })
   }
 
   private func checkModuleCommon(
@@ -334,8 +376,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
       case (.type, .type, .type):
         return
       case let (.pi(dom, cod), .lambda(body1), .lambda(body2)):
-        let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
-        let ctx2 = [(Name(name: name), dom)] + ctx
+        let ctx2 = [(wildcardName, dom)] + ctx
         return self.checkDefinitionallyEqual(ctx2, cod, body1, body2)
       case let (_, .apply(h1, elims1), .apply(h2, elims2)):
         guard h1 == h2 else {
@@ -346,7 +387,6 @@ extension TypeChecker where PhaseState == CheckPhaseState {
                                      TT.apply(h1, []), elims1, elims2)
       default:
         print(typeView, t1View, t2View)
-        fatalError("Terms not equal")
       }
     }
   }
@@ -404,8 +444,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         self.extendEnvironment([(name, patType)])
         return (.variable, type)
       case .wild:
-        let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
-        self.extendEnvironment([(Name(name: name), patType)])
+        self.extendEnvironment([(wildcardName, patType)])
         return (.variable, type)
       case let .constructor(dataCon, synPats):
         // Use the data constructor to locate back up the parent so we can
@@ -570,10 +609,9 @@ extension TypeChecker where PhaseState == CheckPhaseState {
       guard case let .pi(domain, codomain) = type else {
         fatalError()
       }
-      let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
       return self.checkTT(body,
                           hasType: codomain,
-                          in: [(Name(name: name), domain)] + ctx)
+                          in: [(wildcardName, domain)] + ctx)
     default:
       let infType = self.infer(term, in: ctx)
       return self.checkDefinitionallyEqual(ctx, TT.type, infType, type)

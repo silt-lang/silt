@@ -130,7 +130,7 @@ public enum Definition {
   case constant(Type<TT>, Constant)
   case dataConstructor(QualifiedName, UInt, ContextualType)
   case projection(Projection.Field, QualifiedName, ContextualType)
-
+  case letBinding(QualifiedName, ContextualType)
   case module(Module)
 }
 
@@ -152,6 +152,7 @@ public enum OpenedDefinition {
   case dataConstructor(Opened<QualifiedName, TT>, UInt, ContextualType)
   case module(Module)
   case projection(Projection.Field, Opened<QualifiedName, TT>, ContextualType)
+  case letBinding(Opened<QualifiedName, TT>, ContextualType)
 }
 
 // MARK: Expressions
@@ -376,8 +377,8 @@ public final class Environment {
     let ctx = self.asContext
     var result = [T]()
     result.reserveCapacity(ctx.count)
-    for (ix, (n, _)) in ctx.enumerated() {
-      result.append(f(Var(n, UInt(ix))))
+    for (ix, (n, _)) in zip((0..<ctx.count).reversed(), ctx).reversed() {
+      result.insert(f(Var(n, UInt(ix))), at: 0)
     }
     return result
   }

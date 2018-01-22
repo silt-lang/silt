@@ -54,6 +54,16 @@ public final class TypeChecker<PhaseState> {
   public var environment: Environment {
     return self.state.environment
   }
+
+  /// FIXME: Try harder, maybe
+  public var wildcardToken: TokenSyntax {
+    return TokenSyntax.implicit(.underscore)
+  }
+
+  /// FIXME: Try harder, maybe
+  public var wildcardName: Name {
+    return Name(name: wildcardToken)
+  }
 }
 
 extension TypeChecker {
@@ -69,6 +79,14 @@ extension TypeChecker {
     self.environment.context.append(contentsOf: ctx)
   }
 
+  func underEmptyEnvironment<A>(_ f : () -> A) -> A {
+    let oldE = self.environment
+    self.state.environment = Environment([])
+    let val = f()
+    self.state.environment = oldE
+    return val
+  }
+
   func underNewScope<A>(_ f: () -> A) -> A {
     let oldBlocks = self.environment.scopes
     let oldPending = self.environment.context
@@ -82,6 +100,7 @@ extension TypeChecker {
 
   func forEachVariable<T>(in ctx: Context, _ f: (Var) -> T) -> [T] {
     var result = [T]()
+    result.reserveCapacity(ctx.count)
     for (ix, (n, _)) in zip((0..<ctx.count).reversed(), ctx).reversed() {
       result.insert(f(Var(n, UInt(ix))), at: 0)
     }
@@ -128,6 +147,25 @@ extension TypeChecker {
     }
     return (tel, ty)
   }
+
+  // Takes a Pi-type and replaces all it's elements with metavariables.
+  func fillPiWithMetas(_ ty: Type<TT>) -> [Term<TT>] {
+    var type = self.toWeakHeadNormalForm(ty).ignoreBlocking
+    var metas = [Term<TT>]()
+    while true {
+      switch type {
+      case let .pi(domain, codomain):
+        let meta = self.addMeta(in: self.environment.asContext, expect: domain)
+        let instCodomain = self.forceInstantiate(codomain, [meta])
+        type = self.toWeakHeadNormalForm(instCodomain).ignoreBlocking
+        metas.append(meta)
+      case .type:
+        return metas
+      default:
+        fatalError("Expected Pi")
+      }
+    }
+  }
 }
 
 extension TypeChecker {
@@ -166,6 +204,8 @@ extension TypeChecker {
       return .module(names)
     case let .projection(proj, tyName, ctxType):
       return .projection(proj, Opened<QualifiedName, TT>(tyName, args), ctxType)
+    case let .letBinding(name, ctxType):
+      return .letBinding(Opened<QualifiedName, TT>(name, args), ctxType)
     }
   }
 
@@ -212,6 +252,17 @@ extension TypeChecker {
       return self.rollPi(in: ct.telescope, final: ct.inside)
     case let .projection(_, _, ct):
       return self.rollPi(in: ct.telescope, final: ct.inside)
+    case let .letBinding(_, ct):
+      var ty = ct.inside
+      for _ in ct.telescope {
+        guard
+          case let .pi(_, cd) = self.toWeakHeadNormalForm(ty).ignoreBlocking
+        else {
+          fatalError("Type doesn't contain enough Pi's?")
+        }
+        ty = cd
+      }
+      return ty
     case .module(_):
       fatalError()
     }

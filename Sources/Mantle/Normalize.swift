@@ -145,8 +145,7 @@ extension TypeChecker {
         return term
       }
     case .pi(_, _):
-      let name = TokenSyntax(.identifier("_")) // FIXME: Try harder, maybe
-      let v = TT.apply(Head.variable(Var(Name(name: name), 0)), [])
+      let v = TT.apply(Head.variable(Var(wildcardName, 0)), [])
       switch self.toWeakHeadNormalForm(term).ignoreBlocking {
       case .lambda(_):
         return term
