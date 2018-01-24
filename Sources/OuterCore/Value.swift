@@ -7,13 +7,50 @@
 
 import Foundation
 
-public class Value {
-  private(set) var operands: [Value]
+public class Value: Hashable {
+  let name: String
 
-  init(operands: [Value] = []) {
-    self.operands = operands
+  init(name: String) {
+    self.name = name
+  }
+
+  /// All values are equatable and hashable using reference equality and
+  /// the hash of their ObjectIdentifiers.
+
+  public static func ==(lhs: Value, rhs: Value) -> Bool {
+    return lhs === rhs
+  }
+
+  public var hashValue: Int {
+    return ObjectIdentifier(self).hashValue
   }
 }
 
 public class Parameter: Value {
+  let parent: Continuation
+  let index: Int
+  let type: Type
+
+  init(parent: Continuation, index: Int, type: Type, name: String) {
+    self.parent = parent
+    self.index = index
+    self.type = type
+    super.init(name: name)
+  }
+}
+
+public struct TypeMetadata {
+  let name: String
+}
+
+public enum Destructor {
+  case trivial
+  case free(TypeMetadata)
+  case custom(Continuation)
+}
+
+public enum Copy {
+  case trivial
+  case malloc(TypeMetadata)
+  case custom(Continuation)
 }

@@ -61,8 +61,6 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         return self.checkFunction(name, clauses)
       case let .recordSignature(sig, constrName):
         return self.checkRecordSignature(sig, constrName)
-      case let .recordSignature(sig):
-        return self.checkRecordSignature(sig)
       case let .record(record):
         return self.checkRecord(record)
       case let .module(mod):
@@ -259,22 +257,17 @@ extension TypeChecker where PhaseState == CheckPhaseState {
   }
 
   private func checkRecord(
-<<<<<<< HEAD
-    _ name: QualifiedName,
-    _ paramNames: [Name],
-    _ conName: QualifiedName,
-    _ fieldSigs: [TypeSignature]
-  ) -> Opened<QualifiedName, TT> {
-    return trace("checking record \(name)") {
+    _ record: DeclaredRecord) -> Opened<QualifiedName, TT> {
+    return trace("checking record \(record.name.string)") {
       // The type is already defined and opened into scope.
-      let (openTyName, openTypeDef) = self.getOpenedDefinition(name)
+      let (openTyName, openTypeDef) = self.getOpenedDefinition(record.name)
       let defType = self.getTypeOfOpenedDefinition(openTypeDef)
-      let (recPars, _) = self.unrollPi(defType, paramNames)
+      let (recPars, _) = self.unrollPi(defType, record.params)
 
       // First, check all the fields to build up a context.
       let fieldsCtx = self.underExtendedEnvironment(recPars) { () -> Context in
         var fieldsCtx = Context()
-        for sig in fieldSigs {
+        for sig in record.fieldSignatures {
           let fieldType = self.underExtendedEnvironment(fieldsCtx) {
             return self.checkExpr(sig.type, TT.type)
           }
@@ -292,19 +285,21 @@ extension TypeChecker where PhaseState == CheckPhaseState {
 
       // Next, check the projections.
       self.checkProjections(openTyName, recPars,
-                            fieldSigs.map { $0.name }, fieldsCtx)
+                            record.fieldSignatures.map { $0.name }, fieldsCtx)
 
       // Finally, introduce the constructor.
       let weakDataTy = elimDataTy
         .forceApplySubstitution(.weaken(fieldsCtx.count), self.eliminate)
       let conType
         = self.rollPi(in: fieldsCtx, final: weakDataTy)
-      self.signature.addConstructor(named: conName, toType: openTyName,
-                                    UInt(fieldSigs.count),
+      self.signature.addConstructor(named: record.constructorName,
+                                    toType: openTyName,
+                                    UInt(record.fieldSignatures.count),
                                     Contextual(telescope: recPars,
                                                inside: conType))
 
-      return self.openDefinition(conName, self.environment.forEachVariable {
+      return self.openDefinition(record.constructorName,
+                                 self.environment.forEachVariable {
         return TT.apply(.variable($0), [])
       })
     }

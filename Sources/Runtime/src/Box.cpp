@@ -44,7 +44,7 @@ void *trivialMove(Value *dst, Value *src) {
   return dst;
 }
 
-void *trivialDestroy(Value *value) {
-
+void trivialDestroy(Value *value) {
+  return;
 }
 }

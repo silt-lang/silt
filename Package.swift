@@ -46,7 +46,7 @@ let package = Package(
       dependencies: []),
     .target(
       name: "OuterCore",
-      dependencies: ["Crust"]),
+      dependencies: ["Crust", "Moho", "Mantle", "Runtime"]),
   ],
   cxxLanguageStandard: .cxx14
 )

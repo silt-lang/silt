@@ -6,11 +6,12 @@
 /// available in the repository.
 
 import Foundation
+import Moho
 import Mantle
 
-enum Type {
-  case metadata(TT)
+public indirect enum Type {
+  case metadata(TypeMetadata)
   case value
   case record(DeclaredRecord)
-  case type(TT)
+  case function([Type], Type)
 }

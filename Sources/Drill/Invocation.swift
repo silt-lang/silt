@@ -12,6 +12,7 @@ import Lithosphere
 import Crust
 import Moho
 import Mantle
+import OuterCore
 
 extension Diagnostic.Message {
   static let noInputFiles = Diagnostic.Message(.error,
@@ -121,6 +122,19 @@ public struct Invocation {
       case .dump(.typecheck):
         run(typeCheckFile |> Pass(name: "Type Check") { module, _ in
           print(module)
+        })
+      case .dump(.gir):
+        run(Pass(name: "Dump GIR") { module, _ in
+          let a = Continuation(name: "a")
+          let x = a.appendParameter(type: .value, name: "x")
+          let y = a.appendParameter(type: .value, name: "y")
+          let b = Continuation(name: "b")
+          b.appendParameter(type: .value, name: "x")
+          b.appendParameter(type: .value, name: "y")
+          a.setCall(b, [x, y])
+          let writer = IRWriter(stream: &stdoutStreamHandle)
+          writer.write(a)
+          writer.write(b)
         })
       case .verify(let verification):
         context.engine.unregister(printingConsumerToken)
