@@ -5,11 +5,19 @@
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 
-public class TokenSyntax: Syntax {
-  public convenience init(_ kind: TokenKind, leadingTrivia: Trivia = [],
-                          trailingTrivia: Trivia = [],
-                          presence: SourcePresence = .present,
-                          sourceRange: SourceRange? = nil) {
+public struct TokenSyntax: _SyntaxBase {
+  var _root: SyntaxData
+  unowned var _data: SyntaxData
+
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+
+  public init(_ kind: TokenKind, leadingTrivia: Trivia = [],
+              trailingTrivia: Trivia = [],
+              presence: SourcePresence = .present,
+              sourceRange: SourceRange? = nil) {
     let raw = RawSyntax.token(kind, leadingTrivia, trailingTrivia,
                               presence, sourceRange)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
