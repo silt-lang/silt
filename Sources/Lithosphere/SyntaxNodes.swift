@@ -5,19 +5,324 @@
 ///
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
-public class ExprSyntax: Syntax {}
-public class DeclSyntax: Syntax {}
-public typealias IdentifierListSyntax = SyntaxCollection<TokenSyntax>
+public protocol DeclSyntax: Syntax {}
+public protocol ExprSyntax: Syntax {}
+public protocol TypedParameterSyntax: Syntax {}
+public protocol FunctionClauseDeclSyntax: DeclSyntax {}
+public protocol FixityDeclSyntax: DeclSyntax {}
+public protocol BindingSyntax: Syntax {}
+public protocol BasicExprSyntax: ExprSyntax {}
+public struct IdentifierListSyntax: _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
-public typealias QualifiedNameSyntax = SyntaxCollection<QualifiedNamePieceSyntax>
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
 
-public class QualifiedNamePieceSyntax: Syntax {
+  public init(elements: [TokenSyntax]) {
+    let list = elements.map { $0.raw }
+    let sd = SyntaxData(raw: .node(.identifierList, list, .present))
+    self._root = sd
+    self._data = sd
+  }
+
+
+  /// Creates a new IdentifierListSyntax by replacing the underlying layout with
+  /// a different set of raw syntax nodes.
+  ///
+  /// - Parameter layout: The new list of raw syntax nodes underlying this
+  ///                     collection.
+  /// - Returns: A new SyntaxCollection with the new layout underlying it.
+  internal func replacingLayout(
+    _ layout: [RawSyntax]) -> IdentifierListSyntax {
+    let newRaw = data.raw.replacingLayout(layout)
+    let (newRoot, newData) = data.replacingSelf(newRaw)
+    return IdentifierListSyntax(root: newRoot, data: newData)
+  }
+
+  /// Creates a new IdentifierListSyntax by appending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to append.
+  /// - Returns: A new SyntaxCollection with that element appended to the end.
+  public func appending(
+    _ syntax: TokenSyntax) -> IdentifierListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.append(syntax.raw)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new IdentifierListSyntax by prepending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to prepend.
+  /// - Returns: A new SyntaxCollection with that element prepended to the
+  ///            beginning.
+  public func prepending(
+    _ syntax: TokenSyntax) -> IdentifierListSyntax {
+    return inserting(syntax, at: 0)
+  }
+
+  /// Creates a new IdentifierListSyntax by inserting the provided syntax element
+  /// at the provided index in the children.
+  ///
+  /// - Parameters:
+  ///   - syntax: The element to insert.
+  ///   - index: The index at which to insert the element in the collection.
+  ///
+  /// - Returns: A new IdentifierListSyntax with that element appended to the end.
+  public func inserting(_ syntax: TokenSyntax,
+                        at index: Int) -> IdentifierListSyntax {
+    var newLayout = data.raw.layout
+    /// Make sure the index is a valid insertion index (0 to 1 past the end)
+    precondition((newLayout.startIndex...newLayout.endIndex).contains(index),
+                 "inserting node at invalid index \(index)")
+    newLayout.insert(syntax.raw, at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new IdentifierListSyntax by removing the syntax element at the
+  /// provided index.
+  ///
+  /// - Parameter index: The index of the element to remove from the collection.
+  /// - Returns: A new IdentifierListSyntax with the element at the provided index
+  ///            removed.
+  public func removing(childAt index: Int) -> IdentifierListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.remove(at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new IdentifierListSyntax by removing the first element.
+  ///
+  /// - Returns: A new IdentifierListSyntax with the first element removed.
+  public func removingFirst() -> IdentifierListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeFirst()
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new IdentifierListSyntax by removing the last element.
+  ///
+  /// - Returns: A new IdentifierListSyntax with the last element removed.
+  public func removingLast() -> IdentifierListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeLast()
+    return replacingLayout(newLayout)
+  }
+
+  /// Returns an iterator over the elements of this syntax collection.
+  public func makeIterator() -> IdentifierListSyntaxIterator {
+    return IdentifierListSyntaxIterator(collection: self)
+  }
+}
+
+/// Conformance for IdentifierListSyntax to the Collection protocol.
+extension IdentifierListSyntax: Collection {
+  public var startIndex: Int {
+    return data.childCaches.startIndex
+  }
+
+  public var endIndex: Int {
+    return data.childCaches.endIndex
+  }
+
+  public func index(after i: Int) -> Int {
+    return data.childCaches.index(after: i)
+  }
+
+  public subscript(_ index: Int) -> TokenSyntax {
+    // swiftlint:disable force_cast
+    return child(at: index)! as! TokenSyntax
+  }
+}
+
+/// A type that iterates over a syntax collection using its indices.
+public struct IdentifierListSyntaxIterator: IteratorProtocol {
+  private let collection: IdentifierListSyntax
+  private var index: IdentifierListSyntax.Index
+
+  fileprivate init(collection: IdentifierListSyntax) {
+    self.collection = collection
+    self.index = collection.startIndex
+  }
+
+  public mutating func next() -> TokenSyntax? {
+    guard
+      !(self.collection.isEmpty || self.index == self.collection.endIndex)
+    else {
+      return nil
+    }
+
+    let result = collection[index]
+    collection.formIndex(after: &index)
+    return result
+  }
+}
+public struct QualifiedNameSyntax: _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
+
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+
+  public init(elements: [QualifiedNamePieceSyntax]) {
+    let list = elements.map { $0.raw }
+    let sd = SyntaxData(raw: .node(.qualifiedName, list, .present))
+    self._root = sd
+    self._data = sd
+  }
+
+
+  /// Creates a new QualifiedNameSyntax by replacing the underlying layout with
+  /// a different set of raw syntax nodes.
+  ///
+  /// - Parameter layout: The new list of raw syntax nodes underlying this
+  ///                     collection.
+  /// - Returns: A new SyntaxCollection with the new layout underlying it.
+  internal func replacingLayout(
+    _ layout: [RawSyntax]) -> QualifiedNameSyntax {
+    let newRaw = data.raw.replacingLayout(layout)
+    let (newRoot, newData) = data.replacingSelf(newRaw)
+    return QualifiedNameSyntax(root: newRoot, data: newData)
+  }
+
+  /// Creates a new QualifiedNameSyntax by appending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to append.
+  /// - Returns: A new SyntaxCollection with that element appended to the end.
+  public func appending(
+    _ syntax: QualifiedNamePieceSyntax) -> QualifiedNameSyntax {
+    var newLayout = data.raw.layout
+    newLayout.append(syntax.raw)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new QualifiedNameSyntax by prepending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to prepend.
+  /// - Returns: A new SyntaxCollection with that element prepended to the
+  ///            beginning.
+  public func prepending(
+    _ syntax: QualifiedNamePieceSyntax) -> QualifiedNameSyntax {
+    return inserting(syntax, at: 0)
+  }
+
+  /// Creates a new QualifiedNameSyntax by inserting the provided syntax element
+  /// at the provided index in the children.
+  ///
+  /// - Parameters:
+  ///   - syntax: The element to insert.
+  ///   - index: The index at which to insert the element in the collection.
+  ///
+  /// - Returns: A new QualifiedNameSyntax with that element appended to the end.
+  public func inserting(_ syntax: QualifiedNamePieceSyntax,
+                        at index: Int) -> QualifiedNameSyntax {
+    var newLayout = data.raw.layout
+    /// Make sure the index is a valid insertion index (0 to 1 past the end)
+    precondition((newLayout.startIndex...newLayout.endIndex).contains(index),
+                 "inserting node at invalid index \(index)")
+    newLayout.insert(syntax.raw, at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new QualifiedNameSyntax by removing the syntax element at the
+  /// provided index.
+  ///
+  /// - Parameter index: The index of the element to remove from the collection.
+  /// - Returns: A new QualifiedNameSyntax with the element at the provided index
+  ///            removed.
+  public func removing(childAt index: Int) -> QualifiedNameSyntax {
+    var newLayout = data.raw.layout
+    newLayout.remove(at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new QualifiedNameSyntax by removing the first element.
+  ///
+  /// - Returns: A new QualifiedNameSyntax with the first element removed.
+  public func removingFirst() -> QualifiedNameSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeFirst()
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new QualifiedNameSyntax by removing the last element.
+  ///
+  /// - Returns: A new QualifiedNameSyntax with the last element removed.
+  public func removingLast() -> QualifiedNameSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeLast()
+    return replacingLayout(newLayout)
+  }
+
+  /// Returns an iterator over the elements of this syntax collection.
+  public func makeIterator() -> QualifiedNameSyntaxIterator {
+    return QualifiedNameSyntaxIterator(collection: self)
+  }
+}
+
+/// Conformance for QualifiedNameSyntax to the Collection protocol.
+extension QualifiedNameSyntax: Collection {
+  public var startIndex: Int {
+    return data.childCaches.startIndex
+  }
+
+  public var endIndex: Int {
+    return data.childCaches.endIndex
+  }
+
+  public func index(after i: Int) -> Int {
+    return data.childCaches.index(after: i)
+  }
+
+  public subscript(_ index: Int) -> QualifiedNamePieceSyntax {
+    // swiftlint:disable force_cast
+    return child(at: index)! as! QualifiedNamePieceSyntax
+  }
+}
+
+/// A type that iterates over a syntax collection using its indices.
+public struct QualifiedNameSyntaxIterator: IteratorProtocol {
+  private let collection: QualifiedNameSyntax
+  private var index: QualifiedNameSyntax.Index
+
+  fileprivate init(collection: QualifiedNameSyntax) {
+    self.collection = collection
+    self.index = collection.startIndex
+  }
+
+  public mutating func next() -> QualifiedNamePieceSyntax? {
+    guard
+      !(self.collection.isEmpty || self.index == self.collection.endIndex)
+    else {
+      return nil
+    }
+
+    let result = collection[index]
+    collection.formIndex(after: &index)
+    return result
+  }
+}
+public struct QualifiedNamePieceSyntax: Syntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case name
     case trailingPeriod
   }
 
-  public convenience init(name: TokenSyntax, trailingPeriod: TokenSyntax?) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(name: TokenSyntax, trailingPeriod: TokenSyntax?) {
     let raw = RawSyntax.node(.qualifiedNamePiece, [
       name.raw,
       trailingPeriod?.raw ?? RawSyntax.missingToken(.period),
@@ -43,7 +348,9 @@ public class QualifiedNamePieceSyntax: Syntax {
 
 }
 
-public class ModuleDeclSyntax: DeclSyntax {
+public struct ModuleDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case moduleToken
     case moduleIdentifier
@@ -55,7 +362,11 @@ public class ModuleDeclSyntax: DeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(moduleToken: TokenSyntax, moduleIdentifier: QualifiedNameSyntax, typedParameterList: TypedParameterListSyntax, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(moduleToken: TokenSyntax, moduleIdentifier: QualifiedNameSyntax, typedParameterList: TypedParameterListSyntax, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.moduleDecl, [
       moduleToken.raw,
       moduleIdentifier.raw,
@@ -135,16 +446,169 @@ public class ModuleDeclSyntax: DeclSyntax {
 
 }
 
-public typealias DeclListSyntax = SyntaxCollection<DeclSyntax>
+public struct DeclListSyntax: _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
-public class OpenImportDeclSyntax: DeclSyntax {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+
+  public init(elements: [DeclSyntax]) {
+    let list = elements.map { $0.raw }
+    let sd = SyntaxData(raw: .node(.declList, list, .present))
+    self._root = sd
+    self._data = sd
+  }
+
+
+  /// Creates a new DeclListSyntax by replacing the underlying layout with
+  /// a different set of raw syntax nodes.
+  ///
+  /// - Parameter layout: The new list of raw syntax nodes underlying this
+  ///                     collection.
+  /// - Returns: A new SyntaxCollection with the new layout underlying it.
+  internal func replacingLayout(
+    _ layout: [RawSyntax]) -> DeclListSyntax {
+    let newRaw = data.raw.replacingLayout(layout)
+    let (newRoot, newData) = data.replacingSelf(newRaw)
+    return DeclListSyntax(root: newRoot, data: newData)
+  }
+
+  /// Creates a new DeclListSyntax by appending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to append.
+  /// - Returns: A new SyntaxCollection with that element appended to the end.
+  public func appending(
+    _ syntax: DeclSyntax) -> DeclListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.append(syntax.raw)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new DeclListSyntax by prepending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to prepend.
+  /// - Returns: A new SyntaxCollection with that element prepended to the
+  ///            beginning.
+  public func prepending(
+    _ syntax: DeclSyntax) -> DeclListSyntax {
+    return inserting(syntax, at: 0)
+  }
+
+  /// Creates a new DeclListSyntax by inserting the provided syntax element
+  /// at the provided index in the children.
+  ///
+  /// - Parameters:
+  ///   - syntax: The element to insert.
+  ///   - index: The index at which to insert the element in the collection.
+  ///
+  /// - Returns: A new DeclListSyntax with that element appended to the end.
+  public func inserting(_ syntax: DeclSyntax,
+                        at index: Int) -> DeclListSyntax {
+    var newLayout = data.raw.layout
+    /// Make sure the index is a valid insertion index (0 to 1 past the end)
+    precondition((newLayout.startIndex...newLayout.endIndex).contains(index),
+                 "inserting node at invalid index \(index)")
+    newLayout.insert(syntax.raw, at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new DeclListSyntax by removing the syntax element at the
+  /// provided index.
+  ///
+  /// - Parameter index: The index of the element to remove from the collection.
+  /// - Returns: A new DeclListSyntax with the element at the provided index
+  ///            removed.
+  public func removing(childAt index: Int) -> DeclListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.remove(at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new DeclListSyntax by removing the first element.
+  ///
+  /// - Returns: A new DeclListSyntax with the first element removed.
+  public func removingFirst() -> DeclListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeFirst()
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new DeclListSyntax by removing the last element.
+  ///
+  /// - Returns: A new DeclListSyntax with the last element removed.
+  public func removingLast() -> DeclListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeLast()
+    return replacingLayout(newLayout)
+  }
+
+  /// Returns an iterator over the elements of this syntax collection.
+  public func makeIterator() -> DeclListSyntaxIterator {
+    return DeclListSyntaxIterator(collection: self)
+  }
+}
+
+/// Conformance for DeclListSyntax to the Collection protocol.
+extension DeclListSyntax: Collection {
+  public var startIndex: Int {
+    return data.childCaches.startIndex
+  }
+
+  public var endIndex: Int {
+    return data.childCaches.endIndex
+  }
+
+  public func index(after i: Int) -> Int {
+    return data.childCaches.index(after: i)
+  }
+
+  public subscript(_ index: Int) -> DeclSyntax {
+    // swiftlint:disable force_cast
+    return child(at: index)! as! DeclSyntax
+  }
+}
+
+/// A type that iterates over a syntax collection using its indices.
+public struct DeclListSyntaxIterator: IteratorProtocol {
+  private let collection: DeclListSyntax
+  private var index: DeclListSyntax.Index
+
+  fileprivate init(collection: DeclListSyntax) {
+    self.collection = collection
+    self.index = collection.startIndex
+  }
+
+  public mutating func next() -> DeclSyntax? {
+    guard
+      !(self.collection.isEmpty || self.index == self.collection.endIndex)
+    else {
+      return nil
+    }
+
+    let result = collection[index]
+    collection.formIndex(after: &index)
+    return result
+  }
+}
+public struct OpenImportDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case openToken
     case importToken
     case importIdentifier
   }
 
-  public convenience init(openToken: TokenSyntax?, importToken: TokenSyntax, importIdentifier: QualifiedNameSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(openToken: TokenSyntax?, importToken: TokenSyntax, importIdentifier: QualifiedNameSyntax) {
     let raw = RawSyntax.node(.openImportDecl, [
       openToken?.raw ?? RawSyntax.missingToken(.openKeyword),
       importToken.raw,
@@ -179,13 +643,19 @@ public class OpenImportDeclSyntax: DeclSyntax {
 
 }
 
-public class ImportDeclSyntax: DeclSyntax {
+public struct ImportDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case importToken
     case importIdentifier
   }
 
-  public convenience init(importToken: TokenSyntax, importIdentifier: QualifiedNameSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(importToken: TokenSyntax, importIdentifier: QualifiedNameSyntax) {
     let raw = RawSyntax.node(.importDecl, [
       importToken.raw,
       importIdentifier.raw,
@@ -211,7 +681,9 @@ public class ImportDeclSyntax: DeclSyntax {
 
 }
 
-public class DataDeclSyntax: DeclSyntax {
+public struct DataDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case dataToken
     case dataIdentifier
@@ -224,7 +696,11 @@ public class DataDeclSyntax: DeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(dataToken: TokenSyntax, dataIdentifier: TokenSyntax, typedParameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, constructorList: ConstructorListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(dataToken: TokenSyntax, dataIdentifier: TokenSyntax, typedParameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, constructorList: ConstructorListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.dataDecl, [
       dataToken.raw,
       dataIdentifier.raw,
@@ -313,7 +789,9 @@ public class DataDeclSyntax: DeclSyntax {
 
 }
 
-public class EmptyDataDeclSyntax: DeclSyntax {
+public struct EmptyDataDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case dataToken
     case dataIdentifier
@@ -322,7 +800,11 @@ public class EmptyDataDeclSyntax: DeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(dataToken: TokenSyntax, dataIdentifier: TokenSyntax, typedParameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(dataToken: TokenSyntax, dataIdentifier: TokenSyntax, typedParameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.emptyDataDecl, [
       dataToken.raw,
       dataIdentifier.raw,
@@ -375,13 +857,19 @@ public class EmptyDataDeclSyntax: DeclSyntax {
 
 }
 
-public class TypeIndicesSyntax: Syntax {
+public struct TypeIndicesSyntax: Syntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case colonToken
     case indexExpr
   }
 
-  public convenience init(colonToken: TokenSyntax, indexExpr: ExprSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(colonToken: TokenSyntax, indexExpr: ExprSyntax) {
     let raw = RawSyntax.node(.typeIndices, [
       colonToken.raw,
       indexExpr.raw,
@@ -407,16 +895,169 @@ public class TypeIndicesSyntax: Syntax {
 
 }
 
-public typealias TypedParameterListSyntax = SyntaxCollection<TypedParameterSyntax>
+public struct TypedParameterListSyntax: _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
-public class AscriptionSyntax: Syntax {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+
+  public init(elements: [TypedParameterSyntax]) {
+    let list = elements.map { $0.raw }
+    let sd = SyntaxData(raw: .node(.typedParameterList, list, .present))
+    self._root = sd
+    self._data = sd
+  }
+
+
+  /// Creates a new TypedParameterListSyntax by replacing the underlying layout with
+  /// a different set of raw syntax nodes.
+  ///
+  /// - Parameter layout: The new list of raw syntax nodes underlying this
+  ///                     collection.
+  /// - Returns: A new SyntaxCollection with the new layout underlying it.
+  internal func replacingLayout(
+    _ layout: [RawSyntax]) -> TypedParameterListSyntax {
+    let newRaw = data.raw.replacingLayout(layout)
+    let (newRoot, newData) = data.replacingSelf(newRaw)
+    return TypedParameterListSyntax(root: newRoot, data: newData)
+  }
+
+  /// Creates a new TypedParameterListSyntax by appending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to append.
+  /// - Returns: A new SyntaxCollection with that element appended to the end.
+  public func appending(
+    _ syntax: TypedParameterSyntax) -> TypedParameterListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.append(syntax.raw)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new TypedParameterListSyntax by prepending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to prepend.
+  /// - Returns: A new SyntaxCollection with that element prepended to the
+  ///            beginning.
+  public func prepending(
+    _ syntax: TypedParameterSyntax) -> TypedParameterListSyntax {
+    return inserting(syntax, at: 0)
+  }
+
+  /// Creates a new TypedParameterListSyntax by inserting the provided syntax element
+  /// at the provided index in the children.
+  ///
+  /// - Parameters:
+  ///   - syntax: The element to insert.
+  ///   - index: The index at which to insert the element in the collection.
+  ///
+  /// - Returns: A new TypedParameterListSyntax with that element appended to the end.
+  public func inserting(_ syntax: TypedParameterSyntax,
+                        at index: Int) -> TypedParameterListSyntax {
+    var newLayout = data.raw.layout
+    /// Make sure the index is a valid insertion index (0 to 1 past the end)
+    precondition((newLayout.startIndex...newLayout.endIndex).contains(index),
+                 "inserting node at invalid index \(index)")
+    newLayout.insert(syntax.raw, at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new TypedParameterListSyntax by removing the syntax element at the
+  /// provided index.
+  ///
+  /// - Parameter index: The index of the element to remove from the collection.
+  /// - Returns: A new TypedParameterListSyntax with the element at the provided index
+  ///            removed.
+  public func removing(childAt index: Int) -> TypedParameterListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.remove(at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new TypedParameterListSyntax by removing the first element.
+  ///
+  /// - Returns: A new TypedParameterListSyntax with the first element removed.
+  public func removingFirst() -> TypedParameterListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeFirst()
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new TypedParameterListSyntax by removing the last element.
+  ///
+  /// - Returns: A new TypedParameterListSyntax with the last element removed.
+  public func removingLast() -> TypedParameterListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeLast()
+    return replacingLayout(newLayout)
+  }
+
+  /// Returns an iterator over the elements of this syntax collection.
+  public func makeIterator() -> TypedParameterListSyntaxIterator {
+    return TypedParameterListSyntaxIterator(collection: self)
+  }
+}
+
+/// Conformance for TypedParameterListSyntax to the Collection protocol.
+extension TypedParameterListSyntax: Collection {
+  public var startIndex: Int {
+    return data.childCaches.startIndex
+  }
+
+  public var endIndex: Int {
+    return data.childCaches.endIndex
+  }
+
+  public func index(after i: Int) -> Int {
+    return data.childCaches.index(after: i)
+  }
+
+  public subscript(_ index: Int) -> TypedParameterSyntax {
+    // swiftlint:disable force_cast
+    return child(at: index)! as! TypedParameterSyntax
+  }
+}
+
+/// A type that iterates over a syntax collection using its indices.
+public struct TypedParameterListSyntaxIterator: IteratorProtocol {
+  private let collection: TypedParameterListSyntax
+  private var index: TypedParameterListSyntax.Index
+
+  fileprivate init(collection: TypedParameterListSyntax) {
+    self.collection = collection
+    self.index = collection.startIndex
+  }
+
+  public mutating func next() -> TypedParameterSyntax? {
+    guard
+      !(self.collection.isEmpty || self.index == self.collection.endIndex)
+    else {
+      return nil
+    }
+
+    let result = collection[index]
+    collection.formIndex(after: &index)
+    return result
+  }
+}
+public struct AscriptionSyntax: Syntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case boundNames
     case colonToken
     case typeExpr
   }
 
-  public convenience init(boundNames: IdentifierListSyntax, colonToken: TokenSyntax, typeExpr: ExprSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(boundNames: IdentifierListSyntax, colonToken: TokenSyntax, typeExpr: ExprSyntax) {
     let raw = RawSyntax.node(.ascription, [
       boundNames.raw,
       colonToken.raw,
@@ -451,24 +1092,20 @@ public class AscriptionSyntax: Syntax {
 
 }
 
-public class TypedParameterSyntax: Syntax {
-
-  public convenience init() {
-    let raw = RawSyntax.node(.typedParameter, [
-    ], .present)
-    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
-    self.init(root: data, data: data)
-  }
-}
-
-public class ExplicitTypedParameterSyntax: TypedParameterSyntax {
+public struct ExplicitTypedParameterSyntax: TypedParameterSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case leftParenToken
     case ascription
     case rightParenToken
   }
 
-  public convenience init(leftParenToken: TokenSyntax, ascription: AscriptionSyntax, rightParenToken: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(leftParenToken: TokenSyntax, ascription: AscriptionSyntax, rightParenToken: TokenSyntax) {
     let raw = RawSyntax.node(.explicitTypedParameter, [
       leftParenToken.raw,
       ascription.raw,
@@ -503,14 +1140,20 @@ public class ExplicitTypedParameterSyntax: TypedParameterSyntax {
 
 }
 
-public class ImplicitTypedParameterSyntax: TypedParameterSyntax {
+public struct ImplicitTypedParameterSyntax: TypedParameterSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case leftBraceToken
     case ascription
     case rightBraceToken
   }
 
-  public convenience init(leftBraceToken: TokenSyntax, ascription: AscriptionSyntax, rightBraceToken: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(leftBraceToken: TokenSyntax, ascription: AscriptionSyntax, rightBraceToken: TokenSyntax) {
     let raw = RawSyntax.node(.implicitTypedParameter, [
       leftBraceToken.raw,
       ascription.raw,
@@ -545,15 +1188,168 @@ public class ImplicitTypedParameterSyntax: TypedParameterSyntax {
 
 }
 
-public typealias ConstructorListSyntax = SyntaxCollection<ConstructorDeclSyntax>
+public struct ConstructorListSyntax: _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
-public class ConstructorDeclSyntax: DeclSyntax {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+
+  public init(elements: [ConstructorDeclSyntax]) {
+    let list = elements.map { $0.raw }
+    let sd = SyntaxData(raw: .node(.constructorList, list, .present))
+    self._root = sd
+    self._data = sd
+  }
+
+
+  /// Creates a new ConstructorListSyntax by replacing the underlying layout with
+  /// a different set of raw syntax nodes.
+  ///
+  /// - Parameter layout: The new list of raw syntax nodes underlying this
+  ///                     collection.
+  /// - Returns: A new SyntaxCollection with the new layout underlying it.
+  internal func replacingLayout(
+    _ layout: [RawSyntax]) -> ConstructorListSyntax {
+    let newRaw = data.raw.replacingLayout(layout)
+    let (newRoot, newData) = data.replacingSelf(newRaw)
+    return ConstructorListSyntax(root: newRoot, data: newData)
+  }
+
+  /// Creates a new ConstructorListSyntax by appending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to append.
+  /// - Returns: A new SyntaxCollection with that element appended to the end.
+  public func appending(
+    _ syntax: ConstructorDeclSyntax) -> ConstructorListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.append(syntax.raw)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new ConstructorListSyntax by prepending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to prepend.
+  /// - Returns: A new SyntaxCollection with that element prepended to the
+  ///            beginning.
+  public func prepending(
+    _ syntax: ConstructorDeclSyntax) -> ConstructorListSyntax {
+    return inserting(syntax, at: 0)
+  }
+
+  /// Creates a new ConstructorListSyntax by inserting the provided syntax element
+  /// at the provided index in the children.
+  ///
+  /// - Parameters:
+  ///   - syntax: The element to insert.
+  ///   - index: The index at which to insert the element in the collection.
+  ///
+  /// - Returns: A new ConstructorListSyntax with that element appended to the end.
+  public func inserting(_ syntax: ConstructorDeclSyntax,
+                        at index: Int) -> ConstructorListSyntax {
+    var newLayout = data.raw.layout
+    /// Make sure the index is a valid insertion index (0 to 1 past the end)
+    precondition((newLayout.startIndex...newLayout.endIndex).contains(index),
+                 "inserting node at invalid index \(index)")
+    newLayout.insert(syntax.raw, at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new ConstructorListSyntax by removing the syntax element at the
+  /// provided index.
+  ///
+  /// - Parameter index: The index of the element to remove from the collection.
+  /// - Returns: A new ConstructorListSyntax with the element at the provided index
+  ///            removed.
+  public func removing(childAt index: Int) -> ConstructorListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.remove(at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new ConstructorListSyntax by removing the first element.
+  ///
+  /// - Returns: A new ConstructorListSyntax with the first element removed.
+  public func removingFirst() -> ConstructorListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeFirst()
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new ConstructorListSyntax by removing the last element.
+  ///
+  /// - Returns: A new ConstructorListSyntax with the last element removed.
+  public func removingLast() -> ConstructorListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeLast()
+    return replacingLayout(newLayout)
+  }
+
+  /// Returns an iterator over the elements of this syntax collection.
+  public func makeIterator() -> ConstructorListSyntaxIterator {
+    return ConstructorListSyntaxIterator(collection: self)
+  }
+}
+
+/// Conformance for ConstructorListSyntax to the Collection protocol.
+extension ConstructorListSyntax: Collection {
+  public var startIndex: Int {
+    return data.childCaches.startIndex
+  }
+
+  public var endIndex: Int {
+    return data.childCaches.endIndex
+  }
+
+  public func index(after i: Int) -> Int {
+    return data.childCaches.index(after: i)
+  }
+
+  public subscript(_ index: Int) -> ConstructorDeclSyntax {
+    // swiftlint:disable force_cast
+    return child(at: index)! as! ConstructorDeclSyntax
+  }
+}
+
+/// A type that iterates over a syntax collection using its indices.
+public struct ConstructorListSyntaxIterator: IteratorProtocol {
+  private let collection: ConstructorListSyntax
+  private var index: ConstructorListSyntax.Index
+
+  fileprivate init(collection: ConstructorListSyntax) {
+    self.collection = collection
+    self.index = collection.startIndex
+  }
+
+  public mutating func next() -> ConstructorDeclSyntax? {
+    guard
+      !(self.collection.isEmpty || self.index == self.collection.endIndex)
+    else {
+      return nil
+    }
+
+    let result = collection[index]
+    collection.formIndex(after: &index)
+    return result
+  }
+}
+public struct ConstructorDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case ascription
     case trailingSemicolon
   }
 
-  public convenience init(ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.constructorDecl, [
       ascription.raw,
       trailingSemicolon.raw,
@@ -579,7 +1375,9 @@ public class ConstructorDeclSyntax: DeclSyntax {
 
 }
 
-public class RecordDeclSyntax: DeclSyntax {
+public struct RecordDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case recordToken
     case recordName
@@ -592,7 +1390,11 @@ public class RecordDeclSyntax: DeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax, whereToken: TokenSyntax, leftParenToken: TokenSyntax, recordElementList: DeclListSyntax, rightParenToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax, whereToken: TokenSyntax, leftParenToken: TokenSyntax, recordElementList: DeclListSyntax, rightParenToken: TokenSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.recordDecl, [
       recordToken.raw,
       recordName.raw,
@@ -681,14 +1483,20 @@ public class RecordDeclSyntax: DeclSyntax {
 
 }
 
-public class FieldDeclSyntax: DeclSyntax {
+public struct FieldDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case fieldToken
     case ascription
     case trailingSemicolon
   }
 
-  public convenience init(fieldToken: TokenSyntax, ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(fieldToken: TokenSyntax, ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.fieldDecl, [
       fieldToken.raw,
       ascription.raw,
@@ -723,14 +1531,20 @@ public class FieldDeclSyntax: DeclSyntax {
 
 }
 
-public class RecordConstructorDeclSyntax: DeclSyntax {
+public struct RecordConstructorDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case constructorToken
     case constructorName
     case trailingSemicolon
   }
 
-  public convenience init(constructorToken: TokenSyntax, constructorName: TokenSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(constructorToken: TokenSyntax, constructorName: TokenSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.recordConstructorDecl, [
       constructorToken.raw,
       constructorName.raw,
@@ -765,9 +1579,158 @@ public class RecordConstructorDeclSyntax: DeclSyntax {
 
 }
 
-public typealias RecordFieldAssignmentListSyntax = SyntaxCollection<RecordFieldAssignmentSyntax>
+public struct RecordFieldAssignmentListSyntax: _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
-public class RecordFieldAssignmentSyntax: Syntax {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+
+  public init(elements: [RecordFieldAssignmentSyntax]) {
+    let list = elements.map { $0.raw }
+    let sd = SyntaxData(raw: .node(.recordFieldAssignmentList, list, .present))
+    self._root = sd
+    self._data = sd
+  }
+
+
+  /// Creates a new RecordFieldAssignmentListSyntax by replacing the underlying layout with
+  /// a different set of raw syntax nodes.
+  ///
+  /// - Parameter layout: The new list of raw syntax nodes underlying this
+  ///                     collection.
+  /// - Returns: A new SyntaxCollection with the new layout underlying it.
+  internal func replacingLayout(
+    _ layout: [RawSyntax]) -> RecordFieldAssignmentListSyntax {
+    let newRaw = data.raw.replacingLayout(layout)
+    let (newRoot, newData) = data.replacingSelf(newRaw)
+    return RecordFieldAssignmentListSyntax(root: newRoot, data: newData)
+  }
+
+  /// Creates a new RecordFieldAssignmentListSyntax by appending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to append.
+  /// - Returns: A new SyntaxCollection with that element appended to the end.
+  public func appending(
+    _ syntax: RecordFieldAssignmentSyntax) -> RecordFieldAssignmentListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.append(syntax.raw)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new RecordFieldAssignmentListSyntax by prepending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to prepend.
+  /// - Returns: A new SyntaxCollection with that element prepended to the
+  ///            beginning.
+  public func prepending(
+    _ syntax: RecordFieldAssignmentSyntax) -> RecordFieldAssignmentListSyntax {
+    return inserting(syntax, at: 0)
+  }
+
+  /// Creates a new RecordFieldAssignmentListSyntax by inserting the provided syntax element
+  /// at the provided index in the children.
+  ///
+  /// - Parameters:
+  ///   - syntax: The element to insert.
+  ///   - index: The index at which to insert the element in the collection.
+  ///
+  /// - Returns: A new RecordFieldAssignmentListSyntax with that element appended to the end.
+  public func inserting(_ syntax: RecordFieldAssignmentSyntax,
+                        at index: Int) -> RecordFieldAssignmentListSyntax {
+    var newLayout = data.raw.layout
+    /// Make sure the index is a valid insertion index (0 to 1 past the end)
+    precondition((newLayout.startIndex...newLayout.endIndex).contains(index),
+                 "inserting node at invalid index \(index)")
+    newLayout.insert(syntax.raw, at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new RecordFieldAssignmentListSyntax by removing the syntax element at the
+  /// provided index.
+  ///
+  /// - Parameter index: The index of the element to remove from the collection.
+  /// - Returns: A new RecordFieldAssignmentListSyntax with the element at the provided index
+  ///            removed.
+  public func removing(childAt index: Int) -> RecordFieldAssignmentListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.remove(at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new RecordFieldAssignmentListSyntax by removing the first element.
+  ///
+  /// - Returns: A new RecordFieldAssignmentListSyntax with the first element removed.
+  public func removingFirst() -> RecordFieldAssignmentListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeFirst()
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new RecordFieldAssignmentListSyntax by removing the last element.
+  ///
+  /// - Returns: A new RecordFieldAssignmentListSyntax with the last element removed.
+  public func removingLast() -> RecordFieldAssignmentListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeLast()
+    return replacingLayout(newLayout)
+  }
+
+  /// Returns an iterator over the elements of this syntax collection.
+  public func makeIterator() -> RecordFieldAssignmentListSyntaxIterator {
+    return RecordFieldAssignmentListSyntaxIterator(collection: self)
+  }
+}
+
+/// Conformance for RecordFieldAssignmentListSyntax to the Collection protocol.
+extension RecordFieldAssignmentListSyntax: Collection {
+  public var startIndex: Int {
+    return data.childCaches.startIndex
+  }
+
+  public var endIndex: Int {
+    return data.childCaches.endIndex
+  }
+
+  public func index(after i: Int) -> Int {
+    return data.childCaches.index(after: i)
+  }
+
+  public subscript(_ index: Int) -> RecordFieldAssignmentSyntax {
+    // swiftlint:disable force_cast
+    return child(at: index)! as! RecordFieldAssignmentSyntax
+  }
+}
+
+/// A type that iterates over a syntax collection using its indices.
+public struct RecordFieldAssignmentListSyntaxIterator: IteratorProtocol {
+  private let collection: RecordFieldAssignmentListSyntax
+  private var index: RecordFieldAssignmentListSyntax.Index
+
+  fileprivate init(collection: RecordFieldAssignmentListSyntax) {
+    self.collection = collection
+    self.index = collection.startIndex
+  }
+
+  public mutating func next() -> RecordFieldAssignmentSyntax? {
+    guard
+      !(self.collection.isEmpty || self.index == self.collection.endIndex)
+    else {
+      return nil
+    }
+
+    let result = collection[index]
+    collection.formIndex(after: &index)
+    return result
+  }
+}
+public struct RecordFieldAssignmentSyntax: Syntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case fieldName
     case equalsToken
@@ -775,7 +1738,11 @@ public class RecordFieldAssignmentSyntax: Syntax {
     case trailingSemicolon
   }
 
-  public convenience init(fieldName: TokenSyntax, equalsToken: TokenSyntax, fieldInitExpr: ExprSyntax, trailingSemicolon: TokenSyntax?) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(fieldName: TokenSyntax, equalsToken: TokenSyntax, fieldInitExpr: ExprSyntax, trailingSemicolon: TokenSyntax?) {
     let raw = RawSyntax.node(.recordFieldAssignment, [
       fieldName.raw,
       equalsToken.raw,
@@ -819,13 +1786,19 @@ public class RecordFieldAssignmentSyntax: Syntax {
 
 }
 
-public class FunctionDeclSyntax: DeclSyntax {
+public struct FunctionDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case ascription
     case trailingSemicolon
   }
 
-  public convenience init(ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.functionDecl, [
       ascription.raw,
       trailingSemicolon.raw,
@@ -851,17 +1824,9 @@ public class FunctionDeclSyntax: DeclSyntax {
 
 }
 
-public class FunctionClauseDeclSyntax: DeclSyntax {
-
-  public convenience init() {
-    let raw = RawSyntax.node(.functionClauseDecl, [
-    ], .present)
-    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
-    self.init(root: data, data: data)
-  }
-}
-
-public class WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax {
+public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case basicExprList
     case withToken
@@ -872,7 +1837,11 @@ public class WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(basicExprList: BasicExprListSyntax, withToken: TokenSyntax, withExpr: ExprSyntax, withPatternClause: BasicExprListSyntax?, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(basicExprList: BasicExprListSyntax, withToken: TokenSyntax, withExpr: ExprSyntax, withPatternClause: BasicExprListSyntax?, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.withRuleFunctionClauseDecl, [
       basicExprList.raw,
       withToken.raw,
@@ -943,7 +1912,9 @@ public class WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax {
 
 }
 
-public class NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax {
+public struct NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case basicExprList
     case equalsToken
@@ -951,7 +1922,11 @@ public class NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(basicExprList: BasicExprListSyntax, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(basicExprList: BasicExprListSyntax, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.normalFunctionClauseDecl, [
       basicExprList.raw,
       equalsToken.raw,
@@ -995,7 +1970,9 @@ public class NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax {
 
 }
 
-public class LetBindingDeclSyntax: DeclSyntax {
+public struct LetBindingDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case head
     case basicExprList
@@ -1004,7 +1981,11 @@ public class LetBindingDeclSyntax: DeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(head: NamedBasicExprSyntax, basicExprList: BasicExprListSyntax, equalsToken: TokenSyntax, boundExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(head: NamedBasicExprSyntax, basicExprList: BasicExprListSyntax, equalsToken: TokenSyntax, boundExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.letBindingDecl, [
       head.raw,
       basicExprList.raw,
@@ -1057,17 +2038,9 @@ public class LetBindingDeclSyntax: DeclSyntax {
 
 }
 
-public class FixityDeclSyntax: DeclSyntax {
-
-  public convenience init() {
-    let raw = RawSyntax.node(.fixityDecl, [
-    ], .present)
-    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
-    self.init(root: data, data: data)
-  }
-}
-
-public class NonFixDeclSyntax: FixityDeclSyntax {
+public struct NonFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case infixToken
     case precedence
@@ -1075,7 +2048,11 @@ public class NonFixDeclSyntax: FixityDeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(infixToken: TokenSyntax, precedence: TokenSyntax, names: IdentifierListSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(infixToken: TokenSyntax, precedence: TokenSyntax, names: IdentifierListSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.nonFixDecl, [
       infixToken.raw,
       precedence.raw,
@@ -1119,7 +2096,9 @@ public class NonFixDeclSyntax: FixityDeclSyntax {
 
 }
 
-public class LeftFixDeclSyntax: FixityDeclSyntax {
+public struct LeftFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case infixlToken
     case precedence
@@ -1127,7 +2106,11 @@ public class LeftFixDeclSyntax: FixityDeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(infixlToken: TokenSyntax, precedence: TokenSyntax, names: IdentifierListSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(infixlToken: TokenSyntax, precedence: TokenSyntax, names: IdentifierListSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.leftFixDecl, [
       infixlToken.raw,
       precedence.raw,
@@ -1171,7 +2154,9 @@ public class LeftFixDeclSyntax: FixityDeclSyntax {
 
 }
 
-public class RightFixDeclSyntax: FixityDeclSyntax {
+public struct RightFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case infixrToken
     case precedence
@@ -1179,7 +2164,11 @@ public class RightFixDeclSyntax: FixityDeclSyntax {
     case trailingSemicolon
   }
 
-  public convenience init(infixrToken: TokenSyntax, precedence: TokenSyntax, names: IdentifierListSyntax, trailingSemicolon: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(infixrToken: TokenSyntax, precedence: TokenSyntax, names: IdentifierListSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.rightFixDecl, [
       infixrToken.raw,
       precedence.raw,
@@ -1223,9 +2212,158 @@ public class RightFixDeclSyntax: FixityDeclSyntax {
 
 }
 
-public typealias PatternClauseListSyntax = SyntaxCollection<ExprSyntax>
+public struct PatternClauseListSyntax: _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
-public class LambdaExprSyntax: ExprSyntax {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+
+  public init(elements: [ExprSyntax]) {
+    let list = elements.map { $0.raw }
+    let sd = SyntaxData(raw: .node(.patternClauseList, list, .present))
+    self._root = sd
+    self._data = sd
+  }
+
+
+  /// Creates a new PatternClauseListSyntax by replacing the underlying layout with
+  /// a different set of raw syntax nodes.
+  ///
+  /// - Parameter layout: The new list of raw syntax nodes underlying this
+  ///                     collection.
+  /// - Returns: A new SyntaxCollection with the new layout underlying it.
+  internal func replacingLayout(
+    _ layout: [RawSyntax]) -> PatternClauseListSyntax {
+    let newRaw = data.raw.replacingLayout(layout)
+    let (newRoot, newData) = data.replacingSelf(newRaw)
+    return PatternClauseListSyntax(root: newRoot, data: newData)
+  }
+
+  /// Creates a new PatternClauseListSyntax by appending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to append.
+  /// - Returns: A new SyntaxCollection with that element appended to the end.
+  public func appending(
+    _ syntax: ExprSyntax) -> PatternClauseListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.append(syntax.raw)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new PatternClauseListSyntax by prepending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to prepend.
+  /// - Returns: A new SyntaxCollection with that element prepended to the
+  ///            beginning.
+  public func prepending(
+    _ syntax: ExprSyntax) -> PatternClauseListSyntax {
+    return inserting(syntax, at: 0)
+  }
+
+  /// Creates a new PatternClauseListSyntax by inserting the provided syntax element
+  /// at the provided index in the children.
+  ///
+  /// - Parameters:
+  ///   - syntax: The element to insert.
+  ///   - index: The index at which to insert the element in the collection.
+  ///
+  /// - Returns: A new PatternClauseListSyntax with that element appended to the end.
+  public func inserting(_ syntax: ExprSyntax,
+                        at index: Int) -> PatternClauseListSyntax {
+    var newLayout = data.raw.layout
+    /// Make sure the index is a valid insertion index (0 to 1 past the end)
+    precondition((newLayout.startIndex...newLayout.endIndex).contains(index),
+                 "inserting node at invalid index \(index)")
+    newLayout.insert(syntax.raw, at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new PatternClauseListSyntax by removing the syntax element at the
+  /// provided index.
+  ///
+  /// - Parameter index: The index of the element to remove from the collection.
+  /// - Returns: A new PatternClauseListSyntax with the element at the provided index
+  ///            removed.
+  public func removing(childAt index: Int) -> PatternClauseListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.remove(at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new PatternClauseListSyntax by removing the first element.
+  ///
+  /// - Returns: A new PatternClauseListSyntax with the first element removed.
+  public func removingFirst() -> PatternClauseListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeFirst()
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new PatternClauseListSyntax by removing the last element.
+  ///
+  /// - Returns: A new PatternClauseListSyntax with the last element removed.
+  public func removingLast() -> PatternClauseListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeLast()
+    return replacingLayout(newLayout)
+  }
+
+  /// Returns an iterator over the elements of this syntax collection.
+  public func makeIterator() -> PatternClauseListSyntaxIterator {
+    return PatternClauseListSyntaxIterator(collection: self)
+  }
+}
+
+/// Conformance for PatternClauseListSyntax to the Collection protocol.
+extension PatternClauseListSyntax: Collection {
+  public var startIndex: Int {
+    return data.childCaches.startIndex
+  }
+
+  public var endIndex: Int {
+    return data.childCaches.endIndex
+  }
+
+  public func index(after i: Int) -> Int {
+    return data.childCaches.index(after: i)
+  }
+
+  public subscript(_ index: Int) -> ExprSyntax {
+    // swiftlint:disable force_cast
+    return child(at: index)! as! ExprSyntax
+  }
+}
+
+/// A type that iterates over a syntax collection using its indices.
+public struct PatternClauseListSyntaxIterator: IteratorProtocol {
+  private let collection: PatternClauseListSyntax
+  private var index: PatternClauseListSyntax.Index
+
+  fileprivate init(collection: PatternClauseListSyntax) {
+    self.collection = collection
+    self.index = collection.startIndex
+  }
+
+  public mutating func next() -> ExprSyntax? {
+    guard
+      !(self.collection.isEmpty || self.index == self.collection.endIndex)
+    else {
+      return nil
+    }
+
+    let result = collection[index]
+    collection.formIndex(after: &index)
+    return result
+  }
+}
+public struct LambdaExprSyntax: ExprSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case slashToken
     case bindingList
@@ -1233,7 +2371,11 @@ public class LambdaExprSyntax: ExprSyntax {
     case bodyExpr
   }
 
-  public convenience init(slashToken: TokenSyntax, bindingList: BindingListSyntax, arrowToken: TokenSyntax, bodyExpr: ExprSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(slashToken: TokenSyntax, bindingList: BindingListSyntax, arrowToken: TokenSyntax, bodyExpr: ExprSyntax) {
     let raw = RawSyntax.node(.lambdaExpr, [
       slashToken.raw,
       bindingList.raw,
@@ -1277,7 +2419,9 @@ public class LambdaExprSyntax: ExprSyntax {
 
 }
 
-public class QuantifiedExprSyntax: ExprSyntax {
+public struct QuantifiedExprSyntax: ExprSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case forallToken
     case bindingList
@@ -1285,7 +2429,11 @@ public class QuantifiedExprSyntax: ExprSyntax {
     case outputExpr
   }
 
-  public convenience init(forallToken: TokenSyntax, bindingList: TypedParameterListSyntax, arrowToken: TokenSyntax, outputExpr: ExprSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(forallToken: TokenSyntax, bindingList: TypedParameterListSyntax, arrowToken: TokenSyntax, outputExpr: ExprSyntax) {
     let raw = RawSyntax.node(.quantifiedExpr, [
       forallToken.raw,
       bindingList.raw,
@@ -1329,7 +2477,9 @@ public class QuantifiedExprSyntax: ExprSyntax {
 
 }
 
-public class LetExprSyntax: ExprSyntax {
+public struct LetExprSyntax: ExprSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case letToken
     case leftBraceToken
@@ -1339,7 +2489,11 @@ public class LetExprSyntax: ExprSyntax {
     case outputExpr
   }
 
-  public convenience init(letToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, inToken: TokenSyntax, outputExpr: ExprSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(letToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, inToken: TokenSyntax, outputExpr: ExprSyntax) {
     let raw = RawSyntax.node(.letExpr, [
       letToken.raw,
       leftBraceToken.raw,
@@ -1401,12 +2555,18 @@ public class LetExprSyntax: ExprSyntax {
 
 }
 
-public class ApplicationExprSyntax: ExprSyntax {
+public struct ApplicationExprSyntax: ExprSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case exprs
   }
 
-  public convenience init(exprs: BasicExprListSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(exprs: BasicExprListSyntax) {
     let raw = RawSyntax.node(.applicationExpr, [
       exprs.raw,
     ], .present)
@@ -1423,34 +2583,167 @@ public class ApplicationExprSyntax: ExprSyntax {
 
 }
 
-public class BasicExprSyntax: ExprSyntax {
+public struct BindingListSyntax: _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
-  public convenience init() {
-    let raw = RawSyntax.node(.basicExpr, [
-    ], .present)
-    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
-    self.init(root: data, data: data)
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+
+  public init(elements: [BindingSyntax]) {
+    let list = elements.map { $0.raw }
+    let sd = SyntaxData(raw: .node(.bindingList, list, .present))
+    self._root = sd
+    self._data = sd
+  }
+
+
+  /// Creates a new BindingListSyntax by replacing the underlying layout with
+  /// a different set of raw syntax nodes.
+  ///
+  /// - Parameter layout: The new list of raw syntax nodes underlying this
+  ///                     collection.
+  /// - Returns: A new SyntaxCollection with the new layout underlying it.
+  internal func replacingLayout(
+    _ layout: [RawSyntax]) -> BindingListSyntax {
+    let newRaw = data.raw.replacingLayout(layout)
+    let (newRoot, newData) = data.replacingSelf(newRaw)
+    return BindingListSyntax(root: newRoot, data: newData)
+  }
+
+  /// Creates a new BindingListSyntax by appending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to append.
+  /// - Returns: A new SyntaxCollection with that element appended to the end.
+  public func appending(
+    _ syntax: BindingSyntax) -> BindingListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.append(syntax.raw)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new BindingListSyntax by prepending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to prepend.
+  /// - Returns: A new SyntaxCollection with that element prepended to the
+  ///            beginning.
+  public func prepending(
+    _ syntax: BindingSyntax) -> BindingListSyntax {
+    return inserting(syntax, at: 0)
+  }
+
+  /// Creates a new BindingListSyntax by inserting the provided syntax element
+  /// at the provided index in the children.
+  ///
+  /// - Parameters:
+  ///   - syntax: The element to insert.
+  ///   - index: The index at which to insert the element in the collection.
+  ///
+  /// - Returns: A new BindingListSyntax with that element appended to the end.
+  public func inserting(_ syntax: BindingSyntax,
+                        at index: Int) -> BindingListSyntax {
+    var newLayout = data.raw.layout
+    /// Make sure the index is a valid insertion index (0 to 1 past the end)
+    precondition((newLayout.startIndex...newLayout.endIndex).contains(index),
+                 "inserting node at invalid index \(index)")
+    newLayout.insert(syntax.raw, at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new BindingListSyntax by removing the syntax element at the
+  /// provided index.
+  ///
+  /// - Parameter index: The index of the element to remove from the collection.
+  /// - Returns: A new BindingListSyntax with the element at the provided index
+  ///            removed.
+  public func removing(childAt index: Int) -> BindingListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.remove(at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new BindingListSyntax by removing the first element.
+  ///
+  /// - Returns: A new BindingListSyntax with the first element removed.
+  public func removingFirst() -> BindingListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeFirst()
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new BindingListSyntax by removing the last element.
+  ///
+  /// - Returns: A new BindingListSyntax with the last element removed.
+  public func removingLast() -> BindingListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeLast()
+    return replacingLayout(newLayout)
+  }
+
+  /// Returns an iterator over the elements of this syntax collection.
+  public func makeIterator() -> BindingListSyntaxIterator {
+    return BindingListSyntaxIterator(collection: self)
   }
 }
 
-public typealias BindingListSyntax = SyntaxCollection<BindingSyntax>
+/// Conformance for BindingListSyntax to the Collection protocol.
+extension BindingListSyntax: Collection {
+  public var startIndex: Int {
+    return data.childCaches.startIndex
+  }
 
-public class BindingSyntax: Syntax {
+  public var endIndex: Int {
+    return data.childCaches.endIndex
+  }
 
-  public convenience init() {
-    let raw = RawSyntax.node(.binding, [
-    ], .present)
-    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
-    self.init(root: data, data: data)
+  public func index(after i: Int) -> Int {
+    return data.childCaches.index(after: i)
+  }
+
+  public subscript(_ index: Int) -> BindingSyntax {
+    // swiftlint:disable force_cast
+    return child(at: index)! as! BindingSyntax
   }
 }
 
-public class NamedBindingSyntax: BindingSyntax {
+/// A type that iterates over a syntax collection using its indices.
+public struct BindingListSyntaxIterator: IteratorProtocol {
+  private let collection: BindingListSyntax
+  private var index: BindingListSyntax.Index
+
+  fileprivate init(collection: BindingListSyntax) {
+    self.collection = collection
+    self.index = collection.startIndex
+  }
+
+  public mutating func next() -> BindingSyntax? {
+    guard
+      !(self.collection.isEmpty || self.index == self.collection.endIndex)
+    else {
+      return nil
+    }
+
+    let result = collection[index]
+    collection.formIndex(after: &index)
+    return result
+  }
+}
+public struct NamedBindingSyntax: BindingSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case name
   }
 
-  public convenience init(name: QualifiedNameSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(name: QualifiedNameSyntax) {
     let raw = RawSyntax.node(.namedBinding, [
       name.raw,
     ], .present)
@@ -1467,12 +2760,18 @@ public class NamedBindingSyntax: BindingSyntax {
 
 }
 
-public class TypedBindingSyntax: BindingSyntax {
+public struct TypedBindingSyntax: BindingSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case parameter
   }
 
-  public convenience init(parameter: TypedParameterSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(parameter: TypedParameterSyntax) {
     let raw = RawSyntax.node(.typedBinding, [
       parameter.raw,
     ], .present)
@@ -1489,14 +2788,167 @@ public class TypedBindingSyntax: BindingSyntax {
 
 }
 
-public typealias BasicExprListSyntax = SyntaxCollection<BasicExprSyntax>
+public struct BasicExprListSyntax: _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
-public class NamedBasicExprSyntax: BasicExprSyntax {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+
+  public init(elements: [BasicExprSyntax]) {
+    let list = elements.map { $0.raw }
+    let sd = SyntaxData(raw: .node(.basicExprList, list, .present))
+    self._root = sd
+    self._data = sd
+  }
+
+
+  /// Creates a new BasicExprListSyntax by replacing the underlying layout with
+  /// a different set of raw syntax nodes.
+  ///
+  /// - Parameter layout: The new list of raw syntax nodes underlying this
+  ///                     collection.
+  /// - Returns: A new SyntaxCollection with the new layout underlying it.
+  internal func replacingLayout(
+    _ layout: [RawSyntax]) -> BasicExprListSyntax {
+    let newRaw = data.raw.replacingLayout(layout)
+    let (newRoot, newData) = data.replacingSelf(newRaw)
+    return BasicExprListSyntax(root: newRoot, data: newData)
+  }
+
+  /// Creates a new BasicExprListSyntax by appending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to append.
+  /// - Returns: A new SyntaxCollection with that element appended to the end.
+  public func appending(
+    _ syntax: BasicExprSyntax) -> BasicExprListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.append(syntax.raw)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new BasicExprListSyntax by prepending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to prepend.
+  /// - Returns: A new SyntaxCollection with that element prepended to the
+  ///            beginning.
+  public func prepending(
+    _ syntax: BasicExprSyntax) -> BasicExprListSyntax {
+    return inserting(syntax, at: 0)
+  }
+
+  /// Creates a new BasicExprListSyntax by inserting the provided syntax element
+  /// at the provided index in the children.
+  ///
+  /// - Parameters:
+  ///   - syntax: The element to insert.
+  ///   - index: The index at which to insert the element in the collection.
+  ///
+  /// - Returns: A new BasicExprListSyntax with that element appended to the end.
+  public func inserting(_ syntax: BasicExprSyntax,
+                        at index: Int) -> BasicExprListSyntax {
+    var newLayout = data.raw.layout
+    /// Make sure the index is a valid insertion index (0 to 1 past the end)
+    precondition((newLayout.startIndex...newLayout.endIndex).contains(index),
+                 "inserting node at invalid index \(index)")
+    newLayout.insert(syntax.raw, at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new BasicExprListSyntax by removing the syntax element at the
+  /// provided index.
+  ///
+  /// - Parameter index: The index of the element to remove from the collection.
+  /// - Returns: A new BasicExprListSyntax with the element at the provided index
+  ///            removed.
+  public func removing(childAt index: Int) -> BasicExprListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.remove(at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new BasicExprListSyntax by removing the first element.
+  ///
+  /// - Returns: A new BasicExprListSyntax with the first element removed.
+  public func removingFirst() -> BasicExprListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeFirst()
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new BasicExprListSyntax by removing the last element.
+  ///
+  /// - Returns: A new BasicExprListSyntax with the last element removed.
+  public func removingLast() -> BasicExprListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeLast()
+    return replacingLayout(newLayout)
+  }
+
+  /// Returns an iterator over the elements of this syntax collection.
+  public func makeIterator() -> BasicExprListSyntaxIterator {
+    return BasicExprListSyntaxIterator(collection: self)
+  }
+}
+
+/// Conformance for BasicExprListSyntax to the Collection protocol.
+extension BasicExprListSyntax: Collection {
+  public var startIndex: Int {
+    return data.childCaches.startIndex
+  }
+
+  public var endIndex: Int {
+    return data.childCaches.endIndex
+  }
+
+  public func index(after i: Int) -> Int {
+    return data.childCaches.index(after: i)
+  }
+
+  public subscript(_ index: Int) -> BasicExprSyntax {
+    // swiftlint:disable force_cast
+    return child(at: index)! as! BasicExprSyntax
+  }
+}
+
+/// A type that iterates over a syntax collection using its indices.
+public struct BasicExprListSyntaxIterator: IteratorProtocol {
+  private let collection: BasicExprListSyntax
+  private var index: BasicExprListSyntax.Index
+
+  fileprivate init(collection: BasicExprListSyntax) {
+    self.collection = collection
+    self.index = collection.startIndex
+  }
+
+  public mutating func next() -> BasicExprSyntax? {
+    guard
+      !(self.collection.isEmpty || self.index == self.collection.endIndex)
+    else {
+      return nil
+    }
+
+    let result = collection[index]
+    collection.formIndex(after: &index)
+    return result
+  }
+}
+public struct NamedBasicExprSyntax: BasicExprSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case name
   }
 
-  public convenience init(name: QualifiedNameSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(name: QualifiedNameSyntax) {
     let raw = RawSyntax.node(.namedBasicExpr, [
       name.raw,
     ], .present)
@@ -1513,12 +2965,18 @@ public class NamedBasicExprSyntax: BasicExprSyntax {
 
 }
 
-public class UnderscoreExprSyntax: BasicExprSyntax {
+public struct UnderscoreExprSyntax: BasicExprSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case underscoreToken
   }
 
-  public convenience init(underscoreToken: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(underscoreToken: TokenSyntax) {
     let raw = RawSyntax.node(.underscoreExpr, [
       underscoreToken.raw,
     ], .present)
@@ -1535,12 +2993,18 @@ public class UnderscoreExprSyntax: BasicExprSyntax {
 
 }
 
-public class TypeBasicExprSyntax: BasicExprSyntax {
+public struct TypeBasicExprSyntax: BasicExprSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case typeToken
   }
 
-  public convenience init(typeToken: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(typeToken: TokenSyntax) {
     let raw = RawSyntax.node(.typeBasicExpr, [
       typeToken.raw,
     ], .present)
@@ -1557,14 +3021,20 @@ public class TypeBasicExprSyntax: BasicExprSyntax {
 
 }
 
-public class ParenthesizedExprSyntax: BasicExprSyntax {
+public struct ParenthesizedExprSyntax: BasicExprSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case leftParenToken
     case expr
     case rightParenToken
   }
 
-  public convenience init(leftParenToken: TokenSyntax, expr: ExprSyntax, rightParenToken: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(leftParenToken: TokenSyntax, expr: ExprSyntax, rightParenToken: TokenSyntax) {
     let raw = RawSyntax.node(.parenthesizedExpr, [
       leftParenToken.raw,
       expr.raw,
@@ -1599,12 +3069,18 @@ public class ParenthesizedExprSyntax: BasicExprSyntax {
 
 }
 
-public class TypedParameterGroupExprSyntax: BasicExprSyntax {
+public struct TypedParameterGroupExprSyntax: BasicExprSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case parameters
   }
 
-  public convenience init(parameters: TypedParameterListSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(parameters: TypedParameterListSyntax) {
     let raw = RawSyntax.node(.typedParameterGroupExpr, [
       parameters.raw,
     ], .present)
@@ -1621,7 +3097,9 @@ public class TypedParameterGroupExprSyntax: BasicExprSyntax {
 
 }
 
-public class RecordExprSyntax: BasicExprSyntax {
+public struct RecordExprSyntax: BasicExprSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case recordToken
     case parameterExpr
@@ -1630,7 +3108,11 @@ public class RecordExprSyntax: BasicExprSyntax {
     case rightBraceToken
   }
 
-  public convenience init(recordToken: TokenSyntax, parameterExpr: BasicExprSyntax?, leftBraceToken: TokenSyntax, fieldAssignments: RecordFieldAssignmentListSyntax, rightBraceToken: TokenSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(recordToken: TokenSyntax, parameterExpr: BasicExprSyntax?, leftBraceToken: TokenSyntax, fieldAssignments: RecordFieldAssignmentListSyntax, rightBraceToken: TokenSyntax) {
     let raw = RawSyntax.node(.recordExpr, [
       recordToken.raw,
       parameterExpr?.raw ?? RawSyntax.missing(.basicExpr),
@@ -1683,16 +3165,169 @@ public class RecordExprSyntax: BasicExprSyntax {
 
 }
 
-public typealias FunctionClauseListSyntax = SyntaxCollection<FunctionClauseDeclSyntax>
+public struct FunctionClauseListSyntax: _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
-public class ReparsedFunctionDeclSyntax: DeclSyntax {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+
+  public init(elements: [FunctionClauseDeclSyntax]) {
+    let list = elements.map { $0.raw }
+    let sd = SyntaxData(raw: .node(.functionClauseList, list, .present))
+    self._root = sd
+    self._data = sd
+  }
+
+
+  /// Creates a new FunctionClauseListSyntax by replacing the underlying layout with
+  /// a different set of raw syntax nodes.
+  ///
+  /// - Parameter layout: The new list of raw syntax nodes underlying this
+  ///                     collection.
+  /// - Returns: A new SyntaxCollection with the new layout underlying it.
+  internal func replacingLayout(
+    _ layout: [RawSyntax]) -> FunctionClauseListSyntax {
+    let newRaw = data.raw.replacingLayout(layout)
+    let (newRoot, newData) = data.replacingSelf(newRaw)
+    return FunctionClauseListSyntax(root: newRoot, data: newData)
+  }
+
+  /// Creates a new FunctionClauseListSyntax by appending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to append.
+  /// - Returns: A new SyntaxCollection with that element appended to the end.
+  public func appending(
+    _ syntax: FunctionClauseDeclSyntax) -> FunctionClauseListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.append(syntax.raw)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new FunctionClauseListSyntax by prepending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to prepend.
+  /// - Returns: A new SyntaxCollection with that element prepended to the
+  ///            beginning.
+  public func prepending(
+    _ syntax: FunctionClauseDeclSyntax) -> FunctionClauseListSyntax {
+    return inserting(syntax, at: 0)
+  }
+
+  /// Creates a new FunctionClauseListSyntax by inserting the provided syntax element
+  /// at the provided index in the children.
+  ///
+  /// - Parameters:
+  ///   - syntax: The element to insert.
+  ///   - index: The index at which to insert the element in the collection.
+  ///
+  /// - Returns: A new FunctionClauseListSyntax with that element appended to the end.
+  public func inserting(_ syntax: FunctionClauseDeclSyntax,
+                        at index: Int) -> FunctionClauseListSyntax {
+    var newLayout = data.raw.layout
+    /// Make sure the index is a valid insertion index (0 to 1 past the end)
+    precondition((newLayout.startIndex...newLayout.endIndex).contains(index),
+                 "inserting node at invalid index \(index)")
+    newLayout.insert(syntax.raw, at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new FunctionClauseListSyntax by removing the syntax element at the
+  /// provided index.
+  ///
+  /// - Parameter index: The index of the element to remove from the collection.
+  /// - Returns: A new FunctionClauseListSyntax with the element at the provided index
+  ///            removed.
+  public func removing(childAt index: Int) -> FunctionClauseListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.remove(at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new FunctionClauseListSyntax by removing the first element.
+  ///
+  /// - Returns: A new FunctionClauseListSyntax with the first element removed.
+  public func removingFirst() -> FunctionClauseListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeFirst()
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new FunctionClauseListSyntax by removing the last element.
+  ///
+  /// - Returns: A new FunctionClauseListSyntax with the last element removed.
+  public func removingLast() -> FunctionClauseListSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeLast()
+    return replacingLayout(newLayout)
+  }
+
+  /// Returns an iterator over the elements of this syntax collection.
+  public func makeIterator() -> FunctionClauseListSyntaxIterator {
+    return FunctionClauseListSyntaxIterator(collection: self)
+  }
+}
+
+/// Conformance for FunctionClauseListSyntax to the Collection protocol.
+extension FunctionClauseListSyntax: Collection {
+  public var startIndex: Int {
+    return data.childCaches.startIndex
+  }
+
+  public var endIndex: Int {
+    return data.childCaches.endIndex
+  }
+
+  public func index(after i: Int) -> Int {
+    return data.childCaches.index(after: i)
+  }
+
+  public subscript(_ index: Int) -> FunctionClauseDeclSyntax {
+    // swiftlint:disable force_cast
+    return child(at: index)! as! FunctionClauseDeclSyntax
+  }
+}
+
+/// A type that iterates over a syntax collection using its indices.
+public struct FunctionClauseListSyntaxIterator: IteratorProtocol {
+  private let collection: FunctionClauseListSyntax
+  private var index: FunctionClauseListSyntax.Index
+
+  fileprivate init(collection: FunctionClauseListSyntax) {
+    self.collection = collection
+    self.index = collection.startIndex
+  }
+
+  public mutating func next() -> FunctionClauseDeclSyntax? {
+    guard
+      !(self.collection.isEmpty || self.index == self.collection.endIndex)
+    else {
+      return nil
+    }
+
+    let result = collection[index]
+    collection.formIndex(after: &index)
+    return result
+  }
+}
+public struct ReparsedFunctionDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case ascription
     case trailingSemicolon
     case clauseList
   }
 
-  public convenience init(ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax, clauseList: FunctionClauseListSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax, clauseList: FunctionClauseListSyntax) {
     let raw = RawSyntax.node(.reparsedFunctionDecl, [
       ascription.raw,
       trailingSemicolon.raw,
@@ -1727,13 +3362,19 @@ public class ReparsedFunctionDeclSyntax: DeclSyntax {
 
 }
 
-public class ReparsedApplicationExprSyntax: BasicExprSyntax {
+public struct ReparsedApplicationExprSyntax: BasicExprSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case head
     case exprs
   }
 
-  public convenience init(head: NamedBasicExprSyntax, exprs: BasicExprListSyntax) {
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(head: NamedBasicExprSyntax, exprs: BasicExprListSyntax) {
     let raw = RawSyntax.node(.reparsedApplicationExpr, [
       head.raw,
       exprs.raw,
@@ -1759,19 +3400,3 @@ public class ReparsedApplicationExprSyntax: BasicExprSyntax {
 
 }
 
-extension SyntaxCollection {
-  static var syntaxCollectionKinds: [ObjectIdentifier: SyntaxKind] {
-    return [
-      ObjectIdentifier(TokenSyntax.self): .identifierList, 
-      ObjectIdentifier(QualifiedNamePieceSyntax.self): .qualifiedName, 
-      ObjectIdentifier(DeclSyntax.self): .declList, 
-      ObjectIdentifier(TypedParameterSyntax.self): .typedParameterList, 
-      ObjectIdentifier(ConstructorDeclSyntax.self): .constructorList, 
-      ObjectIdentifier(RecordFieldAssignmentSyntax.self): .recordFieldAssignmentList, 
-      ObjectIdentifier(ExprSyntax.self): .patternClauseList, 
-      ObjectIdentifier(BindingSyntax.self): .bindingList, 
-      ObjectIdentifier(BasicExprSyntax.self): .basicExprList, 
-      ObjectIdentifier(FunctionClauseDeclSyntax.self): .functionClauseList, 
-    ]
-  }
-}

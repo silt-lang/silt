@@ -21,34 +21,37 @@ import Foundation
 /// A Syntax node represents a tree of nodes with tokens at the leaves.
 /// Each node has accessors for its known children, and allows efficient
 /// iteration over the children through its `children` property.
-public class Syntax {
+public protocol Syntax {}
+
+internal protocol _SyntaxBase: Syntax {
   /// The type of sequence containing the indices of present children.
-  internal typealias PresentChildIndicesSequence =
+  typealias PresentChildIndicesSequence =
     LazyFilterSequence<CountableRange<Int>>
 
   /// The root of the tree this node is currently in.
-  internal let _root: SyntaxData
-  
+  var _root: SyntaxData { get } // Must be of type SyntaxData
+
   /// The data backing this node.
   /// - note: This is unowned, because the reference to the root data keeps it
   ///         alive. This means there is an implicit relationship -- the data
   ///         property must be a descendent of the root. This relationship must
   ///         be preserved in all circumstances where Syntax nodes are created.
-  internal unowned var data: SyntaxData
+  var _data: SyntaxData { get }
+}
 
-#if DEBUG
-  func validate() {
-    // This is for subclasses to override to perform structural validation.
+extension Syntax {
+  var data: SyntaxData {
+    guard let base = self as? _SyntaxBase else {
+      fatalError("only first-class syntax nodes can conform to Syntax")
+    }
+    return base._data
   }
-#endif
 
-  /// Creates a Syntax node from the provided root and data.
-  internal init(root: SyntaxData, data: SyntaxData) {
-    self._root = root
-    self.data = data
-#if DEBUG
-    validate()
-#endif
+  var _root: SyntaxData {
+    guard let base = self as? _SyntaxBase else {
+      fatalError("only first-class syntax nodes can conform to Syntax")
+    }
+    return base._root
   }
 
   /// Access the raw syntax assuming the node is a Syntax.
@@ -79,7 +82,7 @@ public class Syntax {
   /// The parent of this syntax node, or `nil` if this node is the root.
   public var parent: Syntax? {
     guard let parentData = data.parent else { return nil }
-    return Syntax.make(root: _root, data: parentData)
+    return makeSyntax(root: _root, data: parentData)
   }
 
   /// The index of this node in the parent's children.
@@ -89,9 +92,9 @@ public class Syntax {
 
   /// The root of the tree in which this node resides.
   public var root: Syntax {
-    return Syntax.make(root: _root,  data: _root)
+    return makeSyntax(root: _root,  data: _root)
   }
-
+  
   public var startLoc: SourceLocation? {
     if case .token(_, _, _, _, let range) = raw {
       return range?.start
@@ -112,7 +115,7 @@ public class Syntax {
   /// missing.
   ///
   /// This property is an implementation detail of `SyntaxChildren`.
-  internal var presentChildIndices: PresentChildIndicesSequence {
+  internal var presentChildIndices: _SyntaxBase.PresentChildIndicesSequence {
     return raw.layout.indices.lazy.filter { self.raw.layout[$0].isPresent }
   }
 
@@ -123,7 +126,7 @@ public class Syntax {
   public func child(at index: Int) -> Syntax? {
     guard raw.layout.indices.contains(index) else { return nil }
     if raw.layout[index].isMissing { return nil }
-    return Syntax.make(root: _root, data: data.cachedChild(at: index))
+    return makeSyntax(root: _root, data: data.cachedChild(at: index))
   }
 
   public func child<Cursor: RawRepresentable>(at cursor: Cursor) -> Syntax?
@@ -173,12 +176,5 @@ extension Syntax {
   public func formatSourceText<Target: TextOutputStream>(
     to target: inout Target) {
     data.raw.formatSourceText(to: &target)
-  }
-}
-
-extension Syntax: Equatable {
-  /// Determines if two nodes are equal to each other.
-  public static func ==(lhs: Syntax, rhs: Syntax) -> Bool {
-    return lhs.data === rhs.data
   }
 }

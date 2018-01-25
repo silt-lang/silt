@@ -857,7 +857,7 @@ extension NameBinding {
 }
 
 extension NamedBasicExprSyntax {
-  convenience init(identifier: TokenSyntax) {
+  init(identifier: TokenSyntax) {
     guard case .identifier(_) = identifier.tokenKind else {
       fatalError("""
                  cannot create named basic expr syntax with \

@@ -5,6 +5,27 @@
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 
+let baseNodes = [
+  Node("Decl", kind: "Syntax", children: []),
+  Node("Expr", kind: "Syntax", children: []),
+  // typed-parameter ::= '(' <ascription> ')'
+  //                   | '{' <ascription> '}'
+  Node("TypedParameter", kind: "Syntax", children: []),
+
+  // function-clause ::= <basic-expr-list> with <expr> '|' <basic-expr-list>? '=' <expr>
+  //                   | <basic-expr-list> '=' <expr>
+  Node("FunctionClauseDecl", kind: "Decl", children: []),
+
+  // fixity-decl ::= 'infix' <int> <id-list>
+  //               | 'infixl' <int> <id-list>
+  //               | 'infixr' <int> <id-list>
+  Node("FixityDecl", kind: "Decl", children: []),
+
+  Node("Binding", kind: "Syntax", children: []),
+
+  Node("BasicExpr", kind: "Expr", children: []),
+]
+
 let syntaxNodes = [
   // MARK: Identifiers
 
@@ -99,11 +120,6 @@ let syntaxNodes = [
     Child("typeExpr", kind: "Expr")
   ]),
 
-  // typed-parameter ::= '(' <ascription> ')'
-  //                   | '{' <ascription> '}'
-
-  Node("TypedParameter", kind: "Syntax", children: []),
-
   Node("ExplicitTypedParameter", kind: "TypedParameter", children: [
     Child("leftParenToken", kind: "LeftParenToken"),
     Child("ascription", kind: "Ascription"),
@@ -187,11 +203,6 @@ let syntaxNodes = [
     Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
-  // function-clause ::= <basic-expr-list> with <expr> '|' <basic-expr-list>? '=' <expr>
-  //                   | <basic-expr-list> '=' <expr>
-
-  Node("FunctionClauseDecl", kind: "Decl", children: []),
-
   Node("WithRuleFunctionClauseDecl", kind: "FunctionClauseDecl", children: [
     Child("basicExprList", kind: "BasicExprList"),
     Child("withToken", kind: "WithToken"),
@@ -218,11 +229,6 @@ let syntaxNodes = [
   ]),
 
   // MARK: Fixity
-
-  // fixity-decl ::= 'infix' <int> <id-list>
-  //               | 'infixl' <int> <id-list>
-  //               | 'infixr' <int> <id-list>
-  Node("FixityDecl", kind: "Decl", children: []),
 
   Node("NonFixDecl", kind: "FixityDecl", children: [
     Child("infixToken", kind: "InfixToken"),
@@ -287,8 +293,6 @@ let syntaxNodes = [
     Child("exprs", kind: "BasicExprList")
   ]),
 
-  Node("BasicExpr", kind: "Expr", children: []),
-
   // application ::= <basic-expr> <application>
 
   // binding-list ::= <qualified-name>
@@ -297,8 +301,6 @@ let syntaxNodes = [
   //                | <typed-parameter> <binding-list>
 
   Node("BindingList", element: "Binding"),
-
-  Node("Binding", kind: "Syntax", children: []),
 
   Node("NamedBinding", kind: "Binding", children: [
     Child("name", kind: "QualifiedName")

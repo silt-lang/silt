@@ -139,41 +139,41 @@ extension SwiftGenerator {
     startWriting(to: "SyntaxKind.swift")
     line("public enum SyntaxKind {")
     line("  case token")
-    line("  case unknown")
-    for node in syntaxNodes {
+    for node in syntaxNodes + baseNodes {
       line("  case \(node.typeName.asStandaloneIdentifier)")
     }
     line("}")
     line()
     line("""
-    extension Syntax {
-      /// Creates a Syntax node from the provided RawSyntax using the
-      /// appropriate Syntax type, as specified by its kind.
-      /// - Parameters:
-      ///   - raw: The raw syntax with which to create this node.
-      ///   - root: The root of this tree, or `nil` if the new node is the root.
-      static func fromRaw(_ raw: RawSyntax) -> Syntax {
-        let data = SyntaxData(raw: raw)
-        return make(root: nil, data: data)
-      }
+    /// Creates a Syntax node from the provided RawSyntax using the
+    /// appropriate Syntax type, as specified by its kind.
+    /// - Parameters:
+    ///   - raw: The raw syntax with which to create this node.
+    ///   - root: The root of this tree, or `nil` if the new node is the root.
+    func makeSyntax(_ raw: RawSyntax) -> Syntax {
+      let data = SyntaxData(raw: raw)
+      return makeSyntax(root: nil, data: data)
+    }
 
-      /// Creates a Syntax node from the provided SyntaxData using the
-      /// appropriate Syntax type, as specified by its kind.
-      /// - Parameters:
-      ///   - root: The root of this tree, or `nil` if the new node is the root.
-      ///   - data: The data for this new node.
-      static func make(root: SyntaxData?, data: SyntaxData) -> Syntax {
-        let root = root ?? data
-        switch data.raw.kind {
-        case .token: return TokenSyntax(root: root, data: data)
-        case .unknown: return Syntax(root: root, data: data)
+    /// Creates a Syntax node from the provided SyntaxData using the
+    /// appropriate Syntax type, as specified by its kind.
+    /// - Parameters:
+    ///   - root: The root of this tree, or `nil` if the new node is the root.
+    ///   - data: The data for this new node.
+    func makeSyntax(root: SyntaxData?, data: SyntaxData) -> Syntax {
+      let root = root ?? data
+      switch data.raw.kind {
+      case .token: return TokenSyntax(root: root, data: data)
     """)
+    for node in baseNodes {
+      line("  case .\(node.typeName.lowercaseFirstLetter):")
+      line("    fatalError(\"cannot construct \(node.typeName)Syntax directly\")")
+    }
     for node in syntaxNodes {
-        line("    case .\(node.typeName.lowercaseFirstLetter):")
-        line("      return \(node.typeName)Syntax(root: root, data: data)")
+        line("  case .\(node.typeName.lowercaseFirstLetter):")
+        line("    return \(node.typeName)Syntax(root: root, data: data)")
     }
     line("""
-        }
       }
     }
     """)
@@ -181,28 +181,20 @@ extension SwiftGenerator {
 
   func generateStructs() {
     startWriting(to: "SyntaxNodes.swift")
-    line("""
-      public class ExprSyntax: Syntax {}
-      """)
-    line("""
-      public class DeclSyntax: Syntax {}
-      """)
+
+    for base in baseNodes {
+      guard case let .node(kind, _) = base.kind else {
+        fatalError("")
+      }
+      line("public protocol \(base.typeName)Syntax: \(kind)Syntax {}")
+    }
+    
     var archetypeMap = [(key: String, value: String)]()
     for node in syntaxNodes {
       guard let archName = generateStruct(node) else { continue }
       archetypeMap.append((key: archName,
                            value: ".\(node.typeName.lowercaseFirstLetter)"))
     }
-
-    line("extension SyntaxCollection {")
-    line("  static var syntaxCollectionKinds: [ObjectIdentifier: SyntaxKind] {")
-    line("    return [")
-    for (key, value) in archetypeMap {
-      line("      ObjectIdentifier(\(key).self): \(value), ")
-    }
-    line("    ]")
-    line("  }")
-    line("}")
   }
 
   func makeMissing(child: Child) -> String {
@@ -220,12 +212,163 @@ extension SwiftGenerator {
     switch node.kind {
     case let .collection(element):
       let elementKind = element.contains("Token") ? "Token" : element
-      let elementSyntaxName = "\(elementKind)Syntax"
-      line("public typealias \(node.typeName)Syntax = SyntaxCollection<\(elementSyntaxName)>")
-      line()
-      return elementSyntaxName
+      let elementTypeName = "\(elementKind)Syntax"
+      line( """
+            public struct \(node.typeName)Syntax: _SyntaxBase {
+              let _root: SyntaxData
+              unowned let _data: SyntaxData
+
+              internal init(root: SyntaxData, data: SyntaxData) {
+                self._root = root
+                self._data = data
+              }
+
+              public init(elements: [\(elementTypeName)]) {
+                let list = elements.map { $0.raw }
+                let sd = SyntaxData(raw: .node(.\(node.typeName.lowercaseFirstLetter), list, .present))
+                self._root = sd
+                self._data = sd
+              }
+
+
+              /// Creates a new \(node.typeName)Syntax by replacing the underlying layout with
+              /// a different set of raw syntax nodes.
+              ///
+              /// - Parameter layout: The new list of raw syntax nodes underlying this
+              ///                     collection.
+              /// - Returns: A new SyntaxCollection with the new layout underlying it.
+              internal func replacingLayout(
+                _ layout: [RawSyntax]) -> \(node.typeName)Syntax {
+                let newRaw = data.raw.replacingLayout(layout)
+                let (newRoot, newData) = data.replacingSelf(newRaw)
+                return \(node.typeName)Syntax(root: newRoot, data: newData)
+              }
+
+              /// Creates a new \(node.typeName)Syntax by appending the provided syntax element
+              /// to the children.
+              ///
+              /// - Parameter syntax: The element to append.
+              /// - Returns: A new SyntaxCollection with that element appended to the end.
+              public func appending(
+                _ syntax: \(elementTypeName)) -> \(node.typeName)Syntax {
+                var newLayout = data.raw.layout
+                newLayout.append(syntax.raw)
+                return replacingLayout(newLayout)
+              }
+
+              /// Creates a new \(node.typeName)Syntax by prepending the provided syntax element
+              /// to the children.
+              ///
+              /// - Parameter syntax: The element to prepend.
+              /// - Returns: A new SyntaxCollection with that element prepended to the
+              ///            beginning.
+              public func prepending(
+                _ syntax: \(elementTypeName)) -> \(node.typeName)Syntax {
+                return inserting(syntax, at: 0)
+              }
+
+              /// Creates a new \(node.typeName)Syntax by inserting the provided syntax element
+              /// at the provided index in the children.
+              ///
+              /// - Parameters:
+              ///   - syntax: The element to insert.
+              ///   - index: The index at which to insert the element in the collection.
+              ///
+              /// - Returns: A new \(node.typeName)Syntax with that element appended to the end.
+              public func inserting(_ syntax: \(elementTypeName),
+                                    at index: Int) -> \(node.typeName)Syntax {
+                var newLayout = data.raw.layout
+                /// Make sure the index is a valid insertion index (0 to 1 past the end)
+                precondition((newLayout.startIndex...newLayout.endIndex).contains(index),
+                             "inserting node at invalid index \\(index)")
+                newLayout.insert(syntax.raw, at: index)
+                return replacingLayout(newLayout)
+              }
+
+              /// Creates a new \(node.typeName)Syntax by removing the syntax element at the
+              /// provided index.
+              ///
+              /// - Parameter index: The index of the element to remove from the collection.
+              /// - Returns: A new \(node.typeName)Syntax with the element at the provided index
+              ///            removed.
+              public func removing(childAt index: Int) -> \(node.typeName)Syntax {
+                var newLayout = data.raw.layout
+                newLayout.remove(at: index)
+                return replacingLayout(newLayout)
+              }
+
+              /// Creates a new \(node.typeName)Syntax by removing the first element.
+              ///
+              /// - Returns: A new \(node.typeName)Syntax with the first element removed.
+              public func removingFirst() -> \(node.typeName)Syntax {
+                var newLayout = data.raw.layout
+                newLayout.removeFirst()
+                return replacingLayout(newLayout)
+              }
+
+              /// Creates a new \(node.typeName)Syntax by removing the last element.
+              ///
+              /// - Returns: A new \(node.typeName)Syntax with the last element removed.
+              public func removingLast() -> \(node.typeName)Syntax {
+                var newLayout = data.raw.layout
+                newLayout.removeLast()
+                return replacingLayout(newLayout)
+              }
+
+              /// Returns an iterator over the elements of this syntax collection.
+              public func makeIterator() -> \(node.typeName)SyntaxIterator {
+                return \(node.typeName)SyntaxIterator(collection: self)
+              }
+            }
+
+            /// Conformance for \(node.typeName)Syntax to the Collection protocol.
+            extension \(node.typeName)Syntax: Collection {
+              public var startIndex: Int {
+                return data.childCaches.startIndex
+              }
+
+              public var endIndex: Int {
+                return data.childCaches.endIndex
+              }
+
+              public func index(after i: Int) -> Int {
+                return data.childCaches.index(after: i)
+              }
+
+              public subscript(_ index: Int) -> \(elementTypeName) {
+                // swiftlint:disable force_cast
+                return child(at: index)! as! \(elementTypeName)
+              }
+            }
+
+            /// A type that iterates over a syntax collection using its indices.
+            public struct \(node.typeName)SyntaxIterator: IteratorProtocol {
+              private let collection: \(node.typeName)Syntax
+              private var index: \(node.typeName)Syntax.Index
+
+              fileprivate init(collection: \(node.typeName)Syntax) {
+                self.collection = collection
+                self.index = collection.startIndex
+              }
+
+              public mutating func next() -> \(elementTypeName)? {
+                guard
+                  !(self.collection.isEmpty || self.index == self.collection.endIndex)
+                else {
+                  return nil
+                }
+
+                let result = collection[index]
+                collection.formIndex(after: &index)
+                return result
+              }
+            }
+            """)
+      return elementTypeName
     case let .node(kind, children):
-      line("public class \(node.typeName)Syntax: \(kind)Syntax {")
+      line("public struct \(node.typeName)Syntax: \(kind)Syntax, _SyntaxBase {")
+      line("  let _root: SyntaxData")
+      line("  unowned let _data: SyntaxData")
       if !children.isEmpty {
         line("  public enum Cursor: Int {")
         for child in children {
@@ -235,7 +378,12 @@ extension SwiftGenerator {
       }
       line()
 
-      write("  public convenience init(")
+      line("  internal init(root: SyntaxData, data: SyntaxData) {")
+      line("    self._root = root")
+      line("    self._data = data")
+      line("  }")
+
+      write("  public init(")
       let childParams = children
         .map {
           let childKind = $0.isToken ? "Token" : $0.kind
