@@ -215,8 +215,8 @@ extension SwiftGenerator {
       let elementTypeName = "\(elementKind)Syntax"
       line( """
             public struct \(node.typeName)Syntax: _SyntaxBase {
-              var _root: SyntaxData
-              unowned var _data: SyntaxData
+              let _root: SyntaxData
+              unowned let _data: SyntaxData
 
               internal init(root: SyntaxData, data: SyntaxData) {
                 self._root = root
@@ -367,8 +367,8 @@ extension SwiftGenerator {
       return elementTypeName
     case let .node(kind, children):
       line("public struct \(node.typeName)Syntax: \(kind)Syntax, _SyntaxBase {")
-      line("  var _root: SyntaxData")
-      line("  unowned var _data: SyntaxData")
+      line("  let _root: SyntaxData")
+      line("  unowned let _data: SyntaxData")
       if !children.isEmpty {
         line("  public enum Cursor: Int {")
         for child in children {

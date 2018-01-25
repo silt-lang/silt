@@ -13,8 +13,8 @@ public protocol FixityDeclSyntax: DeclSyntax {}
 public protocol BindingSyntax: Syntax {}
 public protocol BasicExprSyntax: ExprSyntax {}
 public struct IdentifierListSyntax: _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
@@ -162,8 +162,8 @@ public struct IdentifierListSyntaxIterator: IteratorProtocol {
   }
 }
 public struct QualifiedNameSyntax: _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
@@ -311,8 +311,8 @@ public struct QualifiedNameSyntaxIterator: IteratorProtocol {
   }
 }
 public struct QualifiedNamePieceSyntax: Syntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case name
     case trailingPeriod
@@ -349,8 +349,8 @@ public struct QualifiedNamePieceSyntax: Syntax, _SyntaxBase {
 }
 
 public struct ModuleDeclSyntax: DeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case moduleToken
     case moduleIdentifier
@@ -447,8 +447,8 @@ public struct ModuleDeclSyntax: DeclSyntax, _SyntaxBase {
 }
 
 public struct DeclListSyntax: _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
@@ -596,8 +596,8 @@ public struct DeclListSyntaxIterator: IteratorProtocol {
   }
 }
 public struct OpenImportDeclSyntax: DeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case openToken
     case importToken
@@ -644,8 +644,8 @@ public struct OpenImportDeclSyntax: DeclSyntax, _SyntaxBase {
 }
 
 public struct ImportDeclSyntax: DeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case importToken
     case importIdentifier
@@ -682,8 +682,8 @@ public struct ImportDeclSyntax: DeclSyntax, _SyntaxBase {
 }
 
 public struct DataDeclSyntax: DeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case dataToken
     case dataIdentifier
@@ -790,8 +790,8 @@ public struct DataDeclSyntax: DeclSyntax, _SyntaxBase {
 }
 
 public struct EmptyDataDeclSyntax: DeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case dataToken
     case dataIdentifier
@@ -858,8 +858,8 @@ public struct EmptyDataDeclSyntax: DeclSyntax, _SyntaxBase {
 }
 
 public struct TypeIndicesSyntax: Syntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case colonToken
     case indexExpr
@@ -896,8 +896,8 @@ public struct TypeIndicesSyntax: Syntax, _SyntaxBase {
 }
 
 public struct TypedParameterListSyntax: _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
@@ -1045,8 +1045,8 @@ public struct TypedParameterListSyntaxIterator: IteratorProtocol {
   }
 }
 public struct AscriptionSyntax: Syntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case boundNames
     case colonToken
@@ -1093,8 +1093,8 @@ public struct AscriptionSyntax: Syntax, _SyntaxBase {
 }
 
 public struct ExplicitTypedParameterSyntax: TypedParameterSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case leftParenToken
     case ascription
@@ -1141,8 +1141,8 @@ public struct ExplicitTypedParameterSyntax: TypedParameterSyntax, _SyntaxBase {
 }
 
 public struct ImplicitTypedParameterSyntax: TypedParameterSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case leftBraceToken
     case ascription
@@ -1189,8 +1189,8 @@ public struct ImplicitTypedParameterSyntax: TypedParameterSyntax, _SyntaxBase {
 }
 
 public struct ConstructorListSyntax: _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
@@ -1338,8 +1338,8 @@ public struct ConstructorListSyntaxIterator: IteratorProtocol {
   }
 }
 public struct ConstructorDeclSyntax: DeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case ascription
     case trailingSemicolon
@@ -1376,8 +1376,8 @@ public struct ConstructorDeclSyntax: DeclSyntax, _SyntaxBase {
 }
 
 public struct RecordDeclSyntax: DeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case recordToken
     case recordName
@@ -1484,8 +1484,8 @@ public struct RecordDeclSyntax: DeclSyntax, _SyntaxBase {
 }
 
 public struct FieldDeclSyntax: DeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case fieldToken
     case ascription
@@ -1532,8 +1532,8 @@ public struct FieldDeclSyntax: DeclSyntax, _SyntaxBase {
 }
 
 public struct RecordConstructorDeclSyntax: DeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case constructorToken
     case constructorName
@@ -1580,8 +1580,8 @@ public struct RecordConstructorDeclSyntax: DeclSyntax, _SyntaxBase {
 }
 
 public struct RecordFieldAssignmentListSyntax: _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
@@ -1729,8 +1729,8 @@ public struct RecordFieldAssignmentListSyntaxIterator: IteratorProtocol {
   }
 }
 public struct RecordFieldAssignmentSyntax: Syntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case fieldName
     case equalsToken
@@ -1787,8 +1787,8 @@ public struct RecordFieldAssignmentSyntax: Syntax, _SyntaxBase {
 }
 
 public struct FunctionDeclSyntax: DeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case ascription
     case trailingSemicolon
@@ -1825,8 +1825,8 @@ public struct FunctionDeclSyntax: DeclSyntax, _SyntaxBase {
 }
 
 public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case basicExprList
     case withToken
@@ -1913,8 +1913,8 @@ public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _Synta
 }
 
 public struct NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case basicExprList
     case equalsToken
@@ -1971,8 +1971,8 @@ public struct NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxB
 }
 
 public struct LetBindingDeclSyntax: DeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case head
     case basicExprList
@@ -2039,8 +2039,8 @@ public struct LetBindingDeclSyntax: DeclSyntax, _SyntaxBase {
 }
 
 public struct NonFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case infixToken
     case precedence
@@ -2097,8 +2097,8 @@ public struct NonFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
 }
 
 public struct LeftFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case infixlToken
     case precedence
@@ -2155,8 +2155,8 @@ public struct LeftFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
 }
 
 public struct RightFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case infixrToken
     case precedence
@@ -2213,8 +2213,8 @@ public struct RightFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
 }
 
 public struct PatternClauseListSyntax: _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
@@ -2362,8 +2362,8 @@ public struct PatternClauseListSyntaxIterator: IteratorProtocol {
   }
 }
 public struct LambdaExprSyntax: ExprSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case slashToken
     case bindingList
@@ -2420,8 +2420,8 @@ public struct LambdaExprSyntax: ExprSyntax, _SyntaxBase {
 }
 
 public struct QuantifiedExprSyntax: ExprSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case forallToken
     case bindingList
@@ -2478,8 +2478,8 @@ public struct QuantifiedExprSyntax: ExprSyntax, _SyntaxBase {
 }
 
 public struct LetExprSyntax: ExprSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case letToken
     case leftBraceToken
@@ -2556,8 +2556,8 @@ public struct LetExprSyntax: ExprSyntax, _SyntaxBase {
 }
 
 public struct ApplicationExprSyntax: ExprSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case exprs
   }
@@ -2584,8 +2584,8 @@ public struct ApplicationExprSyntax: ExprSyntax, _SyntaxBase {
 }
 
 public struct BindingListSyntax: _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
@@ -2733,8 +2733,8 @@ public struct BindingListSyntaxIterator: IteratorProtocol {
   }
 }
 public struct NamedBindingSyntax: BindingSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case name
   }
@@ -2761,8 +2761,8 @@ public struct NamedBindingSyntax: BindingSyntax, _SyntaxBase {
 }
 
 public struct TypedBindingSyntax: BindingSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case parameter
   }
@@ -2789,8 +2789,8 @@ public struct TypedBindingSyntax: BindingSyntax, _SyntaxBase {
 }
 
 public struct BasicExprListSyntax: _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
@@ -2938,8 +2938,8 @@ public struct BasicExprListSyntaxIterator: IteratorProtocol {
   }
 }
 public struct NamedBasicExprSyntax: BasicExprSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case name
   }
@@ -2966,8 +2966,8 @@ public struct NamedBasicExprSyntax: BasicExprSyntax, _SyntaxBase {
 }
 
 public struct UnderscoreExprSyntax: BasicExprSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case underscoreToken
   }
@@ -2994,8 +2994,8 @@ public struct UnderscoreExprSyntax: BasicExprSyntax, _SyntaxBase {
 }
 
 public struct TypeBasicExprSyntax: BasicExprSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case typeToken
   }
@@ -3022,8 +3022,8 @@ public struct TypeBasicExprSyntax: BasicExprSyntax, _SyntaxBase {
 }
 
 public struct ParenthesizedExprSyntax: BasicExprSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case leftParenToken
     case expr
@@ -3070,8 +3070,8 @@ public struct ParenthesizedExprSyntax: BasicExprSyntax, _SyntaxBase {
 }
 
 public struct TypedParameterGroupExprSyntax: BasicExprSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case parameters
   }
@@ -3098,8 +3098,8 @@ public struct TypedParameterGroupExprSyntax: BasicExprSyntax, _SyntaxBase {
 }
 
 public struct RecordExprSyntax: BasicExprSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case recordToken
     case parameterExpr
@@ -3166,8 +3166,8 @@ public struct RecordExprSyntax: BasicExprSyntax, _SyntaxBase {
 }
 
 public struct FunctionClauseListSyntax: _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
@@ -3315,8 +3315,8 @@ public struct FunctionClauseListSyntaxIterator: IteratorProtocol {
   }
 }
 public struct ReparsedFunctionDeclSyntax: DeclSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case ascription
     case trailingSemicolon
@@ -3363,8 +3363,8 @@ public struct ReparsedFunctionDeclSyntax: DeclSyntax, _SyntaxBase {
 }
 
 public struct ReparsedApplicationExprSyntax: BasicExprSyntax, _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
   public enum Cursor: Int {
     case head
     case exprs

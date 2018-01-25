@@ -6,8 +6,8 @@
 /// available in the repository.
 
 public struct TokenSyntax: _SyntaxBase {
-  var _root: SyntaxData
-  unowned var _data: SyntaxData
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
