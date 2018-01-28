@@ -39,18 +39,14 @@ public class Parameter: Value {
   }
 }
 
-public struct TypeMetadata {
-  let name: String
+public enum Copy {
+  case trivial
+  case malloc
+  case custom(Continuation)
 }
 
 public enum Destructor {
   case trivial
-  case free(TypeMetadata)
-  case custom(Continuation)
-}
-
-public enum Copy {
-  case trivial
-  case malloc(TypeMetadata)
+  case free
   case custom(Continuation)
 }

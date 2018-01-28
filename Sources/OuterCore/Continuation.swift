@@ -26,15 +26,30 @@ public final class Environment {
   }
 }
 
+public class Intrinsic: Value {
+  public enum Kind: String {
+    case match
+    case branch
+    case conditionalBranch
+  }
+  let kind: Kind
+
+  init(kind: Kind) {
+    self.kind = kind
+    super.init(name: kind.rawValue)
+  }
+}
+
 public final class Continuation: Value {
+  enum Kind {
+    case basicBlock(parent: Continuation)
+    case topLevel
+    case functionHead(parent: Continuation)
+  }
   let env = Environment()
   var call: Call?
   var destructors = [Destructor]()
   var parameters = [Parameter]()
-
-  public override init(name: String? = nil) {
-    super.init(name: env.makeUnique(name))
-  }
 
   var predecessors = OrderedSet<Continuation>()
   var successors = OrderedSet<Continuation>()

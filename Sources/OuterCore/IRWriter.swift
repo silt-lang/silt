@@ -37,27 +37,69 @@ public class Writer<StreamType: TextOutputStream> {
     stream.write(text)
   }
 
-  func writeLine(_ text: String) {
+  func writeLine(_ text: String = "") {
     stream.write(String(repeating: " ", count: indentLevel))
     stream.write(text + "\n")
   }
 }
 
 public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
+  public func write(_ module: Module) {
+    writeLine("-- module: \"\(module.name)\"")
+    writeLine()
+    for continuation in module.continuations {
+      write(continuation)
+    }
+  }
+
+  public func write(_ type: Type) {
+    switch type {
+    case let type as DataType:
+      write(type.name.string)
+    case let type as TypeMetadataType:
+      write(type.type)
+      write(".metadata")
+    case let type as FunctionType:
+      write("(")
+      for (idx, arg) in type.arguments.enumerated() {
+        write(arg)
+        if idx != type.arguments.count - 1 {
+          write(", ")
+        }
+      }
+      write(") -> ")
+      write(type.returnType)
+    case let type as RecordType:
+      write(type.name.string)
+    case is BottomType:
+      write("⊥")
+    default:
+      fatalError("attempt to write unknown type: \(type)")
+    }
+  }
+
+  public func write(_ parameter: Parameter, isLast: Bool) {
+    write("%\(parameter.name) : ")
+    write(parameter.type)
+    if !isLast {
+      write(", ")
+    }
+  }
+
   public func write(_ continuation: Continuation) {
-    write("\(continuation.name)(")
-    let paramDescs = continuation.parameters
-                                 .map { "%\($0.name) : \($0.type)" }
-                                 .joined(separator: ", ")
-    write(paramDescs)
-    write("):\n")
+    write("@\(continuation.name)(")
+    for (idx, param) in continuation.parameters.enumerated() {
+      write(param, isLast: idx == continuation.parameters.count - 1)
+    }
+    writeLine("):")
     withIndent {
       if let call = continuation.call {
-        let names = call.args.map { "%\($0.name)" }
-                             .joined(separator: ", ")
+        let names = call.args.map { "%\($0.name)" }.joined(separator: ", ")
         writeLine("\(call.callee.name)(\(names))")
+      } else {
+        writeLine("[empty]")
       }
     }
-    write("\n")
+    writeLine()
   }
 }
