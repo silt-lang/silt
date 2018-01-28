@@ -121,7 +121,7 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   }
 
   public func write(_ continuation: Continuation) {
-    writeLine("\(asReference(continuation))(")
+    write("\(asReference(continuation))(")
     for (idx, param) in continuation.parameters.enumerated() {
       write(param, isLast: idx == continuation.parameters.count - 1)
     }
