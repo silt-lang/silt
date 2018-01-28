@@ -37,8 +37,12 @@ public class Writer<StreamType: TextOutputStream> {
     stream.write(text)
   }
 
-  func writeLine(_ text: String = "") {
+  func writeIndent() {
     stream.write(String(repeating: " ", count: indentLevel))
+  }
+
+  func writeLine(_ text: String = "") {
+    writeIndent()
     stream.write(text + "\n")
   }
 }
@@ -100,23 +104,32 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   }
 
   public func write(_ parameter: Parameter, isLast: Bool) {
-    write("%\(parameter.name) : ")
+    write(asReference(parameter))
     write(parameter.type)
     if !isLast {
       write(", ")
     }
   }
 
+  public func asReference(_ callee: Value) -> String {
+    switch callee {
+    case let callee as Continuation:
+      return "@\(callee.name)"
+    default:
+      return "%\(callee.name)"
+    }
+  }
+
   public func write(_ continuation: Continuation) {
-    write("@\(continuation.name)(")
+    writeLine("\(asReference(continuation))(")
     for (idx, param) in continuation.parameters.enumerated() {
       write(param, isLast: idx == continuation.parameters.count - 1)
     }
     writeLine(") {")
     withIndent {
       if let call = continuation.call {
-        let names = call.args.map { "%\($0.name)" }.joined(separator: ", ")
-        writeLine("\(call.callee.name)(\(names))")
+        let names = call.args.map(self.asReference).joined(separator: ", ")
+        writeLine("\(asReference(call.callee))(\(names))")
       } else {
         writeLine("[empty]")
       }
