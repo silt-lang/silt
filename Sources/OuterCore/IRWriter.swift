@@ -47,8 +47,29 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   public func write(_ module: Module) {
     writeLine("-- module: \"\(module.name)\"")
     writeLine()
+    for data in module.knownDataTypes {
+      writeLine("data \(data.name.string) {")
+      for constr in data.constructors {
+        write("\(constr.name.string) : ")
+        write(constr.type)
+        writeLine()
+      }
+      writeLine("}")
+      writeLine()
+    }
+    for record in module.knownRecordTypes {
+      writeLine("record \(record.name.string) {")
+      for field in record.fields {
+        write("\(field.name.string) : ")
+        write(field.type)
+        writeLine()
+      }
+      writeLine("}")
+      writeLine()
+    }
     for continuation in module.continuations {
       write(continuation)
+      writeLine()
     }
   }
 
@@ -91,7 +112,7 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     for (idx, param) in continuation.parameters.enumerated() {
       write(param, isLast: idx == continuation.parameters.count - 1)
     }
-    writeLine("):")
+    writeLine(") {")
     withIndent {
       if let call = continuation.call {
         let names = call.args.map { "%\($0.name)" }.joined(separator: ", ")
@@ -100,6 +121,6 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
         writeLine("[empty]")
       }
     }
-    writeLine()
+    writeLine("}")
   }
 }

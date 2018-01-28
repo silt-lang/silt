@@ -125,12 +125,12 @@ public struct Invocation {
         })
       case .dump(.gir):
         run(Pass(name: "Dump GIR") { module, _ in
-          let int = QualifiedName(name: Name(name: TokenSyntax(.identifier("Int"))))
+          let int = QualifiedName(name: "Int")
           let module = Module(name: "Test")
           let builder = IRBuilder(module: module)
           let intRec = module.recordType(name: int, fields: [])
-          let continuationTy = module.functionType(arguments: [],
-                                                   returnType: module.bottomType)
+          let continuationTy =
+            module.functionType(arguments: [], returnType: module.bottomType)
           let a = builder.buildContinuation()
           let x = a.appendParameter(type: intRec)
           let y = a.appendParameter(type: intRec)

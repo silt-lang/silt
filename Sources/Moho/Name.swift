@@ -46,6 +46,11 @@ public struct QualifiedName: Equatable, Hashable, CustomStringConvertible {
     self.module = []
   }
 
+  public init(name: String) {
+    self.name = Name(name: TokenSyntax(.identifier(name)))
+    self.module = []
+  }
+
   /// Create a `QualifiedName` from a `QualifiedNameSyntax` node.
   public init(ast: QualifiedNameSyntax) {
     precondition(!ast.isEmpty)
