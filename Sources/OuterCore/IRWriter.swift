@@ -105,6 +105,7 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
 
   public func write(_ parameter: Parameter, isLast: Bool) {
     write(asReference(parameter))
+    write(" : ")
     write(parameter.type)
     if !isLast {
       write(", ")
