@@ -27,8 +27,10 @@ public final class Module {
     continuation.module = self
   }
 
-  public func recordType(name: QualifiedName) -> RecordType {
+  public func recordType(name: QualifiedName,
+                         actions: (RecordType) -> Void) -> RecordType {
     let record = RecordType(name: name)
+    actions(record)
     return knownRecordTypes.getOrInsert(record)
   }
 
@@ -43,8 +45,10 @@ public final class Module {
     return knownMetadataTypes.getOrInsert(meta)
   }
 
-  public func dataType(name: QualifiedName) -> DataType {
+  public func dataType(name: QualifiedName,
+                       actions: (DataType) -> Void) -> DataType {
     let data = DataType(name: name)
+    actions(data)
     return knownDataTypes.getOrInsert(data)
   }
 }

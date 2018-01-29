@@ -127,15 +127,17 @@ public struct Invocation {
         run(Pass(name: "Dump GIR") { module, _ in
           let module = Module(name: "main")
           let builder = IRBuilder(module: module)
-          let natType = module.dataType(name: "F,R")
-          natType.addConstructor(name: "Z",
-                                 type: module.functionType(arguments: [],
-                                                           returnType: natType))
-          natType.addConstructor(name: "S",
-                                 type: module.functionType(arguments: [natType],
-                                                           returnType: natType))
-          let personRec = module.recordType(name: "Person")
-          personRec.addField(name: "age", type: natType)
+          let natType = module.dataType(name: "F,R") {
+            $0.addConstructor(name: "Z",
+                              type: module.functionType(arguments: [],
+                                                        returnType: $0))
+            $0.addConstructor(name: "S",
+                              type: module.functionType(arguments: [$0],
+                                                        returnType: $0))
+          }
+          let personRec = module.recordType(name: "Person") {
+            $0.addField(name: "age", type: natType)
+          }
           let continuationTy =
             module.functionType(arguments: [], returnType: module.bottomType)
           let a = builder.buildContinuation(name: "main")

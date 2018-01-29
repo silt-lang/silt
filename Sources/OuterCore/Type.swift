@@ -145,7 +145,7 @@ public final class FunctionType: Type {
   public override var hashValue: Int {
     var h = returnType.hashValue
     for arg in arguments {
-      h ^= arg.hashValue
+      h ^= arg.hashValue ^ 0x2894ba9
     }
     return h ^ 0xab372bfa
   }
