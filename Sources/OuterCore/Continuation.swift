@@ -26,20 +26,6 @@ public final class Environment {
   }
 }
 
-public class Intrinsic: Value {
-  public enum Kind: String {
-    case match
-    case branch
-    case conditionalBranch
-  }
-  let kind: Kind
-
-  init(kind: Kind) {
-    self.kind = kind
-    super.init(name: kind.rawValue)
-  }
-}
-
 public final class Continuation: Value {
   enum Kind {
     case basicBlock(parent: Continuation)
@@ -50,9 +36,14 @@ public final class Continuation: Value {
   var call: Call?
   var destructors = [Destructor]()
   var parameters = [Parameter]()
+  weak var module: Module?
 
   var predecessors = OrderedSet<Continuation>()
   var successors = OrderedSet<Continuation>()
+
+  init(name: String) {
+    super.init(name: name, type: /* will be overwritten */BottomType())
+  }
 
   @discardableResult
   public func appendParameter(type: Type, name: String? = nil) -> Parameter {
@@ -64,6 +55,17 @@ public final class Continuation: Value {
 
   public func setCall(_ callee: Value, _ args: [Value]) {
     self.call = Call(callee: callee, args: args)
+  }
+
+  override var type: Type {
+    get {
+      guard let module = module else {
+        fatalError("cannot get type of Continuation without module")
+      }
+      return module.functionType(arguments: parameters.map { $0.type },
+                                 returnType: module.bottomType)
+    }
+    set { /* do nothing */ }
   }
 }
 

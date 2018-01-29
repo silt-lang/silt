@@ -1,8 +1,8 @@
-//
-//  Errors.cpp
-//  siltPackageDescription
-//
-//  Created by Harlan Haskins on 1/15/18.
-//
+/// Errors.cpp
+///
+/// Copyright 2017-2018, The Silt Language Project.
+///
+/// This project is released under the MIT license, a copy of which is
+/// available in the repository.
 
 #include <stdio.h>

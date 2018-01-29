@@ -125,22 +125,30 @@ public struct Invocation {
         })
       case .dump(.gir):
         run(Pass(name: "Dump GIR") { module, _ in
-          let int = QualifiedName(name: "Int")
-          let module = Module(name: "Test")
+          let module = Module(name: "main")
           let builder = IRBuilder(module: module)
-          let intRec = module.recordType(name: int, fields: [])
+          let natType = module.dataType(name: "F,R")
+          natType.addConstructor(name: "Z",
+                                 type: module.functionType(arguments: [],
+                                                           returnType: natType))
+          natType.addConstructor(name: "S",
+                                 type: module.functionType(arguments: [natType],
+                                                           returnType: natType))
+          let personRec = module.recordType(name: "Person")
+          personRec.addField(name: "age", type: natType)
           let continuationTy =
             module.functionType(arguments: [], returnType: module.bottomType)
           let a = builder.buildContinuation(name: "main")
-          let x = a.appendParameter(type: intRec)
-          let y = a.appendParameter(type: intRec)
-          let ret = a.appendParameter(type: continuationTy, name: "ret")
+          let x = a.appendParameter(type: natType)
+          let y = a.appendParameter(type: natType)
+          let ret = a.appendParameter(type: continuationTy, name: "re,t")
           let b = builder.buildContinuation(name: "sub.1")
-          b.appendParameter(type: intRec)
-          b.appendParameter(type: intRec)
-          b.appendParameter(type: continuationTy, name: "ret")
+          b.appendParameter(type: natType)
+          b.appendParameter(type: personRec)
+          let bRet = b.appendParameter(type: continuationTy, name: "ret")
           a.setCall(b, [x, y, ret])
-          b.setCall(b, [x, y, ret])
+          b.setCall(bRet, [])
+          IRVerifier(module: module, engine: context.engine).verify()
           let writer = IRWriter(stream: &stdoutStreamHandle)
           writer.write(module)
         })

@@ -24,15 +24,16 @@ public final class Module {
 
   public func addContinuation(_ continuation: Continuation) {
     continuations.append(continuation)
+    continuation.module = self
   }
 
-  public func recordType(name: QualifiedName,
-                         fields: [RecordType.Field]) -> RecordType {
-    let record = RecordType(name: name, fields: fields)
+  public func recordType(name: QualifiedName) -> RecordType {
+    let record = RecordType(name: name)
     return knownRecordTypes.getOrInsert(record)
   }
 
-  public func functionType(arguments: [Type], returnType: Type) -> FunctionType {
+  public func functionType(arguments: [Type],
+                           returnType: Type) -> FunctionType {
     let function = FunctionType(arguments: arguments, returnType: returnType)
     return knownFunctionTypes.getOrInsert(function)
   }
@@ -42,16 +43,17 @@ public final class Module {
     return knownMetadataTypes.getOrInsert(meta)
   }
 
-  public func dataType(name: QualifiedName,
-                       constructors: [DataType.Constructor]) -> DataType {
-    let data = DataType(name: name, constructors: constructors)
+  public func dataType(name: QualifiedName) -> DataType {
+    let data = DataType(name: name)
     return knownDataTypes.getOrInsert(data)
   }
 }
 
 extension Set {
   mutating func getOrInsert(_ value: Element) -> Element {
-    if let idx = index(of: value) { return self[idx] }
+    if let idx = index(of: value) {
+      return self[idx]
+    }
     insert(value)
     return value
   }

@@ -52,21 +52,27 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     writeLine("-- module: \"\(module.name)\"")
     writeLine()
     for data in module.knownDataTypes {
-      writeLine("data \(data.name.string) {")
+      writeLine("data \(escape(data.name.string)) {")
       for constr in data.constructors {
-        write("\(constr.name.string) : ")
-        write(constr.type)
-        writeLine()
+        withIndent {
+          writeIndent()
+          write("\(escape(constr.name.string)) : ")
+          write(constr.type)
+          write("\n")
+        }
       }
       writeLine("}")
       writeLine()
     }
     for record in module.knownRecordTypes {
-      writeLine("record \(record.name.string) {")
-      for field in record.fields {
-        write("\(field.name.string) : ")
-        write(field.type)
-        writeLine()
+      writeLine("record \(escape(record.name.string)) {")
+      withIndent {
+        for field in record.fields {
+          writeIndent()
+          write("\(escape(field.name.string)) : ")
+          write(field.type)
+          write("\n")
+        }
       }
       writeLine("}")
       writeLine()
@@ -79,27 +85,13 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
 
   public func write(_ type: Type) {
     switch type {
-    case let type as DataType:
-      write(type.name.string)
-    case let type as TypeMetadataType:
-      write(type.type)
-      write(".metadata")
     case let type as FunctionType:
-      write("(")
-      for (idx, arg) in type.arguments.enumerated() {
-        write(arg)
-        if idx != type.arguments.count - 1 {
-          write(", ")
-        }
-      }
-      write(") -> ")
-      write(type.returnType)
-    case let type as RecordType:
-      write(type.name.string)
-    case is BottomType:
-      write("⊥")
+      let pieces =
+        type.arguments.map { escape(name(for: $0)) }
+          .joined(separator: ", ")
+      write("(\(pieces)) -> \(escape(name(for: type.returnType)))")
     default:
-      fatalError("attempt to write unknown type: \(type)")
+      write(escape(name(for: type)))
     }
   }
 
@@ -113,12 +105,11 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   }
 
   public func asReference(_ callee: Value) -> String {
-    switch callee {
-    case let callee as Continuation:
-      return "@\(callee.name)"
-    default:
-      return "%\(callee.name)"
+    let escaped = escape(callee.name)
+    if callee is Continuation {
+      return "@\(escaped)"
     }
+    return "%\(escaped)"
   }
 
   public func write(_ continuation: Continuation) {
@@ -137,4 +128,24 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     }
     writeLine("}")
   }
+}
+
+func name(for type: Type) -> String {
+  switch type {
+  case let type as DataType:
+    return type.name.string
+  case let type as RecordType:
+    return type.name.string
+  case let type as TypeMetadataType:
+    return name(for: type.type) + ".metadata"
+  case is BottomType:
+    return "⊥"
+  default:
+    fatalError("attempt to write unknown type: \(type)")
+  }
+}
+
+func escape(_ name: String) -> String {
+  guard name.contains(" ") || name.contains(",") else { return name }
+  return "\"\(name)\""
 }

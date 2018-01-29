@@ -9,9 +9,11 @@ import Foundation
 
 public class Value: Hashable {
   let name: String
+  var type: Type
 
-  init(name: String) {
+  init(name: String, type: Type) {
     self.name = name
+    self.type = type
   }
 
   /// All values are equatable and hashable using reference equality and
@@ -29,13 +31,11 @@ public class Value: Hashable {
 public class Parameter: Value {
   let parent: Continuation
   let index: Int
-  let type: Type
 
   init(parent: Continuation, index: Int, type: Type, name: String) {
     self.parent = parent
     self.index = index
-    self.type = type
-    super.init(name: name)
+    super.init(name: name, type: type)
   }
 }
 

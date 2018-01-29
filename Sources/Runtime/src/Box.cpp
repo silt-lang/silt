@@ -6,6 +6,8 @@
 /// available in the repository.
 
 #include "silt/Box.h"
+#include <cstdlib>
+#include <cstring>
 
 void *silt_copyValue(void *dst, void *src) {
   auto srcBox = reinterpret_cast<silt::Value *>(src);
