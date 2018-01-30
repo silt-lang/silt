@@ -10,30 +10,37 @@ import Lithosphere
 
 extension Diagnostic.Message {
   static func unknownType(_ type: Type) -> Diagnostic.Message {
-    return .init(.error, "unknown Graph IR type '\(name(for: type))'")
+    return .init(.error, "Graph IR: unknown type '\(name(for: type))'")
   }
   static func continuationHasNoCall(
     _ continuation: Continuation) -> Diagnostic.Message {
-    return .init(.error, "continuation '\(continuation.name)' has no call")
+    return .init(.error,
+                 """
+                 Graph IR: continuation '\(continuation.name)' has no call
+                 """)
   }
   static func callingNonFunction(_ type: Type) -> Diagnostic.Message {
     return .init(.error,
-                 "attempt to call non-function type '\(name(for: type))'")
+                 """
+                 Graph IR: attempt to call non-function type \
+                 '\(name(for: type))'
+                 """)
   }
   static func arityMismatch(function: Value, expected: Int,
                             got: Int) -> Diagnostic.Message {
     let qualifier = expected > got ? "few" : "many"
+    let kind = function is Continuation ? "function" : "value"
     return .init(.error,
                  """
-                 too \(qualifier) arguments to '\(function.name)'; \
-                 expected \(expected), got \(got)
+                 Graph IR: too \(qualifier) arguments to Graph IR \(kind) \
+                 '\(function.name)'; expected \(expected), got \(got)
                  """)
   }
   static func typeMismatch(expected: Type, got: Type) -> Diagnostic.Message {
     return .init(.error,
                  """
-                 type mismatch (expected '\(name(for: expected))', got \
-                 '\(name(for: got))')
+                 Graph IR: type mismatch (expected '\(name(for: expected))', \
+                 got '\(name(for: got))')
                  """)
   }
 }
@@ -53,12 +60,14 @@ public final class IRVerifier {
       return module.knownRecordTypes.contains(type)
     case let type as FunctionType:
       return module.knownFunctionTypes.contains(type)
-    case let type as TypeMetadataType:
-      return module.knownMetadataTypes.contains(type)
     case let type as DataType:
       return module.knownDataTypes.contains(type)
     case let type as BottomType:
       return module.bottomType === type
+    case let type as TypeMetadataType:
+      return module.metadataType === type
+    case let type as TypeType:
+      return module.typeType === type
     default:
       return false
     }

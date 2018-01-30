@@ -52,9 +52,15 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     writeLine("-- module: \"\(module.name)\"")
     writeLine()
     for data in module.knownDataTypes {
-      writeLine("data \(escape(data.name.string)) {")
-      for constr in data.constructors {
-        withIndent {
+      write("data \(escape(data.name.string)) ")
+      for param in data.parameters {
+        write("(\(escape(param.name.string)) : ")
+        write(param.type)
+        write(") ")
+      }
+      writeLine("{")
+      withIndent {
+        for constr in data.constructors {
           writeIndent()
           write("\(escape(constr.name.string)) : ")
           write(constr.type)
@@ -136,8 +142,10 @@ func name(for type: Type) -> String {
     return type.name.string
   case let type as RecordType:
     return type.name.string
-  case let type as TypeMetadataType:
-    return name(for: type.type) + ".metadata"
+  case is TypeMetadataType:
+    return "TypeMetadata"
+  case is TypeType:
+    return "Type"
   case is BottomType:
     return "⊥"
   default:

@@ -8,6 +8,19 @@
 import Foundation
 import Moho
 
+public struct NameAndType: Hashable {
+  public let name: QualifiedName
+  public unowned let type: Type
+
+  public static func ==(lhs: NameAndType, rhs: NameAndType) -> Bool {
+    return lhs.name == rhs.name && lhs.type == rhs.type
+  }
+
+  public var hashValue: Int {
+    return name.string.hashValue ^ ObjectIdentifier(type).hashValue
+  }
+}
+
 public class Type: Hashable {
   public static func ==(lhs: Type, rhs: Type) -> Bool {
     return lhs.equals(rhs)
@@ -23,42 +36,29 @@ public class Type: Hashable {
 }
 
 public final class TypeMetadataType: Type {
-  public unowned let type: Type
-
-  init(type: Type) {
-    self.type = type
-  }
-
   public override func equals(_ other: Type) -> Bool {
-    guard let other = other as? TypeMetadataType else { return false }
-    return type == other.type
+    return other is TypeMetadataType
   }
-
   public override var hashValue: Int {
-    return type.hashValue ^ 0xbab8394b
+    return 0
+  }
+}
+
+public final class TypeType: Type {
+  public override func equals(_ other: Type) -> Bool {
+    return other is TypeType
+  }
+  public override var hashValue: Int {
+    return 0
   }
 }
 
 public final class DataType: Type {
-  public struct Constructor: Hashable {
-    public let name: QualifiedName
-    public unowned let type: Type
-
-    public init(name: QualifiedName, type: Type) {
-      self.name = name
-      self.type = type
-    }
-
-    public static func ==(lhs: Constructor, rhs: Constructor) -> Bool {
-      return lhs.name == rhs.name && lhs.type == rhs.type
-    }
-
-    public var hashValue: Int {
-      return name.string.hashValue ^ ObjectIdentifier(type).hashValue
-    }
-  }
+  public typealias Parameter = NameAndType
+  public typealias Constructor = NameAndType
   public let name: QualifiedName
   public private(set) var constructors = [Constructor]()
+  public private(set) var parameters = [Parameter]()
 
   init(name: QualifiedName) {
     self.name = name
@@ -68,13 +68,22 @@ public final class DataType: Type {
     constructors.append(Constructor(name: name, type: type))
   }
 
+  public func addParameter(name: QualifiedName, type: Type) {
+    parameters.append(Parameter(name: name, type: type))
+  }
+
   public override func equals(_ other: Type) -> Bool {
     guard let other = other as? DataType else { return false }
-    return name == other.name && constructors == other.constructors
+    return name == other.name &&
+           constructors == other.constructors &&
+           parameters == other.parameters
   }
 
   public override var hashValue: Int {
     var h = name.hashValue
+    for param in parameters {
+      h ^= param.hashValue
+    }
     for constr in constructors {
       h ^= constr.hashValue
     }
@@ -83,23 +92,7 @@ public final class DataType: Type {
 }
 
 public final class RecordType: Type {
-  public struct Field: Hashable {
-    public let name: QualifiedName
-    public unowned let type: Type
-
-    public init(name: QualifiedName, type: Type) {
-      self.name = name
-      self.type = type
-    }
-
-    public static func ==(lhs: Field, rhs: Field) -> Bool {
-      return lhs.name == rhs.name && lhs.type === rhs.type
-    }
-
-    public var hashValue: Int {
-      return name.string.hashValue ^ ObjectIdentifier(type).hashValue
-    }
-  }
+  public typealias Field = NameAndType
   public let name: QualifiedName
   public private(set) var fields = [Field]()
 

@@ -14,9 +14,10 @@ public final class Module {
   public private(set) var continuations = [Continuation]()
   public private(set) var knownFunctionTypes = Set<FunctionType>()
   public private(set) var knownRecordTypes = Set<RecordType>()
-  public private(set) var knownMetadataTypes = Set<TypeMetadataType>()
   public private(set) var knownDataTypes = Set<DataType>()
   public let bottomType = BottomType()
+  public let metadataType = TypeMetadataType()
+  public let typeType = TypeType()
 
   public init(name: String = "main") {
     self.name = name
@@ -38,11 +39,6 @@ public final class Module {
                            returnType: Type) -> FunctionType {
     let function = FunctionType(arguments: arguments, returnType: returnType)
     return knownFunctionTypes.getOrInsert(function)
-  }
-
-  public func metadataType(type: Type) -> TypeMetadataType {
-    let meta = TypeMetadataType(type: type)
-    return knownMetadataTypes.getOrInsert(meta)
   }
 
   public func dataType(name: QualifiedName,

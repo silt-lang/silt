@@ -127,11 +127,12 @@ public struct Invocation {
         run(Pass(name: "Dump GIR") { module, _ in
           let module = Module(name: "main")
           let builder = IRBuilder(module: module)
-          let natType = module.dataType(name: "F,R") {
-            $0.addConstructor(name: "Z",
+          let natType = module.dataType(name: "List") {
+            $0.addParameter(name: "A", type: module.typeType)
+            $0.addConstructor(name: "[]",
                               type: module.functionType(arguments: [],
                                                         returnType: $0))
-            $0.addConstructor(name: "S",
+            $0.addConstructor(name: "_::_",
                               type: module.functionType(arguments: [$0],
                                                         returnType: $0))
           }
