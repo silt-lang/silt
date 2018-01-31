@@ -113,9 +113,3 @@ public struct QualifiedName: Hashable, CustomStringConvertible {
     return self.description
   }
 }
-
-extension QualifiedName: ExpressibleByStringLiteral {
-  public init(stringLiteral value: String) {
-    self.init(name: value)
-  }
-}

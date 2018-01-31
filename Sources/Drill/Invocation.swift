@@ -125,20 +125,23 @@ public struct Invocation {
         })
       case .dump(.gir):
         run(Pass(name: "Dump GIR") { module, _ in
+          let qual: (String) -> QualifiedName = {
+            return QualifiedName(name: $0)
+          }
           let module = Module(name: "main")
           let builder = IRBuilder(module: module)
-          let natType = module.dataType(name: "List") {
-            $0.addParameter(name: "A", type: module.typeType)
-            $0.addConstructor(name: "[]",
+          let natType = module.dataType(name: qual("List")) {
+            $0.addParameter(name: qual("A"), type: module.typeType)
+            $0.addConstructor(name: qual("[]"),
                               type: module.functionType(arguments: [],
                                                         returnType: $0))
             let aArch = $0.archetype(at: 0)
-            $0.addConstructor(name: "_::_",
+            $0.addConstructor(name: qual("_::_"),
                               type: module.functionType(arguments: [aArch],
                                                         returnType: $0))
           }
-          let personRec = module.recordType(name: "Person") {
-            $0.addField(name: "age", type: natType)
+          let personRec = module.recordType(name: qual("Person")) {
+            $0.addField(name: qual("age"), type: natType)
           }
           let continuationTy =
             module.functionType(arguments: [], returnType: module.bottomType)

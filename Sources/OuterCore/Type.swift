@@ -72,7 +72,7 @@ public final class ArchetypeType: Type {
   }
 }
 
-public final class DataType: Type {
+public class ParameterizedType: Type {
   public struct Parameter: Hashable {
     let archetype: ArchetypeType
     let value: NameAndType
@@ -85,18 +85,7 @@ public final class DataType: Type {
       return archetype.hashValue ^ value.hashValue ^ 0x432fba397
     }
   }
-  public typealias Constructor = NameAndType
-  public let name: QualifiedName
-  public private(set) var constructors = [Constructor]()
   public private(set) var parameters = [Parameter]()
-
-  init(name: QualifiedName) {
-    self.name = name
-  }
-
-  public func addConstructor(name: QualifiedName, type: Type) {
-    constructors.append(Constructor(name: name, type: type))
-  }
 
   public func addParameter(name: QualifiedName, type: Type) {
     let archetype = ArchetypeType(type: self, index: parameters.count)
@@ -104,24 +93,37 @@ public final class DataType: Type {
     parameters.append(Parameter(archetype: archetype, value: value))
   }
 
-  public func archetype(at index: Int) -> ArchetypeType {
+  private func ensureValidIndex(_ index: Int) {
     guard index < parameters.count else {
       fatalError("""
-        attempt to access archetype \(index) for type with \
-        \(parameters.count) archetypes
-        """)
+                 attempt to use archetype at index \(index) for \
+                 type with \(parameters.count) archetypes
+                 """)
     }
+  }
+
+  public func archetype(at index: Int) -> ArchetypeType {
+    ensureValidIndex(index)
     return parameters[index].archetype
   }
 
   public func parameter(at index: Int) -> NameAndType {
-    guard index < parameters.count else {
-      fatalError("""
-        attempt to access parameter \(index) for type with \
-        \(parameters.count) parameter
-        """)
-    }
+    ensureValidIndex(index)
     return parameters[index].value
+  }
+}
+
+public final class DataType: ParameterizedType {
+  public typealias Constructor = NameAndType
+  public let name: QualifiedName
+  public private(set) var constructors = [Constructor]()
+
+  init(name: QualifiedName) {
+    self.name = name
+  }
+
+  public func addConstructor(name: QualifiedName, type: Type) {
+    constructors.append(Constructor(name: name, type: type))
   }
 
   public override func equals(_ other: Type) -> Bool {
@@ -143,7 +145,7 @@ public final class DataType: Type {
   }
 }
 
-public final class RecordType: Type {
+public final class RecordType: ParameterizedType {
   public typealias Field = NameAndType
   public let name: QualifiedName
   public private(set) var fields = [Field]()
@@ -158,13 +160,18 @@ public final class RecordType: Type {
 
   public override func equals(_ other: Type) -> Bool {
     guard let other = other as? RecordType else { return false }
-    return name == other.name && fields == other.fields
+    return name == other.name &&
+           fields == other.fields &&
+           parameters == other.parameters
   }
 
   public override var hashValue: Int {
     var h = name.hashValue
     for field in fields {
       h ^= field.hashValue
+    }
+    for param in parameters {
+      h ^= param.hashValue
     }
     return h
   }

@@ -53,12 +53,8 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     writeLine()
     for data in module.knownDataTypes {
       write("data \(escape(data.name.string)) ")
-      for param in data.parameters {
-        write("(\(escape(param.value.name.string)) : ")
-        write(param.value.type)
-        write(") ")
-      }
-      writeLine("{")
+      writeParameters(data)
+      write("{\n")
       withIndent {
         for constr in data.constructors {
           writeIndent()
@@ -71,7 +67,9 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
       writeLine()
     }
     for record in module.knownRecordTypes {
-      writeLine("record \(escape(record.name.string)) {")
+      write("record \(escape(record.name.string)) ")
+      writeParameters(record)
+      write("{\n")
       withIndent {
         for field in record.fields {
           writeIndent()
@@ -86,6 +84,14 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     for continuation in module.continuations {
       write(continuation)
       writeLine()
+    }
+  }
+
+  public func writeParameters(_ type: ParameterizedType) {
+    for param in type.parameters {
+      write("(\(escape(param.value.name.string)) : ")
+      write(param.value.type)
+      write(") ")
     }
   }
 
@@ -144,6 +150,9 @@ func name(for type: Type) -> String {
     return type.name.string
   case let type as ArchetypeType:
     return "\(name(for: type.type)).\(type.index)"
+  case let type as FunctionType:
+    let args = type.arguments.map(name(for:)).joined(separator: ", ")
+    return "(\(args)) -> \(name(for: type.returnType))"
   case is TypeMetadataType:
     return "TypeMetadata"
   case is TypeType:
