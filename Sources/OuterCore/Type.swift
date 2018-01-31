@@ -76,6 +76,14 @@ public final class DataType: Type {
   public struct Parameter: Hashable {
     let archetype: ArchetypeType
     let value: NameAndType
+
+    public static func ==(lhs: Parameter, rhs: Parameter) -> Bool {
+      return lhs.archetype == rhs.archetype && lhs.value == rhs.value.index
+    }
+
+    public override var hashValue: Int {
+      return archetype.hashValue ^ value.hashValue ^ 0x432fba397
+    }
   }
   public typealias Constructor = NameAndType
   public let name: QualifiedName

@@ -25,7 +25,7 @@ let package = Package(
       dependencies: ["Lithosphere", "Crust", "Moho", "Mantle", "Utility", "OuterCore"]),
     .target(
       name: "silt",
-      dependencies: ["Drill", "Utility", "Runtime"]),
+      dependencies: ["Drill", "Utility"]),
     .target(
       name: "SyntaxGen",
       dependencies: ["Utility"]),
@@ -42,11 +42,7 @@ let package = Package(
       name: "Mantle",
       dependencies: ["Lithosphere", "Moho", "Utility", "PrettyStackTrace"]),
     .target(
-      name: "Runtime",
-      dependencies: []),
-    .target(
       name: "OuterCore",
-      dependencies: ["Crust", "Moho", "Mantle", "Runtime"]),
-  ],
-  cxxLanguageStandard: .cxx14
+      dependencies: ["Crust", "Moho", "Mantle"]),
+  ]
 )
