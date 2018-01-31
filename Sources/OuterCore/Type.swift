@@ -53,8 +53,30 @@ public final class TypeType: Type {
   }
 }
 
+public final class ArchetypeType: Type {
+  unowned let type: Type
+  let index: Int
+
+  init(type: Type, index: Int) {
+    self.type = type
+    self.index = index
+  }
+
+  public override func equals(_ other: Type) -> Bool {
+    guard let other = other as? ArchetypeType else { return false }
+    return type == other.type && index == other.index
+  }
+
+  public override var hashValue: Int {
+    return ObjectIdentifier(type).hashValue ^ index.hashValue ^ 0x374b2947
+  }
+}
+
 public final class DataType: Type {
-  public typealias Parameter = NameAndType
+  public struct Parameter: Hashable {
+    let archetype: ArchetypeType
+    let value: NameAndType
+  }
   public typealias Constructor = NameAndType
   public let name: QualifiedName
   public private(set) var constructors = [Constructor]()
@@ -69,7 +91,29 @@ public final class DataType: Type {
   }
 
   public func addParameter(name: QualifiedName, type: Type) {
-    parameters.append(Parameter(name: name, type: type))
+    let archetype = ArchetypeType(type: self, index: parameters.count)
+    let value = NameAndType(name: name, type: type)
+    parameters.append(Parameter(archetype: archetype, value: value))
+  }
+
+  public func archetype(at index: Int) -> ArchetypeType {
+    guard index < parameters.count else {
+      fatalError("""
+        attempt to access archetype \(index) for type with \
+        \(parameters.count) archetypes
+        """)
+    }
+    return parameters[index].archetype
+  }
+
+  public func parameter(at index: Int) -> NameAndType {
+    guard index < parameters.count else {
+      fatalError("""
+        attempt to access parameter \(index) for type with \
+        \(parameters.count) parameter
+        """)
+    }
+    return parameters[index].value
   }
 
   public override func equals(_ other: Type) -> Bool {

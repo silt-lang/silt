@@ -11,6 +11,10 @@ data Bool : Type where
   false : Bool
   true  : Bool
 
+data List (A : Type) where
+  [] : List A
+  _::_ : A -> List A -> List A
+
 -- An operator is declared with '_' where the arguments go
 if_then_else_ : Bool -> {A : Type} -> A -> A -> A
 if true  then x else y = x

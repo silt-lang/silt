@@ -132,8 +132,9 @@ public struct Invocation {
             $0.addConstructor(name: "[]",
                               type: module.functionType(arguments: [],
                                                         returnType: $0))
+            let aArch = $0.archetype(at: 0)
             $0.addConstructor(name: "_::_",
-                              type: module.functionType(arguments: [$0],
+                              type: module.functionType(arguments: [aArch],
                                                         returnType: $0))
           }
           let personRec = module.recordType(name: "Person") {
