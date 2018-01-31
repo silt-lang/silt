@@ -78,10 +78,10 @@ public final class DataType: Type {
     let value: NameAndType
 
     public static func ==(lhs: Parameter, rhs: Parameter) -> Bool {
-      return lhs.archetype == rhs.archetype && lhs.value == rhs.value.index
+      return lhs.archetype == rhs.archetype && lhs.value == rhs.value
     }
 
-    public override var hashValue: Int {
+    public var hashValue: Int {
       return archetype.hashValue ^ value.hashValue ^ 0x432fba397
     }
   }
