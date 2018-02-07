@@ -65,10 +65,7 @@ extension TypeChecker {
                                               self.environment,
                                               SolvePhaseState(),
                                               options)
-    // We can solve in any order because we're using dynamic unification.
-    // Anecdotally tho, walking backwards seems to do the trick better
-    // than walking forwards.
-    for c in constraints.reversed() {
+    for c in constraints {
       solver.solve(c)
     }
     return self.environment
@@ -104,7 +101,7 @@ indirect enum SolverConstraint: CustomDebugStringConvertible {
   var debugDescription: String {
     switch self {
     case let .unify(_, ty, tm1, tm2):
-      return "\(tm1) : \(ty) == \(tm2): \(ty)"
+      return "\(tm1) : \(ty) == \(tm2) : \(ty)"
     case let .suppose(con1, con2):
       return "(\(con1.debugDescription)) => (\(con2.debugDescription))"
     case let .conjoin(cs):
@@ -286,11 +283,14 @@ extension TypeChecker where PhaseState == SolvePhaseState {
     in ctx: Context, _ type: Type<TT>, _ meta: Meta,
     _ elims: [Elim<Term<TT>>], _ term: Term<TT>
   ) -> SolverConstraints {
-    guard let inv = self.invert(elims) else {
+    let inversionResult = self.invert(elims)
+    guard case let .success(inv) = inversionResult else {
+      guard case let .failure(mvs) = inversionResult else { fatalError() }
+
       let fvs = self.freeVars(term).all
       guard let prunedMeta = self.tryPruneSpine(fvs, meta, elims) else {
         let metaTerm = TT.apply(.meta(meta), elims)
-        return [(Set([meta]), .unify(ctx, type, metaTerm, term))]
+        return [(mvs.union([meta]), .unify(ctx, type, metaTerm, term))]
       }
       let elimedMeta = self.eliminate(prunedMeta, elims)
       return self.unify((ctx, type, elimedMeta, term))

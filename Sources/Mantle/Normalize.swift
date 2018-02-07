@@ -200,8 +200,7 @@ extension TypeChecker {
             result = result.merge(self.matchClause(mergeEs, mergePats))
             continue
           default:
-            result = .failure(.fail(()))
-            break
+            return .failure(.fail(()))
           }
         }
       default:
