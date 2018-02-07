@@ -333,7 +333,7 @@ extension Clause: Substitutable {
     let substBody = try self.body
                             .applySubstitution(.lift(self.boundCount, subst),
                                                elim)
-    return Clause(pattern: self.pattern, body: substBody)
+    return Clause(patterns: self.patterns, body: substBody)
   }
 }
 

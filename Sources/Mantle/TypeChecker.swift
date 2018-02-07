@@ -15,8 +15,10 @@ public struct TypeCheckerDebugOptions: OptionSet {
   }
   public static let debugMetas =
     TypeCheckerDebugOptions(rawValue: 1 << 0)
-  public static let debugConstraints =
+  public static let debugNormalizedMetas =
     TypeCheckerDebugOptions(rawValue: 1 << 1)
+  public static let debugConstraints =
+    TypeCheckerDebugOptions(rawValue: 1 << 2)
 }
 
 public final class TypeChecker<PhaseState> {
