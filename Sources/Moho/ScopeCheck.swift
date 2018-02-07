@@ -118,7 +118,7 @@ extension NameBinding {
         return bindings.reversed().reduce(ee) { (acc, next) -> Expr in
           let boundNames: [Name] = next.names
           let paramAsc: Expr = next.ascription
-          return boundNames.dropFirst().reduce(paramAsc) { (acc, nm) -> Expr in
+          return boundNames.reduce(acc) { (acc, nm) -> Expr in
             return Expr.lambda((nm, paramAsc), acc)
           }
         }

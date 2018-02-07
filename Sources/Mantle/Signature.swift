@@ -159,23 +159,23 @@ extension Signature {
                                                 inside: newDef))
   }
 
-  func dumpMetas() {
+  func dumpMetas(_ normalize: (TT) -> TT) {
     print("=========SOLVED META BINDINGS=========")
     for mv in self.metaTypes.keys.sorted() {
       guard let mt = self.metaTypes[mv] else {
         fatalError("Failed to retrieve with metaTypes' own keys?")
       }
 
-      print(mv, ":", mt.description)
+      print(mv, ":", normalize(mt).description)
       guard let mb = self.metaBindings[mv] else {
         print(mv, ":=", "[NO BINDING]")
         continue
       }
       guard let metaSource = self.metaSources[mv] else {
-        print(mv, ":=", mb.internalize.description)
+        print(mv, ":=", normalize(mb.internalize).description)
         continue
       }
-      print(mv, ":=", mb.internalize.description,
+      print(mv, ":=", normalize(mb.internalize).description,
             "[ from", metaSource.description, "]")
     }
     print("======================================")

@@ -118,6 +118,13 @@ extension TypeChecker {
       }
       return prunes.reduce(false, { $0 || $1})
     case let .apply(.definition(f), _):
+      // HACK: Let bindings are ill-constraint and leaking into the outer
+      // environment and affecting downstream metas.  This stops Pruning from
+      // crashing but the better fix is to properly implement local bindings.
+      let def = self.signature.lookupDefinition(f.key)!
+      if case .letBinding(_, _) = def.inside {
+        return nil
+      }
       guard self.isNeutral(f) else {
         return nil
       }

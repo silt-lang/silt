@@ -51,6 +51,47 @@ enum Blocked {
 }
 
 extension TypeChecker {
+  /// Evaluates a TT term.
+  ///
+  /// This strategy is the most drastic form of evaluation and also the most
+  /// expensive.  In most cases WHNF suffices.
+  func toNormalForm(_ t: TT) -> TT {
+    let normTerm = self.toWeakHeadNormalForm(t).ignoreBlocking
+    switch normTerm {
+    case .refl:
+      return .refl
+    case .type:
+      return .type
+    case let .lambda(body):
+      return .lambda(self.toNormalForm(body))
+    case let .pi(dom, cod):
+      return .pi(self.toNormalForm(dom), self.toNormalForm(cod))
+    case let .equal(A, x, y):
+      return .equal(self.toNormalForm(A),
+                    self.toNormalForm(x), self.toNormalForm(y))
+    case let .constructor(dataCon, args):
+      return .constructor(dataCon.mapArgs(self.toNormalForm),
+                          args.map(self.toNormalForm))
+    case let .apply(h, args):
+      let newArgs = args.map({ (a) -> Elim<TT> in
+        switch a {
+        case let .apply(tt):
+          return .apply(self.toNormalForm(tt))
+        case .project(_):
+          return a
+        }
+      })
+      switch h {
+      case .meta(_):
+        return TT.apply(h, newArgs)
+      case .variable(_):
+        return TT.apply(h, newArgs)
+      case let .definition(def):
+        return TT.apply(.definition(def.mapArgs(self.toNormalForm)), newArgs)
+      }
+    }
+  }
+
   /// Reduces a TT term to head normal form, and produces a representation of
   /// any new problems encountered during the reduction.
   ///
@@ -76,10 +117,7 @@ extension TypeChecker {
       let clauses = inv.ignoreInvertibility.map { clause in
         return self.forceInstantiate(clause, name.args)
       }
-      print(clauses)
-      print(es)
-      fatalError()
-//      return self.eliminateClauses(clauses, es)
+      return self.eliminateClauses(name, clauses, es)
 
     // If we have an application with an unknown callee, try to
     // eagerly solve for it if possible.
@@ -101,6 +139,78 @@ extension TypeChecker {
     default:
       return .notBlocked(t)
     }
+  }
+
+  private func eliminateClauses(
+    _ name: Opened<QualifiedName, TT>, _ cs: [Clause], _ es: [Elim<TT>]
+  ) -> Blocked {
+    guard !cs.isEmpty else {
+      return .notBlocked(TT.apply(.definition(name), es))
+    }
+
+    for clause in cs {
+      switch self.matchClause(es, clause.patterns) {
+      case let .success((args, remainingElims)):
+        let instBody = self.forceInstantiate(clause.body, args)
+        return self.toWeakHeadNormalForm(self.eliminate(instBody,
+                                                        remainingElims))
+      case let .failure(.collect(mvs)):
+        return Blocked.onMetas(mvs, .onFunction(name), es)
+      case .failure(.fail(_)):
+        continue
+      }
+    }
+    return .notBlocked(TT.apply(.definition(name), es))
+  }
+
+  typealias ClauseMatch = Validation<Collect<(), Set<Meta>>, ([TT], [Elim<TT>])>
+  /// Tries a verbatim match of the eliminations to the pattern list.
+  ///
+  /// - Fails immediately if the eliminations are incompatible with the clause
+  ///   patterns
+  /// - Fails with metas if we became blocked while evaluating this pattern.
+  /// - Succeeds with the arguments to apply and the remaining unapplied elims.
+  private func matchClause(_ es: [Elim<TT>], _ ps: [Pattern]) -> ClauseMatch {
+    var result = ClauseMatch.success(([], es))
+    guard !ps.isEmpty else {
+      return result
+    }
+    var idx = 0
+    var arguments = [TT]()
+    arguments.reserveCapacity(ps.count)
+    for (elim, pattern) in zip(es, ps) {
+      defer { idx += 1 }
+      switch (elim, pattern) {
+      case let (.apply(arg), .variable(_)):
+        arguments.append(arg)
+        continue
+      case let (.apply(arg), .constructor(con1, conPatterns)):
+        switch self.toWeakHeadNormalForm(arg) {
+        case let .onHead(bl, _):
+          result = result.merge(.failure(.collect([bl])))
+          continue
+        case let .onMetas(mvs, _, _):
+          result = result.merge(.failure(.collect(mvs)))
+          continue
+        case let .notBlocked(t):
+          switch t {
+          case let .constructor(con2, conArgs) where con1.key == con2.key:
+            let mergeEs = conArgs.map({Elim<TT>.apply($0)}) + es
+            let mergePats = conPatterns + ps.dropFirst(idx)
+            result = result.merge(self.matchClause(mergeEs, mergePats))
+            continue
+          default:
+            return .failure(.fail(()))
+          }
+        }
+      default:
+        return .failure(.fail(()))
+      }
+    }
+    guard case .success(_) = result else {
+      return result
+    }
+    return .success((arguments, es))
   }
 
   /// Apply a list of eliminations to a term.

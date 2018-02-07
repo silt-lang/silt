@@ -83,6 +83,13 @@ func parseOptions() -> Options {
         opt.typeCheckerDebugOptions.insert(.debugMetas)
       }
     })
+  binder.bind(
+    option: cli.add(option: "--debug-normalized-metas", kind: Bool.self),
+    to: { opt, r in
+      if r {
+        opt.typeCheckerDebugOptions.insert(.debugNormalizedMetas)
+      }
+  })
   binder.bindArray(
     positional: cli.add(
       positional: "",

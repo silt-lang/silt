@@ -22,8 +22,11 @@ public final class CheckPhaseState {
 extension TypeChecker where PhaseState == CheckPhaseState {
   public func checkTopLevelModule(_ syntax: DeclaredModule) -> Module {
     let module = checkModule(syntax)
-    if options.contains(.debugMetas) {
-      self.signature.dumpMetas()
+    if self.options.contains(.debugMetas) {
+      self.signature.dumpMetas({ $0 })
+    }
+    if self.options.contains(.debugNormalizedMetas) {
+      self.signature.dumpMetas(self.toNormalForm)
     }
     return module
   }
@@ -67,7 +70,9 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         return self.checkModuleCommon(mod)
       case let .letBinding(name, clause):
         return self.checkLetBinding(name, clause)
-      default:
+      case .importDecl(_, _):
+        fatalError()
+      case .openImport(_):
         fatalError()
       }
     }
@@ -345,7 +350,6 @@ extension TypeChecker where PhaseState == CheckPhaseState {
 
       var type = ty
       var head = h
-      var constrs = SolverConstraints()
       var idx = 1
       for (elim1, elim2) in zip(elims1, elims2) {
         defer { idx += 1 }
@@ -441,11 +445,13 @@ extension TypeChecker where PhaseState == CheckPhaseState {
       switch synPat {
       case let .variable(name):
         // The type is already scoped over a single variable, so we're fine.
+        let ttVar = Var(name, UInt(self.environment.asContext.count))
         self.extendEnvironment([(name, patType)])
-        return (.variable, type)
+        return (.variable(ttVar), type)
       case .wild:
+        let ttVar = Var(wildcardName, UInt(self.environment.asContext.count))
         self.extendEnvironment([(wildcardName, patType)])
-        return (.variable, type)
+        return (.variable(ttVar), type)
       case let .constructor(dataCon, synPats):
         // Use the data constructor to locate back up the parent so we can
         // retrieve its argument telescope.
@@ -526,7 +532,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
           fatalError("")
         case let .body(body, _ /*whereDecls*/):
           let body = self.checkExpr(body, type)
-          return Clause(pattern: pats, body: body)
+          return Clause(patterns: pats, body: body)
         }
       }
     }

@@ -83,6 +83,10 @@ public struct Opened<K, T> {
   func reKey<L>(_ f: (K) -> L) -> Opened<L, T> {
     return Opened<L, T>(f(self.key), self.args)
   }
+
+  func mapArgs<U>(_ f: (Term<T>) -> U) -> Opened<K, U> {
+    return Opened<K, U>(self.key, self.args.map(f))
+  }
 }
 
 extension Opened where K: Equatable, T: Equatable {
@@ -484,7 +488,7 @@ public struct Meta: Comparable, Hashable, CustomStringConvertible {
 // MARK: Patterns
 
 public enum Pattern {
-  case variable
+  case variable(Var)
   case constructor(Opened<QualifiedName, TT>, [Pattern])
 }
 
@@ -510,16 +514,16 @@ public struct Projection: Equatable {
 // MARK: Clauses
 
 public struct Clause {
-  let pattern: [Pattern]
+  let patterns: [Pattern]
   let body: Term<TT>
 
   var boundCount: Int {
-    return self.pattern.reduce(0) { (acc, next) in
+    return self.patterns.reduce(0) { (acc, next) in
       switch next {
-      case .variable:
+      case .variable(_):
         return 1 + acc
       case .constructor(_, let pats):
-        return acc + Clause(pattern: pats, body: TT.type).boundCount
+        return acc + Clause(patterns: pats, body: TT.type).boundCount
       }
     }
   }

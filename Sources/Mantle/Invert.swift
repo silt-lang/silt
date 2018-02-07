@@ -33,14 +33,22 @@ extension TypeChecker {
   /// Given a metavariable `($0: T)` with spine `[e1, e2, ..., en]` and a
   /// target term `t`, inversion attempts to find a value for `$0` that solves
   /// the equation `$0[e1, e2, ..., en] ≡ t`.
-  func invert(_ elims: [Elim<Term<TT>>]) -> Inversion? {
+  func invert(_ elims: [Elim<Term<TT>>]) -> Validation<Set<Meta>, Inversion> {
     guard let args = elims.mapM({ $0.applyTerm }) else {
-      return nil
+      return .failure([])
     }
-    guard let mvArgs = args.mapM(self.checkSpineArgument) else {
-      return nil
+    let mvArgs = args.mapM(self.checkSpineArgument)
+    switch mvArgs {
+    case .failure(.fail(_)):
+      return .failure([])
+    case let .failure(.collect(mvs)):
+      return .failure(mvs)
+    case let .success(mvArgs):
+      guard let inv = self.tryGenerateInversion(mvArgs) else {
+        return .failure([])
+      }
+      return .success(inv)
     }
-    return self.tryGenerateInversion(mvArgs)
   }
 
   /// Checks that the pattern condition holds before generating an inversion.
@@ -60,23 +68,26 @@ extension TypeChecker {
     return Inversion(substitution: subs, arity: subs.count)
   }
 
-  func checkSpineArgument(_ arg: Term<TT>) -> Var? {
+  typealias SpineCheck = Validation<Collect<(), Set<Meta>>, Var>
+  func checkSpineArgument(_ arg: Term<TT>) -> SpineCheck {
     switch self.toWeakHeadNormalForm(arg) {
     case let .notBlocked(t):
       switch self.toWeakHeadNormalForm(self.etaContract(t)).ignoreBlocking {
       case let .apply(.variable(v), vArgs):
         guard vArgs.mapM({ $0.projectTerm }) != nil else {
-          return nil
+          return .failure(.fail(()))
         }
-        return v
+        return .success(v)
       case let .constructor(dataCon, dataArgs):
         print(dataCon, dataArgs)
         fatalError("Support inversion of constructor spines")
       default:
-        return nil
+        return .failure(.fail(()))
       }
-    case .onHead(_, _), .onMetas(_, _, _):
-      return nil
+    case let .onHead(mv, _):
+      return .failure(.collect([mv]))
+    case let .onMetas(mvs, _, _):
+      return .failure(.collect(mvs))
     }
   }
 }
