@@ -33,7 +33,7 @@ public final class Continuation: Value {
     case functionHead(parent: Continuation)
   }
   let env = Environment()
-  var call: Call?
+  var call: Apply?
   var destructors = [Destructor]()
   var parameters = [Parameter]()
   weak var module: Module?
@@ -42,11 +42,11 @@ public final class Continuation: Value {
   var successors = OrderedSet<Continuation>()
 
   init(name: String) {
-    super.init(name: name, type: /* will be overwritten */BottomType())
+    super.init(name: name, type: /* will be overwritten */BottomType.shared)
   }
 
   @discardableResult
-  public func appendParameter(type: Type, name: String? = nil) -> Parameter {
+  public func appendParameter(type: Value, name: String? = nil) -> Parameter {
     let param = Parameter(parent: self, index: parameters.count,
                           type: type, name: env.makeUnique(name))
     parameters.append(param)
@@ -54,10 +54,10 @@ public final class Continuation: Value {
   }
 
   public func setCall(_ callee: Value, _ args: [Value]) {
-    self.call = Call(callee: callee, args: args)
+    self.call = Apply(callee: callee, args: args)
   }
 
-  override var type: Type {
+  override var type: Value {
     get {
       guard let module = module else {
         fatalError("cannot get type of Continuation without module")
@@ -69,7 +69,23 @@ public final class Continuation: Value {
   }
 }
 
-public struct Call {
+public class Apply: Value {
   public let callee: Value
   public let args: [Value]
+
+  init(callee: Value, args: [Value]) {
+    self.callee = callee
+    self.args = args
+    super.init(name: "", type: /* will be overwritten */BottomType())
+  }
+
+  override var type: Value {
+    get {
+      guard let fnTy = callee.type as? FunctionType else {
+        return BottomType()
+      }
+      return fnTy.returnType
+    }
+    set { /* do nothing */ }
+  }
 }

@@ -43,19 +43,38 @@ extension Diagnostic.Message {
                  got '\(name(for: got))')
                  """)
   }
+
+  static func unsubstitutedType(
+    _ type: ParameterizedType) -> Diagnostic.Message {
+    return .init(.error,
+                 """
+                 Graph IR: type \(name(for: type)) must have all parameters \
+                 substituted
+                 """)
+  }
 }
 
 public final class IRVerifier {
   let module: Module
   let engine: DiagnosticEngine
 
+  var currentScopedValues = Set<Value>()
+
   public init(module: Module, engine: DiagnosticEngine) {
     self.module = module
     self.engine = engine
   }
 
-  func typeIsKnown(_ type: Type) -> Bool {
-    switch type {
+  func withScope<T>(_ actions: () -> T) -> T {
+    let oldScope = currentScopedValues
+    defer {
+      currentScopedValues = oldScope
+    }
+    return actions()
+  }
+
+  func valueIsKnown(_ value: Value) -> Bool {
+    switch value {
     case let type as RecordType:
       return module.knownRecordTypes.contains(type)
     case let type as FunctionType:
@@ -69,23 +88,30 @@ public final class IRVerifier {
     case let type as TypeType:
       return module.typeType === type
     case let type as ArchetypeType:
-      return typeIsKnown(type.type)
+      return valueIsKnown(type.parent)
     case let type as SubstitutedType:
-      guard typeIsKnown(type.type) else { return false }
+      guard valueIsKnown(type.substitutee) else { return false }
       for (arch, subst) in type.substitutions {
-        guard typeIsKnown(arch) else { return false }
-        guard typeIsKnown(subst) else { return false }
+        guard valueIsKnown(arch) else { return false }
+        guard valueIsKnown(subst) else { return false }
       }
       return true
     default:
-      return false
+      return currentScopedValues.contains(value)
     }
   }
 
-  func ensureKnown(_ type: Type) -> Bool {
-    guard typeIsKnown(type) else {
+  func verifyType(_ type: Value) -> Bool {
+    guard valueIsKnown(type) else {
       engine.diagnose(.unknownType(type))
       return false
+    }
+    switch type {
+    case let type as ParameterizedType:
+      engine.diagnose(.unsubstitutedType(type))
+      return false
+    default:
+      break
     }
     return true
   }
@@ -100,34 +126,37 @@ public final class IRVerifier {
   }
 
   func verify(_ continuation: Continuation) -> Bool {
-    var allValid = true
-    for parameter in continuation.parameters {
-      allValid &= ensureKnown(parameter.type)
-    }
-    guard let call = continuation.call else {
-      engine.diagnose(.continuationHasNoCall(continuation))
-      return false
-    }
-    guard let fnType = call.callee.type as? FunctionType else {
-      engine.diagnose(.callingNonFunction(call.callee.type))
-      return false
-    }
-
-    guard fnType.arguments.count == call.args.count else {
-      engine.diagnose(.arityMismatch(function: call.callee,
-                                     expected: fnType.arguments.count,
-                                     got: call.args.count))
-      return false
-    }
-    for (arg, param) in zip(call.args, fnType.arguments) {
-      allValid &= ensureKnown(arg.type)
-      allValid &= ensureKnown(param)
-      guard arg.type === param else {
-        engine.diagnose(.typeMismatch(expected: param, got: arg.type))
+    return withScope {
+      var allValid = true
+      for parameter in continuation.parameters {
+        currentScopedValues.insert(parameter)
+        allValid &= verifyType(parameter.type)
+      }
+      guard let call = continuation.call else {
+        engine.diagnose(.continuationHasNoCall(continuation))
         return false
       }
+      guard let fnType = call.callee.type as? FunctionType else {
+        engine.diagnose(.callingNonFunction(call.callee.type))
+        return false
+      }
+
+      guard fnType.arguments.count == call.args.count else {
+        engine.diagnose(.arityMismatch(function: call.callee,
+                                       expected: fnType.arguments.count,
+                                       got: call.args.count))
+        return false
+      }
+      for (arg, param) in zip(call.args, fnType.arguments) {
+        allValid &= verifyType(arg.type)
+        allValid &= verifyType(param)
+        guard arg.type === param else {
+          engine.diagnose(.typeMismatch(expected: param, got: arg.type))
+          return false
+        }
+      }
+      return allValid
     }
-    return allValid
   }
 }
 

@@ -6,10 +6,9 @@
 /// available in the repository.
 
 import Foundation
-import Moho
 
 public struct NameAndType: Hashable {
-  public let name: QualifiedName
+  public let name: String
   public unowned let type: Type
 
   public static func ==(lhs: NameAndType, rhs: NameAndType) -> Bool {
@@ -17,26 +16,15 @@ public struct NameAndType: Hashable {
   }
 
   public var hashValue: Int {
-    return name.string.hashValue ^ ObjectIdentifier(type).hashValue
-  }
-}
-
-public class Type: Hashable {
-  public static func ==(lhs: Type, rhs: Type) -> Bool {
-    return lhs.equals(rhs)
-  }
-
-  public func equals(_ other: Type) -> Bool {
-    return self === other
-  }
-
-  public var hashValue: Int {
-    return "\(ObjectIdentifier(self).hashValue)".hashValue
+    return name.hashValue ^ ObjectIdentifier(type).hashValue
   }
 }
 
 public final class TypeMetadataType: Type {
-  public override func equals(_ other: Type) -> Bool {
+  init() {
+    super.init(name: "", type: TypeType.shared)
+  }
+  public override func equals(_ other: Value) -> Bool {
     return other is TypeMetadataType
   }
   public override var hashValue: Int {
@@ -45,30 +33,46 @@ public final class TypeMetadataType: Type {
 }
 
 public final class TypeType: Type {
-  public override func equals(_ other: Type) -> Bool {
+  static let shared = TypeType()
+
+  init() {
+    let typeType =
+      /// HACK: This only exists to appease the typechecker.
+      unsafeBitCast(nil as TypeType?, to: TypeType.self)
+    super.init(name: "", type: typeType)
+  }
+
+  public override var type: Value {
+    get { return self }
+    set { /* do nothing */ }
+  }
+
+  public override func equals(_ other: Value) -> Bool {
     return other is TypeType
   }
+
   public override var hashValue: Int {
     return 0
   }
 }
 
 public final class ArchetypeType: Type {
-  unowned let type: ParameterizedType
+  unowned let parent: ParameterizedType
   let index: Int
 
-  init(type: ParameterizedType, index: Int) {
-    self.type = type
+  init(parent: ParameterizedType, index: Int) {
+    self.parent = parent
     self.index = index
+    super.init(name: "", type: TypeType.shared)
   }
 
-  public override func equals(_ other: Type) -> Bool {
+  public override func equals(_ other: Value) -> Bool {
     guard let other = other as? ArchetypeType else { return false }
-    return type == other.type && index == other.index
+    return parent == other.parent && index == other.index
   }
 
   public override var hashValue: Int {
-    return ObjectIdentifier(type).hashValue ^ index.hashValue ^ 0x374b2947
+    return ObjectIdentifier(parent).hashValue ^ index.hashValue ^ 0x374b2947
   }
 }
 
@@ -88,8 +92,12 @@ public class ParameterizedType: Type {
   public private(set) var parameters = [Parameter]()
   public private(set) var substitutions = Set<SubstitutedType>()
 
-  public func addParameter(name: QualifiedName, type: Type) {
-    let archetype = ArchetypeType(type: self, index: parameters.count)
+  init(name: String, indices: Type) {
+    super.init(name: name, type: indices)
+  }
+
+  public func addParameter(name: String, type: Type) {
+    let archetype = ArchetypeType(parent: self, index: parameters.count)
     let value = NameAndType(name: name, type: type)
     parameters.append(Parameter(archetype: archetype, value: value))
   }
@@ -104,7 +112,7 @@ public class ParameterizedType: Type {
   }
 
   public func substituted(_ substitutions: [Type: Type]) -> SubstitutedType {
-    let subst = SubstitutedType(type: self, substitutions: substitutions)
+    let subst = SubstitutedType(substitutee: self, substitutions: substitutions)
     return self.substitutions.getOrInsert(subst)
   }
 
@@ -121,18 +129,13 @@ public class ParameterizedType: Type {
 
 public final class DataType: ParameterizedType {
   public typealias Constructor = NameAndType
-  public let name: QualifiedName
   public private(set) var constructors = [Constructor]()
 
-  init(name: QualifiedName) {
-    self.name = name
-  }
-
-  public func addConstructor(name: QualifiedName, type: Type) {
+  public func addConstructor(name: String, type: Type) {
     constructors.append(Constructor(name: name, type: type))
   }
 
-  public override func equals(_ other: Type) -> Bool {
+  public override func equals(_ other: Value) -> Bool {
     guard let other = other as? DataType else { return false }
     return name == other.name &&
            constructors == other.constructors &&
@@ -151,20 +154,17 @@ public final class DataType: ParameterizedType {
   }
 }
 
+public typealias Type = Value
+
 public final class RecordType: ParameterizedType {
   public typealias Field = NameAndType
-  public let name: QualifiedName
   public private(set) var fields = [Field]()
 
-  init(name: QualifiedName) {
-    self.name = name
-  }
-
-  public func addField(name: QualifiedName, type: Type) {
+  public func addField(name: String, type: Type) {
     fields.append(Field(name: name, type: type))
   }
 
-  public override func equals(_ other: Type) -> Bool {
+  public override func equals(_ other: Value) -> Bool {
     guard let other = other as? RecordType else { return false }
     return name == other.name &&
            fields == other.fields &&
@@ -190,9 +190,10 @@ public final class FunctionType: Type {
   init(arguments: [Type], returnType: Type) {
     self.arguments = UnownedArray(values: arguments)
     self.returnType = returnType
+    super.init(name: "", type: TypeType.shared)
   }
 
-  public override func equals(_ other: Type) -> Bool {
+  public override func equals(_ other: Value) -> Bool {
     guard let other = other as? FunctionType else { return false }
     return returnType === other.returnType && arguments == other.arguments
   }
@@ -203,29 +204,42 @@ public final class FunctionType: Type {
 }
 
 public final class SubstitutedType: Type {
-  unowned let type: ParameterizedType
+  unowned let substitutee: ParameterizedType
   let substitutions: UnownedDictionary<Type, Type>
 
-  init(type: ParameterizedType, substitutions: [Type: Type]) {
-    self.type = type
+  init(substitutee: ParameterizedType, substitutions: [Type: Type]) {
+    self.substitutee = substitutee
     self.substitutions = UnownedDictionary(substitutions)
+    super.init(name: "", type: TypeType.shared)
   }
 
-  public override func equals(_ other: Type) -> Bool {
+  public override func equals(_ other: Value) -> Bool {
     guard let other = other as? SubstitutedType else { return false }
-    return type == other.type &&
+    return substitutee == other.substitutee &&
            substitutions == other.substitutions
   }
 
   public override var hashValue: Int {
-    return type.hashValue ^ substitutions.hashValue
+    return substitutee.hashValue ^ substitutions.hashValue
   }
 }
 
 public final class BottomType: Type {
-  public override func equals(_ other: Type) -> Bool {
+  static let shared = BottomType()
+
+  init() {
+    super.init(name: "", type: TypeType.shared)
+  }
+
+  public override var type: Value {
+    get { return self }
+    set { /* do nothing */ }
+  }
+
+  public override func equals(_ other: Value) -> Bool {
     return other is BottomType
   }
+
   public override var hashValue: Int {
     return 0
   }

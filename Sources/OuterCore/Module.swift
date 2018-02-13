@@ -6,7 +6,6 @@
 /// available in the repository.
 
 import Foundation
-import Moho
 
 public final class Module {
   public let name: String
@@ -15,9 +14,9 @@ public final class Module {
   public private(set) var knownFunctionTypes = Set<FunctionType>()
   public private(set) var knownRecordTypes = Set<RecordType>()
   public private(set) var knownDataTypes = Set<DataType>()
-  public let bottomType = BottomType()
+  public let bottomType = BottomType.shared
   public let metadataType = TypeMetadataType()
-  public let typeType = TypeType()
+  public let typeType = TypeType.shared
 
   public init(name: String = "main") {
     self.name = name
@@ -28,9 +27,10 @@ public final class Module {
     continuation.module = self
   }
 
-  public func recordType(name: QualifiedName,
+  public func recordType(name: String,
+                         indices: Type? = nil,
                          actions: (RecordType) -> Void) -> RecordType {
-    let record = RecordType(name: name)
+    let record = RecordType(name: name, indices: indices ?? TypeType.shared)
     actions(record)
     return knownRecordTypes.getOrInsert(record)
   }
@@ -41,9 +41,10 @@ public final class Module {
     return knownFunctionTypes.getOrInsert(function)
   }
 
-  public func dataType(name: QualifiedName,
+  public func dataType(name: String,
+                       indices: Type? = nil,
                        actions: (DataType) -> Void) -> DataType {
-    let data = DataType(name: name)
+    let data = DataType(name: name, indices: indices ?? TypeType.shared)
     actions(data)
     return knownDataTypes.getOrInsert(data)
   }

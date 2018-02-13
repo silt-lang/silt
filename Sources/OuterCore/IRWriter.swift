@@ -52,13 +52,13 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     writeLine("-- module: \"\(module.name)\"")
     writeLine()
     for data in module.knownDataTypes {
-      write("data \(escape(data.name.string)) ")
+      write("data \(escape(data.name)) ")
       writeParameters(data)
       write("{\n")
       withIndent {
         for constr in data.constructors {
           writeIndent()
-          write("\(escape(constr.name.string)) : ")
+          write("\(escape(constr.name)) : ")
           write(constr.type)
           write("\n")
         }
@@ -67,13 +67,13 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
       writeLine()
     }
     for record in module.knownRecordTypes {
-      write("record \(escape(record.name.string)) ")
+      write("record \(escape(record.name)) ")
       writeParameters(record)
       write("{\n")
       withIndent {
         for field in record.fields {
           writeIndent()
-          write("\(escape(field.name.string)) : ")
+          write("\(escape(field.name)) : ")
           write(field.type)
           write("\n")
         }
@@ -89,7 +89,7 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
 
   public func writeParameters(_ type: ParameterizedType) {
     for param in type.parameters {
-      write("(\(escape(param.value.name.string)) : ")
+      write("(\(escape(param.value.name)) : ")
       write(param.value.type)
       write(") ")
     }
@@ -116,14 +116,6 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     }
   }
 
-  public func asReference(_ callee: Value) -> String {
-    let escaped = escape(callee.name)
-    if callee is Continuation {
-      return "@\(escaped)"
-    }
-    return "%\(escaped)"
-  }
-
   public func write(_ continuation: Continuation) {
     write("\(asReference(continuation))(")
     for (idx, param) in continuation.parameters.enumerated() {
@@ -132,7 +124,7 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     writeLine(") {")
     withIndent {
       if let call = continuation.call {
-        let names = call.args.map(self.asReference).joined(separator: ", ")
+        let names = call.args.map(asReference).joined(separator: ", ")
         writeLine("\(asReference(call.callee))(\(names))")
       } else {
         writeLine("[empty]")
@@ -142,18 +134,27 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   }
 }
 
-func name(for type: Type) -> String {
-  switch type {
+func asReference(_ callee: Value) -> String {
+  let escaped = escape(callee.name)
+  if callee is Continuation {
+    return "@\(escaped)"
+  }
+  return "%\(escaped)"
+}
+
+func name(for value: Value) -> String {
+  switch value {
   case let type as DataType:
-    return type.name.string
+    return type.name
   case let type as RecordType:
-    return type.name.string
+    return type.name
   case let type as ArchetypeType:
-    return "\(name(for: type.type)).\(type.type.parameter(at: type.index).name)"
+    let p = type.parent
+    return "\(name(for: p)).\(p.parameter(at: type.index).name)"
   case let type as SubstitutedType:
-    var s = "\(name(for: type.type))["
+    var s = "\(name(for: type.substitutee))["
     var substs = [String]()
-    for param in type.type.parameters {
+    for param in type.substitutee.parameters {
       if let subst = type.substitutions[param.archetype] {
         substs.append(name(for: subst))
       } else {
@@ -174,7 +175,7 @@ func name(for type: Type) -> String {
   case is BottomType:
     return "⊥"
   default:
-    fatalError("attempt to write unknown type: \(type)")
+    return asReference(value)
   }
 }
 

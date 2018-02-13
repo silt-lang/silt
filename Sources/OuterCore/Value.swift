@@ -9,9 +9,9 @@ import Foundation
 
 public class Value: Hashable {
   let name: String
-  var type: Type
+  unowned var type: Value
 
-  init(name: String, type: Type) {
+  init(name: String, type: Value) {
     self.name = name
     self.type = type
   }
@@ -20,19 +20,23 @@ public class Value: Hashable {
   /// the hash of their ObjectIdentifiers.
 
   public static func ==(lhs: Value, rhs: Value) -> Bool {
-    return lhs === rhs
+    return lhs.equals(rhs)
+  }
+
+  public func equals(_ other: Value) -> Bool {
+    return self === other
   }
 
   public var hashValue: Int {
-    return ObjectIdentifier(self).hashValue
+    return "\(ObjectIdentifier(self).hashValue)".hashValue
   }
 }
 
 public class Parameter: Value {
-  let parent: Continuation
+  unowned let parent: Continuation
   let index: Int
 
-  init(parent: Continuation, index: Int, type: Type, name: String) {
+  init(parent: Continuation, index: Int, type: Value, name: String) {
     self.parent = parent
     self.index = index
     super.init(name: name, type: type)

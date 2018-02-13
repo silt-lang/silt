@@ -125,26 +125,23 @@ public struct Invocation {
         })
       case .dump(.gir):
         run(Pass(name: "Dump GIR") { module, _ in
-          let qual: (String) -> QualifiedName = {
-            return QualifiedName(name: $0)
-          }
           let module = Module(name: "main")
           let builder = IRBuilder(module: module)
-          let listType = module.dataType(name: qual("List")) {
-            $0.addParameter(name: qual("A"), type: module.typeType)
+          let listType = module.dataType(name: "List") {
+            $0.addParameter(name: "A", type: module.typeType)
             let aArch = $0.archetype(at: 0)
             let subst = $0.substituted([
               aArch: $0.archetype(at: 0)
             ])
-            $0.addConstructor(name: qual("[]"),
+            $0.addConstructor(name: "[]",
                               type: module.functionType(arguments: [],
                                                         returnType: subst))
-            $0.addConstructor(name: qual("_::_"),
+            $0.addConstructor(name: "_::_",
                               type: module.functionType(arguments: [aArch],
                                                         returnType: subst))
           }
-          let personRec = module.recordType(name: qual("Person")) {
-            $0.addField(name: qual("age"), type: listType)
+          let personRec = module.recordType(name: "Person") {
+            $0.addField(name: "age", type: listType)
           }
           let listPersonType = listType.substituted([
             listType.archetype(at: 0): personRec
@@ -152,7 +149,10 @@ public struct Invocation {
           let continuationTy =
             module.functionType(arguments: [], returnType: module.bottomType)
           let a = builder.buildContinuation(name: "main")
-          let x = a.appendParameter(type: listType)
+          let ty = a.appendParameter(type: module.typeType)
+          let x = a.appendParameter(type: listType.substituted([
+            listType.archetype(at: 0): ty
+          ]))
           let y = a.appendParameter(type: listPersonType)
           let ret = a.appendParameter(type: continuationTy, name: "re,t")
           let b = builder.buildContinuation(name: "sub.1")
