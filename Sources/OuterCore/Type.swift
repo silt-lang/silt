@@ -74,7 +74,7 @@ public final class ArchetypeType: Type {
 
 public class ParameterizedType: Type {
   public struct Parameter: Hashable {
-    let archetype: ArchetypeType
+    /*owned */let archetype: ArchetypeType
     let value: NameAndType
 
     public static func ==(lhs: Parameter, rhs: Parameter) -> Bool {
@@ -86,6 +86,7 @@ public class ParameterizedType: Type {
     }
   }
   public private(set) var parameters = [Parameter]()
+  public private(set) var substitutions = Set<SubstitutedType>()
 
   public func addParameter(name: QualifiedName, type: Type) {
     let archetype = ArchetypeType(type: self, index: parameters.count)
@@ -100,6 +101,11 @@ public class ParameterizedType: Type {
                  type with \(parameters.count) archetypes
                  """)
     }
+  }
+
+  public func substituted(_ substitutions: [Type: Type]) -> SubstitutedType {
+    let subst = SubstitutedType(type: self, substitutions: substitutions)
+    return self.substitutions.getOrInsert(subst)
   }
 
   public func archetype(at index: Int) -> ArchetypeType {
@@ -178,28 +184,45 @@ public final class RecordType: ParameterizedType {
 }
 
 public final class FunctionType: Type {
-  public let arguments: [Type]
-  public let returnType: Type
+  public let arguments: UnownedArray<Type>
+  public unowned let returnType: Type
 
   init(arguments: [Type], returnType: Type) {
-    self.arguments = arguments
+    self.arguments = UnownedArray(values: arguments)
     self.returnType = returnType
   }
 
   public override func equals(_ other: Type) -> Bool {
     guard let other = other as? FunctionType else { return false }
-    for (lhsArg, rhsArg) in zip(arguments, other.arguments) {
-      guard lhsArg === rhsArg else { return false }
-    }
-    return returnType === other.returnType
+    return returnType === other.returnType && arguments == other.arguments
   }
 
   public override var hashValue: Int {
-    var h = returnType.hashValue
-    for arg in arguments {
-      h ^= arg.hashValue ^ 0x2894ba9
+    return returnType.hashValue ^ arguments.hashValue
+  }
+}
+
+public final class SubstitutedType: Type {
+  unowned let type: ParameterizedType
+  let substitutions: UnownedDictionary<Type, Type>
+
+  init(type: ParameterizedType, substitutions: [Type: Type]) {
+    self.type = type
+    self.substitutions = UnownedDictionary(substitutions)
+  }
+
+  public override func equals(_ other: Type) -> Bool {
+    guard let other = other as? SubstitutedType else { return false }
+    return type == other.type &&
+           substitutions == other.substitutions
+  }
+
+  public override var hashValue: Int {
+    var hash = type.hashValue
+    for (k, v) in substitutions {
+      hash ^= k.hashValue ^ v.hashValue
     }
-    return h ^ 0xab372bfa
+    return hash
   }
 }
 

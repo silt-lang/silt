@@ -11,7 +11,7 @@ data Bool : Type where
   false : Bool
   true  : Bool
 
-data List (A : Type) where
+data List (A : Type) : Type where
   [] : List A
   _::_ : A -> List A -> List A
 

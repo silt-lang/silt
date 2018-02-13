@@ -130,7 +130,7 @@ public struct Invocation {
           }
           let module = Module(name: "main")
           let builder = IRBuilder(module: module)
-          let natType = module.dataType(name: qual("List")) {
+          let listType = module.dataType(name: qual("List")) {
             $0.addParameter(name: qual("A"), type: module.typeType)
             $0.addConstructor(name: qual("[]"),
                               type: module.functionType(arguments: [],
@@ -141,17 +141,20 @@ public struct Invocation {
                                                         returnType: $0))
           }
           let personRec = module.recordType(name: qual("Person")) {
-            $0.addField(name: qual("age"), type: natType)
+            $0.addField(name: qual("age"), type: listType)
           }
+          let listPersonType = listType.substituted([
+            listType.archetype(at: 0): personRec
+          ])
           let continuationTy =
             module.functionType(arguments: [], returnType: module.bottomType)
           let a = builder.buildContinuation(name: "main")
-          let x = a.appendParameter(type: natType)
-          let y = a.appendParameter(type: natType)
+          let x = a.appendParameter(type: listType)
+          let y = a.appendParameter(type: listPersonType)
           let ret = a.appendParameter(type: continuationTy, name: "re,t")
           let b = builder.buildContinuation(name: "sub.1")
-          b.appendParameter(type: natType)
-          b.appendParameter(type: personRec)
+          b.appendParameter(type: listType)
+          b.appendParameter(type: listPersonType)
           let bRet = b.appendParameter(type: continuationTy, name: "ret")
           a.setCall(b, [x, y, ret])
           b.setCall(bRet, [])

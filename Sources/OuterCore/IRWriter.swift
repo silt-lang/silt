@@ -150,8 +150,22 @@ func name(for type: Type) -> String {
     return type.name.string
   case let type as ArchetypeType:
     return "\(name(for: type.type)).\(type.index)"
+  case let type as SubstitutedType:
+    var s = "\(name(for: type.type))["
+    var substs = [String]()
+    for param in type.type.parameters {
+      if let subst = type.substitutions[param.archetype] {
+        substs.append(name(for: subst))
+      } else {
+        substs.append("_")
+      }
+    }
+    s += substs.joined(separator: ", ") + "]"
+    return s
   case let type as FunctionType:
-    let args = type.arguments.map(name(for:)).joined(separator: ", ")
+    let args = type.arguments
+                   .map(name(for:))
+                   .joined(separator: ", ")
     return "(\(args)) -> \(name(for: type.returnType))"
   case is TypeMetadataType:
     return "TypeMetadata"
