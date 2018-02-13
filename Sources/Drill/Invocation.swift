@@ -132,13 +132,16 @@ public struct Invocation {
           let builder = IRBuilder(module: module)
           let listType = module.dataType(name: qual("List")) {
             $0.addParameter(name: qual("A"), type: module.typeType)
+            let aArch = $0.archetype(at: 0)
+            let subst = $0.substituted([
+              aArch: $0.archetype(at: 0)
+            ])
             $0.addConstructor(name: qual("[]"),
                               type: module.functionType(arguments: [],
-                                                        returnType: $0))
-            let aArch = $0.archetype(at: 0)
+                                                        returnType: subst))
             $0.addConstructor(name: qual("_::_"),
                               type: module.functionType(arguments: [aArch],
-                                                        returnType: $0))
+                                                        returnType: subst))
           }
           let personRec = module.recordType(name: qual("Person")) {
             $0.addField(name: qual("age"), type: listType)

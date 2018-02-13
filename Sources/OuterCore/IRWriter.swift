@@ -149,7 +149,7 @@ func name(for type: Type) -> String {
   case let type as RecordType:
     return type.name.string
   case let type as ArchetypeType:
-    return "\(name(for: type.type)).\(type.index)"
+    return "\(name(for: type.type)).\(type.type.parameter(at: type.index).name)"
   case let type as SubstitutedType:
     var s = "\(name(for: type.type))["
     var substs = [String]()

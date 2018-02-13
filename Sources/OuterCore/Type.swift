@@ -54,10 +54,10 @@ public final class TypeType: Type {
 }
 
 public final class ArchetypeType: Type {
-  unowned let type: Type
+  unowned let type: ParameterizedType
   let index: Int
 
-  init(type: Type, index: Int) {
+  init(type: ParameterizedType, index: Int) {
     self.type = type
     self.index = index
   }
