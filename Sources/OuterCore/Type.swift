@@ -218,11 +218,7 @@ public final class SubstitutedType: Type {
   }
 
   public override var hashValue: Int {
-    var hash = type.hashValue
-    for (k, v) in substitutions {
-      hash ^= k.hashValue ^ v.hashValue
-    }
-    return hash
+    return type.hashValue ^ substitutions.hashValue
   }
 }
 
