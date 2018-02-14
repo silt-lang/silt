@@ -523,11 +523,8 @@ extension NameBinding {
       return []
     }
     let asc = Decl.recordSignature(sig, bindName)
-    let record = DeclaredRecord(name: boundDataName,
-                                params: paramNames,
-                                constructorName: bindName,
-                                fieldSignatures: sigs)
-    let recordDecl: Decl = .record(record)
+    let recordDecl: Decl = .record(boundDataName, paramNames,
+                                   bindName, sigs)
     return [asc, recordDecl] + decls
   }
 

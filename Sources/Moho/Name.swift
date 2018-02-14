@@ -37,17 +37,12 @@ public struct Name: Equatable, Comparable, Hashable, CustomStringConvertible {
 
 /// A sequence of unqualified names forming a unique named scope under which
 /// declarations may be qualified.
-public struct QualifiedName: Hashable, CustomStringConvertible {
+public struct QualifiedName: Equatable, Hashable, CustomStringConvertible {
   let name: Name
   let module: [Name]
 
   public init() {
     self.name = Name(name: TokenSyntax(.identifier("")))
-    self.module = []
-  }
-
-  public init(name: String) {
-    self.name = Name(name: TokenSyntax(.identifier(name)))
     self.module = []
   }
 

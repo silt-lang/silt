@@ -82,7 +82,7 @@ public enum Decl {
   /// The signature of the parent record declaration is not immediately
   /// available, but may be acquired by querying the context with the
   /// qualified name.
-  case record(DeclaredRecord)
+  case record(QualifiedName, [Name], QualifiedName, [TypeSignature])
   /// A module declaration.
   ///
   /// ```
@@ -229,12 +229,6 @@ public struct DeclaredField {
   public let plicity: [ArgumentPlicity]
 }
 
-public struct DeclaredRecord {
-  public let name: QualifiedName
-  public let params: [Name]
-  public let constructorName: QualifiedName
-  public let fieldSignatures: [TypeSignature]
-}
 
 /// Expressions - well-scoped but not necessarily well-formed.
 public indirect enum Expr: Equatable, CustomStringConvertible {
