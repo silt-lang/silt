@@ -125,11 +125,8 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
         writeLine("[empty]")
       }
       for semantic in continuation.computeParameterSemantics() {
-        guard semantic.destructor == nil else { return }
-        writeIndent()
-        write("[destroy ")
-        write(name(for: semantic.parameter))
-        write("]\n")
+        guard semantic.destructor != nil else { continue }
+        writeLine("destroy(\(name(for: semantic.parameter)))")
       }
     }
     writeLine("}")

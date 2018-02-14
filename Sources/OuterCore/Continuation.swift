@@ -79,20 +79,29 @@ public final class Continuation: Value {
     var semantics = [ParameterSemantics]()
     for param in parameters {
       var semantic = ParameterSemantics(parameter: param, destructor: nil)
-      if let call = call {
-        if let index = call.args.index(of: param) {
-          if let cont = call.callee as? Continuation {
-            let passedToBorrowed = cont.parameters[index].isBorrowed
-            if param.isOwned && passedToBorrowed {
-              semantic.destructor = .free
-            }
-          } else if param.isOwned {
-            semantic.destructor = .free
-          }
-        }
-      } else {
+
+      // Start by assuming all owned parameters must be destroyed.
+      if param.isOwned {
         semantic.destructor = .free
       }
+
+      // If we have a call, and we're passing this parameter to the call,
+      // then determine if we're transferring ownership.
+      if let call = call, let index = call.args.index(of: param) {
+        // If we're passing this parameter to a continuation which will own
+        // it, then remove the destructor. We are transferring ownership.
+
+        /// TODO: Handle non-Continuations being called.
+        if let cont = call.callee as? Continuation,
+
+           // out-of-bounds arguments will be caught by the verifier, just don't
+           // crash while dumping the module.
+           cont.parameters.indices.contains(index),
+           cont.parameters[index].isOwned {
+          semantic.destructor = nil
+        }
+      }
+
       semantics.append(semantic)
     }
     return semantics
