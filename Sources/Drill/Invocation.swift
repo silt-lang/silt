@@ -127,6 +127,14 @@ public struct Invocation {
         run(Pass(name: "Dump GIR") { module, _ in
           let module = Module(name: "main")
           let builder = IRBuilder(module: module)
+          let natType = module.dataType(name: "Nat") { nat in
+            nat.addConstructor(name: "Z",
+                               type: module.functionType(arguments: [],
+                                                         returnType: nat))
+            nat.addConstructor(name: "S",
+                               type: module.functionType(arguments: [nat],
+                                                         returnType: nat))
+          }
           let listType = module.dataType(name: "List") {
             $0.addParameter(name: "A", type: module.typeType)
             let aArch = $0.archetype(at: 0)
@@ -141,7 +149,7 @@ public struct Invocation {
                                                         returnType: subst))
           }
           let personRec = module.recordType(name: "Person") {
-            $0.addField(name: "age", type: listType)
+            $0.addField(name: "age", type: natType)
           }
           let listPersonType = listType.substituted([
             listType.archetype(at: 0): personRec
@@ -149,14 +157,11 @@ public struct Invocation {
           let continuationTy =
             module.functionType(arguments: [], returnType: module.bottomType)
           let a = builder.buildContinuation(name: "main")
-          let ty = a.appendParameter(type: module.typeType)
-          let x = a.appendParameter(type: listType.substituted([
-            listType.archetype(at: 0): ty
-          ]))
+          let x = a.appendParameter(type: listPersonType)
           let y = a.appendParameter(type: listPersonType)
           let ret = a.appendParameter(type: continuationTy, name: "re,t")
           let b = builder.buildContinuation(name: "sub.1")
-          b.appendParameter(type: listType)
+          b.appendParameter(type: listPersonType)
           b.appendParameter(type: listPersonType, ownership: .borrowed)
           let bRet = b.appendParameter(type: continuationTy, name: "ret")
           a.setCall(b, [x, y, ret])

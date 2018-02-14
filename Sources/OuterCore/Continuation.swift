@@ -28,7 +28,7 @@ public final class Environment {
 
 public struct ParameterSemantics {
   var parameter: Parameter
-  var destructor: Destructor?
+  var mustDestroy: Bool
 }
 
 public final class Continuation: Value {
@@ -78,11 +78,11 @@ public final class Continuation: Value {
   func computeParameterSemantics() -> [ParameterSemantics] {
     var semantics = [ParameterSemantics]()
     for param in parameters {
-      var semantic = ParameterSemantics(parameter: param, destructor: nil)
+      var semantic = ParameterSemantics(parameter: param, mustDestroy: false)
 
       // Start by assuming all owned parameters must be destroyed.
       if param.isOwned {
-        semantic.destructor = .free
+        semantic.mustDestroy = true
       }
 
       // If we have a call, and we're passing this parameter to the call,
@@ -93,12 +93,11 @@ public final class Continuation: Value {
 
         /// TODO: Handle non-Continuations being called.
         if let cont = call.callee as? Continuation,
-
            // out-of-bounds arguments will be caught by the verifier, just don't
-           // crash while dumping the module.
+           // crash while computing this.
            cont.parameters.indices.contains(index),
            cont.parameters[index].isOwned {
-          semantic.destructor = nil
+          semantic.mustDestroy = false
         }
       }
 
