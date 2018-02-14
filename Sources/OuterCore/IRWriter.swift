@@ -96,19 +96,11 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   }
 
   public func write(_ type: Type) {
-    switch type {
-    case let type as FunctionType:
-      let pieces =
-        type.arguments.map { escape(name(for: $0)) }
-          .joined(separator: ", ")
-      write("(\(pieces)) -> \(escape(name(for: type.returnType)))")
-    default:
-      write(escape(name(for: type)))
-    }
+    write(name(for: type))
   }
 
   public func write(_ parameter: Parameter, isLast: Bool) {
-    write(asReference(parameter))
+    write(name(for: parameter))
     write(" : ")
     write(parameter.type)
     if !isLast {
@@ -117,15 +109,15 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   }
 
   public func write(_ continuation: Continuation) {
-    write("\(asReference(continuation))(")
+    write("\(name(for: continuation))(")
     for (idx, param) in continuation.parameters.enumerated() {
       write(param, isLast: idx == continuation.parameters.count - 1)
     }
     writeLine(") {")
     withIndent {
       if let call = continuation.call {
-        let names = call.args.map(asReference).joined(separator: ", ")
-        writeLine("\(asReference(call.callee))(\(names))")
+        let names = call.args.map(name(for:)).joined(separator: ", ")
+        writeLine("\(name(for: call.callee))(\(names))")
       } else {
         writeLine("[empty]")
       }
@@ -134,23 +126,15 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   }
 }
 
-func asReference(_ callee: Value) -> String {
-  let escaped = escape(callee.name)
-  if callee is Continuation {
-    return "@\(escaped)"
-  }
-  return "%\(escaped)"
-}
-
 func name(for value: Value) -> String {
   switch value {
   case let type as DataType:
-    return type.name
+    return escape(type.name)
   case let type as RecordType:
-    return type.name
+    return escape(type.name)
   case let type as ArchetypeType:
     let p = type.parent
-    return "\(name(for: p)).\(p.parameter(at: type.index).name)"
+    return "\(name(for: p)).\(escape(p.parameter(at: type.index).name))"
   case let type as SubstitutedType:
     var s = "\(name(for: type.substitutee))["
     var substs = [String]()
@@ -174,12 +158,16 @@ func name(for value: Value) -> String {
     return "Type"
   case is BottomType:
     return "⊥"
+  case is Continuation:
+    return "@\(escape(value.name))"
+  case is Parameter:
+    return "%\(escape(value.name))"
   default:
-    return asReference(value)
+    fatalError("attempt to serialize unknown value \(value)")
   }
 }
 
 func escape(_ name: String) -> String {
-  guard name.contains(" ") || name.contains(",") else { return name }
+  if Set(name).intersection("@[] ,()->.").isEmpty { return name }
   return "\"\(name)\""
 }
