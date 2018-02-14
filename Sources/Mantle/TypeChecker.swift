@@ -206,8 +206,6 @@ extension TypeChecker {
       return .module(names)
     case let .projection(proj, tyName, ctxType):
       return .projection(proj, Opened<QualifiedName, TT>(tyName, args), ctxType)
-    case let .letBinding(name, ctxType):
-      return .letBinding(Opened<QualifiedName, TT>(name, args), ctxType)
     }
   }
 
@@ -254,17 +252,6 @@ extension TypeChecker {
       return self.rollPi(in: ct.telescope, final: ct.inside)
     case let .projection(_, _, ct):
       return self.rollPi(in: ct.telescope, final: ct.inside)
-    case let .letBinding(_, ct):
-      var ty = ct.inside
-      for _ in ct.telescope {
-        guard
-          case let .pi(_, cd) = self.toWeakHeadNormalForm(ty).ignoreBlocking
-        else {
-          fatalError("Type doesn't contain enough Pi's?")
-        }
-        ty = cd
-      }
-      return ty
     case .module(_):
       fatalError()
     }
