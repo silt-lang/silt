@@ -400,8 +400,6 @@ extension Definition: Substitutable {
                             inside: mod.inside))
     case let .projection(proj, tyName, ctxTy):
       return .projection(proj, tyName, try ctxTy.applySubstitution(subst, elim))
-    case let .letBinding(name, ctxTy):
-      return .letBinding(name, try ctxTy.applySubstitution(subst, elim))
     }
   }
 }
@@ -437,8 +435,6 @@ extension OpenedDefinition: Substitutable {
                             inside: mod.inside))
     case let .projection(proj, tyName, ctxTy):
       return .projection(proj, tyName, try ctxTy.applySubstitution(subst, elim))
-    case let .letBinding(name, ctxTy):
-      return .letBinding(name, try ctxTy.applySubstitution(subst, elim))
     }
   }
 }

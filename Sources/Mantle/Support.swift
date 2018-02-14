@@ -134,7 +134,6 @@ public enum Definition {
   case constant(Type<TT>, Constant)
   case dataConstructor(QualifiedName, UInt, ContextualType)
   case projection(Projection.Field, QualifiedName, ContextualType)
-  case letBinding(QualifiedName, ContextualType)
   case module(Module)
 }
 
@@ -156,7 +155,6 @@ public enum OpenedDefinition {
   case dataConstructor(Opened<QualifiedName, TT>, UInt, ContextualType)
   case module(Module)
   case projection(Projection.Field, Opened<QualifiedName, TT>, ContextualType)
-  case letBinding(Opened<QualifiedName, TT>, ContextualType)
 }
 
 // MARK: Expressions
@@ -369,10 +367,10 @@ public final class Environment {
     return self.asContext.isEmpty
   }
 
-  /// Retrieves the environment as one contiguous context with the current
-  /// context at the fore and subsequent blocks in LIFO order in back.
+  /// Retrieves the environment as one contiguous context with ancestor
+  /// blocks in FIFO order and the current context at the rear.
   public var asContext: Context {
-    return self.context + self.scopes.reversed().flatMap({ $0.context })
+    return self.scopes.flatMap({ $0.context }) + self.context
   }
 
   /// Returns an array containing the result of mapping the given function

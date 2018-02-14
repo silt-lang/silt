@@ -63,8 +63,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         case .constant(_, .data(_)),
              .constant(_, .record(_, _)),
              .constant(_, .postulate),
-             .projection(_, _, _),
-             .letBinding(_, _):
+             .projection(_, _, _):
           guard seenHeads.insert(.definition(name.key)).inserted else {
             return .notInvertible(cs)
           }

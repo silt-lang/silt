@@ -81,41 +81,18 @@ extension TypeChecker where PhaseState == CheckPhaseState {
   private func checkLetBinding(
     _ name: QualifiedName, _ clause: DeclaredClause
   ) -> Opened<QualifiedName, TT> {
-
-    // `let x y z ... = e` under the current environment `env`
-    // becomes `x = \ env -> \ y -> \ z -> \ ... -> e`.  This allows us to
-    // check lets independent of their parent expression and makes re-opening
-    // their type as easy as eliminating the ambient context where necessary.
-    guard let bodyExpr = clause.body.expr else {
-      fatalError("let binding with no body?")
-    }
-
-    // Gather up the patterns as lambdas.
-    let bindingLambda =
-      clause.patterns.reversed().reduce(bodyExpr) { expr, pat in
-        guard let name = pat.name else {
-          fatalError("let bindings can not have constructors")
-        }
-        return Expr.lambda((name, .meta), expr)
+    return trace("checking let binding \(name)") {
+      let typeExpr = clause.patterns.reversed().reduce(Expr.meta) { (acc, p) in
+        return Expr.pi(p.name ?? wildcardName, .meta, acc)
       }
-
-    // Next, gather the environment.
-    let ctxLam = self.environment.asContext.reversed().reduce(bindingLambda) {
-      return Expr.lambda(($1.0, .meta), $0)
+      let type = self.checkExpr(typeExpr, TT.type)
+      self.signature.addAscription(named: name,
+                                   self.environment.asContext, type)
+      _ = self.openDefinition(name, self.environment.forEachVariable { envVar in
+        return TT.apply(.variable(envVar), [])
+      })
+      return self.checkFunction(name, [clause])
     }
-
-    let clauseMetaVar = self.signature.addMeta(.type, from: bodyExpr)
-    let clauseMeta = TT.apply(.meta(clauseMetaVar), [])
-    // Check the let-binding independently.
-    _ = self.underEmptyEnvironment {
-      return self.checkExpr(ctxLam, clauseMeta)
-    }
-    // Add and open the binding in context.
-    self.signature.addLetBinding(name, type: clauseMeta,
-                                 tel: self.environment.asContext)
-    return self.openDefinition(name, self.environment.forEachVariable { cv in
-      return TT.apply(.variable(cv), [])
-    })
   }
 
   private func checkModuleCommon(
