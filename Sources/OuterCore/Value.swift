@@ -32,14 +32,29 @@ public class Value: Hashable {
   }
 }
 
+public enum Ownership {
+  case borrowed
+  case owned
+}
+
 public class Parameter: Value {
   unowned let parent: Continuation
   let index: Int
+  let ownership: Ownership
 
-  init(parent: Continuation, index: Int, type: Value, name: String) {
+  init(parent: Continuation, index: Int, type: Value, ownership: Ownership,
+       name: String) {
     self.parent = parent
     self.index = index
+    self.ownership = ownership
     super.init(name: name, type: type)
+  }
+
+  var isOwned: Bool {
+    return ownership == .owned
+  }
+  var isBorrowed: Bool {
+    return ownership == .borrowed
   }
 }
 

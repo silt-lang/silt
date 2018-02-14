@@ -157,7 +157,7 @@ public struct Invocation {
           let ret = a.appendParameter(type: continuationTy, name: "re,t")
           let b = builder.buildContinuation(name: "sub.1")
           b.appendParameter(type: listType)
-          b.appendParameter(type: listPersonType)
+          b.appendParameter(type: listPersonType, ownership: .borrowed)
           let bRet = b.appendParameter(type: continuationTy, name: "ret")
           a.setCall(b, [x, y, ret])
           b.setCall(bRet, [])

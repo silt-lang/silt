@@ -102,6 +102,9 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   public func write(_ parameter: Parameter, isLast: Bool) {
     write(name(for: parameter))
     write(" : ")
+    if parameter.ownership == .borrowed {
+      write("@borrowed ")
+    }
     write(parameter.type)
     if !isLast {
       write(", ")
@@ -120,6 +123,13 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
         writeLine("\(name(for: call.callee))(\(names))")
       } else {
         writeLine("[empty]")
+      }
+      for semantic in continuation.computeParameterSemantics() {
+        guard semantic.destructor == nil else { return }
+        writeIndent()
+        write("[destroy ")
+        write(name(for: semantic.parameter))
+        write("]\n")
       }
     }
     writeLine("}")
@@ -168,6 +178,6 @@ func name(for value: Value) -> String {
 }
 
 func escape(_ name: String) -> String {
-  if Set(name).intersection("@[] ,()->.").isEmpty { return name }
+  if Set(name).intersection("@[] ,()->").isEmpty { return name }
   return "\"\(name)\""
 }

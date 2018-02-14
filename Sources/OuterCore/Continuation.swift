@@ -26,6 +26,11 @@ public final class Environment {
   }
 }
 
+public struct ParameterSemantics {
+  var parameter: Parameter
+  var destructor: Destructor?
+}
+
 public final class Continuation: Value {
   enum Kind {
     case basicBlock(parent: Continuation)
@@ -46,9 +51,11 @@ public final class Continuation: Value {
   }
 
   @discardableResult
-  public func appendParameter(type: Value, name: String? = nil) -> Parameter {
+  public func appendParameter(type: Value, ownership: Ownership = .owned,
+                              name: String? = nil) -> Parameter {
     let param = Parameter(parent: self, index: parameters.count,
-                          type: type, name: env.makeUnique(name))
+                          type: type, ownership: ownership,
+                          name: env.makeUnique(name))
     parameters.append(param)
     return param
   }
@@ -66,6 +73,29 @@ public final class Continuation: Value {
                                  returnType: module.bottomType)
     }
     set { /* do nothing */ }
+  }
+
+  func computeParameterSemantics() -> [ParameterSemantics] {
+    var semantics = [ParameterSemantics]()
+    for param in parameters {
+      var semantic = ParameterSemantics(parameter: param, destructor: nil)
+      if let call = call {
+        if let index = call.args.index(of: param) {
+          if let cont = call.callee as? Continuation {
+            let passedToBorrowed = cont.parameters[index].isBorrowed
+            if param.isOwned && passedToBorrowed {
+              semantic.destructor = .free
+            }
+          } else if param.isOwned {
+            semantic.destructor = .free
+          }
+        }
+      } else {
+        semantic.destructor = .free
+      }
+      semantics.append(semantic)
+    }
+    return semantics
   }
 }
 
