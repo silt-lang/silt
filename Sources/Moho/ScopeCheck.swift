@@ -187,8 +187,8 @@ extension NameBinding {
       return self.underScope { _ in
         let reparsedDecls = self.reparseDecls(syntax.declList,
                                               allowOmittingSignatures: true)
-        let decls = reparsedDecls.flatMap(scopeCheckDecl)
-        let output = scopeCheckExpr(syntax.outputExpr)
+        let decls = reparsedDecls.flatMap(self.scopeCheckDecl)
+        let output = self.scopeCheckExpr(syntax.outputExpr)
         return Expr.let(decls, output)
       }
     default:
@@ -330,6 +330,15 @@ extension NameBinding {
     default:
       fatalError("scope checking for \(type(of: syntax)) is unimplemented")
     }
+  }
+
+  private func scopeCheckWhereClause(
+    _ syntax: FunctionWhereClauseDeclSyntax?) -> [Decl] {
+    guard let syntax = syntax else {
+      return []
+    }
+    let reparsedDecls = self.reparseDecls(syntax.declList)
+    return reparsedDecls.flatMap(self.scopeCheckDecl)
   }
 
   private func scopeCheckPattern(
@@ -624,8 +633,8 @@ extension NameBinding {
           plicities.append(.explicit)
         }
         go(syntax.exprs[1])
-      case _ as ParenthesizedExprSyntax:
-        plicities.append(.explicit)
+      case let paren as ParenthesizedExprSyntax:
+        go(paren.expr)
       default:
         return
       }
@@ -641,16 +650,22 @@ extension NameBinding {
     case let syntax as NormalFunctionClauseDeclSyntax:
       return self.underScope { _ in
         let pattern = self.scopeCheckPattern(syntax.basicExprList, plicity)
-        let reparsedRHS = self.reparseExpr(syntax.rhsExpr)
-        let body = self.scopeCheckExpr(reparsedRHS)
-        return DeclaredClause(patterns: pattern, body: .body(body, []))
+        return self.underScope { _ in
+          let wheres = self.scopeCheckWhereClause(syntax.whereClause)
+          let reparsedRHS = self.reparseExpr(syntax.rhsExpr)
+          let body = self.scopeCheckExpr(reparsedRHS)
+          return DeclaredClause(patterns: pattern, body: .body(body, wheres))
+        }
       }
     case let syntax as WithRuleFunctionClauseDeclSyntax:
       return self.underScope { _ in
         let pattern = self.scopeCheckPattern(syntax.basicExprList, plicity)
-        let body = self.scopeCheckExpr(syntax.rhsExpr)
-        // FIXME: Introduce the with variables binding too.
-        return DeclaredClause(patterns: pattern, body: .body(body, []))
+        return self.underScope { _ in
+          let wheres = self.scopeCheckWhereClause(syntax.whereClause)
+          let body = self.scopeCheckExpr(syntax.rhsExpr)
+          // FIXME: Introduce the with variables binding too.
+          return DeclaredClause(patterns: pattern, body: .body(body, wheres))
+        }
       }
     default:
       fatalError("Non-exhaustive match of function clause decl syntax?")

@@ -31,6 +31,7 @@ public enum SyntaxKind {
   case functionDecl
   case withRuleFunctionClauseDecl
   case normalFunctionClauseDecl
+  case functionWhereClauseDecl
   case letBindingDecl
   case nonFixDecl
   case leftFixDecl
@@ -143,6 +144,8 @@ func makeSyntax(root: SyntaxData?, data: SyntaxData) -> Syntax {
     return WithRuleFunctionClauseDeclSyntax(root: root, data: data)
   case .normalFunctionClauseDecl:
     return NormalFunctionClauseDeclSyntax(root: root, data: data)
+  case .functionWhereClauseDecl:
+    return FunctionWhereClauseDeclSyntax(root: root, data: data)
   case .letBindingDecl:
     return LetBindingDeclSyntax(root: root, data: data)
   case .nonFixDecl:

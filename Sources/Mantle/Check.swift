@@ -502,12 +502,13 @@ extension TypeChecker where PhaseState == CheckPhaseState {
   func checkClause(_ ty: Type<TT>, _ clause: DeclaredClause) -> Clause {
     return trace("checking clause \(clause) has type \(ty)") {
       let (pats, type) = self.checkPatterns(clause.patterns, ty)
-      return self.underExtendedEnvironment([]) {
+      return self.underNewScope() {
         switch clause.body {
         case .empty:
           // FIXME: Implement absurd patterns.
           fatalError("")
-        case let .body(body, _ /*whereDecls*/):
+        case let .body(body, whereDecls):
+          _ = whereDecls.map(self.checkDecl)
           let body = self.checkExpr(body, type)
           return Clause(patterns: pats, body: body)
         }
@@ -523,7 +524,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
       switch funDef {
       case let .constant(ty, .function(.open)):
         let clauses = clauses.map { clause in
-          return self.underNewScope { self.checkClause(ty, clause) }
+          return self.checkClause(ty, clause)
         }
         let inv = self.inferInvertibility(clauses)
         self.signature.addFunctionClauses(fun, inv)

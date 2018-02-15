@@ -662,6 +662,7 @@ extension Parser {
         withPatternClause: try parseBasicExprList(),
         equalsToken: try consume(.equals),
         rhsExpr: try parseExpr(),
+        whereClause: try maybeParseWhereClause(),
         trailingSemicolon: try consume(.semicolon))
     }
     assert(peek() == .equals)
@@ -669,7 +670,21 @@ extension Parser {
       basicExprList: exprs,
       equalsToken: try consume(.equals),
       rhsExpr: try parseExpr(),
+      whereClause: try maybeParseWhereClause(),
       trailingSemicolon: try consume(.semicolon))
+  }
+
+  func maybeParseWhereClause() throws -> FunctionWhereClauseDeclSyntax? {
+    guard case .whereKeyword = peek() else {
+      return nil
+    }
+
+    return FunctionWhereClauseDeclSyntax(
+      whereToken: try consume(.whereKeyword),
+      leftBraceToken: try consume(.leftBrace),
+      declList: try parseDeclList(),
+      rightBraceToken: try consume(.rightBrace)
+    )
   }
 }
 

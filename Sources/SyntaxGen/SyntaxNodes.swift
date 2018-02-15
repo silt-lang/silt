@@ -210,6 +210,7 @@ let syntaxNodes = [
     Child("withPatternClause", kind: "BasicExprList", isOptional: true),
     Child("equalsToken", kind: "EqualsToken"),
     Child("rhsExpr", kind: "Expr"),
+    Child("whereClause", kind: "FunctionWhereClauseDecl", isOptional: true),
     Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
@@ -217,7 +218,15 @@ let syntaxNodes = [
     Child("basicExprList", kind: "BasicExprList"),
     Child("equalsToken", kind: "EqualsToken"),
     Child("rhsExpr", kind: "Expr"),
+    Child("whereClause", kind: "FunctionWhereClauseDecl", isOptional: true),
     Child("trailingSemicolon", kind: "SemicolonToken"),
+  ]),
+
+  Node("FunctionWhereClauseDecl", kind: "Decl", children: [
+    Child("whereToken", kind: "WhereToken"),
+    Child("leftBraceToken", kind: "LeftBraceToken"),
+    Child("declList", kind: "DeclList"),
+    Child("rightBraceToken", kind: "RightBraceToken"),
   ]),
 
   Node("LetBindingDecl", kind: "Decl", children: [
