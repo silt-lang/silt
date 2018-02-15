@@ -166,10 +166,8 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
                          TT.constructor(openedCon, conArgs), from: syntax)
 
     case let .let(decls, rhsExpr):
-      return self.underNewScope {
-        _ = decls.map(bindLocal)
-        return elaborate(rhsExpr, expecting: exType, bindLocal: bindLocal)
-      }
+      _ = decls.map(bindLocal)
+      return elaborate(rhsExpr, expecting: exType, bindLocal: bindLocal)
 
     case let .apply(h, elims):
       return self.elaborateApp(exType, h, elims.reversed(), syntax,
