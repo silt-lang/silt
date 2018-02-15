@@ -544,7 +544,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
     return self.underExtendedEnvironment([]) {
       let (elabTm, constraints)
         = trace("elaborating syntax \(syntax) expecting type \(ty)") {
-        return self.elaborate(ty, syntax)
+        return self.elaborate(ty, syntax, bindLocal: self.checkDecl)
       }
       if self.options.contains(.debugConstraints) {
         dumpConstraints(constraints)

@@ -20,13 +20,17 @@ final class ElaboratePhaseState {
 }
 
 extension TypeChecker {
-  func elaborate(_ ty: Type<TT>, _ expr: Expr) -> (Term<TT>, [Constraint]) {
+  typealias CheckLocalDecl = (Decl) -> Opened<QualifiedName, TT>
+  func elaborate(
+    _ ty: Type<TT>, _ expr: Expr, bindLocal: CheckLocalDecl
+  ) -> (Term<TT>, [Constraint]) {
     return trace("elaborating expression '\(expr)' expecting type '\(ty)'") {
       let elaborator = TypeChecker<ElaboratePhaseState>(self.signature,
                                                         self.environment,
                                                         ElaboratePhaseState(),
                                                         options)
-      let ttExpr = elaborator.elaborate(expr, expecting: ty)
+      let ttExpr = elaborator.elaborate(expr, expecting: ty,
+                                        bindLocal: bindLocal)
       return (ttExpr, elaborator.state.state.constraints)
     }
   }
@@ -55,7 +59,9 @@ enum Constraint: CustomDebugStringConvertible {
 
 extension TypeChecker where PhaseState == ElaboratePhaseState {
   // Elaborate a scope-checked syntax term into Type Theory.
-  func elaborate(_ syntax: Expr, expecting exType: Type<TT>) -> Term<TT> {
+  func elaborate(
+    _ syntax: Expr, expecting exType: Type<TT>, bindLocal: CheckLocalDecl
+  ) -> Term<TT> {
     switch syntax {
     // FIXME: Impredicative garbage.
     //
@@ -80,29 +86,31 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
     // -------------------------------------
     //        Γ ⊢ (x : S) → T: Type
     case let .pi(name, domain, codomain):
-      let elabDomain = self.elaborate(domain, expecting: TT.type)
+      let elabDomain = self.elaborate(domain, expecting: TT.type,
+                                      bindLocal: bindLocal)
       let t = self.underExtendedEnvironment([(name, elabDomain)]) { () -> TT in
-        let elabCodomain = self.elaborate(codomain, expecting: TT.type)
+        let elabCodomain = self.elaborate(codomain, expecting: TT.type,
+                                          bindLocal: bindLocal)
         return TT.pi(elabDomain, elabCodomain)
       }
       return self.expect(exType, TT.type, t, from: syntax)
     // Just lift non-dependent function spaces to dependent ones.
     case let .function(domain, codomain):
       return self.elaborate(.pi(wildcardName, domain, codomain),
-                            expecting: exType)
+                            expecting: exType, bindLocal: bindLocal)
 
     //       Γ, x : A ⊢ t : B
     // -----------------------------
     //   Γ ⊢ λ x -> t : (x: A) → B
     case let .lambda((name, ty), lamBody):
-      let elabTy = self.elaborate(ty, expecting: TT.type)
+      let elabTy = self.elaborate(ty, expecting: TT.type, bindLocal: bindLocal)
       let dom = self.addMeta(in: self.environment.asContext,
                              from: ty, expect: elabTy)
       let (cod, body)
             = self.underExtendedEnvironment([(name, dom)]) { () -> (TT, TT) in
         let cod = self.addMeta(in: self.environment.asContext,
                                from: lamBody, expect: TT.type)
-        let body = self.elaborate(lamBody, expecting: cod)
+        let body = self.elaborate(lamBody, expecting: cod, bindLocal: bindLocal)
         return (cod, body)
       }
       return self.expect(exType, TT.pi(dom, cod), TT.lambda(body), from: syntax)
@@ -111,9 +119,12 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
     // -------------------------------------------
     //               Γ ⊢ t ≡_A u : Type
     case let .equal(eqTy, lhsTy, rhsTy):
-      let elabEqTy = self.elaborate(eqTy, expecting: TT.type)
-      let elabLHS = self.elaborate(lhsTy, expecting: elabEqTy)
-      let elabRHS = self.elaborate(rhsTy, expecting: elabEqTy)
+      let elabEqTy = self.elaborate(eqTy, expecting: TT.type,
+                                    bindLocal: bindLocal)
+      let elabLHS = self.elaborate(lhsTy, expecting: elabEqTy,
+                                   bindLocal: bindLocal)
+      let elabRHS = self.elaborate(rhsTy, expecting: elabEqTy,
+                                   bindLocal: bindLocal)
       return self.expect(exType, TT.type,
                          TT.equal(elabEqTy, elabLHS, elabRHS), from: syntax)
 
@@ -144,7 +155,8 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
         guard case let .pi(domain, codomain) = appliedConTy else {
           fatalError()
         }
-        let elabArg = self.elaborate(arg, expecting: domain)
+        let elabArg = self.elaborate(arg, expecting: domain,
+                                     bindLocal: bindLocal)
         let instCodomain = self.forceInstantiate(codomain, [elabArg])
         appliedConTy = self.toWeakHeadNormalForm(instCodomain).ignoreBlocking
         conArgs.append(elabArg)
@@ -155,15 +167,13 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
 
     case let .let(decls, rhsExpr):
       return self.underNewScope {
-        let tc =
-          TypeChecker<CheckPhaseState>(signature, environment,
-                                       CheckPhaseState(), options)
-        _ = decls.map(tc.checkDecl)
-        return elaborate(rhsExpr, expecting: exType)
+        _ = decls.map(bindLocal)
+        return elaborate(rhsExpr, expecting: exType, bindLocal: bindLocal)
       }
 
     case let .apply(h, elims):
-      return self.elaborateApp(exType, h, elims.reversed(), syntax)
+      return self.elaborateApp(exType, h, elims.reversed(), syntax,
+                               bindLocal: bindLocal)
       /*
       //   Γ ⊢ h ⇒ A
       // ------------------
@@ -202,7 +212,8 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
   // pushing an ever-growing pi-type backwards, else we risk expecting the wrong
   // type during elaboration.
   func elaborateApp(
-    _ type: Type<TT>, _ head: ApplyHead, _ elims: [Elimination], _ from: Expr
+    _ type: Type<TT>, _ head: ApplyHead, _ elims: [Elimination], _ from: Expr,
+    bindLocal: CheckLocalDecl
   ) -> Term<TT> {
     guard let first = elims.first, case let .apply(arg) = first else {
       assert(elims.isEmpty)
@@ -216,8 +227,9 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
                           from: arg, expect: TT.type)
     }
     let pi = TT.pi(dm, cd)
-    let elabArgTy = self.elaborate(arg, expecting: dm)
-    let f = self.elaborateApp(pi, head, [Elimination](elims.dropFirst()), from)
+    let elabArgTy = self.elaborate(arg, expecting: dm, bindLocal: bindLocal)
+    let f = self.elaborateApp(pi, head, [Elimination](elims.dropFirst()), from,
+                              bindLocal: bindLocal)
     return self.expect(type, self.forceInstantiate(cd, [elabArgTy]),
                        self.eliminate(f, [.apply(elabArgTy)]),
                        from: from)
