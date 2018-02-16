@@ -22,7 +22,7 @@ public final class Signature {
   private func addDefinition(
     _ key: QualifiedName, _ def: ContextualDefinition) {
     guard self.definitions[key] == nil else {
-      fatalError()
+      fatalError("Attempting to re-define existing definition")
     }
     self.definitions[key] = def
   }
@@ -33,6 +33,13 @@ public final class Signature {
       fatalError()
     }
     self.definitions[key] = def
+  }
+
+  func removeDefinition(_ key: QualifiedName) {
+    guard self.definitions[key] != nil else {
+      fatalError("Attempting to remove non-existent definition from scope")
+    }
+    self.definitions[key] = nil
   }
 }
 

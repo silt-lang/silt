@@ -90,12 +90,16 @@ extension TypeChecker {
   }
 
   func underNewScope<A>(_ f: () -> A) -> A {
-    let oldBlocks = self.environment.scopes
     let oldPending = self.environment.context
     self.environment.scopes.append(.init(self.environment.context, [:]))
     self.environment.context = []
     let result = f()
-    self.environment.scopes = oldBlocks
+    guard let oldScope = self.environment.scopes.popLast() else {
+      fatalError("Scope stack should never be empty")
+    }
+    for key in oldScope.opened.keys {
+      self.signature.removeDefinition(key)
+    }
     self.environment.context = oldPending
     return result
   }
@@ -212,12 +216,10 @@ extension TypeChecker {
   func openDefinition(
     _ name: QualifiedName, _ args: [Term<TT>]) -> Opened<QualifiedName, TT> {
     let e = self.environment
-    guard let firstBlock = e.scopes.first, e.context.isEmpty else {
+    guard let lastBlock = e.scopes.last, e.context.isEmpty else {
       fatalError()
     }
-    firstBlock.opened[name] = args
-    e.scopes[0] = Environment.Scope(firstBlock.context, firstBlock.opened)
-    e.context = []
+    lastBlock.opened[name] = args
     return Opened<QualifiedName, TT>(name, args)
   }
 
@@ -227,7 +229,7 @@ extension TypeChecker {
       precondition(!self.environment.scopes.isEmpty)
 
       var n = self.environment.context.count
-      for block in self.environment.scopes {
+      for block in self.environment.scopes.reversed() {
         if let args = block.opened[name] {
           return args.map {
             return $0.forceApplySubstitution(.weaken(n), self.eliminate)

@@ -1834,6 +1834,7 @@ public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _Synta
     case withPatternClause
     case equalsToken
     case rhsExpr
+    case whereClause
     case trailingSemicolon
   }
 
@@ -1841,7 +1842,7 @@ public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _Synta
     self._root = root
     self._data = data
   }
-  public init(basicExprList: BasicExprListSyntax, withToken: TokenSyntax, withExpr: ExprSyntax, withPatternClause: BasicExprListSyntax?, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
+  public init(basicExprList: BasicExprListSyntax, withToken: TokenSyntax, withExpr: ExprSyntax, withPatternClause: BasicExprListSyntax?, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, whereClause: FunctionWhereClauseDeclSyntax?, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.withRuleFunctionClauseDecl, [
       basicExprList.raw,
       withToken.raw,
@@ -1849,6 +1850,7 @@ public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _Synta
       withPatternClause?.raw ?? RawSyntax.missing(.basicExprList),
       equalsToken.raw,
       rhsExpr.raw,
+      whereClause?.raw ?? RawSyntax.missing(.functionWhereClauseDecl),
       trailingSemicolon.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
@@ -1902,6 +1904,14 @@ public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _Synta
     return WithRuleFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
+  public var whereClause: FunctionWhereClauseDeclSyntax? {
+    return child(at: Cursor.whereClause) as? FunctionWhereClauseDeclSyntax
+  }
+  public func withWhereClause(_ syntax: FunctionWhereClauseDeclSyntax) -> WithRuleFunctionClauseDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.whereClause)
+    return WithRuleFunctionClauseDeclSyntax(root: newRoot, data: newData)
+  }
+
   public var trailingSemicolon: TokenSyntax {
     return child(at: Cursor.trailingSemicolon) as! TokenSyntax
   }
@@ -1919,6 +1929,7 @@ public struct NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxB
     case basicExprList
     case equalsToken
     case rhsExpr
+    case whereClause
     case trailingSemicolon
   }
 
@@ -1926,11 +1937,12 @@ public struct NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxB
     self._root = root
     self._data = data
   }
-  public init(basicExprList: BasicExprListSyntax, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, trailingSemicolon: TokenSyntax) {
+  public init(basicExprList: BasicExprListSyntax, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, whereClause: FunctionWhereClauseDeclSyntax?, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.normalFunctionClauseDecl, [
       basicExprList.raw,
       equalsToken.raw,
       rhsExpr.raw,
+      whereClause?.raw ?? RawSyntax.missing(.functionWhereClauseDecl),
       trailingSemicolon.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
@@ -1960,12 +1972,78 @@ public struct NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxB
     return NormalFunctionClauseDeclSyntax(root: newRoot, data: newData)
   }
 
+  public var whereClause: FunctionWhereClauseDeclSyntax? {
+    return child(at: Cursor.whereClause) as? FunctionWhereClauseDeclSyntax
+  }
+  public func withWhereClause(_ syntax: FunctionWhereClauseDeclSyntax) -> NormalFunctionClauseDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.whereClause)
+    return NormalFunctionClauseDeclSyntax(root: newRoot, data: newData)
+  }
+
   public var trailingSemicolon: TokenSyntax {
     return child(at: Cursor.trailingSemicolon) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ syntax: TokenSyntax) -> NormalFunctionClauseDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
     return NormalFunctionClauseDeclSyntax(root: newRoot, data: newData)
+  }
+
+}
+
+public struct FunctionWhereClauseDeclSyntax: DeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
+  public enum Cursor: Int {
+    case whereToken
+    case leftBraceToken
+    case declList
+    case rightBraceToken
+  }
+
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(whereToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax) {
+    let raw = RawSyntax.node(.functionWhereClauseDecl, [
+      whereToken.raw,
+      leftBraceToken.raw,
+      declList.raw,
+      rightBraceToken.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var whereToken: TokenSyntax {
+    return child(at: Cursor.whereToken) as! TokenSyntax
+  }
+  public func withWhereToken(_ syntax: TokenSyntax) -> FunctionWhereClauseDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.whereToken)
+    return FunctionWhereClauseDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var leftBraceToken: TokenSyntax {
+    return child(at: Cursor.leftBraceToken) as! TokenSyntax
+  }
+  public func withLeftBraceToken(_ syntax: TokenSyntax) -> FunctionWhereClauseDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.leftBraceToken)
+    return FunctionWhereClauseDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var declList: DeclListSyntax {
+    return child(at: Cursor.declList) as! DeclListSyntax
+  }
+  public func withDeclList(_ syntax: DeclListSyntax) -> FunctionWhereClauseDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.declList)
+    return FunctionWhereClauseDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var rightBraceToken: TokenSyntax {
+    return child(at: Cursor.rightBraceToken) as! TokenSyntax
+  }
+  public func withRightBraceToken(_ syntax: TokenSyntax) -> FunctionWhereClauseDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.rightBraceToken)
+    return FunctionWhereClauseDeclSyntax(root: newRoot, data: newData)
   }
 
 }

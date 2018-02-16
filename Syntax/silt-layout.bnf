@@ -58,6 +58,7 @@ function-decl ::= <ascription> ';'
 
 function-clause-decl ::= <basic-expr-list> with <expr> '|' <basic-expr-list>? '=' <expr> ';'
                        | <basic-expr-list> '=' <expr> ';'
+                       | <basic-expr-list> '=' <expr> 'where' '{' <decl-list>? '}' ';'
 
 # Fixity
 

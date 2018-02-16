@@ -1,0 +1,24 @@
+-- RUN: %silt --dump typecheck %s
+
+module WhereClause where
+
+buyit : {A B : Type} {C : A -> B -> Type} ->
+       ((x : A) (y : B) -> C x y) -> ((y : B) (x : A) -> C x y)
+buyit = useit where
+  useit : {A B : Type} {C : A -> B -> Type} -> ((x : A) (y : B) -> C x y) -> ((y : B) (x : A) -> C x y)
+  useit = breakit where
+    breakit : {A B : Type} {C : A -> B -> Type} -> ((x : A) (y : B) -> C x y) -> ((y : B) (x : A) -> C x y)
+    breakit = fixit where
+      fixit : {A B : Type} {C : A -> B -> Type} -> ((x : A) (y : B) -> C x y) -> ((y : B) (x : A) -> C x y)
+      fixit f y x = f x y
+
+-- No conflict with local definitions in where clauses
+useit : {A B : Type} {C : A -> B -> Type} -> ((x : A) (y : B) -> C x y) -> ((y : B) (x : A) -> C x y)
+useit f y x = f x y
+
+breakit : {A B : Type} {C : A -> B -> Type} -> ((x : A) (y : B) -> C x y) -> ((y : B) (x : A) -> C x y)
+breakit f y x = f x y
+
+fixit : {A B : Type} {C : A -> B -> Type} -> ((x : A) (y : B) -> C x y) -> ((y : B) (x : A) -> C x y)
+fixit f y x = f x y
+
