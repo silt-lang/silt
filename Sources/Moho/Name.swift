@@ -49,17 +49,17 @@ public struct QualifiedName: Equatable, Hashable, CustomStringConvertible {
   /// Create a `QualifiedName` from a `QualifiedNameSyntax` node.
   public init(ast: QualifiedNameSyntax) {
     precondition(!ast.isEmpty)
-    var mods = [Name]()
+    var moduleComponents = [Name]()
     self.name = Name(name: ast[ast.count-1].name)
     guard ast.count != 1 else {
       self.module = []
       return
     }
 
-    for i in (0..<ast.count-2).reversed() {
-      mods.append(Name(name: ast[i].name))
+    for component in ast.dropLast() {
+      moduleComponents.append(Name(name: component.name))
     }
-    self.module = mods
+    self.module = moduleComponents
   }
 
   /// Create a qualified name with no base module.
@@ -99,7 +99,7 @@ public struct QualifiedName: Equatable, Hashable, CustomStringConvertible {
   }
 
   public var description: String {
-    var pieces = module.reversed().dropFirst().map { $0.description }
+    var pieces = self.module.map { $0.description }
     pieces.append(name.description)
     return pieces.joined(separator: ".")
   }

@@ -69,12 +69,14 @@ let syntaxNodes = [
   Node("OpenImportDecl", kind: "Decl", children: [
     Child("openToken", kind: "OpenToken", isOptional: true),
     Child("importToken", kind: "ImportToken"),
-    Child("importIdentifier", kind: "QualifiedName")
+    Child("importIdentifier", kind: "QualifiedName"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
   Node("ImportDecl", kind: "Decl", children: [
     Child("importToken", kind: "ImportToken"),
-    Child("importIdentifier", kind: "QualifiedName")
+    Child("importIdentifier", kind: "QualifiedName"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
   // MARK: Data types

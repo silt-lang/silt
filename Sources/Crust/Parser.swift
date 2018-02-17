@@ -332,20 +332,20 @@ extension Parser {
   }
 
   func parseOpenImportDecl() throws -> OpenImportDeclSyntax {
-    let openTok = try consume(.openKeyword)
-    let importTok = try consume(.importKeyword)
-    let ident = try parseQualifiedName()
     return OpenImportDeclSyntax(
-      openToken: openTok,
-      importToken: importTok,
-      importIdentifier: ident
+      openToken: try consume(.openKeyword),
+      importToken: try consume(.importKeyword),
+      importIdentifier: try parseQualifiedName(),
+      trailingSemicolon: try consume(.semicolon)
     )
   }
 
   func parseImportDecl() throws -> ImportDeclSyntax {
-    let importTok = try consume(.importKeyword)
-    let ident = try parseQualifiedName()
-    return ImportDeclSyntax(importToken: importTok, importIdentifier: ident)
+    return ImportDeclSyntax(
+      importToken: try consume(.importKeyword),
+      importIdentifier: try parseQualifiedName(),
+      trailingSemicolon: try consume(.semicolon)
+    )
   }
 }
 

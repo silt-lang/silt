@@ -602,17 +602,19 @@ public struct OpenImportDeclSyntax: DeclSyntax, _SyntaxBase {
     case openToken
     case importToken
     case importIdentifier
+    case trailingSemicolon
   }
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
     self._data = data
   }
-  public init(openToken: TokenSyntax?, importToken: TokenSyntax, importIdentifier: QualifiedNameSyntax) {
+  public init(openToken: TokenSyntax?, importToken: TokenSyntax, importIdentifier: QualifiedNameSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.openImportDecl, [
       openToken?.raw ?? RawSyntax.missingToken(.openKeyword),
       importToken.raw,
       importIdentifier.raw,
+      trailingSemicolon.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
@@ -641,6 +643,14 @@ public struct OpenImportDeclSyntax: DeclSyntax, _SyntaxBase {
     return OpenImportDeclSyntax(root: newRoot, data: newData)
   }
 
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  }
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> OpenImportDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
+    return OpenImportDeclSyntax(root: newRoot, data: newData)
+  }
+
 }
 
 public struct ImportDeclSyntax: DeclSyntax, _SyntaxBase {
@@ -649,16 +659,18 @@ public struct ImportDeclSyntax: DeclSyntax, _SyntaxBase {
   public enum Cursor: Int {
     case importToken
     case importIdentifier
+    case trailingSemicolon
   }
 
   internal init(root: SyntaxData, data: SyntaxData) {
     self._root = root
     self._data = data
   }
-  public init(importToken: TokenSyntax, importIdentifier: QualifiedNameSyntax) {
+  public init(importToken: TokenSyntax, importIdentifier: QualifiedNameSyntax, trailingSemicolon: TokenSyntax) {
     let raw = RawSyntax.node(.importDecl, [
       importToken.raw,
       importIdentifier.raw,
+      trailingSemicolon.raw,
     ], .present)
     let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
     self.init(root: data, data: data)
@@ -676,6 +688,14 @@ public struct ImportDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public func withImportIdentifier(_ syntax: QualifiedNameSyntax) -> ImportDeclSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.importIdentifier)
+    return ImportDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  }
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> ImportDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
     return ImportDeclSyntax(root: newRoot, data: newData)
   }
 
