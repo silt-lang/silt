@@ -64,7 +64,7 @@ public struct Invocation {
       Rainbow.outputTarget = .console
     }
 
-    if options.inputPaths.isEmpty {
+    if options.inputURLs.isEmpty {
       context.engine.diagnose(.noInputFiles)
       return true
     }
@@ -84,9 +84,7 @@ public struct Invocation {
     let typeCheckFile = scopeCheckFile |> Passes.typeCheck
     let girGenModule = typeCheckFile |> Passes.girGen
 
-    for path in options.inputPaths {
-      let url = URL(fileURLWithPath: path)
-
+    for url in options.inputURLs {
       func run<PassTy: PassProtocol>(_ pass: PassTy) -> PassTy.Output?
         where PassTy.Input == URL {
         return pass.run(url, in: context)
