@@ -6,6 +6,7 @@
 /// available in the repository.
 
 import Lithosphere
+import Foundation
 
 extension NameBinding {
   /// Checks that a module, its parameters, and its child declarations are
@@ -19,17 +20,27 @@ extension NameBinding {
   ///
   /// This pass does not fail thus it is crucial that the diagnostic
   /// engine be checked before continuing on to the semantic passes.
-  public func scopeCheckModule(_ module: ModuleDeclSyntax) -> DeclaredModule {
+  public func scopeCheckModule(_ module: ModuleDeclSyntax,
+                               topLevel: Bool = false) -> DeclaredModule {
     let moduleName = QualifiedName(ast: module.moduleIdentifier)
-    let qmodName = self.qualify(name: moduleName.name)
     let params = module.typedParameterList.map(self.scopeCheckParameter)
-    return self.withScope(walkNotations(module, qmodName)) { _ in
+    let qmodName = topLevel ? moduleName : self.qualify(name: moduleName.name)
+    let noteScope = walkNotations(module, qmodName)
+    
+    let moduleCheck : (Scope) -> DeclaredModule = { _ in
       let filteredDecls = self.reparseDecls(module.declList)
       return DeclaredModule(
         moduleName: self.activeScope.nameSpace.module,
         params: params,
         namespace: self.activeScope.nameSpace,
         decls: filteredDecls.flatMap(self.scopeCheckDecl))
+    }
+
+    if topLevel {
+      self.activeScope = noteScope
+      return moduleCheck(noteScope)
+    } else {
+      return self.withScope(walkNotations(module, qmodName), moduleCheck)
     }
   }
 
@@ -52,9 +63,10 @@ extension NameBinding {
       return self.scopeCheckRecordDecl(syntax)
     case let syntax as FixityDeclSyntax:
       return self.scopeCheckFixityDecl(syntax)
-      // FIXME: Implement import validation logic.
-//    case let syntax as ImportDeclSyntax:
-//    case let syntax as OpenImportDeclSyntax:
+    case let syntax as ImportDeclSyntax:
+      return self.scopeCheckImportDecl(syntax)
+    case let syntax as OpenImportDeclSyntax:
+      return self.scopeCheckOpenImportDecl(syntax)
     default:
       fatalError("scope checking for \(type(of: syntax)) is unimplemented")
     }
@@ -65,10 +77,20 @@ extension NameBinding {
     let head: ApplyHead
     var args = [Expr]()
     args.reserveCapacity(argBuf.count)
-    if self.isBoundVariable(n.name) {
+    guard let resolution = self.resolveQualifiedName(n) else {
+      // If it's not a definition or a local variable, it's undefined.
+      // Recover by introducing a local variable binding anyways.
+      self.engine.diagnose(.undeclaredIdentifier(n), node: n.node)
       head = .variable(n.name)
       args.append(contentsOf: argBuf)
-    } else if let (fqn, info) = self.lookupLocalName(n.name) {
+      return .apply(head, args.map(Elimination.apply))
+    }
+
+    switch resolution {
+    case let .variable(h):
+      head = .variable(h)
+      args.append(contentsOf: argBuf)
+    case let .nameInfo(fqn, info):
       switch info {
       case .constructor(_):
         args.append(contentsOf: argBuf)
@@ -83,15 +105,6 @@ extension NameBinding {
         head = .definition(fqn)
         args.append(contentsOf: argBuf)
       }
-    } else if self.lookupFullyQualifiedName(n) != nil {
-      head = .definition(n)
-      args.append(contentsOf: argBuf)
-    } else {
-      // If it's not a definition or a local variable, it's undefined.
-      // Recover by introducing a local variable binding anyways.
-      self.engine.diagnose(.undeclaredIdentifier(n), node: n.node)
-      head = .variable(n.name)
-      args.append(contentsOf: argBuf)
     }
 
     return .apply(head, args.map(Elimination.apply))
@@ -518,7 +531,7 @@ extension NameBinding {
     // Open the record projections into the current scope.
     var sigs = [TypeSignature]()
     for declField in declFields {
-      guard let bindName = self.bindProjection(named: declField.name, 0) else {
+      guard let bindName = self.bindProjection(named: declField.name) else {
         // If this declaration does not have a unique name, diagnose it and
         // recover by ignoring it.
         self.engine.diagnose(.nameShadows(declField.name),
@@ -888,6 +901,39 @@ extension NameBinding {
       }
     }
     return (arguments, nil)
+  }
+}
+
+extension NameBinding {
+  private func scopeCheckImportDecl(_ syntax: ImportDeclSyntax) -> [Decl] {
+    let name = QualifiedName(ast: syntax.importIdentifier)
+    guard let dependentURL = self.validateImportName(name) else {
+      self.engine.diagnose(.incorrectModuleName(name), node: name.node)
+      return []
+    }
+    guard let importedDecls = self.processImportedFile(dependentURL) else {
+      fatalError()
+    }
+    guard self.importModule(name, importedDecls) else {
+      fatalError()
+    }
+    return []
+  }
+
+  private func scopeCheckOpenImportDecl(_ syntax: OpenImportDeclSyntax) -> [Decl] {
+    let name = QualifiedName(ast: syntax.importIdentifier)
+    guard let dependentURL = self.validateImportName(name) else {
+      self.engine.diagnose(.incorrectModuleName(name), node: name.node)
+      return []
+    }
+    guard let importedDecls = self.processImportedFile(dependentURL) else {
+      fatalError()
+    }
+    guard self.importModule(name, importedDecls) else {
+      fatalError()
+    }
+    self.bindOpenNames(importedDecls, from: name)
+    return []
   }
 }
 

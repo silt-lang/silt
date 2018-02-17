@@ -1,6 +1,6 @@
 -- RUN: %silt --verify scopes %s
 
-module LetBinding where
+module let-binding where
 
 data Unit : Type where
   TT : Unit

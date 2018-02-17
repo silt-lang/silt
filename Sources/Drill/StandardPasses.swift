@@ -14,6 +14,21 @@ import Seismography
 import Mesosphere
 import OuterCore
 
+private func processImportedFile(_ modPath: URL) -> LocalNames? {
+  let options = Options()
+  options.mode = .dump(.typecheck)
+  options.inputURLs = [modPath]
+  let context = PassContext(options: options)
+  let result = Passes.scopeCheckAsImport.run(modPath, in: context)
+  guard let (declModule, locals) = result else {
+    return nil
+  }
+  guard Passes.typeCheck.run(declModule, in: context) != nil else {
+    return nil
+  }
+  return locals
+}
+
 enum Passes {
   /// Reads a file and returns both the String contents of the file and
   /// the URL of the file.
@@ -62,9 +77,24 @@ enum Passes {
   static let scopeCheck =
     DiagnosticGatePass(
       Pass<ModuleDeclSyntax, DeclaredModule>(name: "Scope Check") { mod, ctx in
-        let binder = NameBinding(topLevel: mod, engine: ctx.engine)
+        let binder = NameBinding(topLevel: mod, engine: ctx.engine,
+                                 fileURL: ctx.options.inputURLs[0],
+                                 processImportedFile: processImportedFile)
         return binder.performScopeCheck(topLevel: mod)
-      })
+    })
+
+  /// The ScopeCheck pass ensures the program is well-scoped and doesn't use
+  /// unreachable variables.
+  static let scopeCheckImport =
+    DiagnosticGatePass(
+      Pass<ModuleDeclSyntax, (DeclaredModule, LocalNames)>(
+        name: "Scope Check Import") { mod, ctx in
+        let binder = NameBinding(topLevel: mod, engine: ctx.engine,
+                                 fileURL: ctx.options.inputURLs[0],
+                                 processImportedFile: processImportedFile)
+        let module = binder.performScopeCheck(topLevel: mod)
+        return (module, binder.localNames)
+    })
 
   /// The TypeCheck pass ensures a well-scoped program is also well-typed.
   static let typeCheck =

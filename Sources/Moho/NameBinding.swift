@@ -7,6 +7,13 @@
 
 import Crust
 import Lithosphere
+import Foundation
+
+#if os(macOS)
+import Darwin
+#elseif os(Linux)
+import Glibc
+#endif
 
 // MARK: Lookup
 
@@ -15,7 +22,7 @@ typealias NumExplicitArguments = Int
 typealias NumImplicitArguments = Int
 
 /// Specific information about a name returned from Lookup.
-enum NameInfo {
+public enum NameInfo {
   /// The result was a definition, retrieves the number of implicit arguments.
   case definition([ArgumentPlicity])
   /// The result was a constructor, retrieves the number of implicit and
@@ -23,7 +30,7 @@ enum NameInfo {
   case constructor([ArgumentPlicity])
   /// The result was a record projection, retrieves the number of implicit
   /// arguments.
-  case projection(NumImplicitArguments)
+  case projection
   /// The result was a module, returns its local names.
   case module(LocalNames)
 
@@ -39,17 +46,122 @@ public class NameBinding {
   var activeScope: Scope
   let engine: DiagnosticEngine
   let reparser: Reparser
+  let fileURL: URL
+  let processImportedFile: (URL) -> LocalNames?
 
   var notationMap: [Scope.ScopeID: [NewNotation]] = [:]
 
-  public init(topLevel: ModuleDeclSyntax, engine: DiagnosticEngine) {
-    self.activeScope = Scope(QualifiedName())
+  public init(topLevel: ModuleDeclSyntax, engine: DiagnosticEngine,
+              fileURL: URL,
+              processImportedFile: @escaping (URL) -> LocalNames?) {
+    let moduleName = QualifiedName(ast: topLevel.moduleIdentifier)
+    self.activeScope = Scope(moduleName)
     self.engine = engine
     self.reparser = Reparser(engine: engine)
+    self.fileURL = fileURL
+    self.processImportedFile = processImportedFile
   }
 
   public func performScopeCheck(topLevel: ModuleDeclSyntax) -> DeclaredModule {
-    return self.scopeCheckModule(topLevel)
+    let topLevelName = QualifiedName(ast: topLevel.moduleIdentifier)
+    _ = self.validateModuleName(topLevelName)
+    return self.scopeCheckModule(topLevel, topLevel: true)
+  }
+
+  public var localNames: LocalNames {
+    return self.activeScope.nameSpace.localNames
+  }
+}
+
+#if os(Linux)
+extension ObjCBool {
+  // HACK: Garbage representation mismatch that is cleared up by 4.1.
+  var boolValue: Bool {
+    return self
+  }
+}
+#endif
+
+extension FileManager {
+  fileprivate func casePreservingFileExists(
+    atPath path: String, isDirectory: UnsafeMutablePointer<ObjCBool>) -> Bool {
+    let result = self.fileExists(atPath: path, isDirectory: isDirectory)
+    guard result else {
+      return result
+    }
+
+    guard let buffer = malloc(Int(PATH_MAX)) else {
+      fatalError()
+    }
+    let pathRepr = self.fileSystemRepresentation(withPath: path)
+    let fd = open(pathRepr, O_RDONLY)
+    guard fd >= 0 else {
+      fatalError("File exists but open() failed \(path)?")
+    }
+    var res: Int32 = 0
+    repeat {
+      #if os(macOS)
+      res = fcntl(fd, F_GETPATH, buffer)
+      #elseif os(Linux)
+      guard realpath(pathRepr, buffer.assumingMemoryBound(to: Int8.self)) != nil else {
+        res = -1
+        continue
+      }
+      res = 0
+      #endif
+    } while res == -1 && errno == EINTR
+    let fileBuffer = buffer.assumingMemoryBound(to: Int8.self)
+    let fileURL = URL(fileURLWithFileSystemRepresentation: .init(fileBuffer),
+                      isDirectory: isDirectory.pointee.boolValue,
+                      relativeTo: nil)
+    close(fd)
+    free(buffer)
+    return result && fileURL.path == path
+  }
+}
+
+extension NameBinding {
+  func validateModuleName(_ name: QualifiedName) -> URL? {
+    return self.matchNameToStructure(name, true)
+  }
+
+  func validateImportName(_ name: QualifiedName) -> URL? {
+    return self.matchNameToStructure(name, false)
+  }
+
+  private func matchNameToStructure(_ name: QualifiedName,
+                                    _ inferDirectoryStructure: Bool) -> URL? {
+    var pathBase = self.fileURL
+    pathBase.deleteLastPathComponent()
+    let modPath = name.module.reversed().reduce(name.name.string) { (acc, next) in
+      if inferDirectoryStructure { pathBase.deleteLastPathComponent() }
+      return next.string + "/" + acc
+    }
+    var isDir: ObjCBool = false
+    let expectedPath = pathBase
+                        .appendingPathComponent(modPath)
+                        .appendingPathExtension("silt")
+    guard
+      FileManager.default.casePreservingFileExists(atPath: expectedPath.path,
+                                                   isDirectory: &isDir)
+    else {
+      guard inferDirectoryStructure else {
+        return nil
+      }
+
+      self.engine.diagnose(.incorrectModuleStructure(name),
+                           node: name.node) {
+        let fileName = self.fileURL.lastPathComponent
+        if isDir.boolValue {
+          $0.note(.unexpectedDirectory(fileName), node: name.node)
+        } else {
+          $0.note(.expectedModulePath(name, fileName, expectedPath.path,
+                                      self.fileURL.path), node: name.node)
+        }
+      }
+      return nil
+    }
+    return expectedPath
   }
 }
 
@@ -129,7 +241,7 @@ extension NameBinding {
     }
     let ms = Array(n.module.dropFirst())
     let qn = QualifiedName(cons: m, ms)
-    return self.activeScope.importedModules[qn].flatMap { (_, exports) in
+    return self.activeScope.importedModules[qn].flatMap { (exports) in
       return exports[n.name]
     }
   }
@@ -171,8 +283,8 @@ extension NameBinding {
 
   /// Given the qualified name of a module, resolves it to a fully-qualified
   /// name and returns information about the contents of the module.
-  func resolveModule(_ m: QualifiedName) throws -> Resolution<LocalNames> {
-    let lkup = try self.resolveQualifiedName(m)
+  func resolveModule(_ m: QualifiedName) -> Resolution<LocalNames> {
+    let lkup = self.resolveQualifiedName(m)
     switch lkup {
     case let .some(.nameInfo(qn, .module(names))):
       return Resolution(qualifiedName: qn, info: names)
@@ -186,8 +298,8 @@ extension NameBinding {
   /// Given the qualified name of a constructor, resolves it to a
   /// fully-qualified name and returns information about the constructor itself.
   func resolveConstructor(
-    _ m: QualifiedName) throws -> Resolution<[ArgumentPlicity]> {
-    let lkup = try self.resolveQualifiedName(m)
+    _ m: QualifiedName) -> Resolution<[ArgumentPlicity]> {
+    let lkup = self.resolveQualifiedName(m)
     switch lkup {
     case let .some(.nameInfo(qn, .constructor(plicity))):
       return Resolution(qualifiedName: qn, info: plicity)
@@ -205,13 +317,11 @@ extension NameBinding {
   /// If the named module is not in scope, or has not been previously imported,
   /// this function throws an exception.  Be sure that `importModule` has been
   /// called.
-  func resolveImportedModule(
-    _ n: QualifiedName) throws -> Resolution<LocalNames> {
-    let resolved = try self.resolveModule(n)
-    if self.activeScope.importedModules[resolved.qualifiedName] == nil {
+  func resolveImportedModule(_ n: QualifiedName) -> Resolution<LocalNames> {
+    guard let resolution = self.activeScope.importedModules[n] else {
       fatalError("\(n) should be imported")
     }
-    return resolved
+    return Resolution(qualifiedName: n, info: resolution)
   }
 }
 
@@ -222,28 +332,29 @@ extension NameBinding {
   }
 
   /// Looks up a qualified name and returns information about it.
-  private func resolveQualifiedName(
-    _ qn: QualifiedName) throws -> QualifiedLookupResult? {
-    let ms = Array(qn.module.dropFirst())
+  func resolveQualifiedName(
+    _ qn: QualifiedName) -> QualifiedLookupResult? {
+    let ms = Array(qn.module.dropLast())
     guard !ms.isEmpty else {
-      if self.isBoundVariable(qn.name) {
+      guard !self.isBoundVariable(qn.name) else {
         return .variable(qn.name)
-      } else {
-        switch self.lookupLocalName(qn.name) {
-        case let .some((qn, ni)):
+      }
+
+      switch self.lookupLocalName(qn.name) {
+      case let .some((qn, ni)):
+        return .nameInfo(qn, ni)
+      default:
+        if let (qn, ni) = self.lookupOpenedName(qn.name) {
           return .nameInfo(qn, ni)
-        default:
-          if let (qn, ni) = self.lookupOpenedName(qn.name) {
-            return .nameInfo(qn, ni)
-          } else {
-            return .none
-          }
+        } else {
+          return .none
         }
       }
     }
 
-    let res = try self.resolveImportedModule(QualifiedName(cons: qn.name, ms))
-    guard let ni = res.info[res.qualifiedName.name] else {
+    let moduleName = QualifiedName(cons: qn.module.last!, ms)
+    let res = self.resolveImportedModule(moduleName)
+    guard let ni = res.info[qn.name] else {
       return .none
     }
     return .nameInfo(QualifiedName(cons: qn.name, res.qualifiedName), ni)
@@ -266,9 +377,8 @@ extension NameBinding {
   }
 
   /// Bind a record projection function in the current active scope.
-  func bindProjection(
-    named n: Name, _ hidden: NumImplicitArguments) -> FullyQualifiedName? {
-    return self.bindLocal(named: n, info: .projection(hidden))
+  func bindProjection(named n: Name) -> FullyQualifiedName? {
+    return self.bindLocal(named: n, info: .projection)
   }
 
   /// Bind a data constructor in the current active scope.
@@ -306,6 +416,16 @@ extension NameBinding {
     return self.activeScope.local { scope in
       scope.nameSpace.localNames[n] = ni
       return self.qualify(name: n)
+    }
+  }
+
+  func bindOpenNames(_ mapping: LocalNames, from mod: QualifiedName) {
+    for (k, _) in mapping {
+      guard checkNotReserved(k) && checkNotShadowing(k) else {
+        continue
+      }
+      let qn = QualifiedName(cons: k, mod)
+      self.activeScope.openedNames[k, default: []].append(qn)
     }
   }
 
@@ -348,7 +468,6 @@ extension NameBinding {
   /// Imports a module and binds information about its local names.
   func importModule(
     _ qn: QualifiedName,
-    _ hidden: NumImplicitArguments,
     _ names: LocalNames) -> Bool {
     switch self.activeScope.importedModules[qn] {
     case .some(_):
@@ -356,7 +475,7 @@ extension NameBinding {
       return false
     default:
       return self.activeScope.local { scope in
-        scope.importedModules[qn] = (hidden, names)
+        scope.importedModules[qn] = names
         return true
       }
     }
