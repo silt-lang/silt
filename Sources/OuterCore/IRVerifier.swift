@@ -7,70 +7,13 @@
 
 import Foundation
 import Lithosphere
-
-extension Diagnostic.Message {
-  static func unknownType(_ type: Type) -> Diagnostic.Message {
-    return .init(.error, "Graph IR: unknown type '\(name(for: type))'")
-  }
-  static func continuationHasNoCall(
-    _ continuation: Continuation) -> Diagnostic.Message {
-    return .init(.error,
-                 """
-                 Graph IR: continuation '\(continuation.name)' has no call
-                 """)
-  }
-  static func callingNonFunction(_ type: Type) -> Diagnostic.Message {
-    return .init(.error,
-                 """
-                 Graph IR: attempt to call non-function type \
-                 '\(name(for: type))'
-                 """)
-  }
-  static func arityMismatch(function: Value, expected: Int,
-                            got: Int) -> Diagnostic.Message {
-    let qualifier = expected > got ? "few" : "many"
-    let kind = function is Continuation ? "function" : "value"
-    return .init(.error,
-                 """
-                 Graph IR: too \(qualifier) arguments to Graph IR \(kind) \
-                 '\(function.name)'; expected \(expected), got \(got)
-                 """)
-  }
-  static func typeMismatch(expected: Type, got: Type) -> Diagnostic.Message {
-    return .init(.error,
-                 """
-                 Graph IR: type mismatch (expected '\(name(for: expected))', \
-                 got '\(name(for: got))')
-                 """)
-  }
-
-  static func unsubstitutedType(
-    _ type: ParameterizedType) -> Diagnostic.Message {
-    return .init(.error,
-                 """
-                 Graph IR: type \(name(for: type)) must have all parameters \
-                 substituted
-                 """)
-  }
-}
+import PrettyStackTrace
 
 public final class IRVerifier {
   let module: Module
-  let engine: DiagnosticEngine
 
-  var currentScopedValues = Set<Value>()
-
-  public init(module: Module, engine: DiagnosticEngine) {
+  public init(module: Module) {
     self.module = module
-    self.engine = engine
-  }
-
-  func withScope<T>(_ actions: () -> T) -> T {
-    let oldScope = currentScopedValues
-    defer {
-      currentScopedValues = oldScope
-    }
-    return actions()
   }
 
   func valueIsKnown(_ value: Value) -> Bool {
@@ -95,71 +38,79 @@ public final class IRVerifier {
         guard valueIsKnown(arch) else { return false }
         guard valueIsKnown(subst) else { return false }
       }
-      return true
-    default:
-      return currentScopedValues.contains(value)
-    }
-  }
-
-  func verifyType(_ type: Value) -> Bool {
-    guard valueIsKnown(type) else {
-      engine.diagnose(.unknownType(type))
-      return false
-    }
-    switch type {
-    case let type as ParameterizedType:
-      engine.diagnose(.unsubstitutedType(type))
-      return false
-    default:
-      break
+    default: break
     }
     return true
   }
 
-  @discardableResult
-  public func verify() -> Bool {
-    var allValid = true
-    for continuation in module.continuations {
-      allValid &= verify(continuation)
+  func verifyType(_ type: Value) {
+    trace("verifying GIR type '\(name(for: type))'") {
+      guard valueIsKnown(type) else {
+        fatalError("unknown type '\(name(for: type))'")
+      }
+      switch type {
+      case let type as ParameterizedType:
+        fatalError("""
+          type \(name(for: type)) must have all parameters substituted
+          """)
+      default:
+        break
+      }
     }
-    return allValid
   }
 
-  func verify(_ continuation: Continuation) -> Bool {
-    return withScope {
-      var allValid = true
-      for parameter in continuation.parameters {
-        currentScopedValues.insert(parameter)
-        allValid &= verifyType(parameter.type)
+  public func verify() {
+    trace("verifying GIR module '\(module.name)'") {
+      for continuation in module.continuations {
+        verify(continuation)
       }
-      guard let call = continuation.call else {
-        engine.diagnose(.continuationHasNoCall(continuation))
-        return false
-      }
-      guard let fnType = call.callee.type as? FunctionType else {
-        engine.diagnose(.callingNonFunction(call.callee.type))
-        return false
+    }
+  }
+
+  func verifyApply(_ apply: Apply) {
+    trace("verifying apply of '\(name(for: apply.callee))'") {
+      guard let fnType = apply.callee.type as? FunctionType else {
+        fatalError("""
+          attempt to call non-function type '\(name(for: apply.callee.type))'
+          """)
       }
 
-      guard fnType.arguments.count == call.args.count else {
-        engine.diagnose(.arityMismatch(function: call.callee,
-                                       expected: fnType.arguments.count,
-                                       got: call.args.count))
-        return false
+      guard fnType.arguments.count == apply.args.count else {
+        let expected = fnType.arguments.count
+        let got = apply.args.count
+
+        let qualifier = expected > got ? "few" : "many"
+        let kind = apply.callee is Continuation ? "function" : "value"
+        fatalError("""
+          too \(qualifier) arguments to GIR \(kind) \
+          '\(apply.callee.name)'; expected \(expected), got \(got)
+          """)
       }
-      for (arg, param) in zip(call.args, fnType.arguments) {
-        allValid &= verifyType(arg.type)
-        allValid &= verifyType(param)
-        guard arg.type === param else {
-          engine.diagnose(.typeMismatch(expected: param, got: arg.type))
-          return false
+      for (arg, param) in zip(apply.args, fnType.arguments) {
+        trace("verifying GIR apply argument '\(name(for: arg))'") {
+          verifyType(arg.type)
+          verifyType(param)
+          guard arg.type === param else {
+            fatalError("""
+              type mismatch (expected '\(name(for: param))', \
+              got '\(name(for: arg.type))'
+              """)
+          }
         }
       }
-      return allValid
     }
   }
-}
 
-func &=(lhs: inout Bool, rhs: Bool) {
-  lhs = lhs && rhs
+  func verify(_ continuation: Continuation) {
+    let n = name(for: continuation)
+    trace("verifying GIR continuation '\(n)'") {
+      for parameter in continuation.parameters {
+        verifyType(parameter.type)
+      }
+      guard let call = continuation.call else {
+        fatalError("continuation '\(continuation.name)' has no call")
+      }
+      verifyApply(call)
+    }
+  }
 }

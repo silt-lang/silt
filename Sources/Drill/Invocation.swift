@@ -166,7 +166,7 @@ public struct Invocation {
           let bRet = b.appendParameter(type: continuationTy, name: "ret")
           a.setCall(b, [x, y, ret])
           b.setCall(bRet, [])
-          IRVerifier(module: module, engine: context.engine).verify()
+          IRVerifier(module: module).verify()
           let writer = IRWriter(stream: &stdoutStreamHandle)
           writer.write(module)
         })
