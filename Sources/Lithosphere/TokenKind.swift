@@ -15,7 +15,7 @@ public enum TokenKind: Equatable {
   case underscore
   case semicolon
   case letKeyword
-  case forwardSlash
+  case backSlash
   case importKeyword
   case recordKeyword
   case fieldKeyword
@@ -49,7 +49,7 @@ public enum TokenKind: Equatable {
     case "_": self = .underscore
     case ";": self = .semicolon
     case "let": self = .letKeyword
-    case "\\": self = .forwardSlash
+    case "\\": self = .backSlash
     case "import": self = .importKeyword
     case "record": self = .recordKeyword
     case "field": self = .fieldKeyword
@@ -84,7 +84,7 @@ public enum TokenKind: Equatable {
     case .underscore: return "_"
     case .semicolon: return ";"
     case .letKeyword: return "let"
-    case .forwardSlash: return "\\"
+    case .backSlash: return "\\"
     case .importKeyword: return "import"
     case .recordKeyword: return "record"
     case .fieldKeyword: return "field"
@@ -120,7 +120,7 @@ public enum TokenKind: Equatable {
     case (.underscore, .underscore): return true
     case (.semicolon, .semicolon): return true
     case (.letKeyword, .letKeyword): return true
-    case (.forwardSlash, .forwardSlash): return true
+    case (.backSlash, .backSlash): return true
     case (.importKeyword, .importKeyword): return true
     case (.recordKeyword, .recordKeyword): return true
     case (.fieldKeyword, .fieldKeyword): return true

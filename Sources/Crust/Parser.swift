@@ -692,7 +692,7 @@ extension Parser {
   func isStartOfExpr() -> Bool {
     if isStartOfBasicExpr() { return true }
     switch peek() {
-    case .forwardSlash, .forallSymbol, .forallKeyword, .letKeyword:
+    case .backSlash, .forallSymbol, .forallKeyword, .letKeyword:
       return true
     default:
       return false
@@ -769,7 +769,7 @@ extension Parser {
 
   func parseExpr() throws -> ExprSyntax {
     switch peek() {
-    case .forwardSlash:
+    case .backSlash:
       return try self.parseLambdaExpr()
     case .forallSymbol, .forallKeyword:
       return try self.parseQuantifiedExpr()
@@ -850,7 +850,7 @@ extension Parser {
   }
 
   func parseLambdaExpr() throws -> LambdaExprSyntax {
-    let slashTok = try consume(.forwardSlash)
+    let slashTok = try consume(.backSlash)
     let bindingList = try parseBindingList()
     let arrowTok = try consume(.arrow)
     let bodyExpr = try parseExpr()

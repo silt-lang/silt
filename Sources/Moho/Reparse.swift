@@ -466,7 +466,7 @@ extension Reparser {
       return nil
     }
 
-    guard peek() != .forwardSlash else {
+    guard peek() != .backSlash else {
       self.index = lastIndex
       return nil
     }

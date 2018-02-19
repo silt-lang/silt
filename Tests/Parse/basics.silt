@@ -123,7 +123,7 @@ _o_ : forall {i j k : Level}
 -- CHECK-AST:   identifier "g"
 -- CHECK-AST: equals
 -- CHECK-AST:   lambdaExpr
--- CHECK-AST:     forwardSlash
+-- CHECK-AST:     backSlash
 -- CHECK-AST:     bindingList
 -- CHECK-AST:       identifier "a"
 -- CHECK-AST:     identifier "->"
