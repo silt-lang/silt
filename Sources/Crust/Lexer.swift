@@ -116,7 +116,7 @@ public class Lexer {
     let singleTokMap: [Character: TokenKind] = [
       "{": .leftBrace, "}": .rightBrace,
       "(": .leftParen, ")": .rightParen,
-      "\\": .forwardSlash,
+      "\\": .backSlash,
       ".": .period
     ]
 

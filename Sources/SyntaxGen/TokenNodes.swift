@@ -10,9 +10,9 @@ let tokenNodes = [
   Token(name: "LeftParen", .punctuation("(")),
   Token(name: "RightParen", .punctuation(")")),
 
-  // Need to double-escape the forward slash so it shows up
+  // Need to double-escape the back slash so it shows up
   // single-escaped in the resulting Swift file.
-  Token(name: "ForwardSlash", .punctuation("\\\\")),
+  Token(name: "BackSlash", .punctuation("\\\\")),
 
   Token(name: "LeftBrace", .punctuation("{")),
   Token(name: "RightBrace", .punctuation("}")),
