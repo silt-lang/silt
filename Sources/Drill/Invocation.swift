@@ -79,6 +79,7 @@ public struct Invocation {
     let lexFile = Passes.readFile |> Passes.lex
     let shineFile = lexFile |> Passes.shine
     let parseFile = shineFile |> Passes.parse
+    let parseGIRFile = lexFile |> Passes.parseGIR
     let scopeCheckFile = parseFile |> Passes.scopeCheck
     let typeCheckFile = scopeCheckFile |> Passes.typeCheck
 
@@ -123,9 +124,13 @@ public struct Invocation {
         run(typeCheckFile |> Pass(name: "Type Check") { module, _ in
           print(module)
         })
+      case .dump(.parseGIR):
+        run(parseGIRFile |> Pass(name: "Dump Parsed") { module, _ in
+          module.dump()
+        })
       case .dump(.gir):
         run(Pass(name: "Dump GIR") { module, _ in
-          let module = Module(name: "main")
+          let module = GIRModule(name: "main")
           let builder = IRBuilder(module: module)
           let natType = module.dataType(name: "Nat") { nat in
             nat.addConstructor(name: "Z",
@@ -164,8 +169,6 @@ public struct Invocation {
           b.appendParameter(type: listPersonType)
           b.appendParameter(type: listPersonType, ownership: .borrowed)
           let bRet = b.appendParameter(type: continuationTy, name: "ret")
-          a.setCall(b, [x, y, ret])
-          b.setCall(bRet, [])
           IRVerifier(module: module).verify()
           let writer = IRWriter(stream: &stdoutStreamHandle)
           writer.write(module)

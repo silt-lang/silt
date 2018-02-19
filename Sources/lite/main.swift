@@ -67,7 +67,7 @@ func run() -> Int32 {
 
   do {
     let allPassed = try runLite(substitutions: substitutions,
-                                pathExtensions: ["silt"],
+                                pathExtensions: ["silt", "gir"],
                                 testDirPath: result.get(testDir),
                                 testLinePrefix: "--",
                                 parallelismLevel: parallelismLevel)

@@ -1,0 +1,11 @@
+-- RUN: %silt %s --dump parse-gir --no-colors 2>&1 | %FileCheck %s --prefixes CHECK
+
+-- CHECK: module poly where
+module poly where
+
+@id : (T : Type) -> (T) -> (T -> _) {
+bb0(%0 : Type ; %1 : %0 ; %return : (%0) -> _):
+  %2 = copy_value %1 : %0
+  destroy_value %1 : %0
+  apply %return(%2) : (%0) -> _
+}

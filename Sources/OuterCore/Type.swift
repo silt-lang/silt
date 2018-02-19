@@ -5,7 +5,7 @@
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 
-import Foundation
+import Lithosphere
 
 public struct NameAndType: Hashable {
   public let name: String
@@ -17,6 +17,15 @@ public struct NameAndType: Hashable {
 
   public var hashValue: Int {
     return name.hashValue ^ ObjectIdentifier(type).hashValue
+  }
+}
+
+// FIXME: Temporary
+public final class GIRType : Type {
+  let expr: ExprSyntax
+  public init(_ expr: ExprSyntax) {
+    self.expr = expr
+    super.init(name: "", type: TypeType.shared)
   }
 }
 
@@ -225,7 +234,7 @@ public final class SubstitutedType: Type {
 }
 
 public final class BottomType: Type {
-  static let shared = BottomType()
+  public static let shared = BottomType()
 
   init() {
     super.init(name: "", type: TypeType.shared)

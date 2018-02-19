@@ -96,7 +96,7 @@ public class Parser {
     self.tokens = tokens
   }
 
-  var currentToken: TokenSyntax? {
+  public var currentToken: TokenSyntax? {
     return index < tokens.count ? tokens[index] : nil
   }
 
@@ -121,7 +121,7 @@ public class Parser {
     }
   }
 
-  func unexpectedToken(expected: TokenKind? = nil) -> Diagnostic.Message {
+  public func unexpectedToken(expected: TokenKind? = nil) -> Diagnostic.Message {
     // If we've "unexpected" an implicit token from Shining, highlight
     // instead the previous token because the diagnostic will say that we've
     // begun or ended the scope/line.
@@ -137,7 +137,7 @@ public class Parser {
     }
   }
 
-  func consumeIf(_ kinds: TokenKind...) throws -> TokenSyntax? {
+  public func consumeIf(_ kinds: TokenKind...) throws -> TokenSyntax? {
     guard let token = currentToken else {
       throw unexpectedToken(expected: kinds.first)
     }
@@ -148,7 +148,7 @@ public class Parser {
     return nil
   }
 
-  func consume(_ kinds: TokenKind...) throws -> TokenSyntax {
+  public func consume(_ kinds: TokenKind...) throws -> TokenSyntax {
     guard let token = currentToken, kinds.contains(token.tokenKind) else {
       throw unexpectedToken(expected: kinds.first)
     }
@@ -156,11 +156,11 @@ public class Parser {
     return token
   }
 
-  func peek(ahead n: Int = 0) -> TokenKind {
+  public func peek(ahead n: Int = 0) -> TokenKind {
     return peekToken(ahead: n)?.tokenKind ?? .eof
   }
 
-  func peekToken(ahead n: Int = 0) -> TokenSyntax? {
+  public func peekToken(ahead n: Int = 0) -> TokenSyntax? {
     guard index + n < tokens.count else { return nil }
     return tokens[index + n]
   }
@@ -186,7 +186,7 @@ extension Parser {
 }
 
 extension Parser {
-  func parseIdentifierToken() throws -> TokenSyntax {
+  public func parseIdentifierToken() throws -> TokenSyntax {
     guard case .identifier(_) = peek() else {
       throw unexpectedToken()
     }
@@ -196,7 +196,7 @@ extension Parser {
     return name
   }
 
-  func parseQualifiedName() throws -> QualifiedNameSyntax {
+  public func parseQualifiedName() throws -> QualifiedNameSyntax {
     var pieces = [QualifiedNamePieceSyntax]()
     while true {
       guard case .identifier(_) = peek() else { continue }
@@ -707,11 +707,16 @@ extension Parser {
     }
   }
 
-  func isStartOfBasicExpr() -> Bool {
+  func isStartOfBasicExpr(parseGIR: Bool = false) -> Bool {
+    if parseGIR && peekToken()!.leadingTrivia.containsNewline {
+      return false
+    }
     switch peek() {
     case .underscore, .typeKeyword,
-         .leftParen, .leftBrace,
+         .leftParen,
          .recordKeyword, .identifier(_):
+      return true
+    case .leftBrace where !parseGIR:
       return true
     default:
       return false
@@ -906,10 +911,14 @@ extension Parser {
   }
 
   func parseBasicExprs(
-    diagType: String = "expression") throws -> [BasicExprSyntax] {
+    diagType: String = "expression",
+    parseGIR: Bool = false) throws -> [BasicExprSyntax] {
     var pieces = [BasicExprSyntax]()
-    while isStartOfBasicExpr() {
-      pieces.append(try parseBasicExpr())
+    while isStartOfBasicExpr(parseGIR: parseGIR) {
+      if parseGIR && peekToken()!.leadingTrivia.containsNewline {
+        return pieces
+      }
+      pieces.append(try parseBasicExpr(parseGIR: parseGIR))
     }
 
     guard !pieces.isEmpty else {
@@ -923,7 +932,7 @@ extension Parser {
       try parseBasicExprs(diagType: "list of expressions"))
   }
 
-  public func parseBasicExpr() throws -> BasicExprSyntax {
+  public func parseBasicExpr(parseGIR: Bool = false) throws -> BasicExprSyntax {
     switch peek() {
     case .underscore:
       return try self.parseUnderscoreExpr()
@@ -931,7 +940,7 @@ extension Parser {
       return try self.parseTypeBasicExpr()
     case .leftParen:
       return try self.parseParenthesizedExpr()
-    case .leftBrace:
+    case .leftBrace where !parseGIR:
       return try self.parseTypedParameterGroupExpr()
     case .recordKeyword:
       return try self.parseRecordExpr()
@@ -1021,5 +1030,83 @@ extension Parser {
   func parseTypedBinding() throws -> TypedBindingSyntax {
     let parameter = try parseTypedParameter()
     return TypedBindingSyntax(parameter: parameter)
+  }
+}
+
+extension Parser {
+  func isStartOfGIRTypedParameter() -> Bool {
+    guard self.index + 1 < self.tokens.endIndex else { return false }
+    switch (peek(), peek(ahead: 1)) {
+    case (.leftParen, .identifier(_)): return true
+    default: return false
+    }
+  }
+
+  func parseGIRTypedParameterList() throws -> TypedParameterListSyntax {
+    var pieces = [TypedParameterSyntax]()
+    while isStartOfGIRTypedParameter() {
+      pieces.append(try parseGIRTypedParameter())
+    }
+    return TypedParameterListSyntax(elements: pieces)
+  }
+
+  func parseGIRTypedParameter() throws -> TypedParameterSyntax {
+    switch peek() {
+    case .leftParen:
+      return try self.parseExplicitTypedParameter()
+    default:
+      throw expected("typed parameter")
+    }
+  }
+
+  func parseGIRQuantifiedExpr() throws -> QuantifiedExprSyntax {
+    let forallTok = try consume(.forallSymbol, .forallKeyword)
+    let bindingList = try parseGIRTypedParameterList()
+    let arrow = try consume(.arrow)
+    let outputExpr = try parseExpr()
+    return QuantifiedExprSyntax(
+      forallToken: forallTok,
+      bindingList: bindingList,
+      arrowToken: arrow,
+      outputExpr: outputExpr
+    )
+  }
+
+  public func parseGIRTypeExpr() throws -> ExprSyntax {
+    switch peek() {
+    case .backSlash:
+      return try self.parseLambdaExpr()
+    case .forallSymbol, .forallKeyword:
+      return try self.parseGIRQuantifiedExpr()
+    default:
+      // If we're looking at another basic expr, then we're trying to parse
+      // either an application or an -> expression. Either way, parse the
+      // remaining list of expressions and construct a BasicExprList with the
+      // first expression at the beginning.
+      var exprs = [BasicExprSyntax]()
+      while isStartOfBasicExpr(parseGIR: true) || peek() == .arrow {
+        // If we see an arrow at the start, then consume it and move on.
+        if case .arrow = peek() {
+          let arrow = try consume(.arrow)
+          let name = QualifiedNameSyntax(elements: [
+            QualifiedNamePieceSyntax(name: arrow, trailingPeriod: nil),
+          ])
+          exprs.append(NamedBasicExprSyntax(name: name))
+        } else {
+          exprs.append(contentsOf: try parseBasicExprs(parseGIR: true))
+        }
+      }
+
+      if exprs.isEmpty {
+        throw expected("expression")
+      }
+
+      // If there's only one expression in this "application", then just return
+      // it without constructing an application.
+      guard exprs.count > 1 else {
+        return exprs[0]
+      }
+      return ApplicationExprSyntax(exprs: BasicExprListSyntax(elements: exprs))
+    }
   }
 }

@@ -74,4 +74,14 @@ extension Trivia {
     }
     return false
   }
+
+  public var containsNewline: Bool {
+    for piece in pieces {
+      if case .spaces(_) = piece { return false }
+      if case .tabs(_) = piece { return false }
+      if case .newlines(_) = piece { return true }
+      if case .carriageReturns(_) = piece { return false }
+    }
+    return false
+  }
 }

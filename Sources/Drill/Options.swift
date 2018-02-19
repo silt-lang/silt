@@ -48,6 +48,8 @@ public enum Mode {
     /// the source text and dump the solving process.
     case typecheck
 
+    case parseGIR = "parse-gir"
+
     /// The compiler will lex, layout, parse, scope check, type check, then
     /// lower the source code to Graph IR and dump it.
     case gir

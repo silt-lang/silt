@@ -7,11 +7,5 @@
 
 import Foundation
 
-extension FileHandle: TextOutputStream {
-    public func write(_ string: String) {
-        write(string.data(using: .utf8)!)
-    }
-}
-
 public var stderrStreamHandle = FileHandle.standardError
 public var stdoutStreamHandle = FileHandle.standardOutput

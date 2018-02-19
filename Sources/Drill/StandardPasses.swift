@@ -10,6 +10,8 @@ import Lithosphere
 import Crust
 import Moho
 import Mantle
+import OuterCore
+import Seismography
 
 enum Passes {
   /// Reads a file and returns both the String contents of the file and
@@ -45,6 +47,13 @@ enum Passes {
     Pass<[TokenSyntax], ModuleDeclSyntax>(name: "Parse") { tokens, ctx in
       let parser = Parser(diagnosticEngine: ctx.engine, tokens: tokens)
       return parser.parseTopLevelModule()
+    }
+
+  static let parseGIR =
+    Pass<[TokenSyntax], GIRModule>(name: "Parse GIR") { tokens, ctx in
+      let parser = Parser(diagnosticEngine: ctx.engine, tokens: tokens)
+      let girparser = GIRParser(parser)
+      return girparser.parseTopLevelModule()
     }
 
   /// The ScopeCheck pass ensures the program is well-scoped and doesn't use

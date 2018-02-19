@@ -1,0 +1,75 @@
+id ::= <a group of non-space unicode characters>
+id-list ::= <id> | <id-list>
+
+qualified-name ::= <id> | <id> '.' <qualified-name>
+
+gir-value-id ::= '%' <id>
+gir-value-id-list ::= <gir-value-id> | <gir-value-id-list>
+
+int ::= [0-9]+
+
+# Declarations
+
+decl ::= <module-decl>
+       | <import-decl>
+       | <function-decl>
+
+decl-list ::= <decl>
+            | <decl> <decl-list>
+
+## Modules
+
+module-decl ::= 'module' <id> ('(' <operand> (',' <operand>)* ')')? 'where' '{' <decl-list> '}'
+
+## Imports
+
+import-decl ::= 'import' <qualified-name>
+
+## Functions
+
+function-decl ::= '@' <qualified-name> ':' <gir-type> '{' <continuation>+ '}'
+
+## Types
+
+operand ::= <gir-value-id> ':' <type>
+typed-parameter ::= '(' <operand> ')'
+
+gir-type ::= <typed-parameter> '->' <gir-type>
+           | <basic-expr-list> '->' <gir-type>
+           | '\' <binding-list> '->' <gir-type>
+           | <application>
+           | 'Type'
+           | '_'
+           | '(' <expr> ')'
+
+basic-expr ::= <qualified-name>
+             | '(' <expr> ')'
+
+application ::= <basic-expr> <application>
+
+## Continuations
+
+continuation ::= <id> ('(' <operand> (',' <operand>)* ')')? ':' <gir-primop-stmt>* <terminator>
+
+## Instructions
+
+gir-primop-stmt ::= (<gir-value-id> '=')? gir-primop
+
+## Primops
+
+gir-primop ::= 'function_ref' <qualified-name> ':' gir-type
+
+gir-primop ::= 'data_init_simple' <qualified-name> ':' gir-type
+
+gir-primop ::= 'data_init' <gir-type> ',' <qualified-name> (',' <operand>)?
+
+gir-primop ::= 'copy_value' <operand>
+
+gir-primop ::= 'destroy_value' <operand>
+
+## Terminators
+
+terminator ::= 'apply' <gir-value-id> '(' (<gir-value-id> (',' <gir-value-id>)*)? ')' ':' gir-type
+
+terminator ::= 'switch_constr' <operand> (',' case <qualified-name>: <gir-value-id>)*
+

@@ -7,10 +7,11 @@
 
 import Foundation
 
-public final class Module {
+public final class GIRModule {
   public let name: String
 
   public private(set) var continuations = [Continuation]()
+  public private(set) var primops = [PrimOp]()
   public private(set) var knownFunctionTypes = Set<FunctionType>()
   public private(set) var knownRecordTypes = Set<RecordType>()
   public private(set) var knownDataTypes = Set<DataType>()
@@ -25,6 +26,10 @@ public final class Module {
   public func addContinuation(_ continuation: Continuation) {
     continuations.append(continuation)
     continuation.module = self
+  }
+
+  public func addPrimOp(_ primOp: PrimOp) {
+    primops.append(primOp)
   }
 
   public func recordType(name: String,
@@ -47,6 +52,13 @@ public final class Module {
     let data = DataType(name: name, indices: indices ?? TypeType.shared)
     actions(data)
     return knownDataTypes.getOrInsert(data)
+  }
+
+  public func dump() {
+    print("module \(self.name) where")
+    for cont in self.continuations {
+      Scope(cont).dump()
+    }
   }
 }
 
