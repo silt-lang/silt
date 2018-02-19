@@ -22,7 +22,7 @@ let package = Package(
       dependencies: ["Lithosphere"]),
     .target(
       name: "Drill",
-      dependencies: ["Lithosphere", "Crust", "Moho", "Mantle", "Utility"]),
+      dependencies: ["Lithosphere", "Crust", "Moho", "Mantle", "Utility", "OuterCore"]),
     .target(
       name: "silt",
       dependencies: ["Drill", "Utility"]),
@@ -41,5 +41,8 @@ let package = Package(
     .target(
       name: "Mantle",
       dependencies: ["Lithosphere", "Moho", "Utility", "PrettyStackTrace"]),
+    .target(
+      name: "OuterCore",
+      dependencies: ["Crust", "Moho", "Mantle"]),
   ]
 )

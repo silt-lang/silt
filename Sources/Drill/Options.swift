@@ -43,6 +43,10 @@ public enum Mode {
     /// The compiler will lex, layout, parse, scope check, then type check
     /// the source text and dump the solving process.
     case typecheck
+
+    /// The compiler will lex, layout, parse, scope check, type check, then
+    /// lower the source code to Graph IR and dump it.
+    case gir
   }
   case dump(DumpLayer)
   case verify(VerifyLayer)
