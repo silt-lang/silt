@@ -141,6 +141,72 @@ extension TypeChecker {
     }
   }
 
+  private func exprAsPattern(_ e: Term<TT>) -> [Pattern]? {
+    var expr = e
+    while true {
+      let normE = self.toWeakHeadNormalForm(expr).ignoreBlocking
+      switch normE {
+      case let .pi(_, codomain):
+        expr = codomain
+        continue
+      case .apply(.meta(_), _):
+        return nil
+      case let .apply(.definition(_), es):
+        return self.elimsAsPatterns(es)
+      case let .apply(.variable(v), es) where es.isEmpty:
+        fatalError(expr.description)
+      default:
+        print(normE.description)
+        fatalError(expr.description)
+      }
+    }
+  }
+
+  func elimsAsPatterns(_ es: [Elim<TT>]) -> [Pattern]? {
+    var pats = [Pattern]()
+    for elim in es {
+      switch elim {
+      case .project(_):
+        return nil
+      case let .apply(term):
+        switch term {
+        case let .apply(.variable(v), es) where es.isEmpty:
+          pats.append(.variable(v))
+        default:
+          print(term.description)
+        }
+      }
+    }
+    return pats
+  }
+
+  func matchingConstructors(_ name: Opened<QualifiedName, TT>, _ cs: [QualifiedName], _ es: [Elim<TT>]) -> [Pattern] {
+    guard !cs.isEmpty else {
+      return []
+    }
+
+    var result = [Pattern]()
+    for cname in cs {
+      let (constrName, openTypeDef) = self.getOpenedDefinition(cname)
+      guard case let .dataConstructor(_, _, ty) = openTypeDef else {
+        fatalError()
+      }
+      guard let pats = self.exprAsPattern(ty.inside) else {
+        continue
+      }
+      switch self.matchClause(es, pats) {
+      case .success((_, _)):
+        result.append(.constructor(constrName, pats))
+        continue
+      case .failure(_):
+        // FIXME: Check recursive inhabitants as well.
+        continue
+      }
+    }
+
+    return result
+  }
+
   private func eliminateClauses(
     _ name: Opened<QualifiedName, TT>, _ cs: [Clause], _ es: [Elim<TT>]
   ) -> Blocked {
@@ -149,9 +215,11 @@ extension TypeChecker {
     }
 
     for clause in cs {
+      guard let clauseBody = clause.body else { continue }
+      
       switch self.matchClause(es, clause.patterns) {
       case let .success((args, remainingElims)):
-        let instBody = self.forceInstantiate(clause.body, args)
+        let instBody = self.forceInstantiate(clauseBody, args)
         return self.toWeakHeadNormalForm(self.eliminate(instBody,
                                                         remainingElims))
       case let .failure(.collect(mvs)):

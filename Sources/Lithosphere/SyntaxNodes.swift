@@ -1990,6 +1990,44 @@ public struct NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxB
 
 }
 
+public struct AbsurdFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
+  public enum Cursor: Int {
+    case basicExprList
+    case trailingSemicolon
+  }
+
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(basicExprList: BasicExprListSyntax, trailingSemicolon: TokenSyntax) {
+    let raw = RawSyntax.node(.absurdFunctionClauseDecl, [
+      basicExprList.raw,
+      trailingSemicolon.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var basicExprList: BasicExprListSyntax {
+    return child(at: Cursor.basicExprList) as! BasicExprListSyntax
+  }
+  public func withBasicExprList(_ syntax: BasicExprListSyntax) -> AbsurdFunctionClauseDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.basicExprList)
+    return AbsurdFunctionClauseDeclSyntax(root: newRoot, data: newData)
+  }
+
+  public var trailingSemicolon: TokenSyntax {
+    return child(at: Cursor.trailingSemicolon) as! TokenSyntax
+  }
+  public func withTrailingSemicolon(_ syntax: TokenSyntax) -> AbsurdFunctionClauseDeclSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.trailingSemicolon)
+    return AbsurdFunctionClauseDeclSyntax(root: newRoot, data: newData)
+  }
+
+}
+
 public struct FunctionWhereClauseDeclSyntax: DeclSyntax, _SyntaxBase {
   let _root: SyntaxData
   unowned let _data: SyntaxData
@@ -3067,6 +3105,44 @@ public struct UnderscoreExprSyntax: BasicExprSyntax, _SyntaxBase {
   public func withUnderscoreToken(_ syntax: TokenSyntax) -> UnderscoreExprSyntax {
     let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.underscoreToken)
     return UnderscoreExprSyntax(root: newRoot, data: newData)
+  }
+
+}
+
+public struct AbsurdExprSyntax: BasicExprSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
+  public enum Cursor: Int {
+    case leftParenToken
+    case rightParenToken
+  }
+
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(leftParenToken: TokenSyntax, rightParenToken: TokenSyntax) {
+    let raw = RawSyntax.node(.absurdExpr, [
+      leftParenToken.raw,
+      rightParenToken.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var leftParenToken: TokenSyntax {
+    return child(at: Cursor.leftParenToken) as! TokenSyntax
+  }
+  public func withLeftParenToken(_ syntax: TokenSyntax) -> AbsurdExprSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.leftParenToken)
+    return AbsurdExprSyntax(root: newRoot, data: newData)
+  }
+
+  public var rightParenToken: TokenSyntax {
+    return child(at: Cursor.rightParenToken) as! TokenSyntax
+  }
+  public func withRightParenToken(_ syntax: TokenSyntax) -> AbsurdExprSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.rightParenToken)
+    return AbsurdExprSyntax(root: newRoot, data: newData)
   }
 
 }

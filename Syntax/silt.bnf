@@ -100,6 +100,7 @@ basic-expr-list ::= <basic-expr>
 
 basic-expr ::= <qualified-name>
              | '_'
+             | '()'
              | 'Type'
              | '(' <expr> ')'
              | 'record' <basic-expr>? '{' <record-field-assignment-list>? '}'

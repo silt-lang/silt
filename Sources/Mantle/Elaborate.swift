@@ -28,6 +28,7 @@ extension TypeChecker {
       let elaborator = TypeChecker<ElaboratePhaseState>(self.signature,
                                                         self.environment,
                                                         ElaboratePhaseState(),
+                                                        self.engine,
                                                         options)
       let ttExpr = elaborator.elaborate(expr, expecting: ty,
                                         bindLocal: bindLocal)

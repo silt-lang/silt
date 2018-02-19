@@ -59,6 +59,7 @@ function-decl ::= <ascription> ';'
 function-clause-decl ::= <basic-expr-list> with <expr> '|' <basic-expr-list>? '=' <expr> ';'
                        | <basic-expr-list> '=' <expr> ';'
                        | <basic-expr-list> '=' <expr> 'where' '{' <decl-list>? '}' ';'
+                       | <basic-expr-list> ';'
 
 # Fixity
 
@@ -96,6 +97,7 @@ basic-expr-list ::= <basic-expr>
 
 basic-expr ::= <qualified-name>
              | '_'
+             | '()'
              | 'Type'
              | '(' <expr> ')'
              | 'record' <basic-expr>? '{' <record-field-assignment-list>? '}'

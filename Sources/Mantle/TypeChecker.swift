@@ -22,8 +22,8 @@ public struct TypeCheckerDebugOptions: OptionSet {
 }
 
 public final class TypeChecker<PhaseState> {
-
   var state: State<PhaseState>
+  let engine: DiagnosticEngine
   let options: TypeCheckerDebugOptions
 
   final class State<S> {
@@ -39,12 +39,15 @@ public final class TypeChecker<PhaseState> {
   }
 
   public convenience init(_ state: PhaseState,
+                          _ engine: DiagnosticEngine,
                           options: TypeCheckerDebugOptions = []) {
-    self.init(Signature(), Environment([]), state, options)
+    self.init(Signature(), Environment([]), state, engine, options)
   }
 
   init(_ sig: Signature, _ env: Environment, _ state: PhaseState,
+       _ engine: DiagnosticEngine,
        _ options: TypeCheckerDebugOptions) {
+    self.engine = engine
     self.options = options
     self.state = State<PhaseState>(sig, env, state)
   }

@@ -199,12 +199,14 @@ public enum DeclaredPattern: CustomStringConvertible {
   case wild
   case variable(Name)
   case constructor(QualifiedName, [DeclaredPattern])
+  case absurd(AbsurdExprSyntax)
 
   public var name: Name? {
     switch self {
     case .variable(let name): return name
     case .wild: return Name(name: .implicit(.identifier("_")))
     case .constructor(_, _): return nil
+    case .absurd(_): return Name(name: .implicit(.identifier("()")))
     }
   }
 
@@ -217,6 +219,7 @@ public enum DeclaredPattern: CustomStringConvertible {
         """
         \(constrName)(\(pats.map({ $0.description }).joined(separator: ", ")))
         """
+    case .absurd(_): return "()"
     }
   }
 }

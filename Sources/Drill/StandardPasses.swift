@@ -61,7 +61,7 @@ enum Passes {
     DiagnosticGatePass(
       Pass<DeclaredModule, Module>(name: "Type Check") { module, context in
         let tc =
-          TypeChecker<CheckPhaseState>(CheckPhaseState(),
+          TypeChecker<CheckPhaseState>(CheckPhaseState(), context.engine,
               options: context.options.typeCheckerDebugOptions)
         return tc.checkTopLevelModule(module)
     })

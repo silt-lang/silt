@@ -429,6 +429,29 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         let ttVar = Var(wildcardName, UInt(self.environment.asContext.count))
         self.extendEnvironment([(wildcardName, patType)])
         return (.variable(ttVar), type)
+      case let .absurd(syntax):
+        switch patType {
+        case let .apply(.definition(def), elims):
+          guard let data = self.signature.lookupDefinition(def.key) else {
+            fatalError()
+          }
+          guard case let .constant(tyConType, .data(existingCons)) = data.inside else {
+            fatalError()
+          }
+          let ctors = self.matchingConstructors(def, existingCons, elims)
+          guard ctors.isEmpty else {
+            self.engine.diagnose(.absurdPatternIsValid(patType), node: syntax) {
+              for ctor in ctors {
+                $0.note(.absurdPatternInstantiatesWith(ctor), node: syntax)
+              }
+            }
+            // Recover with the absurd pattern.
+            return (.absurd, type)
+          }
+        default:
+          fatalError()
+        }
+        return (.absurd, type)
       case let .constructor(dataCon, synPats):
         // Use the data constructor to locate back up the parent so we can
         // retrieve its argument telescope.
@@ -505,8 +528,22 @@ extension TypeChecker where PhaseState == CheckPhaseState {
       return self.underNewScope() {
         switch clause.body {
         case .empty:
-          // FIXME: Implement absurd patterns.
-          fatalError("")
+          func hasAnyEmptyPatterns(_ pats: [Pattern]) -> Bool {
+            return pats.reduce(false) { acc, next in
+              switch next {
+              case .absurd:
+                return true
+              case .variable(_):
+                return acc
+              case let .constructor(_, args):
+                return acc || hasAnyEmptyPatterns(args)
+              }
+            }
+          }
+          if !hasAnyEmptyPatterns(pats) {
+            self.engine.diagnose(.noAbsurdPatternInRHS)
+          }
+          return Clause(patterns: pats, body: nil)
         case let .body(body, whereDecls):
           _ = whereDecls.map(self.checkDecl)
           let body = self.checkExpr(body, type)

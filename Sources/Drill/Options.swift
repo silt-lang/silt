@@ -19,6 +19,10 @@ public enum Mode {
     /// Run the diagnostic verifier after parsing and scope checking but before
     /// typechecking.
     case scopes
+
+    /// Run the diagnostic verifier after parsing, scope checking and
+    /// typechecking.
+    case typecheck
   }
 
   public enum DumpLayer: String {

@@ -64,6 +64,7 @@ extension TypeChecker {
     let solver = TypeChecker<SolvePhaseState>(self.signature,
                                               self.environment,
                                               SolvePhaseState(),
+                                              self.engine,
                                               options)
     for c in constraints {
       solver.solve(c)

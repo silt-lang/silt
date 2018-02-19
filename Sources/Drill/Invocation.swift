@@ -179,6 +179,9 @@ public struct Invocation {
         case .scopes:
           return run(makeVerifyPass(url: url, pass: scopeCheckFile,
                                     context: context))!
+        case .typecheck:
+          return run(makeVerifyPass(url: url, pass: typeCheckFile,
+                                    context: context))!
         }
       }
     }
