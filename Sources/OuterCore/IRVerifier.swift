@@ -7,11 +7,9 @@
 
 import Foundation
 import Lithosphere
+import PrettyStackTrace
 
 extension Diagnostic.Message {
-  static func unknownType(_ type: Type) -> Diagnostic.Message {
-    return .init(.error, "Graph IR: unknown type '\(name(for: type))'")
-  }
   static func continuationHasNoCall(
     _ continuation: Continuation) -> Diagnostic.Message {
     return .init(.error,
@@ -58,19 +56,9 @@ public final class IRVerifier {
   let module: Module
   let engine: DiagnosticEngine
 
-  var currentScopedValues = Set<Value>()
-
   public init(module: Module, engine: DiagnosticEngine) {
     self.module = module
     self.engine = engine
-  }
-
-  func withScope<T>(_ actions: () -> T) -> T {
-    let oldScope = currentScopedValues
-    defer {
-      currentScopedValues = oldScope
-    }
-    return actions()
   }
 
   func valueIsKnown(_ value: Value) -> Bool {
@@ -97,23 +85,24 @@ public final class IRVerifier {
       }
       return true
     default:
-      return currentScopedValues.contains(value)
+      return true
     }
   }
 
   func verifyType(_ type: Value) -> Bool {
-    guard valueIsKnown(type) else {
-      engine.diagnose(.unknownType(type))
-      return false
+    return trace("verifying Graph IR type \(name(for: type))") {
+      guard valueIsKnown(type) else {
+        fatalError("unknown type '\(name(for: type))'")
+      }
+      switch type {
+      case let type as ParameterizedType:
+        engine.diagnose(.unsubstitutedType(type))
+        return false
+      default:
+        break
+      }
+      return true
     }
-    switch type {
-    case let type as ParameterizedType:
-      engine.diagnose(.unsubstitutedType(type))
-      return false
-    default:
-      break
-    }
-    return true
   }
 
   @discardableResult
@@ -126,10 +115,9 @@ public final class IRVerifier {
   }
 
   func verify(_ continuation: Continuation) -> Bool {
-    return withScope {
+    return trace("verifying Graph IR continuation \(continuation.name)") {
       var allValid = true
       for parameter in continuation.parameters {
-        currentScopedValues.insert(parameter)
         allValid &= verifyType(parameter.type)
       }
       guard let call = continuation.call else {
