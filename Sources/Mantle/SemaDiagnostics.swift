@@ -25,7 +25,8 @@ extension Diagnostic.Message {
       """)
   }
 
-  static func absurdPatternInstantiatesWith(_ pat: Pattern) -> Diagnostic.Message {
+  static func absurdPatternInstantiatesWith(
+    _ pat: Pattern) -> Diagnostic.Message {
     return Diagnostic.Message(.note,
       """
       possible valid pattern: '\(pat)'

@@ -156,7 +156,6 @@ extension TypeChecker {
       case let .apply(.variable(v), es) where es.isEmpty:
         fatalError(expr.description)
       default:
-        print(normE.description)
         fatalError(expr.description)
       }
     }
@@ -180,7 +179,9 @@ extension TypeChecker {
     return pats
   }
 
-  func matchingConstructors(_ name: Opened<QualifiedName, TT>, _ cs: [QualifiedName], _ es: [Elim<TT>]) -> [Pattern] {
+  func matchingConstructors(
+    _ name: Opened<QualifiedName, TT>, _ cs: [QualifiedName], _ es: [Elim<TT>]
+  ) -> [Pattern] {
     guard !cs.isEmpty else {
       return []
     }
@@ -216,7 +217,7 @@ extension TypeChecker {
 
     for clause in cs {
       guard let clauseBody = clause.body else { continue }
-      
+
       switch self.matchClause(es, clause.patterns) {
       case let .success((args, remainingElims)):
         let instBody = self.forceInstantiate(clauseBody, args)

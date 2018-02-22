@@ -435,7 +435,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
           guard let data = self.signature.lookupDefinition(def.key) else {
             fatalError()
           }
-          guard case let .constant(tyConType, .data(existingCons)) = data.inside else {
+          guard case let .constant(_, .data(existingCons)) = data.inside else {
             fatalError()
           }
           let ctors = self.matchingConstructors(def, existingCons, elims)
@@ -525,7 +525,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
   func checkClause(_ ty: Type<TT>, _ clause: DeclaredClause) -> Clause {
     return trace("checking clause \(clause) has type \(ty)") {
       let (pats, type) = self.checkPatterns(clause.patterns, ty)
-      return self.underNewScope() {
+      return self.underNewScope {
         switch clause.body {
         case .empty:
           func hasAnyEmptyPatterns(_ pats: [Pattern]) -> Bool {
