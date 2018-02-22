@@ -485,9 +485,25 @@ public struct Meta: Comparable, Hashable, CustomStringConvertible {
 
 // MARK: Patterns
 
-public enum Pattern {
+public enum Pattern: CustomStringConvertible {
+  case absurd
   case variable(Var)
   case constructor(Opened<QualifiedName, TT>, [Pattern])
+
+  public var description: String {
+    switch self {
+    case .absurd:
+      return "_"
+    case let .variable(v):
+      return v.name.description
+    case let .constructor(name, pats):
+      let head = "\(name.key)"
+      guard !pats.isEmpty else {
+        return head
+      }
+      return head + "(\(pats.map({ $0.description }).joined(separator: ", ")))"
+    }
+  }
 }
 
 // MARK: Records
@@ -513,11 +529,13 @@ public struct Projection: Equatable {
 
 public struct Clause {
   let patterns: [Pattern]
-  let body: Term<TT>
+  let body: Term<TT>?
 
   var boundCount: Int {
     return self.patterns.reduce(0) { (acc, next) in
       switch next {
+      case .absurd:
+        return acc
       case .variable(_):
         return 1 + acc
       case .constructor(_, let pats):

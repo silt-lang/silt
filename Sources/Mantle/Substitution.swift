@@ -330,7 +330,7 @@ extension TypeTheory where T == Expr {
 extension Clause: Substitutable {
   public func applySubstitution(
     _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) throws -> Clause {
-    let substBody = try self.body
+    let substBody = try self.body?
                             .applySubstitution(.lift(self.boundCount, subst),
                                                elim)
     return Clause(patterns: self.patterns, body: substBody)

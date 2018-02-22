@@ -31,6 +31,7 @@ public enum SyntaxKind {
   case functionDecl
   case withRuleFunctionClauseDecl
   case normalFunctionClauseDecl
+  case absurdFunctionClauseDecl
   case functionWhereClauseDecl
   case letBindingDecl
   case nonFixDecl
@@ -47,6 +48,7 @@ public enum SyntaxKind {
   case basicExprList
   case namedBasicExpr
   case underscoreExpr
+  case absurdExpr
   case typeBasicExpr
   case parenthesizedExpr
   case typedParameterGroupExpr
@@ -144,6 +146,8 @@ func makeSyntax(root: SyntaxData?, data: SyntaxData) -> Syntax {
     return WithRuleFunctionClauseDeclSyntax(root: root, data: data)
   case .normalFunctionClauseDecl:
     return NormalFunctionClauseDeclSyntax(root: root, data: data)
+  case .absurdFunctionClauseDecl:
+    return AbsurdFunctionClauseDeclSyntax(root: root, data: data)
   case .functionWhereClauseDecl:
     return FunctionWhereClauseDeclSyntax(root: root, data: data)
   case .letBindingDecl:
@@ -176,6 +180,8 @@ func makeSyntax(root: SyntaxData?, data: SyntaxData) -> Syntax {
     return NamedBasicExprSyntax(root: root, data: data)
   case .underscoreExpr:
     return UnderscoreExprSyntax(root: root, data: data)
+  case .absurdExpr:
+    return AbsurdExprSyntax(root: root, data: data)
   case .typeBasicExpr:
     return TypeBasicExprSyntax(root: root, data: data)
   case .parenthesizedExpr:

@@ -12,8 +12,10 @@ let baseNodes = [
   //                   | '{' <ascription> '}'
   Node("TypedParameter", kind: "Syntax", children: []),
 
-  // function-clause ::= <basic-expr-list> with <expr> '|' <basic-expr-list>? '=' <expr>
-  //                   | <basic-expr-list> '=' <expr>
+  // function-clause-decl ::= <basic-expr-list> with <expr> '|' <basic-expr-list>? '=' <expr> ';'
+  //                        | <basic-expr-list> '=' <expr> ';'
+  //                        | <basic-expr-list> '=' <expr> 'where' '{' <decl-list>? '}' ';'
+  //                        | <basic-expr-list> ';'
   Node("FunctionClauseDecl", kind: "Decl", children: []),
 
   // fixity-decl ::= 'infix' <int> <id-list>
@@ -222,6 +224,11 @@ let syntaxNodes = [
     Child("trailingSemicolon", kind: "SemicolonToken"),
   ]),
 
+  Node("AbsurdFunctionClauseDecl", kind: "FunctionClauseDecl", children: [
+    Child("basicExprList", kind: "BasicExprList"),
+    Child("trailingSemicolon", kind: "SemicolonToken"),
+  ]),
+
   Node("FunctionWhereClauseDecl", kind: "Decl", children: [
     Child("whereToken", kind: "WhereToken"),
     Child("leftBraceToken", kind: "LeftBraceToken"),
@@ -326,6 +333,7 @@ let syntaxNodes = [
 
   // basic-expr ::= <qualified-name>
   //              | '_'
+  //              | '()'
   //              | 'Type'
   //              | <typed-parameter-list>
   //              | '(' <expr> ')'
@@ -337,6 +345,11 @@ let syntaxNodes = [
 
   Node("UnderscoreExpr", kind: "BasicExpr", children: [
     Child("underscoreToken", kind: "UnderscoreToken")
+  ]),
+
+  Node("AbsurdExpr", kind: "BasicExpr", children: [
+    Child("leftParenToken", kind: "LeftParenToken"),
+    Child("rightParenToken", kind: "RightParenToken"),
   ]),
 
   Node("TypeBasicExpr", kind: "BasicExpr", children: [

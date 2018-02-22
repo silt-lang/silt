@@ -342,7 +342,8 @@ extension NameBinding {
   }
 
   private func scopeCheckPattern(
-    _ syntax: BasicExprListSyntax, _ plicity: [ArgumentPlicity]
+    _ syntax: BasicExprListSyntax, _ plicity: [ArgumentPlicity],
+    expectAbsurd: Bool = false
   ) -> [DeclaredPattern] {
     let (pats, maybeError) = self.consumeArguments(syntax, plicity,
                                                    DeclaredPattern.wild,
@@ -361,7 +362,7 @@ extension NameBinding {
     }
     func openPatternVarsIntoScope(_ p: DeclaredPattern) -> Bool {
       switch p {
-      case .wild:
+      case .wild, .absurd:
         return true
       case .variable(let name):
         guard self.isBoundVariable(name) else {
@@ -667,6 +668,12 @@ extension NameBinding {
           return DeclaredClause(patterns: pattern, body: .body(body, wheres))
         }
       }
+    case let syntax as AbsurdFunctionClauseDeclSyntax:
+      return self.underScope { _ in
+        let pattern = self.scopeCheckPattern(syntax.basicExprList, plicity,
+                                             expectAbsurd: true)
+        return DeclaredClause(patterns: pattern, body: .empty)
+      }
     default:
       fatalError("Non-exhaustive match of function clause decl syntax?")
     }
@@ -677,6 +684,8 @@ extension NameBinding {
     case let syntax as NamedBasicExprSyntax where syntax.name.count == 1 &&
       syntax.name[0].name.tokenKind == .underscore:
       return [.wild]
+    case let syntax as AbsurdExprSyntax:
+      return [.absurd(syntax)]
     case let syntax as NamedBasicExprSyntax:
       let headName = QualifiedName(ast: syntax.name).name
       let localName = self.lookupLocalName(headName)
@@ -758,6 +767,14 @@ extension NameBinding {
             self.engine.diagnose(.bodyBeforeSignature(name), node: funcDecl)
             continue
           }
+        }
+        clauseMap[name]!.append(reparsedDecl)
+      case let funcDecl as AbsurdFunctionClauseDeclSyntax:
+        let (name, lhs) = self.reparseLHS(funcDecl.basicExprList)
+        let reparsedDecl = funcDecl.withBasicExprList(lhs)
+        guard clauseMap[name] != nil else {
+          self.engine.diagnose(.bodyBeforeSignature(name), node: funcDecl)
+          continue
         }
         clauseMap[name]!.append(reparsedDecl)
       case let fieldDecl as FieldDeclSyntax:

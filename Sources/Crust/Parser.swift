@@ -623,7 +623,7 @@ extension Parser {
     case .equals, .withKeyword:
       return try self.finishParsingFunctionClause(exprs)
     default:
-      throw expected("colon or equals")
+      return try self.finishParsingAbsurdFunctionClause(exprs)
     }
   }
 
@@ -674,6 +674,14 @@ extension Parser {
       trailingSemicolon: try consume(.semicolon))
   }
 
+  func finishParsingAbsurdFunctionClause(
+    _ exprs: BasicExprListSyntax) throws -> AbsurdFunctionClauseDeclSyntax {
+    return AbsurdFunctionClauseDeclSyntax(
+      basicExprList: exprs,
+      trailingSemicolon: try consume(.semicolon)
+    )
+  }
+
   func maybeParseWhereClause() throws -> FunctionWhereClauseDeclSyntax? {
     guard case .whereKeyword = peek() else {
       return nil
@@ -719,6 +727,12 @@ extension Parser {
   // (a b c ...)
   func parseParenthesizedExpr() throws -> BasicExprSyntax {
     let leftParen = try consume(.leftParen)
+    if case .rightParen = peek() {
+      let rightParen = try consume(.rightParen)
+      return AbsurdExprSyntax(leftParenToken: leftParen,
+                              rightParenToken: rightParen)
+    }
+
     // If we've hit a non-identifier token, start parsing a parenthesized
     // expression.
     guard case .identifier(_) = peek() else {

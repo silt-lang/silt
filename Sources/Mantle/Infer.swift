@@ -57,7 +57,10 @@ extension TypeChecker where PhaseState == CheckPhaseState {
     var injectiveClauses = [Clause]()
     injectiveClauses.reserveCapacity(cs.count)
     for clause in cs {
-      switch clause.body {
+      guard let clauseBody = clause.body else {
+        return .notInvertible(cs)
+      }
+      switch clauseBody {
       case let .apply(.definition(name), _):
         switch self.getOpenedDefinition(name.key).1 {
         case .constant(_, .data(_)),
