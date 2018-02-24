@@ -10,6 +10,7 @@
 // swiftlint:disable line_length
 
 import Foundation
+import Lithosphere
 
 final class SwiftGenerator {
   let outputDir: URL
