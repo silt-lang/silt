@@ -11,12 +11,6 @@
 
 import Foundation
 
-extension FileHandle: TextOutputStream {
-    public func write(_ string: String) {
-        write(string.data(using: .utf8)!)
-    }
-}
-
 final class SwiftGenerator {
   let outputDir: URL
   private var file: FileHandle?

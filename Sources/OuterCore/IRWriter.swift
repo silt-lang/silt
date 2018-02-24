@@ -6,57 +6,7 @@
 /// available in the repository.
 
 import Foundation
-
-public class Writer<StreamType: TextOutputStream> {
-  var stream: StreamType
-  var indentLevel = 0
-  let indentationWidth: Int
-
-  public init(stream: inout StreamType, indentationWidth: Int = 2) {
-    self.stream = stream
-    self.indentationWidth = indentationWidth
-  }
-
-  func indent() {
-    indentLevel += indentationWidth
-  }
-
-  func dedent() {
-    precondition(indentLevel >= indentationWidth,
-                 "attempting to dedent beyond 0")
-    indentLevel -= indentationWidth
-  }
-
-  func withIndent<T>(_ actions: () throws -> T) rethrows -> T {
-    indent()
-    defer { dedent() }
-    return try actions()
-  }
-
-  func write(_ text: String) {
-    stream.write(text)
-  }
-
-  func writeIndent() {
-    stream.write(String(repeating: " ", count: indentLevel))
-  }
-
-  func writeLine(_ text: String = "") {
-    writeIndent()
-    stream.write(text + "\n")
-  }
-
-  func interleave<C: Collection>(
-    _ seq: C, _ pr: (C.Element) -> Void, _ inter: () -> Void) {
-    guard !seq.isEmpty else { return }
-
-    pr(seq[seq.startIndex])
-    for idx in seq.indices.dropFirst() {
-      inter()
-      pr(seq[idx])
-    }
-  }
-}
+import Lithosphere
 
 public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   public func write(_ module: GIRModule) {
@@ -391,11 +341,5 @@ extension GIRWriter: PrimOpVisitor {
 
   public func visitFunctionRefOp(_ op: FunctionRefOp) {
     self.write(self.getID(of: op.function).description)
-  }
-}
-
-extension FileHandle: TextOutputStream {
-  public func write(_ string: String) {
-    write(string.data(using: .utf8)!)
   }
 }
