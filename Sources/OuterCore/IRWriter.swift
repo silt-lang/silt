@@ -326,10 +326,12 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
       }
     }
 
-    return ID(kind: .bbLikeContinuation, number: self.blocksToIDs[block, default: 0])
+    return ID(kind: .bbLikeContinuation,
+              number: self.blocksToIDs[block, default: 0])
   }
 
-  private func getID(of value: Value, in scope: Schedule) -> ID {
+  private func getID(of value: Value, in scope: Schedule? = nil) -> ID {
+    let scope = scope ?? self.currentSchedule!
     self.setContext(scope)
 
     if self.valuesToIDs.isEmpty {
@@ -358,21 +360,37 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
 
 extension GIRWriter: PrimOpVisitor {
   public func visitApplyOp(_ op: ApplyOp) {
-    self.write(self.getID(of: op.callee, in: self.currentSchedule!).description)
+    self.write(self.getID(of: op.callee).description)
     self.write("(")
     self.interleave(op.arguments,
-                    { arg in self.write(self.getID(of: arg.value, in: self.currentSchedule!).description) },
+                    { arg in self.write(self.getID(of: arg.value).description) },
                     { self.write(" ; ") })
     self.write(") : ")
     self.write(name(for: op.callee.type))
   }
 
   public func visitCopyValueOp(_ op: CopyValueOp) {
-    self.write(self.getID(of: op.value.value, in: self.currentSchedule!).description)
+    self.write(self.getID(of: op.value.value).description)
   }
 
   public func visitDestroyValueOp(_ op: DestroyValueOp) {
-    self.write(self.getID(of: op.value.value, in: self.currentSchedule!).description)
+    self.write(self.getID(of: op.value.value).description)
+  }
+
+  public func visitSwitchConstrOp(_ op: SwitchConstrOp) {
+    self.write(self.getID(of: op.matchedValue).description)
+    self.interleave(op.patterns,
+                    { arg in
+                      self.write("(")
+                      self.write(self.getID(of: arg.pattern).description)
+                    },
+                    { self.write(" ; ") })
+    self.write(" : ")
+    self.write(name(for: op.matchedValue.type))
+  }
+
+  public func visitFunctionRefOp(_ op: FunctionRefOp) {
+    self.write(self.getID(of: op.function).description)
   }
 }
 

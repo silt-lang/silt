@@ -42,24 +42,25 @@ public class Continuation: Value {
   var parameters = [Parameter]()
   weak var module: GIRModule?
 
-  var predList: Successor
+  var predecessorList: Successor
 
   public var successors: AnySequence<Continuation> {
-    guard let first = self.predList.successor else {
+    guard let first = self.predecessorList.successor else {
       return AnySequence<Continuation>([])
     }
     return AnySequence<Continuation>(sequence(first: first) { succ in
-      return succ.predList.next?.successor
+      return succ.predecessorList.next?.successor
     })
   }
 
   /// RPO index in a forward CFG.
-  var f_index_ : Int = -1
+  var forwardCFGIndex : Int = -1
+
   /// RPO index in a backwards CFG.
-  var b_index_ : Int = -1
+  var backwardCFGIndex : Int = -1
 
   public override init(name: String, type: Type) {
-    self.predList = Successor(nil)
+    self.predecessorList = Successor(nil)
     super.init(name: name, type: type)
   }
 

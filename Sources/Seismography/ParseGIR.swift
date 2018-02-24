@@ -230,20 +230,24 @@ extension GIRParser {
       }
 
       resultValue = B.createApply(fnVal, args)
-    case .copy_value:
+    case .copyValue:
       guard let valueName = tryParseGIRValueToken() else {
         return false
       }
       _ = try self.parser.consumeIf(.colon)
       _ = try self.parser.parseGIRTypeExpr()
       resultValue = B.createCopyValue(self.getLocalValue(valueName))
-    case .destroy_value:
+    case .destroyValue:
       guard let valueName = tryParseGIRValueToken() else {
         return false
       }
       _ = try self.parser.consumeIf(.colon)
       _ = try self.parser.parseGIRTypeExpr()
       _ = B.createDestroyValue(self.getLocalValue(valueName))
+    case .switchConstr:
+      fatalError()
+    case .functionRef:
+      fatalError()
     }
 
     guard let resName = resultName, let resValue = resultValue else {

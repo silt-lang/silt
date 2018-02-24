@@ -1,16 +1,20 @@
-//
-//  Schedule.swift
-//  siltPackageDescription
-//
-//  Created by Robert Widmann on 2/20/18.
-//
+/// Schedule.swift
+///
+/// Copyright 2017, The Silt Language Project.
+///
+/// This project is released under the MIT license, a copy of which is
+/// available in the repository.
 
+/// A schedule adds SSA-like operations before a CPS-style call. 
 final class Schedule {
+  /// Whether this operation is scheduled early (before the 'terminator'), or
+  /// late (after the 'terminator').
   enum Tag {
     case early
     case late
   }
 
+  /// A 'block' abstraction that 
   final class Block: Equatable, Hashable {
     var parent: Continuation
     var primops: [PrimOp]
@@ -41,7 +45,7 @@ final class Schedule {
 
     // until we have sth better simply use the RPO of the CFG
     var i = 0
-    for n in scope.cfg.reverse_post_order {
+    for n in scope.cfg.reversePostOrder {
       defer { i += 1 }
       self.blocks.append(Block(n, [], i))
       self.indices[n] = i
@@ -74,7 +78,7 @@ private final class Scheduler {
   init(_ schedule: Schedule) {
     self.scope = schedule.scope
     self.schedule = schedule
-    self.compute_def2uses()
+    self.computeDef2Uses()
     switch schedule.tag {
     case .early:
       for (_, uses) in self.def2uses {
@@ -82,7 +86,7 @@ private final class Scheduler {
           guard let primop = operand.owningOp else {
             continue
           }
-          let cont = self.schedule_early(primop)
+          let cont = self.scheduleEarly(primop)
           schedule.block(cont).primops.append(primop)
         }
       }
@@ -94,7 +98,7 @@ private final class Scheduler {
     }
   }
 
-  func schedule_early(_ def: Value) -> Continuation {
+  func scheduleEarly(_ def: Value) -> Continuation {
     if let early = self.def2early[def] {
       return early
     }
@@ -110,7 +114,7 @@ private final class Scheduler {
         continue
       }
 
-      let n = self.schedule_early(op.value)
+      let n = self.scheduleEarly(op.value)
 //      guard self.scope.cfg.domtree.depth(n) > self.scope.cfg.domtree.depth(result) else {
 //        continue
 //      }
@@ -121,7 +125,7 @@ private final class Scheduler {
     return result
   }
 
-  private func compute_def2uses() {
+  private func computeDef2Uses() {
     var queue = [Value]()
     var done = Set<Value>()
 
@@ -145,7 +149,7 @@ private final class Scheduler {
         }
       }
     }
-    for n in self.scope.cfg.reverse_post_order {
+    for n in self.scope.cfg.reversePostOrder {
       queue.append(n);
       let p = done.insert(n)
       assert(p.inserted)

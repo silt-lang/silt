@@ -19,7 +19,7 @@ decl-list ::= <decl>
 
 ## Modules
 
-module-decl ::= 'module' <id> ('(' <operand> (',' <operand>)* ')')? 'where' '{' <decl-list> '}'
+module-decl ::= 'module' <id> ('(' <operand> (';' <operand>)* ')')? 'where' '{' <decl-list> '}'
 
 ## Imports
 
@@ -49,7 +49,7 @@ application ::= <basic-expr> <application>
 
 ## Continuations
 
-continuation ::= <id> ('(' <operand> (',' <operand>)* ')')? ':' <gir-primop-stmt>* <terminator>
+continuation ::= <id> ('(' <operand> (';' <operand>)* ')')? ':' <gir-primop-stmt>* <terminator>
 
 ## Instructions
 
@@ -61,7 +61,7 @@ gir-primop ::= 'function_ref' <qualified-name> ':' gir-type
 
 gir-primop ::= 'data_init_simple' <qualified-name> ':' gir-type
 
-gir-primop ::= 'data_init' <gir-type> ',' <qualified-name> (',' <operand>)?
+gir-primop ::= 'data_init' <gir-type> ';' <qualified-name> (';' <operand>)?
 
 gir-primop ::= 'copy_value' <operand>
 
@@ -69,7 +69,7 @@ gir-primop ::= 'destroy_value' <operand>
 
 ## Terminators
 
-terminator ::= 'apply' <gir-value-id> '(' (<gir-value-id> (',' <gir-value-id>)*)? ')' ':' gir-type
+terminator ::= 'apply' <gir-value-id> '(' (<gir-value-id> (';' <gir-value-id>)*)? ')' ':' gir-type
 
-terminator ::= 'switch_constr' <operand> (',' case <qualified-name>: <gir-value-id>)*
+terminator ::= 'switch_constr' <operand> (';' case <qualified-name> ':' <gir-value-id>)*
 

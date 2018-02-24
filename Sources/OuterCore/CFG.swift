@@ -9,23 +9,25 @@ class CFG {
   var rpo = [Int: Continuation]()
 
   init(_ entry: Continuation, _ size: Int) {
-    _ = self.post_order_visit(entry, size)
+    _ = self.postOrderVisit(entry, size)
   }
 
-  func post_order_visit(_ n : Continuation, _ i_ : Int) -> Int {
+  func postOrderVisit(_ n : Continuation, _ i_ : Int) -> Int {
     var i = i_
     for succ in n.successors {
-      if succ.f_index_ == -1 {
-        i = post_order_visit(succ, i)
+      if succ.forwardCFGIndex == -1 {
+        i = postOrderVisit(succ, i)
       }
     }
-    n.f_index_ = i - 1
-    rpo[n.f_index_] = n;
-    return n.f_index_
+    n.forwardCFGIndex = i - 1
+    rpo[n.forwardCFGIndex] = n;
+    return n.forwardCFGIndex
   }
 
-  var reverse_post_order: [Continuation] {
-    return self.rpo.values.sorted(by: { (lhs, rhs) in lhs.f_index_ < rhs.f_index_ })
+  var reversePostOrder: [Continuation] {
+    return self.rpo.values.sorted { lhs, rhs in
+      lhs.forwardCFGIndex < rhs.forwardCFGIndex
+    }
   }
 }
 
@@ -72,12 +74,12 @@ public final class Successor {
 
     // If we have a successor, add ourself to its prev list.
     if let succ = succ {
-      self.previous = succ.predList
-      self.next = succ.predList
+      self.previous = succ.predecessorList
+      self.next = succ.predecessorList
       if let next = self.next {
         next.previous = self.next
       }
-      succ.predList = self
+      succ.predecessorList = self
     }
     self.successor = succ
   }
