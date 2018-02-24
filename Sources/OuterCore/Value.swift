@@ -103,8 +103,6 @@ public enum Destructor {
 
 /// A formal reference to a value, suitable for use as a stored operand.
 public final class Operand: Hashable {
-  /// The value used as this operand.
-  private var value_: Value
 
   /// The next operand in the use-chain.  Note that the chain holds
   /// every use of the current ValueBase, not just those of the
@@ -120,7 +118,7 @@ public final class Operand: Hashable {
   var owningOp: PrimOp?
 
   init(owner: PrimOp, value: Value) {
-    self.value_ = value
+    self.value = value
     self.owningOp = owner
     
     self.insertIntoCurrent()
@@ -138,11 +136,12 @@ public final class Operand: Hashable {
     return self.value.hashValue
   }
 
+  /// The value used as this operand.
   public var value: Value {
-    get { return self.value_ }
-    set {
+    willSet {
       self.removeFromCurrent()
-      value_ = newValue
+    }
+    didSet {
       self.insertIntoCurrent()
     }
   }
@@ -171,12 +170,12 @@ public final class Operand: Hashable {
   }
 
   private func insertIntoCurrent() {
-    self.back = self.value_.firstUse
-    self.nextUse = self.value_.firstUse
+    self.back = self.value.firstUse
+    self.nextUse = self.value.firstUse
     if let next = self.nextUse {
       next.back = self.nextUse
     }
-    self.value_.firstUse = self
+    self.value.firstUse = self
   }
 
   public func dump() {

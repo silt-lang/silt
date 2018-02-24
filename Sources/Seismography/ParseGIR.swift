@@ -33,13 +33,21 @@ public final class GIRParser {
     self.parser = parser
   }
 
-  func pushScope(named name: String) {
+  @discardableResult
+  func withScope<T>(named name: String,
+                    _ actions: () throws -> T) rethrows -> T {
+    let prevScope = self._activeScope
+    let prevLocals = localValues
+    let prevForwardRefLocals = forwardRefLocalValues
     self._activeScope = ParserScope(name: name)
-  }
 
-  func popScope() {
-    precondition(self._activeScope != nil)
-    self._activeScope = nil
+    defer {
+      self._activeScope = prevScope
+      self.localValues = prevLocals
+      self.forwardRefLocalValues = prevForwardRefLocals
+    }
+
+    return try actions()
   }
 
   func namedContinuation(_ B: IRBuilder, _ name: String) -> Continuation {
@@ -131,15 +139,15 @@ extension GIRParser {
     _ = try self.parser.consume(.colon)
     let typeRepr = try self.parser.parseGIRTypeExpr()
     _ = try self.parser.consume(.leftBrace)
-    self.pushScope(named: ident.render)
-    repeat {
-      guard try self.parseGIRBasicBlock(B) else {
-        return false
-      }
-    } while (self.parser.peek() != .rightBrace && self.parser.peek() != .eof)
-    _ = try self.parser.consume(.rightBrace)
-    self.popScope()
-    return true
+    return try self.withScope(named: ident.render) {
+      repeat {
+        guard try self.parseGIRBasicBlock(B) else {
+          return false
+        }
+      } while (self.parser.peek() != .rightBrace && self.parser.peek() != .eof)
+      _ = try self.parser.consume(.rightBrace)
+      return true
+    }
   }
 
   func parseGIRBasicBlock(_ B: IRBuilder) throws -> Bool {

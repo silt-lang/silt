@@ -125,7 +125,7 @@ public struct Invocation {
           print(module)
         })
       case .dump(.parseGIR):
-        run(parseGIRFile |> Pass(name: "Dump Parsed") { module, _ in
+        run(parseGIRFile |> Pass(name: "Dump Parsed GIR") { module, _ in
           module.dump()
         })
       case .dump(.gir):
