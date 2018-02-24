@@ -31,7 +31,7 @@ public struct ParameterSemantics {
   var mustDestroy: Bool
 }
 
-public class Continuation: Value {
+public final class Continuation: Value {
   enum Kind {
     case basicBlock(parent: Continuation)
     case topLevel
