@@ -9,7 +9,6 @@ import Foundation
 
 final class Scope {
   private var defs = Set<Value>()
-  let cfg: CFG
   let entry: Continuation
   var continuations: [Continuation] = []
 
@@ -28,7 +27,6 @@ final class Scope {
         Scope.enqueue(&queue, &self.defs, &self.continuations, use.user)
       }
     }
-    self.cfg = CFG(entry, continuations.count)
   }
 
   func contains(_ val: Value) -> Bool {

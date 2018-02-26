@@ -45,7 +45,7 @@ final class Schedule {
 
     // until we have sth better simply use the RPO of the CFG
     var i = 0
-    for n in scope.cfg.reversePostOrder {
+    for n in scope.entry.reversePostOrder {
       defer { i += 1 }
       self.blocks.append(Block(n, [], i))
       self.indices[n] = i
@@ -149,7 +149,7 @@ private final class Scheduler {
         }
       }
     }
-    for n in self.scope.cfg.reversePostOrder {
+    for n in self.scope.entry.reversePostOrder {
       queue.append(n)
       let p = done.insert(n)
       assert(p.inserted)
