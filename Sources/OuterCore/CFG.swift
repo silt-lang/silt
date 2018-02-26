@@ -1,46 +1,23 @@
-//
-//  CFG.swift
-//  siltPackageDescription
-//
-//  Created by Robert Widmann on 2/20/18.
-//
-
-class CFG {
-  var rpo = [Int: Continuation]()
-
-  init(_ entry: Continuation, _ size: Int) {
-    _ = self.postOrderVisit(entry, size)
-  }
-
-  func postOrderVisit(_ n : Continuation, _ i_ : Int) -> Int {
-    var i = i_
-    for succ in n.successors {
-      if succ.forwardCFGIndex == -1 {
-        i = postOrderVisit(succ, i)
-      }
-    }
-    n.forwardCFGIndex = i - 1
-    rpo[n.forwardCFGIndex] = n;
-    return n.forwardCFGIndex
-  }
-
-  var reversePostOrder: [Continuation] {
-    return self.rpo.values.sorted { lhs, rhs in
-      lhs.forwardCFGIndex < rhs.forwardCFGIndex
-    }
-  }
-}
+/// CFG.swift
+///
+/// Copyright 2017, The Silt Language Project.
+///
+/// This project is released under the MIT license, a copy of which is
+/// available in the repository.
 
 public final class Successor {
   /// The primop that contains this successor.
   var containingInst: PrimOp?
+
   /// If non-null, this is the continuation that this continuation branches to.
   var successor: Continuation?
+
   /// A pointer to the successor that represents the previous successors in the
   /// predecessor list for `successor`.
   ///
   /// - note: Must be `nil` if `successor` is.
   weak var previous: Successor?
+  
   /// A pointer to the successor that represents the next successor in the
   /// predecessor list for `successor`.
   ///

@@ -31,7 +31,7 @@ public struct ParameterSemantics {
   var mustDestroy: Bool
 }
 
-public final class Continuation: Value {
+public final class Continuation: Value, Graph {
   enum Kind {
     case basicBlock(parent: Continuation)
     case topLevel
@@ -52,12 +52,6 @@ public final class Continuation: Value {
       return succ.predecessorList.next?.successor
     })
   }
-
-  /// RPO index in a forward CFG.
-  var forwardCFGIndex : Int = -1
-
-  /// RPO index in a backwards CFG.
-  var backwardCFGIndex : Int = -1
 
   public override init(name: String, type: Type) {
     self.predecessorList = Successor(nil)

@@ -150,7 +150,7 @@ private final class Scheduler {
       }
     }
     for n in self.scope.cfg.reversePostOrder {
-      queue.append(n);
+      queue.append(n)
       let p = done.insert(n)
       assert(p.inserted)
     }
