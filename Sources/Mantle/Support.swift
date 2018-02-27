@@ -442,7 +442,7 @@ public struct Meta: Comparable, Hashable, CustomStringConvertible {
   public struct Binding {
     /// The arity of the given binding.
     let arity: Int
-    private let body: TT
+    let body: TT
 
     init(arity: Int, body: TT) {
       self.arity = arity

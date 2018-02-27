@@ -8,7 +8,7 @@
 import Lithosphere
 import Moho
 
-extension TypeChecker {
+extension TypeChecker where PhaseState == SolvePhaseState {
   /// Given a set of variables that are allowed to appear in the spine of a
   /// term, attempts to remove variables not appearing in that set - prune them.
   /// Pruning requires all eliminators be applies and that variables eligible
@@ -50,6 +50,7 @@ extension TypeChecker {
     let body = TT.apply(.meta(newMeta), vs)
     let prunedBinding = Meta.Binding(arity: piPrunes.count, body: body)
     self.signature.instantiateMeta(oldMeta, prunedBinding)
+    self.constraintGraph.bindMeta(oldMeta, to: prunedBinding)
     return prunedBinding.internalize
   }
 
@@ -121,10 +122,10 @@ extension TypeChecker {
       guard self.isNeutral(f) else {
         return nil
       }
-      let fvs = self.freeVars(t)
+      let fvs = freeVars(t)
       return !fvs.rigid.isSubset(of: vs)
     default:
-      let fvs = self.freeVars(t)
+      let fvs = freeVars(t)
       return !fvs.rigid.isSubset(of: vs)
     }
   }

@@ -5,7 +5,7 @@
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 
-extension TypeChecker {
+extension TypeChecker where PhaseState == SolvePhaseState {
   /// Attempts to take the intersection of the spines of two equal metavariable
   /// heads and solve it.  Returns true if intersection succeeded in
   /// instantiating a metavariable, or false if not.
@@ -34,8 +34,9 @@ extension TypeChecker {
       return Elim<TT>.apply(TT.apply(.variable(Var(k.name, UInt(idx))), []))
     }
     let binding = Meta.Binding(arity: piPrunes.count,
-                              body: TT.apply(.meta(newMv), vs))
+                               body: TT.apply(.meta(newMv), vs))
     self.signature.instantiateMeta(mv, binding)
+    self.constraintGraph.bindMeta(mv, to: binding)
     return true
   }
 
