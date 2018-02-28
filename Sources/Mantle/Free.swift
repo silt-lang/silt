@@ -52,79 +52,135 @@ struct FreeVariables {
   }
 }
 
-extension TypeChecker {
-  /// Compute the rigid and flexible free variables present in a given
-  /// expression.
-  ///
-  /// - warning: This operation is quite expensive.
-  func freeVars(_ t: TT) -> FreeVariables {
-    func tryStrengthen(_ v: Var, _ s: UInt) -> Var? {
-      guard s != 0 else { return v }
+typealias FreeMetas = Set<Meta>
 
-      if v.index > s {
-        return Var(v.name, v.index - s)
-      }
-      return nil
-    }
+/// Compute the rigid and flexible free variables present in a given
+/// expression.
+///
+/// - warning: This operation is quite expensive.
+func freeVars(_ t: TT) -> FreeVariables {
+  func tryStrengthen(_ v: Var, _ s: UInt) -> Var? {
+    guard s != 0 else { return v }
 
-    /// Compute the rigid and flexible free variables present in a given
-    /// expression, looking only at those variables that survive strengthening
-    /// as binders are traversed.
-    func go(_ strength: UInt, _ t: TT) -> FreeVariables {
-      switch t {
-      case let .lambda(body):
-        return go(strength + 1, body)
-      case let .pi(domain, codomain):
-        return go(strength, domain).append(go(strength, codomain))
-      case let .apply(.variable(v), elims):
-        let fvs: FreeVariables
-        if let sv = tryStrengthen(v, strength) {
-          fvs = FreeVariables([sv], [])
-        } else {
-          fvs = FreeVariables([], [])
-        }
-        return elims.flatMap({ (t) -> [FreeVariables] in
-          switch t {
-          case let .apply(t):
-            return [go(strength, t)]
-          default:
-            return []
-          }
-        }).reduce(fvs, { $1.append($0) })
-      case let .apply(.definition(o), elims):
-        let fvs1 = o.args.map({ go(strength, $0) }).reduce(FreeVariables(), {
-          return $1.append($0)
-        })
-        return elims.flatMap({ (t) -> [FreeVariables] in
-          switch t {
-          case let .apply(t):
-            return [go(strength, t)]
-          default:
-            return []
-          }
-        }).reduce(fvs1, { $1.append($0) })
-      case let .apply(.meta(_), elims):
-        let fvs = elims.flatMap({ (t) -> [FreeVariables] in
-          switch t {
-          case let .apply(t):
-            return [go(strength, t)]
-          default:
-            return []
-          }
-        }).reduce(FreeVariables(), { $1.append($0) })
-        return FreeVariables([], fvs.rigid.union(fvs.flexible))
-      case .type:
-        return FreeVariables()
-      case .refl:
-        return FreeVariables()
-      case let .constructor(_, args):
-        return args.map({ (t) -> FreeVariables in
-          return go(strength, t)
-        }).reduce(FreeVariables([], []), { $1.append($0) })
-      default:
-        fatalError()
-      }
+    if v.index > s {
+      return Var(v.name, v.index - s)
     }
-    return go(0, t)
+    return nil
   }
+
+  /// Compute the rigid and flexible free variables present in a given
+  /// expression, looking only at those variables that survive strengthening
+  /// as binders are traversed.
+  func go(_ strength: UInt, _ t: TT) -> FreeVariables {
+    switch t {
+    case let .lambda(body):
+      return go(strength + 1, body)
+    case let .pi(domain, codomain):
+      return go(strength, domain).append(go(strength, codomain))
+    case let .apply(.variable(v), elims):
+      let fvs: FreeVariables
+      if let sv = tryStrengthen(v, strength) {
+        fvs = FreeVariables([sv], [])
+      } else {
+        fvs = FreeVariables([], [])
+      }
+      return elims.flatMap({ (t) -> [FreeVariables] in
+        switch t {
+        case let .apply(t):
+          return [go(strength, t)]
+        default:
+          return []
+        }
+      }).reduce(fvs, { $1.append($0) })
+    case let .apply(.definition(o), elims):
+      let fvs1 = o.args.map({ go(strength, $0) }).reduce(FreeVariables(), {
+        return $1.append($0)
+      })
+      return elims.flatMap({ (t) -> [FreeVariables] in
+        switch t {
+        case let .apply(t):
+          return [go(strength, t)]
+        default:
+          return []
+        }
+      }).reduce(fvs1, { $1.append($0) })
+    case let .apply(.meta(_), elims):
+      let fvs = elims.flatMap({ (t) -> [FreeVariables] in
+        switch t {
+        case let .apply(t):
+          return [go(strength, t)]
+        default:
+          return []
+        }
+      }).reduce(FreeVariables(), { $1.append($0) })
+      return FreeVariables([], fvs.rigid.union(fvs.flexible))
+    case .type:
+      return FreeVariables()
+    case .refl:
+      return FreeVariables()
+    case let .constructor(_, args):
+      return args.map({ (t) -> FreeVariables in
+        return go(strength, t)
+      }).reduce(FreeVariables([], []), { $1.append($0) })
+    default:
+      fatalError()
+    }
+  }
+  return go(0, t)
 }
+
+/// Compute the free metavariables present in a given expression.
+func freeMetas(_ t: TT) -> FreeMetas {
+  func go(_ t: TT) -> FreeMetas {
+    switch t {
+    case let .lambda(body):
+      return go(body)
+    case let .pi(domain, codomain):
+      return go(domain).union(go(codomain))
+    case let .apply(.variable(_), elims):
+      let fvs = FreeMetas()
+      return elims.flatMap({ (t) -> [FreeMetas] in
+        switch t {
+        case let .apply(t):
+          return [go(t)]
+        default:
+          return []
+        }
+      }).reduce(fvs, { $1.union($0) })
+    case let .apply(.definition(o), elims):
+      let fvs1 = o.args.map({ go($0) }).reduce([]) {
+        return $1.union($0)
+      }
+      return elims.flatMap({ (t) -> [FreeMetas] in
+        switch t {
+        case let .apply(t):
+          return [go(t)]
+        default:
+          return []
+        }
+      }).reduce(fvs1, { $1.union($0) })
+    case let .apply(.meta(mv), elims):
+      let fvs = elims.flatMap({ (t) -> [FreeMetas] in
+        switch t {
+        case let .apply(t):
+          return [go(t)]
+        default:
+          return []
+        }
+      }).reduce([mv], { $1.union($0) })
+      return fvs
+    case .type:
+      return []
+    case .refl:
+      return []
+    case let .constructor(_, args):
+      return args.map({ (t) -> FreeMetas in
+        return go(t)
+      }).reduce([], { $1.union($0) })
+    default:
+      fatalError()
+    }
+  }
+  return go(t)
+}
+

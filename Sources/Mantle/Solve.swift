@@ -8,7 +8,7 @@
 import Lithosphere
 import Moho
 
-typealias ConstraintID = UInt
+typealias ConstraintID = Int
 typealias SolverConstraints = [(Set<Meta>, SolverConstraint)]
 
 /// The solve phase uses McBride-Gundry Unification to assign unifiers to
@@ -46,13 +46,8 @@ typealias SolverConstraints = [(Set<Meta>, SolverConstraint)]
 /// constraint postponement in the hope that we *will* be at some point in the
 /// future.
 public final class SolvePhaseState {
-  var constraintCount: ConstraintID = 0
   var constraints: SolverConstraints = []
-
-  func nextCount() -> UInt {
-    self.constraintCount += 1
-    return self.constraintCount
-  }
+  var constraintGraph: ConstraintGraph = ConstraintGraph()
 
   public init() {}
 }
@@ -74,72 +69,130 @@ extension TypeChecker {
 }
 
 /// Implements homogeneous constraints for the solver.
-indirect enum SolverConstraint: CustomDebugStringConvertible {
-  /// Under the given context, and given that each term has the specified type,
-  /// synthesize or check for a common unifier between the two terms.
-  case unify(Context, Type<TT>, Term<TT>, Term<TT>)
-  /// Under the given context, and given that the type of an application's spine
-  /// ultimately has a particular type, check that the elims in the spines of
-  /// two terms have a common unifier between them.
-  case unifySpines(Context, Type<TT>, Term<TT>?,
-                   [Elim<Term<TT>>], [Elim<Term<TT>>])
-  /// The conjunction of multiple constraints.
-  case conjoin([SolverConstraint])
-  /// The hypothetical form of two constraints: If the first constraint is
-  /// satisfied, we may move on to the second.  Else we fail the solution set.
-  case suppose(SolverConstraint, SolverConstraint)
+struct SolverConstraint: CustomDebugStringConvertible, Hashable {
+  indirect enum RawConstraint: CustomDebugStringConvertible {
+    /// Under the given context, and given that each term has the specified type,
+    /// synthesize or check for a common unifier between the two terms.
+    case unify(Context, Type<TT>, Term<TT>, Term<TT>)
+    /// Under the given context, and given that the type of an application's spine
+    /// ultimately has a particular type, check that the elims in the spines of
+    /// two terms have a common unifier between them.
+    case unifySpines(Context, Type<TT>, Term<TT>?,
+      [Elim<Term<TT>>], [Elim<Term<TT>>])
+    /// The conjunction of multiple constraints.
+    case conjoin([RawConstraint])
+    /// The hypothetical form of two constraints: If the first constraint is
+    /// satisfied, we may move on to the second.  Else we fail the solution set.
+    case suppose(RawConstraint, RawConstraint)
+
+    func getMetas() -> FreeMetas {
+      switch self {
+      case let .unify(_, ty, t1, t2):
+        return freeMetas(ty)
+          .union(freeMetas(t1))
+          .union(freeMetas(t2))
+      case let .unifySpines(_, t1, .some(head), _, _):
+        return freeMetas(t1).union(freeMetas(head))
+      case let .conjoin(cs):
+        let metas = Set<Meta>()
+        return cs.reduce(into: metas) { acc, next in
+          acc.formUnion(next.getMetas())
+        }
+      case let .suppose(left, right):
+        return left.getMetas().union(right.getMetas())
+      }
+    }
+
+    var simplify: RawConstraint? {
+      func flatten(sconstraint: RawConstraint) -> [RawConstraint] {
+        switch sconstraint {
+        case let .conjoin(constrs):
+          return constrs.flatMap(flatten)
+        default:
+          return [sconstraint]
+        }
+      }
+      switch self {
+      case let .conjoin(xs) where xs.isEmpty:
+        return nil
+      case let .conjoin(xs) where xs.count == 1:
+        return xs.first!.simplify
+      case let .conjoin(xs):
+        return xs.flatMap(flatten).reduce(nil) { $0 ?? $1.simplify }
+      default:
+        return self
+      }
+    }
+
+    var debugDescription: String {
+      switch self {
+      case let .unify(_, ty, tm1, tm2):
+        return "\(tm1) : \(ty) == \(tm2) : \(ty)"
+      case let .suppose(con1, con2):
+        return "(\(con1.debugDescription)) => (\(con2.debugDescription))"
+      case let .conjoin(cs):
+        return cs.map({$0.debugDescription}).joined(separator: " AND ")
+      case let .unifySpines(_, ty, mbH, elims1, elims2):
+        let desc = zip(elims1, elims2).map({ (e1, e2) in
+          return "\(e1) == \(e2)"
+        }).joined(separator: " , ")
+        return "(\(mbH?.description ?? "??")[\(desc)] : \(ty))"
+      }
+    }
+  }
+
+  private static var constraintCount: ConstraintID = 0
+
+  var raw: RawConstraint
+  let id: ConstraintID
+
+  init(raw: RawConstraint) {
+    defer { SolverConstraint.constraintCount += 1 }
+    self.raw = raw
+    self.id = SolverConstraint.constraintCount
+  }
 
   // Decomposes a heterogeneous constraint into a homogeneous constraint.
   init(_ c: Constraint) {
+    defer { SolverConstraint.constraintCount += 1 }
+    self.id = SolverConstraint.constraintCount
     switch c {
     case let .equal(ctx, ty1, t1, ty2, t2):
-      self = SolverConstraint.suppose(
-        SolverConstraint.unify(ctx, TT.type, ty1, ty2),
-        SolverConstraint.unify(ctx, ty1, t1, t2))
+      self.raw = .suppose(.unify(ctx, TT.type, ty1, ty2),
+                          .unify(ctx, ty1, t1, t2))
     }
+  }
+
+  func getMetas() -> FreeMetas {
+    return self.raw.getMetas()
   }
 
   var debugDescription: String {
-    switch self {
-    case let .unify(_, ty, tm1, tm2):
-      return "\(tm1) : \(ty) == \(tm2) : \(ty)"
-    case let .suppose(con1, con2):
-      return "(\(con1.debugDescription)) => (\(con2.debugDescription))"
-    case let .conjoin(cs):
-      return cs.map({$0.debugDescription}).joined(separator: " AND ")
-    case let .unifySpines(_, ty, mbH, elims1, elims2):
-      let desc = zip(elims1, elims2).map({ (e1, e2) in
-        return "\(e1) == \(e2)"
-      }).joined(separator: " , ")
-      return "(\(mbH?.description ?? "??")[\(desc)] : \(ty))"
-    }
+    return self.raw.debugDescription
   }
 
   var simplify: SolverConstraint? {
-    func flatten(sconstraint: SolverConstraint) -> [SolverConstraint] {
-      switch sconstraint {
-      case let .conjoin(constrs):
-        return constrs.flatMap(flatten)
-      default:
-        return [sconstraint]
-      }
-    }
-    switch self {
-    case let .conjoin(xs) where xs.isEmpty:
-      return nil
-    case let .conjoin(xs) where xs.count == 1:
-      return xs.first!.simplify
-    case let .conjoin(xs):
-      return xs.flatMap(flatten).reduce(nil) { $0 ?? $1.simplify }
-    default:
-      return self
-    }
+    return self.raw.simplify.map(SolverConstraint.init)
+  }
+
+  var hashValue: Int {
+    return self.id
+  }
+
+  static func ==(lhs: SolverConstraint, rhs: SolverConstraint) -> Bool {
+    return lhs.hashValue == rhs.hashValue
   }
 }
 
 extension TypeChecker where PhaseState == SolvePhaseState {
+  var constraintGraph: ConstraintGraph {
+    return self.state.state.constraintGraph
+  }
+
   func solve(_ c: Constraint) {
+    let initialConstraint = SolverConstraint(c)
     self.state.state.constraints.append(([], SolverConstraint(c)))
+    self.constraintGraph.addConstraint(initialConstraint)
 
     var progress = false
     var newConstr = SolverConstraints()
@@ -154,6 +207,9 @@ extension TypeChecker where PhaseState == SolvePhaseState {
           progress = false
           continue
         } else {
+          for (_, constr) in newConstr {
+            self.constraintGraph.addConstraint(constr)
+          }
           return
         }
       }
@@ -164,7 +220,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
       if mvsBindings.isEmpty || anyNewBindings {
         // If we may make forward progress on this constraint, solve it
         // and return any fresh constraints it generates to the queue.
-        let newConstrs = self.solveConstraint(constr)
+        let newConstrs = self.solveConstraint(constr.raw)
         newConstr.append(contentsOf: newConstrs)
         progress = true
       } else {
@@ -177,7 +233,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
 
   /// Attempt to solve a homogeneous constraint returning any new constraints
   /// that may have arisen from the process of doing so.
-  private func solveConstraint(_ scon: SolverConstraint) -> SolverConstraints {
+  private func solveConstraint(_ scon: SolverConstraint.RawConstraint) -> SolverConstraints {
     switch scon {
     case let .conjoin(constrs):
       return constrs.flatMap(self.solveConstraint)
@@ -191,11 +247,11 @@ extension TypeChecker where PhaseState == SolvePhaseState {
       if extraConstrs.isEmpty {
         return self.solveConstraint(constr2)
       }
-      let mzero = (Set<Meta>(), SolverConstraint.conjoin([]))
-      let (mvs, newAnte) : (Set<Meta>, SolverConstraint)
+      let mzero = (Set<Meta>(), SolverConstraint.RawConstraint.conjoin([]))
+      let (mvs, newAnte) : (Set<Meta>, SolverConstraint.RawConstraint)
         = extraConstrs.reduce(mzero) { (acc, next) in
         let (nextSet, nextConstr) = next
-        switch (acc.1, nextConstr) {
+        switch (acc.1, nextConstr.raw) {
         case let (.conjoin(cs1), .conjoin(cs2)):
           return (acc.0.union(nextSet), .conjoin(cs1 + cs2))
         case let (.conjoin(cs1), c2):
@@ -206,7 +262,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
           return (acc.0.union(nextSet), .conjoin([c1, c2]))
         }
       }
-      return [(mvs, .suppose(newAnte, constr2))]
+      return [(mvs, .init(raw: .suppose(newAnte, constr2)))]
     case let .unifySpines(ctx, ty, mbH, elims1, elims2):
       return self.equalSpines(ctx, ty, mbH, elims1, elims2)
     }
@@ -264,16 +320,21 @@ extension TypeChecker where PhaseState == SolvePhaseState {
     let t2Norm = blockedT2.ignoreBlocking
     switch (blockedT1, blockedT2) {
     case let (.onHead(mv1, els1), .onHead(mv2, els2)) where mv1 == mv2:
-      guard self.tryIntersection(mv1, els1, els2) else {
-        return EqualityProgress.done([])
+      guard !self.tryIntersection(mv1, els1, els2) else {
+        return .done([])
       }
-      return EqualityProgress.done([([mv1], .unify(ctx, type, t1Norm, t2Norm))])
+      return .done([([mv1], .init(raw: .unify(ctx, type, t1Norm, t2Norm)))])
+    case let (.onHead(mv, elims), .onHead(mv2, _)):
+      let rep1 = self.constraintGraph.getRepresentative(mv)
+      let rep2 = self.constraintGraph.getRepresentative(mv2)
+      self.constraintGraph.mergeEquivalenceClasses(rep1, rep2)
+      return .done(self.bindMeta(in: ctx, type, mv, elims, t2))
     case let (.onHead(mv, elims), _):
-      return EqualityProgress.done(self.bindMeta(in: ctx, type, mv, elims, t2))
+      return .done(self.bindMeta(in: ctx, type, mv, elims, t2))
     case let (_, .onHead(mv, elims)):
-      return EqualityProgress.done(self.bindMeta(in: ctx, type, mv, elims, t1))
+      return .done(self.bindMeta(in: ctx, type, mv, elims, t1))
     case (.notBlocked(_), .notBlocked(_)):
-      return EqualityProgress.notDone((ctx, type, t1Norm, t2Norm))
+      return .notDone((ctx, type, t1Norm, t2Norm))
     default:
       print(blockedT1, blockedT2)
       fatalError()
@@ -288,10 +349,11 @@ extension TypeChecker where PhaseState == SolvePhaseState {
     guard case let .success(inv) = inversionResult else {
       guard case let .failure(mvs) = inversionResult else { fatalError() }
 
-      let fvs = self.freeVars(term).all
+      let fvs = freeVars(term).all
       guard let prunedMeta = self.tryPruneSpine(fvs, meta, elims) else {
         let metaTerm = TT.apply(.meta(meta), elims)
-        return [(mvs.union([meta]), .unify(ctx, type, metaTerm, term))]
+        return [(mvs.union([meta]),
+                 .init(raw: .unify(ctx, type, metaTerm, term)))]
       }
       let elimedMeta = self.eliminate(prunedMeta, elims)
       return self.unify((ctx, type, elimedMeta, term))
@@ -300,14 +362,16 @@ extension TypeChecker where PhaseState == SolvePhaseState {
     let prunedTerm = self.pruneTerm(Set(inv.substitution.map {$0.0}), term)
     switch self.applyInversion(inv, to: prunedTerm, in: ctx) {
     case let .success(mvb):
-      // FIXME: This binding cannot occur unless we perform the occurs check.
-      // We need to compute the metas present in the binding and check that
-      // the current meta isn't in there.
+      guard !freeMetas(mvb.body).contains(meta) else {
+        // FIXME: Make this a diagnostic.
+        fatalError("Occurs check failed!")
+      }
       self.signature.instantiateMeta(meta, mvb)
+      self.constraintGraph.bindMeta(meta, to: mvb)
       return []
     case let .failure(.collect(mvs)):
       let mvT = TT.apply(.meta(meta), elims)
-      return [(mvs, .unify(ctx, type, mvT, term))]
+      return [(mvs, .init(raw: .unify(ctx, type, mvT, term)))]
     case let .failure(.fail(v)):
       fatalError("Free variable in term! \(v)")
     }
@@ -398,7 +462,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
         case .none:
           let instCod = codomain
                     .forceApplySubstitution(.instantiate(arg1), self.eliminate)
-          let unifyRestOfSpine: SolverConstraint =
+          let unifyRestOfSpine: SolverConstraint.RawConstraint =
             .unifySpines(ctx, instCod, head,
                          [Elim<TT>](elims1.dropFirst(idx)),
                          [Elim<TT>](elims2.dropFirst(idx)))

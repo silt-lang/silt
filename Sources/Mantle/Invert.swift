@@ -128,9 +128,9 @@ extension TypeChecker where PhaseState == SolvePhaseState {
       return .success(Meta.Binding(arity: inversion.arity, body: term))
     }
 
-    let fvs = self.freeVars(term)
+    let fvs = freeVars(term)
     let invVars = inversion.substitution.map { $0.0 }
-    guard fvs.flexible.union(fvs.rigid).isSubset(of: invVars) else {
+    guard fvs.all.isSubset(of: invVars) else {
       return self.applyInversionSubstitution(inversion.substitution, term).map {
         return Meta.Binding(arity: inversion.arity, body: $0)
       }
