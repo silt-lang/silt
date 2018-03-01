@@ -55,7 +55,9 @@ public final class GIRModule {
   }
 
   public func dump() {
-    print("module \(self.name) where")
+    let stream = FileHandle.standardOutput
+    stream.write("module \(self.name) where")
+    stream.write("\n")
     for cont in self.continuations {
       Scope(cont).dump()
     }
