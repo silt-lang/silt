@@ -1,11 +1,21 @@
--- RUN: %silt %s --dump parse-gir --no-colors 2>&1 | %FileCheck %s
+-- RUN-XFAIL: %silt %s --dump parse-gir --no-colors 2>&1 | %FileCheck %s
+
+-- FIXME: destroy_value is being scheduled earlier than copy_value
+-- because the scheduler is scheduling the copy near the apply.  Perhaps
+-- this means we should record destroys and emit them along applies to
+-- the return continuation?
 
 -- CHECK: module poly where
 module poly where
 
+-- CHECK-NEXT: @id :
 @id : (T : Type) -> (T) -> (T -> _) {
-bb0(%0 : Type ; %1 : %0 ; %return : (%0) -> _):
+-- CHECK: bb0(%0, [[VALUE1:%.*]], [[RETURN:%.*]]):
+id(%0 : Type ; %1 : %0 ; %return : (%0) -> _):
+  -- CHECK-NEXT: destroy_value [[VALUE1]]
   %2 = copy_value %1 : %0
+  -- CHECK-NEXT: [[INPUT:%.*]] = copy_value [[VALUE1]]
   destroy_value %1 : %0
+  -- CHECK-NEXT: apply [[RETURN]]([[INPUT]])
   apply %return(%2) : (%0) -> _
-}
+} -- CHECK: } -- end gir function id

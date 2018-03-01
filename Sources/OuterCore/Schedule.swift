@@ -82,7 +82,7 @@ private final class Scheduler {
     switch schedule.tag {
     case .early:
       for (_, uses) in self.def2uses {
-        for operand in uses.reversed() {
+        for operand in uses {
           guard let primop = operand.owningOp else {
             continue
           }
@@ -90,6 +90,7 @@ private final class Scheduler {
           schedule.block(cont).primops.append(primop)
         }
       }
+      self.fixPrimOpSchedule(self.def2early)
     case .late:
       fatalError()
 //      for (primop, _) in def2uses where primop is PrimOp {
@@ -115,9 +116,9 @@ private final class Scheduler {
       }
 
       let n = self.scheduleEarly(op.value)
-//      guard self.scope.cfg.domtree.depth(n) > self.scope.cfg.domtree.depth(result) else {
-//        continue
-//      }
+      guard self.scope.domtree.depth(n) > self.scope.domtree.depth(result) else {
+        continue
+      }
       result = n
     }
 
@@ -163,6 +164,58 @@ private final class Scheduler {
       for param in cont.parameters {
         enqueue(param, param.users)
       }
+    }
+  }
+
+  func fixPrimOpSchedule(_ defMap: [Value: Continuation]) {
+    for block in self.schedule.blocks {
+      var primops = [PrimOp]()
+      var queue = [PrimOp]()
+      var done = Set<Value>()
+
+      for param in block.parent.parameters {
+        done.insert(param)
+      }
+
+      let inside = { (def: Value) -> Bool in
+        guard let i = defMap[def] else {
+          return false
+        }
+        return i == block.parent
+      }
+
+      let enqueue = { (primop: PrimOp) in
+        guard !done.contains(primop) else {
+          return
+        }
+
+        for op in primop.operands {
+          if inside(op.value) && !done.contains(op.value) {
+            return
+          }
+        }
+
+        queue.append(primop)
+        done.insert(primop)
+        primops.append(primop)
+      }
+
+      for primop in block.primops {
+        enqueue(primop)
+      }
+
+      while !queue.isEmpty {
+        let primop = queue.removeFirst()
+
+        for use in primop.users {
+          if inside(use.user) {
+            enqueue(use.user)
+          }
+        }
+      }
+
+      assert(block.primops.count == primops.count)
+      swap(&block.primops, &primops)
     }
   }
 }

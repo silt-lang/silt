@@ -8,12 +8,16 @@
 import Foundation
 
 /// Represents an abstraction over graph-like objects.
-public protocol Graph: AnyObject {
+public protocol Graph: AnyObject, Hashable {
   /// The successor sequence type for this node.
   associatedtype Successors: Sequence where Successors.Element == Self
-
+  associatedtype Predecessors: Sequence where Predecessors.Element == Self
+  
   /// A sequence of this node's successors.
   var successors: Successors { get }
+
+  /// A sequence of this node's predecessors.
+  var predecessors: Predecessors { get }
 }
 
 public extension Graph {
@@ -29,6 +33,7 @@ public struct ReversePostOrderSequence<Node: Graph>: Sequence {
   public struct Iterator: IteratorProtocol {
     var visited = Set<ObjectIdentifier>()
     var postorder = [Node]()
+    fileprivate var nodeIndices = [Node: Int]()
 
     init(start: Node) {
       traverse(start)
@@ -42,6 +47,7 @@ public struct ReversePostOrderSequence<Node: Graph>: Sequence {
         if visited.contains(ObjectIdentifier(child)) { continue }
         traverse(child)
       }
+      nodeIndices[node] = postorder.count
       postorder.append(node)
     }
 
@@ -50,9 +56,24 @@ public struct ReversePostOrderSequence<Node: Graph>: Sequence {
     }
   }
 
+  public struct Indexer {
+    var indices: [Node: Int]
+
+    public func index(of node: Node) -> Int {
+      guard let index = indices[node] else {
+        fatalError("Requested index of node outside of this CFG")
+      }
+      return index
+    }
+  }
+
   let graph: Node
 
   public func makeIterator() -> ReversePostOrderSequence<Node>.Iterator {
     return Iterator(start: graph)
+  }
+
+  public func makeIndexer() -> Indexer {
+    return Indexer(indices: Iterator(start: graph).nodeIndices)
   }
 }

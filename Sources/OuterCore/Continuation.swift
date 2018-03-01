@@ -44,6 +44,17 @@ public final class Continuation: Value, Graph {
 
   var predecessorList: Successor
 
+  // FIXME: Decide on an appropriate way to compute this.
+  public var predecessors: AnySequence<Continuation> {
+//    guard let first = self.predecessorList.previous else {
+//      return AnySequence<Successor>([])
+//    }
+//    return AnySequence<Successor>(sequence(first: first) { pred in
+//      return pred.previous
+//    })
+    return AnySequence<Continuation>([])
+  }
+  
   public var successors: AnySequence<Continuation> {
     guard let first = self.predecessorList.successor else {
       return AnySequence<Continuation>([])

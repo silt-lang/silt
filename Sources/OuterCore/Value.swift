@@ -107,7 +107,7 @@ public final class Operand: Hashable {
   /// The next operand in the use-chain.  Note that the chain holds
   /// every use of the current ValueBase, not just those of the
   /// designated result.
-  var nextUse: Operand? = nil;
+  var nextUse: Operand? = nil
 
   /// A back-pointer in the use-chain, required for fast patching
   /// of use-chains.

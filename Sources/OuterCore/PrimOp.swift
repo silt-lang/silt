@@ -85,11 +85,6 @@ public final class ApplyOp: PrimOp {
     })
   }
 
-  /// The resulting value of applying the arguments to the callee.
-  public override var result: Value? {
-    return self
-  }
-
   /// The value being applied to.
   var callee: Value {
     return self.operands[0].value
