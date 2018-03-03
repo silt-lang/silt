@@ -152,13 +152,12 @@ public final class DestroyValueOp: PrimOp {
 }
 
 public final class FunctionRefOp: PrimOp {
+  let function: Continuation
+
   init(continuation: Continuation) {
+    self.function = continuation
     super.init(opcode: .functionRef)
     self.addOperands([Operand(owner: self, value: continuation)])
-  }
-
-  var function: Continuation {
-    return operands[0].value as! Continuation
   }
 
   public override var result: Value? {
@@ -183,9 +182,11 @@ public final class SwitchConstrOp: TerminalOp {
     self.addOperands([Operand(owner: self, value: value)])
     var ops = [Operand]()
     for (_, dest) in patterns {
-      let destCont = (dest as! FunctionRefOp).function
-      successors_.append(Successor(parent, self, destCont))
       ops.append(Operand(owner: self, value: dest))
+      guard let destCont = (dest as? FunctionRefOp)?.function else {
+        continue
+      }
+      successors_.append(Successor(parent, self, destCont))
     }
     self.addOperands(ops)
   }
@@ -229,11 +230,17 @@ extension PrimOpVisitor {
     switch code.opcode {
     case .noop:
       fatalError()
+      // swiftlint:disable force_cast
     case .apply: self.visitApplyOp(code as! ApplyOp)
+      // swiftlint:disable force_cast
     case .copyValue: self.visitCopyValueOp(code as! CopyValueOp)
+      // swiftlint:disable force_cast
     case .destroyValue: self.visitDestroyValueOp(code as! DestroyValueOp)
+      // swiftlint:disable force_cast
     case .functionRef: self.visitFunctionRefOp(code as! FunctionRefOp)
+      // swiftlint:disable force_cast
     case .switchConstr: self.visitSwitchConstrOp(code as! SwitchConstrOp)
+      // swiftlint:disable force_cast
     case .dataInitSimple: self.visitDataInitSimpleOp(code as! DataInitSimpleOp)
     }
   }
