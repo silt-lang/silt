@@ -12,7 +12,7 @@ public protocol Graph: AnyObject, Hashable {
   /// The successor sequence type for this node.
   associatedtype Successors: Sequence where Successors.Element == Self
   associatedtype Predecessors: Sequence where Predecessors.Element == Self
-  
+
   /// A sequence of this node's successors.
   var successors: Successors { get }
 

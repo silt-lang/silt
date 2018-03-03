@@ -11,7 +11,7 @@ public struct NameAndType: Hashable {
   public let name: String
   public unowned let type: Type
 
-  public static func ==(lhs: NameAndType, rhs: NameAndType) -> Bool {
+  public static func == (lhs: NameAndType, rhs: NameAndType) -> Bool {
     return lhs.name == rhs.name && lhs.type == rhs.type
   }
 
@@ -21,7 +21,7 @@ public struct NameAndType: Hashable {
 }
 
 // FIXME: Temporary
-public final class GIRType : Type {
+public final class GIRType: Type {
   let expr: ExprSyntax
   public init(_ expr: ExprSyntax) {
     self.expr = expr
@@ -90,7 +90,7 @@ public class ParameterizedType: Type {
     /*owned */let archetype: ArchetypeType
     let value: NameAndType
 
-    public static func ==(lhs: Parameter, rhs: Parameter) -> Bool {
+    public static func == (lhs: Parameter, rhs: Parameter) -> Bool {
       return lhs.archetype == rhs.archetype && lhs.value == rhs.value
     }
 

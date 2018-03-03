@@ -44,7 +44,7 @@ final class Scope {
 
   private static func enqueue(
     _ queue: inout [Value], _ defs: inout Set<Value>,
-    _ conts: inout [Continuation], _ val : Value) {
+    _ conts: inout [Continuation], _ val: Value) {
     guard defs.insert(val).inserted else {
       return
     }

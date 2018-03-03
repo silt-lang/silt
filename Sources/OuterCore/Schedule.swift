@@ -26,10 +26,10 @@ final class Schedule {
       self.index = idx
     }
 
-    public static func ==(lhs: Block, rhs: Block) -> Bool {
+    public static func == (lhs: Block, rhs: Block) -> Bool {
       return lhs === rhs
     }
-    
+
     public var hashValue: Int {
       return "\(ObjectIdentifier(self).hashValue)".hashValue
     }
@@ -53,7 +53,7 @@ final class Schedule {
     _ = Scheduler(self)
   }
 
-  func block(_ c : Continuation) -> Block {
+  func block(_ c: Continuation) -> Block {
     return self.blocks[self.indices[c]!]
   }
 

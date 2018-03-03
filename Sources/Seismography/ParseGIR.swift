@@ -72,7 +72,8 @@ public final class GIRParser {
     return cont
   }
 
-  func getReferencedContinuation(_ B: IRBuilder, _ syntax: TokenSyntax) -> Continuation {
+  func getReferencedContinuation(
+    _ B: IRBuilder, _ syntax: TokenSyntax) -> Continuation {
     assert(syntax.render.starts(with: "@"))
     let name = String(syntax.render.dropFirst())
     // If the block has already been created, use it.
@@ -103,7 +104,7 @@ public final class GIRParser {
     return entry
   }
 
-  func setLocalValue(_ value: Value, _ name : String) {
+  func setLocalValue(_ value: Value, _ name: String) {
     // If this value was already defined, it is either a redefinition, or a
     // specification for a forward referenced value.
     guard let entry = self.localValues[name] else {
@@ -210,7 +211,8 @@ extension GIRParser {
     return true
   }
 
-  func parseGIRInstruction(_ B: IRBuilder, in cont: Continuation) throws -> Bool {
+  func parseGIRInstruction(
+    _ B: IRBuilder, in cont: Continuation) throws -> Bool {
     guard self.parser.peekToken()!.leadingTrivia.containsNewline else {
       fatalError("Instruction must begin on a new line")
     }
@@ -253,7 +255,7 @@ extension GIRParser {
 
       _ = try self.parser.consume(.colon)
       let typeRepr = try self.parser.parseGIRTypeExpr()
-      
+
       var args = [Value]()
       for argName in argNames {
         let argVal = self.getLocalValue(argName)
@@ -287,7 +289,9 @@ extension GIRParser {
       while case .semicolon = self.parser.peek() {
         _ = try self.parser.consume(.semicolon)
 
-        guard case let .identifier(ident) = self.parser.peek(), ident == "case" else {
+        guard
+          case let .identifier(ident) = self.parser.peek(), ident == "case"
+        else {
           return false
         }
         _ = try self.parser.parseIdentifierToken()
@@ -304,7 +308,7 @@ extension GIRParser {
       _ = B.createSwitchConstr(cont, srcVal, caseConts)
     case .functionRef:
       guard
-        case let .identifier(identStr) = parser.peek(), identStr.starts(with: "@")
+        case let .identifier(refName) = parser.peek(), refName.starts(with: "@")
       else {
          return false
       }

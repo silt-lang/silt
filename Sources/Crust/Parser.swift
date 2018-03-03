@@ -121,7 +121,8 @@ public class Parser {
     }
   }
 
-  public func unexpectedToken(expected: TokenKind? = nil) -> Diagnostic.Message {
+  public func unexpectedToken(
+    expected: TokenKind? = nil) -> Diagnostic.Message {
     // If we've "unexpected" an implicit token from Shining, highlight
     // instead the previous token because the diagnostic will say that we've
     // begun or ended the scope/line.

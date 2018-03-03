@@ -128,51 +128,6 @@ public struct Invocation {
         run(parseGIRFile |> Pass(name: "Dump Parsed GIR") { module, _ in
           module.dump()
         })
-      case .dump(.gir):
-        run(Pass(name: "Dump GIR") { module, _ in
-          let module = GIRModule(name: "main")
-          let builder = IRBuilder(module: module)
-          let natType = module.dataType(name: "Nat") { nat in
-            nat.addConstructor(name: "Z",
-                               type: module.functionType(arguments: [],
-                                                         returnType: nat))
-            nat.addConstructor(name: "S",
-                               type: module.functionType(arguments: [nat],
-                                                         returnType: nat))
-          }
-          let listType = module.dataType(name: "List") {
-            $0.addParameter(name: "A", type: module.typeType)
-            let aArch = $0.archetype(at: 0)
-            let subst = $0.substituted([
-              aArch: $0.archetype(at: 0)
-            ])
-            $0.addConstructor(name: "[]",
-                              type: module.functionType(arguments: [],
-                                                        returnType: subst))
-            $0.addConstructor(name: "_::_",
-                              type: module.functionType(arguments: [aArch],
-                                                        returnType: subst))
-          }
-          let personRec = module.recordType(name: "Person") {
-            $0.addField(name: "age", type: natType)
-          }
-          let listPersonType = listType.substituted([
-            listType.archetype(at: 0): personRec
-          ])
-          let continuationTy =
-            module.functionType(arguments: [], returnType: module.bottomType)
-          let a = builder.buildContinuation(name: "main")
-          let x = a.appendParameter(type: listPersonType)
-          let y = a.appendParameter(type: listPersonType)
-          let ret = a.appendParameter(type: continuationTy, name: "re,t")
-          let b = builder.buildContinuation(name: "sub.1")
-          b.appendParameter(type: listPersonType)
-          b.appendParameter(type: listPersonType, ownership: .borrowed)
-          let bRet = b.appendParameter(type: continuationTy, name: "ret")
-          IRVerifier(module: module).verify()
-          let writer = IRWriter(stream: &stdoutStreamHandle)
-          writer.write(module)
-        })
       case .verify(let verification):
         context.engine.unregister(printingConsumerToken)
         switch verification {

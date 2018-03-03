@@ -183,4 +183,3 @@ func freeMetas(_ t: TT) -> FreeMetas {
   }
   return go(t)
 }
-

@@ -15,7 +15,8 @@ public final class IRBuilder {
     self.module = module
   }
 
-  public func buildContinuation(name: String, type: Type = BottomType.shared) -> Continuation {
+  public func buildContinuation(
+    name: String, type: Type = BottomType.shared) -> Continuation {
     let continuation = Continuation(name: name, type: type)
     module.addContinuation(continuation)
     return continuation
@@ -42,7 +43,8 @@ public final class IRBuilder {
 }
 
 extension IRBuilder {
-  public func createApply(_ parent: Continuation, _ fnVal: Value, _ argVals: [Value]) -> ApplyOp {
+  public func createApply(
+    _ parent: Continuation, _ fnVal: Value, _ argVals: [Value]) -> ApplyOp {
     return insert(ApplyOp(parent, fnVal, argVals))
   }
 
@@ -64,7 +66,8 @@ extension IRBuilder {
   }
 
   public func createSwitchConstr(
-    _ parent: Continuation, _ src: Value, _ caseVals: [(String, Value)]) -> SwitchConstrOp {
+    _ parent: Continuation, _ src: Value, _ caseVals: [(String, Value)]
+  ) -> SwitchConstrOp {
     return insert(SwitchConstrOp(parent, matching: src, patterns: caseVals))
   }
 }

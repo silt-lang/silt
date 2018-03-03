@@ -71,12 +71,12 @@ extension TypeChecker {
 /// Implements homogeneous constraints for the solver.
 struct SolverConstraint: CustomDebugStringConvertible, Hashable {
   indirect enum RawConstraint: CustomDebugStringConvertible {
-    /// Under the given context, and given that each term has the specified type,
-    /// synthesize or check for a common unifier between the two terms.
+    /// Under the given context, and given that each term has the specified
+    /// type, synthesize or check for a common unifier between the two terms.
     case unify(Context, Type<TT>, Term<TT>, Term<TT>)
-    /// Under the given context, and given that the type of an application's spine
-    /// ultimately has a particular type, check that the elims in the spines of
-    /// two terms have a common unifier between them.
+    /// Under the given context, and given that the type of an application's
+    /// spine ultimately has a particular type, check that the elims in the
+    /// spines of two terms have a common unifier between them.
     case unifySpines(Context, Type<TT>, Term<TT>?,
       [Elim<Term<TT>>], [Elim<Term<TT>>])
     /// The conjunction of multiple constraints.
@@ -179,7 +179,7 @@ struct SolverConstraint: CustomDebugStringConvertible, Hashable {
     return self.id
   }
 
-  static func ==(lhs: SolverConstraint, rhs: SolverConstraint) -> Bool {
+  static func == (lhs: SolverConstraint, rhs: SolverConstraint) -> Bool {
     return lhs.hashValue == rhs.hashValue
   }
 }
@@ -233,7 +233,8 @@ extension TypeChecker where PhaseState == SolvePhaseState {
 
   /// Attempt to solve a homogeneous constraint returning any new constraints
   /// that may have arisen from the process of doing so.
-  private func solveConstraint(_ scon: SolverConstraint.RawConstraint) -> SolverConstraints {
+  private func solveConstraint(
+    _ scon: SolverConstraint.RawConstraint) -> SolverConstraints {
     switch scon {
     case let .conjoin(constrs):
       return constrs.flatMap(self.solveConstraint)

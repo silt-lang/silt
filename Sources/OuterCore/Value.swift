@@ -20,7 +20,7 @@ public class Value: Hashable {
   /// All values are equatable and hashable using reference equality and
   /// the hash of their ObjectIdentifiers.
 
-  public static func ==(lhs: Value, rhs: Value) -> Bool {
+  public static func == (lhs: Value, rhs: Value) -> Bool {
     return lhs.equals(rhs)
   }
 
@@ -107,11 +107,11 @@ public final class Operand: Hashable {
   /// The next operand in the use-chain.  Note that the chain holds
   /// every use of the current ValueBase, not just those of the
   /// designated result.
-  var nextUse: Operand? = nil
+  var nextUse: Operand?
 
   /// A back-pointer in the use-chain, required for fast patching
   /// of use-chains.
-  weak var back: Operand? = nil
+  weak var back: Operand?
 
   /// The owner of this operand.
   /// FIXME: this could be space-compressed.
@@ -120,7 +120,7 @@ public final class Operand: Hashable {
   init(owner: PrimOp, value: Value) {
     self.value = value
     self.owningOp = owner
-    
+
     self.insertIntoCurrent()
   }
 
@@ -128,7 +128,7 @@ public final class Operand: Hashable {
     self.removeFromCurrent()
   }
 
-  public static func ==(lhs: Operand, rhs: Operand) -> Bool {
+  public static func == (lhs: Operand, rhs: Operand) -> Bool {
     return lhs.value == rhs.value
   }
 
