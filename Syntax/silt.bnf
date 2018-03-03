@@ -1,18 +1,23 @@
 id ::= <a group of non-space unicode characters>
 id-list ::= <id> | <id-list>
 
+qualified-name ::= <id> | <id> '.' <qualified-name>
+
 int ::= [0-9]+
 
 # Declarations
 
 decl ::= <data-decl>
-      || <empty-data-decl>
+       | <empty-data-decl>
        | <record-decl>
        | <module-decl>
        | <import-decl>
        | <function-decl>
        | <function-clause-decl>
        | <fixity-decl>
+
+decl-list ::= <decl>
+            | <decl> <decl-list>
 
 ## Data types
 
@@ -48,8 +53,6 @@ record-field-assignment ::= <id> '=' <expr>
 ## Modules
 
 module-decl ::= 'module' <id> <typed-parameter-list>? 'where' <decl-list>
-decl-list ::= <decl>
-            | <decl> <decl-list>
 
 ## Imports
 
@@ -89,7 +92,7 @@ expr ::= <typed-parameter-list> '->' <expr>
 
 application ::= <basic-expr> <application>
 
-binding-list ::=  <qualified-name>
+binding-list ::= <qualified-name>
                | <typed-parameter>
                | <qualified-name> <binding-list>
                | <typed-parameter> <binding-list>

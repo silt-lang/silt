@@ -1,0 +1,4 @@
+-- RUN: %silt %s --dump parse-gir --no-colors 2>&1 | %FileCheck %s
+
+-- CHECK: module empty where
+module empty where

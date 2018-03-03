@@ -10,9 +10,11 @@ import Lithosphere
 import PrettyStackTrace
 
 public final class IRVerifier {
-  let module: Module
+  let module: GIRModule
 
-  public init(module: Module) {
+  var currentScopedValues = Set<Value>()
+
+  public init(module: GIRModule) {
     self.module = module
   }
 
@@ -62,55 +64,12 @@ public final class IRVerifier {
   public func verify() {
     trace("verifying GIR module '\(module.name)'") {
       for continuation in module.continuations {
-        verify(continuation)
+        _ = verify(continuation)
       }
     }
   }
 
-  func verifyApply(_ apply: Apply) {
-    trace("verifying apply of '\(name(for: apply.callee))'") {
-      guard let fnType = apply.callee.type as? FunctionType else {
-        fatalError("""
-          attempt to call non-function type '\(name(for: apply.callee.type))'
-          """)
-      }
-
-      guard fnType.arguments.count == apply.args.count else {
-        let expected = fnType.arguments.count
-        let got = apply.args.count
-
-        let qualifier = expected > got ? "few" : "many"
-        let kind = apply.callee is Continuation ? "function" : "value"
-        fatalError("""
-          too \(qualifier) arguments to GIR \(kind) \
-          '\(apply.callee.name)'; expected \(expected), got \(got)
-          """)
-      }
-      for (arg, param) in zip(apply.args, fnType.arguments) {
-        trace("verifying GIR apply argument '\(name(for: arg))'") {
-          verifyType(arg.type)
-          verifyType(param)
-          guard arg.type === param else {
-            fatalError("""
-              type mismatch (expected '\(name(for: param))', \
-              got '\(name(for: arg.type))'
-              """)
-          }
-        }
-      }
-    }
-  }
-
-  func verify(_ continuation: Continuation) {
-    let n = name(for: continuation)
-    trace("verifying GIR continuation '\(n)'") {
-      for parameter in continuation.parameters {
-        verifyType(parameter.type)
-      }
-      guard let call = continuation.call else {
-        fatalError("continuation '\(continuation.name)' has no call")
-      }
-      verifyApply(call)
-    }
+  func verify(_ continuation: Continuation) -> Bool {
+    return true
   }
 }

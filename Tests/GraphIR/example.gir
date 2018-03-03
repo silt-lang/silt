@@ -1,0 +1,95 @@
+module example where {
+
+-- id : (T : Type) -> T -> T;
+-- id x = x;
+
+@id : (T : Type) -> (T) -> (T -> _) { 
+bb0(%0 : Type, %1 : %0, %return: (%0) -> _):
+  %2 = copy_value %1 : %0
+  destroy_value %1 : %0
+  apply %return(%2) : (%0) -> _
+}
+
+-- data example.Nat : Type where {
+--   example.Nat.z : example.Nat;
+--   example.Nat.s : example.Nat -> example.Nat;
+-- };
+
+-- data example.Bool : Type where {
+--   example.Bool.true : example.Bool;
+--   example.Bool.false : example.Bool;
+-- };
+
+-- example.equal : example.Nat -> example.Nat -> example.Bool;
+-- example.equal example.Nat.z example.Nat.z = example.Bool.true;
+-- example.equal example.Nat.z _ = example.Bool.false;
+-- example.equal _ example.Nat.z = example.Bool.false;
+-- example.equal (example.Nat.s n) (example.Nat.s m) = example.equal n m;
+
+@equal : (example.Nat) -> (example.Nat) -> (example.Bool -> _) {
+bb0(%0 : example.Nat ; %1 : example.Nat ; %return : (example.Bool) -> _):
+  %2 = function_ref @bb1
+  %3 = function_ref @bb2
+  switch_constr %0 : example.Nat ; case example.Nat.z: %2 ; case example.Nat.s %3
+
+bb1:
+  %4 = function_ref @bb3
+  %5 = function_ref @bb4
+  switch_constr %1 : example.Nat ; case example.Nat.z: %4 ; case example.Nat.s %5
+
+bb2(%6 : example.Nat):
+  %7 = function_ref @bb5
+  %8 = function_ref @bb6
+  switch_constr %1 : example.Nat ; case example.Nat.z: %7 ; case example.Nat.s %8
+
+bb3:
+  %9 = data_init_simple example.Bool.true : example.Bool
+  destroy_value %0 : example.Nat
+  destroy_value %1 : example.Nat
+  apply %return(%9) : (example.Bool) -> _
+
+bb4(%10 : example.Nat):
+  %11 = data_init_simple example.Bool.false : example.Bool
+  destroy_value %0 : example.Nat
+  destroy_value %1 : example.Nat
+  apply %return(%11) : (example.Bool) -> _
+
+bb5:
+  %12 = data_init_simple example.Bool.false : example.Bool
+  destroy_value %0 : example.Nat
+  destroy_value %1 : example.Nat
+  apply %return(%12) : (example.Bool) -> _
+
+bb6(%13 : example.Nat):
+  %14 = function_ref @equal
+  %15 = copy_value %6 : example.Nat
+  %16 = copy_value %13 : example.Nat
+  apply %14(%15 ; %16 ; %return) : (example.Nat) -> (example.Nat) -> (example.Bool -> _)
+}
+
+-- arithmetic : Nat -> Nat -> Nat ;
+-- arithmetic x y = _+_ x (_*_ y 2) ;
+
+@arithmetic : example.Nat -> example.Nat -> (example.Nat -> _) {
+bb0(%0 : example.Nat ; %1 : example.Nat ; %return: (example.Nat) -> _):
+  %2 = function_ref @_*_
+  %3 = copy_value %1
+  %4 = data_init_simple example.Nat.z : example.Nat
+  %5 = copy_value %4 : example.Nat
+  %6 = data_init example.Nat ; example.Nat.s ; %5 : example.Nat
+  %7 = copy_value %6 : example.Nat
+  %8 = data_init example.Nat ; example.Nat.s ; %7 : example.Nat
+  destroy_value %4 : example.Nat
+  destroy_value %6 : example.Nat
+  %9 = copy_value %8 : example.Nat
+  %10 = function_ref @bb1
+  apply %2(%3 ; %9 ; %10) : example.Nat -> example.Nat -> (example.Nat -> _)
+bb1(%11 : example.Nat):
+  %12 = function_ref @_+_
+  %13 = copy_value %0 : example.Nat
+  %14 = copy_value %11 : example.Nat
+  destroy_value %0 : example.Nat
+  destroy_value %1 : example.Nat
+  apply %12(%13 ; %14 ; %return)
+}
+

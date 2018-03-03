@@ -1,5 +1,6 @@
 # Highlight Silt as Agda
 *.silt linguist-language=Agda
+*.gir linguist-language=llvm
 
 # Generated files
 Sources/Lithosphere/SyntaxNodes.swift linguist-generated=true

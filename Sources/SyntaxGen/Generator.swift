@@ -10,12 +10,7 @@
 // swiftlint:disable line_length
 
 import Foundation
-
-extension FileHandle: TextOutputStream {
-    public func write(_ string: String) {
-        write(string.data(using: .utf8)!)
-    }
-}
+import Lithosphere
 
 final class SwiftGenerator {
   let outputDir: URL

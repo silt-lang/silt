@@ -31,23 +31,45 @@ public struct ParameterSemantics {
   var mustDestroy: Bool
 }
 
-public final class Continuation: Value {
+public final class Continuation: Value, Graph {
   enum Kind {
     case basicBlock(parent: Continuation)
     case topLevel
     case functionHead(parent: Continuation)
   }
   let env = Environment()
-  var call: Apply?
   var destructors = [Destructor]()
   var parameters = [Parameter]()
-  weak var module: Module?
+  var destroys = [DestroyValueOp]()
 
-  var predecessors = OrderedSet<Continuation>()
-  var successors = OrderedSet<Continuation>()
+  weak var module: GIRModule?
 
-  init(name: String) {
-    super.init(name: name, type: /* will be overwritten */BottomType.shared)
+  var predecessorList: Successor
+  weak var terminalOp: TerminalOp?
+
+  // FIXME: This can't possibly be right?
+  public var predecessors: AnySequence<Continuation> {
+    guard let first = self.predecessorList.parent else {
+      return AnySequence<Continuation>([])
+    }
+    return AnySequence<Continuation>(sequence(first: first) { pred in
+      return pred.predecessorList.parent
+    })
+  }
+  
+  public var successors: [Continuation] {
+    guard let terminal = self.terminalOp else {
+      return []
+    }
+
+    return terminal.successors.map { succ in
+      return succ.successor!
+    }
+  }
+
+  public override init(name: String, type: Type) {
+    self.predecessorList = Successor(nil)
+    super.init(name: name, type: type)
   }
 
   @discardableResult
@@ -58,10 +80,6 @@ public final class Continuation: Value {
                           name: env.makeUnique(name))
     parameters.append(param)
     return param
-  }
-
-  public func setCall(_ callee: Value, _ args: [Value]) {
-    self.call = Apply(callee: callee, args: args)
   }
 
   override var type: Value {
@@ -75,55 +93,11 @@ public final class Continuation: Value {
     set { /* do nothing */ }
   }
 
-  func computeParameterSemantics() -> [ParameterSemantics] {
-    var semantics = [ParameterSemantics]()
-    for param in parameters {
-      var semantic = ParameterSemantics(parameter: param, mustDestroy: false)
-
-      // Start by assuming all owned parameters must be destroyed.
-      if param.isOwned {
-        semantic.mustDestroy = true
-      }
-
-      // If we have a call, and we're passing this parameter to the call,
-      // then determine if we're transferring ownership.
-      if let call = call, let index = call.args.index(of: param) {
-        // If we're passing this parameter to a continuation which will own
-        // it, then remove the destructor. We are transferring ownership.
-
-        /// TODO: Handle non-Continuations being called.
-        if let cont = call.callee as? Continuation,
-           // out-of-bounds arguments will be caught by the verifier, just don't
-           // crash while computing this.
-           cont.parameters.indices.contains(index),
-           cont.parameters[index].isOwned {
-          semantic.mustDestroy = false
-        }
-      }
-
-      semantics.append(semantic)
+  public override func dump() {
+    print("\(self.name)(", terminator: "")
+    self.parameters.forEach { param in
+      param.dump()
     }
-    return semantics
-  }
-}
-
-public class Apply: Value {
-  public let callee: Value
-  public let args: [Value]
-
-  init(callee: Value, args: [Value]) {
-    self.callee = callee
-    self.args = args
-    super.init(name: "", type: /* will be overwritten */BottomType())
-  }
-
-  override var type: Value {
-    get {
-      guard let fnTy = callee.type as? FunctionType else {
-        return BottomType()
-      }
-      return fnTy.returnType
-    }
-    set { /* do nothing */ }
+    print("):")
   }
 }

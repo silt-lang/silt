@@ -1,0 +1,52 @@
+-- RUN: %silt %s --dump parse-gir --no-colors 2>&1 | %FileCheck %s
+
+-- CHECK: module switch where
+module switch where
+
+-- example.equal : example.Nat -> example.Nat -> example.Bool;
+-- example.equal example.Nat.z example.Nat.z = example.Bool.true;
+-- example.equal example.Nat.z _ = example.Bool.false;
+-- example.equal _ example.Nat.z = example.Bool.false;
+-- example.equal (example.Nat.s n) (example.Nat.s m) = example.equal n m;
+
+@equal : (example.Nat) -> (example.Nat) -> (example.Bool -> _) {
+equal(%0 : example.Nat ; %1 : example.Nat ; %return : (example.Bool) -> _):
+  %2 = function_ref @bb1
+  %3 = function_ref @bb2
+  switch_constr %0 : example.Nat ; case example.Nat.z : %2 ; case example.Nat.s : %3
+
+bb1:
+  %4 = function_ref @bb3
+  %5 = function_ref @bb4
+  switch_constr %1 : example.Nat ; case example.Nat.z : %4 ; case example.Nat.s : %5
+
+bb2(%6 : example.Nat):
+  %7 = function_ref @bb5
+  %8 = function_ref @bb6
+  switch_constr %1 : example.Nat ; case example.Nat.z : %7 ; case example.Nat.s : %8
+
+bb3:
+  %9 = data_init_simple example.Bool.true : example.Bool
+  destroy_value %0 : example.Nat
+  destroy_value %1 : example.Nat
+  apply %return(%9) : (example.Bool) -> _
+
+bb4(%10 : example.Nat):
+  %11 = data_init_simple example.Bool.false : example.Bool
+  destroy_value %0 : example.Nat
+  destroy_value %1 : example.Nat
+  apply %return(%11) : (example.Bool) -> _
+
+bb5:
+  %12 = data_init_simple example.Bool.false : example.Bool
+  destroy_value %0 : example.Nat
+  destroy_value %1 : example.Nat
+  apply %return(%12) : (example.Bool) -> _
+
+bb6(%13 : example.Nat):
+  %14 = function_ref @equal
+  %15 = copy_value %6 : example.Nat
+  %16 = copy_value %13 : example.Nat
+  apply %14(%15 ; %16 ; %return) : (example.Nat) -> (example.Nat) -> (example.Bool -> _)
+}
+

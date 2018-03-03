@@ -22,13 +22,13 @@ let package = Package(
       dependencies: ["Lithosphere"]),
     .target(
       name: "Drill",
-      dependencies: ["Lithosphere", "Crust", "Moho", "Mantle", "Utility", "OuterCore"]),
+      dependencies: ["Lithosphere", "Crust", "Moho", "Mantle", "Utility", "OuterCore", "Seismography"]),
     .target(
       name: "silt",
       dependencies: ["Drill", "Utility"]),
     .target(
       name: "SyntaxGen",
-      dependencies: ["Utility"]),
+      dependencies: ["Utility", "Lithosphere"]),
     .target(
       name: "lite",
       dependencies: ["Symbolic", "LiteSupport", "silt", "Utility"]),
@@ -37,12 +37,15 @@ let package = Package(
       dependencies: ["Drill", "FileCheck", "Utility"]),
     .target(
       name: "Moho",
-      dependencies: ["Lithosphere", "Crust"]),
+      dependencies: ["Lithosphere", "Crust", "Utility"]),
     .target(
       name: "Mantle",
       dependencies: ["Lithosphere", "Moho", "Utility", "PrettyStackTrace"]),
     .target(
       name: "OuterCore",
-      dependencies: ["Crust", "Moho", "Mantle"]),
+      dependencies: ["Crust", "Utility"]),
+    .target(
+      name: "Seismography",
+      dependencies: ["OuterCore", "Crust"]),
   ]
 )
