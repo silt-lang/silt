@@ -183,7 +183,7 @@ extension SwiftGenerator {
       }
       line("public protocol \(base.typeName)Syntax: \(kind)Syntax {}")
     }
-    
+
     var archetypeMap = [(key: String, value: String)]()
     for node in syntaxNodes {
       guard let archName = generateStruct(node) else { continue }
@@ -203,6 +203,7 @@ extension SwiftGenerator {
     }
   }
 
+  // swiftlint:disable function_body_length
   func generateStruct(_ node: Node) -> String? {
     switch node.kind {
     case let .collection(element):

@@ -56,7 +56,7 @@ public final class Continuation: Value, Graph {
       return pred.predecessorList.parent
     })
   }
-  
+
   public var successors: [Continuation] {
     guard let terminal = self.terminalOp else {
       return []

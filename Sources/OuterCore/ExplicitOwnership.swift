@@ -12,7 +12,7 @@ import Foundation
 struct Unowned<T: AnyObject & Hashable>: Hashable {
   unowned let value: T
 
-  static func ==<T>(lhs: Unowned<T>, rhs: Unowned<T>) -> Bool {
+  static func == <T>(lhs: Unowned<T>, rhs: Unowned<T>) -> Bool {
     return lhs.value == rhs.value
   }
 
@@ -29,14 +29,15 @@ public struct UnownedDictionary<
   public typealias Index = UnownedDictionaryIndex
 
   public struct UnownedDictionaryIndex: Comparable {
+    // swiftlint:disable syntactic_sugar
     let underlying: Dictionary<Unowned<Key>, Unowned<Value>>.Index
 
-    public static func <(lhs: UnownedDictionaryIndex,
-                         rhs: UnownedDictionaryIndex) -> Bool {
+    public static func < (lhs: UnownedDictionaryIndex,
+                          rhs: UnownedDictionaryIndex) -> Bool {
       return lhs.underlying < rhs.underlying
     }
-    public static func ==(lhs: UnownedDictionaryIndex,
-                          rhs: UnownedDictionaryIndex) -> Bool {
+    public static func == (lhs: UnownedDictionaryIndex,
+                           rhs: UnownedDictionaryIndex) -> Bool {
       return lhs.underlying == rhs.underlying
     }
   }
@@ -82,8 +83,8 @@ public struct UnownedDictionary<
       storage.index(after: i.underlying))
   }
 
-  public static func ==<K, V>(lhs: UnownedDictionary<K, V>,
-                              rhs: UnownedDictionary<K, V>) -> Bool {
+  public static func == <K, V>(lhs: UnownedDictionary<K, V>,
+                               rhs: UnownedDictionary<K, V>) -> Bool {
     return lhs.storage == rhs.storage
   }
 
@@ -132,7 +133,7 @@ public struct UnownedArray<
     return storage.index(after: i)
   }
 
-  public static func ==<T>(lhs: UnownedArray<T>, rhs: UnownedArray<T>) -> Bool {
+  public static func == (lhs: UnownedArray, rhs: UnownedArray) -> Bool {
     return lhs.storage == rhs.storage
   }
 

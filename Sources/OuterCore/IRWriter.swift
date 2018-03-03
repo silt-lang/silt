@@ -8,79 +8,6 @@
 import Foundation
 import Lithosphere
 
-public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
-  public func write(_ module: GIRModule) {
-    writeLine("-- module: \"\(module.name)\"")
-    writeLine()
-    for data in module.knownDataTypes {
-      write("data \(escape(data.name)) ")
-      writeParameters(data)
-      write("{\n")
-      withIndent {
-        for constr in data.constructors {
-          writeIndent()
-          write("\(escape(constr.name)) : ")
-          write(constr.type)
-          writeLine()
-        }
-      }
-      writeLine("}")
-      writeLine()
-    }
-    for record in module.knownRecordTypes {
-      write("record \(escape(record.name)) ")
-      writeParameters(record)
-      write("{\n")
-      withIndent {
-        for field in record.fields {
-          writeIndent()
-          write("\(escape(field.name)) : ")
-          write(field.type)
-          writeLine()
-        }
-      }
-      writeLine("}")
-      writeLine()
-    }
-    for continuation in module.continuations {
-      write(continuation)
-      writeLine()
-    }
-  }
-
-  public func writeParameters(_ type: ParameterizedType) {
-    for param in type.parameters {
-      write("(\(escape(param.value.name)) : ")
-      write(param.value.type)
-      write(") ")
-    }
-  }
-
-  public func write(_ type: Type) {
-    write(name(for: type))
-  }
-
-  public func write(_ parameter: Parameter, isLast: Bool) {
-    write(name(for: parameter))
-    write(" : ")
-    if parameter.ownership == .borrowed {
-      write("@borrowed ")
-    }
-    write(parameter.type)
-    if !isLast {
-      write(", ")
-    }
-  }
-
-  public func write(_ continuation: Continuation) {
-    write("\(name(for: continuation))(")
-    for (idx, param) in continuation.parameters.enumerated() {
-      write(param, isLast: idx == continuation.parameters.count - 1)
-    }
-    writeLine(")")
-  }
-}
-
 func name(for value: Value) -> String {
   switch value {
   case let type as DataType:
@@ -130,7 +57,7 @@ func escape(_ name: String) -> String {
 }
 
 public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
-  private struct ID: Comparable, CustomStringConvertible {
+  private struct GID: Comparable, CustomStringConvertible {
     enum Kind: Int, Comparable {
       case bbLikeContinuation = 0
       case ssaValue = 1
@@ -146,10 +73,10 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     let kind: Kind
     let number: Int
 
-    static func == (lhs: ID, rhs: ID) -> Bool {
+    static func == (lhs: GID, rhs: GID) -> Bool {
       return lhs.kind == rhs.kind && lhs.number == rhs.number
     }
-    static func < (lhs: ID, rhs: ID) -> Bool {
+    static func < (lhs: GID, rhs: GID) -> Bool {
       if lhs.kind < rhs.kind {
         return true
       }
@@ -224,7 +151,8 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     self.writeLine()
   }
 
-  func writeBlockArguments(_ block: Schedule.Block, in schedule: Schedule? = nil) {
+  func writeBlockArguments(
+    _ block: Schedule.Block, in schedule: Schedule? = nil) {
     guard !block.parent.parameters.isEmpty else { return }
 
     self.write("(")
@@ -237,7 +165,8 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     self.write(")")
   }
 
-  func writeBlockArgumentUses(_ block: Schedule.Block, in schedule: Schedule? = nil) {
+  func writeBlockArgumentUses(
+    _ block: Schedule.Block, in schedule: Schedule? = nil) {
     guard !block.parent.parameters.isEmpty else { return }
 
     for param in block.parent.parameters {
@@ -249,11 +178,12 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
       self.padToColumn(50)
       self.write("-- users: ")
 
-      var userIDs = [ID]()
+      var userIDs = [GID]()
       for op in param.users {
         userIDs.append(self.getID(of: op.user, in: schedule))
       }
 
+      // swiftlint:disable opening_brace
       self.interleave(userIDs,
                       { id in self.write(id.description) },
                       { self.write(", ") })
@@ -272,7 +202,7 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
       return
     }
 
-    var userIDs = [ID]()
+    var userIDs = [GID]()
     for op in result.users {
       userIDs.append(self.getID(of: op.user, in: schedule))
     }
@@ -286,7 +216,7 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     self.interleave(userIDs, { self.write("\($0)") }, { self.write(", ") })
   }
 
-  var currentSchedule: Schedule? = nil
+  var currentSchedule: Schedule?
   var blocksToIDs: [Schedule.Block: Int] = [:]
   var valuesToIDs: [Value: Int] = [:]
 
@@ -300,7 +230,7 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     self.currentSchedule = scope
   }
 
-  private func getID(for block: Schedule.Block, in scope: Schedule) -> ID {
+  private func getID(for block: Schedule.Block, in scope: Schedule) -> GID {
     self.setContext(scope)
 
     if self.blocksToIDs.isEmpty {
@@ -309,15 +239,15 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
       }
     }
 
-    return ID(kind: .bbLikeContinuation,
+    return GID(kind: .bbLikeContinuation,
               number: self.blocksToIDs[block, default: 0])
   }
 
-  private func getID(of value: Value, in scope: Schedule? = nil) -> ID {
+  private func getID(of value: Value, in scope: Schedule? = nil) -> GID {
     self.setContext(scope ?? self.currentSchedule)
 
     guard self.valuesToIDs.isEmpty else {
-      return ID(kind: .ssaValue, number: self.valuesToIDs[value, default: 0])
+      return GID(kind: .ssaValue, number: self.valuesToIDs[value, default: 0])
     }
 
     if let scope = scope {
@@ -355,7 +285,7 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
       fatalError(
         "Context value must populate ID cache with a schedule or a primop")
     }
-    return ID(kind: .ssaValue, number: self.valuesToIDs[value, default: -1])
+    return GID(kind: .ssaValue, number: self.valuesToIDs[value, default: -1])
   }
 }
 
@@ -364,7 +294,7 @@ extension GIRWriter: PrimOpVisitor {
     self.write(self.getID(of: op.callee).description)
     self.write("(")
     self.interleave(op.arguments,
-                    { arg in self.write(self.getID(of: arg.value).description) },
+                    { self.write(self.getID(of: $0.value).description) },
                     { self.write(" ; ") })
     self.write(") : ")
     self.write(name(for: op.callee.type))

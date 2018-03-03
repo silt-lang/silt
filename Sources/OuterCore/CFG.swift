@@ -19,12 +19,12 @@ public final class Successor {
   ///
   /// - note: Must be `nil` if `successor` is.
   weak var previous: Successor?
-  
+
   /// A pointer to the successor that represents the next successor in the
   /// predecessor list for `successor`.
   ///
   /// - note: Must be `nil` if `successor` is.
-  var next: Successor? = nil
+  var next: Successor?
 
   init(_ CI: PrimOp?) {
     self.containingInst = CI
@@ -64,4 +64,3 @@ public final class Successor {
     self.successor = succ
   }
 }
-
