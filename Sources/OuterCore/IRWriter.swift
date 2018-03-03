@@ -21,7 +21,7 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
           writeIndent()
           write("\(escape(constr.name)) : ")
           write(constr.type)
-          write("\n")
+          writeLine()
         }
       }
       writeLine("}")
@@ -36,7 +36,7 @@ public final class IRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
           writeIndent()
           write("\(escape(field.name)) : ")
           write(field.type)
-          write("\n")
+          writeLine()
         }
       }
       writeLine("}")
@@ -184,6 +184,12 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     self.writeLine()
   }
 
+  func writePrimOp(_ primOp: PrimOp) {
+    self.setContext(nil)
+    _ = self.getID(of: primOp)
+    self.writeBlockPrimOp(primOp)
+  }
+
   func writeScheduleBlocks(_ schedule: Schedule) {
     for block in schedule.blocks {
       self.writeBlock(block, in: schedule)
@@ -204,7 +210,7 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     }
   }
 
-  func writeBlockPrimOp(_ op: PrimOp, in schedule: Schedule) {
+  func writeBlockPrimOp(_ op: PrimOp, in schedule: Schedule? = nil) {
     self.write("  ")
     if let result = op.result {
       self.write(self.getID(of: result, in: schedule).description)
@@ -214,10 +220,11 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     self.write(op.opcode.rawValue)
     self.write(" ")
     self.visitPrimOp(op)
+    self.writeUsersOfPrimOp(op, in: schedule)
     self.writeLine()
   }
 
-  func writeBlockArguments(_ block: Schedule.Block, in schedule: Schedule) {
+  func writeBlockArguments(_ block: Schedule.Block, in schedule: Schedule? = nil) {
     guard !block.parent.parameters.isEmpty else { return }
 
     self.write("(")
@@ -230,7 +237,7 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     self.write(")")
   }
 
-  func writeBlockArgumentUses(_ block: Schedule.Block, in schedule: Schedule) {
+  func writeBlockArgumentUses(_ block: Schedule.Block, in schedule: Schedule? = nil) {
     guard !block.parent.parameters.isEmpty else { return }
 
     for param in block.parent.parameters {
@@ -239,6 +246,7 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
       }
 
       self.write("-- \(self.getID(of: param, in: schedule))")
+      self.padToColumn(50)
       self.write("-- users: ")
 
       var userIDs = [ID]()
@@ -251,6 +259,31 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
                       { self.write(", ") })
       self.writeLine()
     }
+  }
+
+  func writeUsersOfPrimOp(_ op: PrimOp, in schedule: Schedule? = nil) {
+    guard let result = op.result else {
+      self.padToColumn(50)
+      self.write("-- id: \(self.getID(of: op, in: schedule))")
+      return
+    }
+
+    guard result.hasUsers else {
+      return
+    }
+
+    var userIDs = [ID]()
+    for op in result.users {
+      userIDs.append(self.getID(of: op.user, in: schedule))
+    }
+
+    self.padToColumn(50)
+    self.write("-- user")
+    if userIDs.count != 1 {
+      self.write("s")
+    }
+    self.write(": ")
+    self.interleave(userIDs, { self.write("\($0)") }, { self.write(", ") })
   }
 
   var currentSchedule: Schedule? = nil
@@ -281,10 +314,13 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   }
 
   private func getID(of value: Value, in scope: Schedule? = nil) -> ID {
-    let scope = scope ?? self.currentSchedule!
-    self.setContext(scope)
+    self.setContext(scope ?? self.currentSchedule)
 
-    if self.valuesToIDs.isEmpty {
+    guard self.valuesToIDs.isEmpty else {
+      return ID(kind: .ssaValue, number: self.valuesToIDs[value, default: 0])
+    }
+
+    if let scope = scope {
       var idx = 0
       for BB in scope.blocks {
         for op in BB.parent.parameters {
@@ -302,9 +338,24 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
           idx += 1
         }
       }
+    } else if let primOp = value as? PrimOp {
+      var idx = 0
+      if let result = primOp.result {
+        self.valuesToIDs[primOp] = idx
+        self.valuesToIDs[result] = idx
+      } else {
+        self.valuesToIDs[primOp] = idx
+      }
+      idx += 1
+      for operand in primOp.operands {
+        self.valuesToIDs[operand.value] = idx
+        idx += 1
+      }
+    } else {
+      fatalError(
+        "Context value must populate ID cache with a schedule or a primop")
     }
-
-    return ID(kind: .ssaValue, number: self.valuesToIDs[value, default: 0])
+    return ID(kind: .ssaValue, number: self.valuesToIDs[value, default: -1])
   }
 }
 
@@ -329,17 +380,22 @@ extension GIRWriter: PrimOpVisitor {
 
   public func visitSwitchConstrOp(_ op: SwitchConstrOp) {
     self.write(self.getID(of: op.matchedValue).description)
+    self.write(" ; ")
     self.interleave(op.patterns,
                     { arg in
-                      self.write("(")
-                      self.write(self.getID(of: arg.pattern).description)
+                      self.write(arg.pattern)
+                      self.write(" : ")
+                      self.write(self.getID(of: arg.apply).description)
                     },
                     { self.write(" ; ") })
-    self.write(" : ")
-    self.write(name(for: op.matchedValue.type))
   }
 
   public func visitFunctionRefOp(_ op: FunctionRefOp) {
-    self.write(self.getID(of: op.function).description)
+    self.write("@")
+    self.write(op.function.name)
+  }
+
+  public func visitDataInitSimpleOp(_ op: DataInitSimpleOp) {
+    self.write(op.constructor)
   }
 }

@@ -72,6 +72,22 @@ public final class GIRParser {
     return cont
   }
 
+  func getReferencedContinuation(_ B: IRBuilder, _ syntax: TokenSyntax) -> Continuation {
+    assert(syntax.render.starts(with: "@"))
+    let name = String(syntax.render.dropFirst())
+    // If the block has already been created, use it.
+    guard let cont = self.continuationsByName[name] else {
+      // Otherwise, create it and remember that this is a forward reference so
+      // that we can diagnose use without definition problems.
+      let cont = B.buildContinuation(name: name, type: BottomType.shared)
+      self.continuationsByName[name] = cont
+      self.undefinedContinuation[cont] = syntax
+      return cont
+    }
+
+    return cont
+  }
+
 
   func getLocalValue(_ name: TokenSyntax) -> Value {
     // Check to see if this is already defined.
@@ -152,7 +168,11 @@ extension GIRParser {
 
   func parseGIRBasicBlock(_ B: IRBuilder) throws -> Bool {
     let ident = try self.parser.parseIdentifierToken()
-    let cont = self.namedContinuation(B, ident.render)
+    var blockName = ident.render
+    if blockName.hasSuffix(":") {
+      blockName = String(blockName.dropLast())
+    }
+    let cont = self.namedContinuation(B, blockName)
 
     // If there is a basic block argument list, process it.
     if try self.parser.consumeIf(.leftParen) != nil {
@@ -168,13 +188,16 @@ extension GIRParser {
       } while try self.parser.consumeIf(.semicolon) != nil
 
       _ = try self.parser.consume(.rightParen)
+      _ = try self.parser.consume(.colon)
+    } else {
+      guard ident.render.hasSuffix(":") else {
+        return false
+      }
     }
 
-    _ = try self.parser.consume(.colon)
-
     repeat {
-      guard try parseGIRInstruction(B) else {
-        return false
+      guard try parseGIRInstruction(B, in: cont) else {
+        return true
       }
     } while isStartOfGIRPrimop()
     return true
@@ -187,7 +210,7 @@ extension GIRParser {
     return true
   }
 
-  func parseGIRInstruction(_ B: IRBuilder) throws -> Bool {
+  func parseGIRInstruction(_ B: IRBuilder, in cont: Continuation) throws -> Bool {
     guard self.parser.peekToken()!.leadingTrivia.containsNewline else {
       fatalError("Instruction must begin on a new line")
     }
@@ -237,7 +260,7 @@ extension GIRParser {
         args.append(argVal)
       }
 
-      resultValue = B.createApply(fnVal, args)
+      _ = B.createApply(cont, fnVal, args)
     case .copyValue:
       guard let valueName = tryParseGIRValueToken() else {
         return false
@@ -251,11 +274,49 @@ extension GIRParser {
       }
       _ = try self.parser.consumeIf(.colon)
       _ = try self.parser.parseGIRTypeExpr()
-      _ = B.createDestroyValue(self.getLocalValue(valueName))
+      _ = B.createDestroyValue(self.getLocalValue(valueName), in: cont)
     case .switchConstr:
-      fatalError()
+      guard let val = self.tryParseGIRValueToken() else {
+        return false
+      }
+      let srcVal = self.getLocalValue(val)
+      _ = try self.parser.consume(.colon)
+      let typeRepr = try self.parser.parseGIRTypeExpr()
+
+      var caseConts = [(String, Value)]()
+      while case .semicolon = self.parser.peek() {
+        _ = try self.parser.consume(.semicolon)
+
+        guard case let .identifier(ident) = self.parser.peek(), ident == "case" else {
+          return false
+        }
+        _ = try self.parser.parseIdentifierToken()
+
+        let caseName = try self.parser.parseQualifiedName()
+        _ = try self.parser.consume(.colon)
+        guard let arg = self.tryParseGIRValueToken() else {
+          return false
+        }
+        let fnVal = self.getLocalValue(arg)
+        caseConts.append((caseName.render, fnVal))
+      }
+
+      _ = B.createSwitchConstr(cont, srcVal, caseConts)
     case .functionRef:
-      fatalError()
+      guard
+        case let .identifier(identStr) = parser.peek(), identStr.starts(with: "@")
+      else {
+         return false
+      }
+      let ident = try self.parser.parseIdentifierToken()
+      let resultFn = getReferencedContinuation(B, ident)
+      resultValue = B.createFunctionRef(resultFn)
+    case .dataInitSimple:
+      let ident = try self.parser.parseQualifiedName()
+      _ = try self.parser.consume(.colon)
+      let typeRepr = try self.parser.parseGIRTypeExpr()
+
+      resultValue = B.createDataInitSimple(ident.render)
     }
 
     guard let resName = resultName, let resValue = resultValue else {

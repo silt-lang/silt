@@ -11,6 +11,7 @@ open class Writer<StreamType: TextOutputStream> {
   var stream: StreamType
   var indentLevel = 0
   let indentationWidth: Int
+  public var currentColumn = 0
 
   public init(stream: inout StreamType, indentationWidth: Int = 2) {
     self.stream = stream
@@ -35,15 +36,26 @@ open class Writer<StreamType: TextOutputStream> {
 
   public func write(_ text: String) {
     stream.write(text)
+    self.currentColumn += text.count
   }
 
   public func writeIndent() {
     stream.write(String(repeating: " ", count: indentLevel))
+    self.currentColumn += indentLevel
   }
 
   public func writeLine(_ text: String = "") {
     writeIndent()
     stream.write(text + "\n")
+    self.currentColumn = 0
+  }
+
+  public func padToColumn(_ len: Int) {
+    guard self.currentColumn < len else {
+      self.write(" ")
+      return
+    }
+    self.write(String(repeating: " ", count: len - self.currentColumn))
   }
 
   public func interleave<C: Collection>(

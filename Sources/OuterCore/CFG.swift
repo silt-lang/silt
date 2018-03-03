@@ -12,6 +12,8 @@ public final class Successor {
   /// If non-null, this is the continuation that this continuation branches to.
   var successor: Continuation?
 
+  weak var parent: Continuation?
+
   /// A pointer to the successor that represents the previous successors in the
   /// predecessor list for `successor`.
   ///
@@ -28,7 +30,8 @@ public final class Successor {
     self.containingInst = CI
   }
 
-  init(_ CI: PrimOp?, _ successor: Continuation) {
+  init(_ parent: Continuation, _ CI: PrimOp?, _ successor: Continuation) {
+    self.parent = parent
     self.containingInst = CI
     self.setSuccessor(successor)
   }

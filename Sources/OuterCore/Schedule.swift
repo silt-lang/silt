@@ -70,7 +70,6 @@ final class Schedule {
 private final class Scheduler {
   let scope: Scope
   let schedule: Schedule
-  private var def2uses = [Value: [Operand]]()
 
   private var def2early = [Value: Continuation]()
   private var def2late = [Value: Continuation]()
@@ -78,19 +77,12 @@ private final class Scheduler {
   init(_ schedule: Schedule) {
     self.scope = schedule.scope
     self.schedule = schedule
-    self.computeDef2Uses()
     switch schedule.tag {
     case .early:
-      for (_, uses) in self.def2uses {
-        for operand in uses {
-          guard let primop = operand.owningOp else {
-            continue
-          }
-          let cont = self.scheduleEarly(primop)
-          schedule.block(cont).primops.append(primop)
-        }
+      for cont in self.scope.continuations {
+        guard let terminal = cont.terminalOp else { continue }
+        self.schedulePrimopsEarly(in: cont, terminal)
       }
-      self.fixPrimOpSchedule(self.def2early)
     case .late:
       fatalError()
 //      for (primop, _) in def2uses where primop is PrimOp {
@@ -99,123 +91,29 @@ private final class Scheduler {
     }
   }
 
-  func scheduleEarly(_ def: Value) -> Continuation {
-    if let early = self.def2early[def] {
-      return early
-    }
+  func schedulePrimopsEarly(in cont: Continuation, _ term: TerminalOp) {
+    var queue = [PrimOp]()
+    var visited = Set<Value>()
+    var schedule = [PrimOp]()
 
-    if let param = def as? Parameter {
-      self.def2early[def] = param.parent
-      return param.parent
-    }
+    queue.append(term)
 
-    var result = self.scope.entry
-    for op in (def as! PrimOp).operands {
-      guard !(op.value is Continuation) && def2uses[op.value] != nil else {
-        continue
-      }
+    while let op = queue.popLast() {
+      guard visited.insert(op).inserted else { continue }
+      schedule.append(op)
 
-      let n = self.scheduleEarly(op.value)
-      guard self.scope.domtree.depth(n) > self.scope.domtree.depth(result) else {
-        continue
-      }
-      result = n
-    }
-
-    self.def2early[def] = result
-    return result
-  }
-
-  private func computeDef2Uses() {
-    var queue = [Value]()
-    var done = Set<Value>()
-
-    let enqueue = { (def : Value, users: AnySequence<Operand>) in
-      for use in users {
-        guard let owningOp = use.owningOp else {
-          continue
-        }
-
-        guard !done.contains(owningOp) else {
-          continue
-        }
-
-        guard self.scope.contains(owningOp) else {
-          continue
-        }
-
-        self.def2uses[def, default: []].append(use)
-        if done.insert(owningOp).inserted {
-          queue.append(owningOp)
-        }
+      for operand in op.operands {
+        guard let prim = operand.value as? PrimOp else { continue }
+        queue.append(prim)
       }
     }
-    for n in self.scope.entry.reversePostOrder {
-      queue.append(n)
-      let p = done.insert(n)
-      assert(p.inserted)
+    let activeBlock = self.schedule.block(cont)
+    for s in schedule.reversed().dropLast() {
+      activeBlock.primops.append(s)
     }
-
-    while !queue.isEmpty {
-      let def = queue.removeFirst()
-      guard let cont = def as? Continuation else {
-        continue
-      }
-      for param in cont.parameters {
-        enqueue(param, param.users)
-      }
+    for destroy in cont.destroys {
+      activeBlock.primops.append(destroy)
     }
-  }
-
-  func fixPrimOpSchedule(_ defMap: [Value: Continuation]) {
-    for block in self.schedule.blocks {
-      var primops = [PrimOp]()
-      var queue = [PrimOp]()
-      var done = Set<Value>()
-
-      for param in block.parent.parameters {
-        done.insert(param)
-      }
-
-      let inside = { (def: Value) -> Bool in
-        guard let i = defMap[def] else {
-          return false
-        }
-        return i == block.parent
-      }
-
-      let enqueue = { (primop: PrimOp) in
-        guard !done.contains(primop) else {
-          return
-        }
-
-        for op in primop.operands {
-          if inside(op.value) && !done.contains(op.value) {
-            return
-          }
-        }
-
-        queue.append(primop)
-        done.insert(primop)
-        primops.append(primop)
-      }
-
-      for primop in block.primops {
-        enqueue(primop)
-      }
-
-      while !queue.isEmpty {
-        let primop = queue.removeFirst()
-
-        for use in primop.users {
-          if inside(use.user) {
-            enqueue(use.user)
-          }
-        }
-      }
-
-      assert(block.primops.count == primops.count)
-      swap(&block.primops, &primops)
-    }
+    activeBlock.primops.append(term)
   }
 }

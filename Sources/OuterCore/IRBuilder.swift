@@ -15,8 +15,8 @@ public final class IRBuilder {
     self.module = module
   }
 
-  public func buildContinuation(name: String? = nil, type: Type = BottomType.shared) -> Continuation {
-    let continuation = Continuation(name: env.makeUnique(name), type: type)
+  public func buildContinuation(name: String, type: Type = BottomType.shared) -> Continuation {
+    let continuation = Continuation(name: name, type: type)
     module.addContinuation(continuation)
     return continuation
   }
@@ -25,18 +25,46 @@ public final class IRBuilder {
     module.addPrimOp(primOp)
     return primOp
   }
+
+  func insert<T: TerminalOp>(_ primOp: T) -> T {
+    module.addPrimOp(primOp)
+    // Tie the knot
+    primOp.parent.terminalOp = primOp
+    return primOp
+  }
+
+  func insert(
+    _ primOp: DestroyValueOp, in cont: Continuation) -> DestroyValueOp {
+    module.addPrimOp(primOp)
+    cont.destroys.append(primOp)
+    return primOp
+  }
 }
 
 extension IRBuilder {
-  public func createApply(_ fnVal: Value, _ argVals: [Value]) -> ApplyOp {
-    return insert(ApplyOp(fnVal, argVals))
+  public func createApply(_ parent: Continuation, _ fnVal: Value, _ argVals: [Value]) -> ApplyOp {
+    return insert(ApplyOp(parent, fnVal, argVals))
   }
 
   public func createCopyValue(_ value: Value) -> CopyValueOp {
     return insert(CopyValueOp(value))
   }
 
-  public func createDestroyValue(_ value: Value) -> DestroyValueOp {
-    return insert(DestroyValueOp(value))
+  public func createDestroyValue(
+    _ value: Value, in cont: Continuation) -> DestroyValueOp {
+    return insert(DestroyValueOp(value), in: cont)
+  }
+
+  public func createFunctionRef(_ cont: Continuation) -> FunctionRefOp {
+    return insert(FunctionRefOp(continuation: cont))
+  }
+
+  public func createDataInitSimple(_ constr: String) -> DataInitSimpleOp {
+    return insert(DataInitSimpleOp(constructor: constr))
+  }
+
+  public func createSwitchConstr(
+    _ parent: Continuation, _ src: Value, _ caseVals: [(String, Value)]) -> SwitchConstrOp {
+    return insert(SwitchConstrOp(parent, matching: src, patterns: caseVals))
   }
 }

@@ -58,8 +58,12 @@ public final class GIRModule {
     let stream = FileHandle.standardOutput
     stream.write("module \(self.name) where")
     stream.write("\n")
+    var visited = Set<Continuation>()
     for cont in self.continuations {
-      Scope(cont).dump()
+      guard visited.insert(cont).inserted else { continue }
+      let scope = Scope(cont)
+      scope.dump()
+      visited.formUnion(scope.continuations)
     }
   }
 }

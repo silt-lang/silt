@@ -31,7 +31,7 @@ public extension Graph {
 /// A sequence that computes the reverse post-order traversal of a given graph.
 public struct ReversePostOrderSequence<Node: Graph>: Sequence {
   public struct Iterator: IteratorProtocol {
-    var visited = Set<ObjectIdentifier>()
+    var visited = Set<Node>()
     var postorder = [Node]()
     fileprivate var nodeIndices = [Node: Int]()
 
@@ -42,9 +42,9 @@ public struct ReversePostOrderSequence<Node: Graph>: Sequence {
     /// Traverses the tree and builds a post-order traversal, which will be
     /// reversed on iteration.
     mutating func traverse(_ node: Node) {
-      visited.insert(ObjectIdentifier(node))
+      visited.insert(node)
       for child in node.successors {
-        if visited.contains(ObjectIdentifier(child)) { continue }
+        if visited.contains(child) { continue }
         traverse(child)
       }
       nodeIndices[node] = postorder.count

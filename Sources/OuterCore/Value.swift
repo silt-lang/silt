@@ -115,7 +115,7 @@ public final class Operand: Hashable {
 
   /// The owner of this operand.
   /// FIXME: this could be space-compressed.
-  var owningOp: PrimOp?
+  weak var owningOp: PrimOp?
 
   init(owner: PrimOp, value: Value) {
     self.value = value

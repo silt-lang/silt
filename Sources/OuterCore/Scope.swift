@@ -11,7 +11,10 @@ final class Scope {
   private var defs = Set<Value>()
   let entry: Continuation
   var continuations: [Continuation] = []
-  let domtree: DominatorTree
+
+  var definitions: Set<Value> {
+    return self.defs
+  }
 
   init(_ entry: Continuation) {
     self.entry = entry
@@ -28,7 +31,6 @@ final class Scope {
         Scope.enqueue(&queue, &self.defs, &self.continuations, use.user)
       }
     }
-    self.domtree = DominatorTree(self.entry)
   }
 
   func contains(_ val: Value) -> Bool {
@@ -46,15 +48,22 @@ final class Scope {
     guard defs.insert(val).inserted else {
       return
     }
+    queue.append(val)
 
-    guard let continuation = val as? Continuation else {
-      return
-    }
-    conts.append(continuation)
+    if let continuation = val as? Continuation {
+      conts.append(continuation)
 
-    for param in continuation.parameters {
-      assert(defs.insert(param).inserted)
-      queue.append(param)
+      for param in continuation.parameters {
+        assert(defs.insert(param).inserted)
+        queue.append(param)
+      }
+    } else if let switchConstr = val as? SwitchConstrOp {
+      for succ in switchConstr.successors {
+        guard let succ = succ.successor else { continue }
+
+        conts.append(succ)
+        queue.append(succ)
+      }
     }
   }
 }

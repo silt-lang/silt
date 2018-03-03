@@ -40,28 +40,31 @@ public final class Continuation: Value, Graph {
   let env = Environment()
   var destructors = [Destructor]()
   var parameters = [Parameter]()
+  var destroys = [DestroyValueOp]()
+
   weak var module: GIRModule?
 
   var predecessorList: Successor
+  weak var terminalOp: TerminalOp?
 
-  // FIXME: Decide on an appropriate way to compute this.
+  // FIXME: This can't possibly be right?
   public var predecessors: AnySequence<Continuation> {
-//    guard let first = self.predecessorList.previous else {
-//      return AnySequence<Successor>([])
-//    }
-//    return AnySequence<Successor>(sequence(first: first) { pred in
-//      return pred.previous
-//    })
-    return AnySequence<Continuation>([])
-  }
-  
-  public var successors: AnySequence<Continuation> {
-    guard let first = self.predecessorList.successor else {
+    guard let first = self.predecessorList.parent else {
       return AnySequence<Continuation>([])
     }
-    return AnySequence<Continuation>(sequence(first: first) { succ in
-      return succ.predecessorList.next?.successor
+    return AnySequence<Continuation>(sequence(first: first) { pred in
+      return pred.predecessorList.parent
     })
+  }
+  
+  public var successors: [Continuation] {
+    guard let terminal = self.terminalOp else {
+      return []
+    }
+
+    return terminal.successors.map { succ in
+      return succ.successor!
+    }
   }
 
   public override init(name: String, type: Type) {
