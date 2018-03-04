@@ -45,6 +45,7 @@ public enum SyntaxKind {
   case bindingList
   case namedBinding
   case typedBinding
+  case anonymousBinding
   case basicExprList
   case namedBasicExpr
   case underscoreExpr
@@ -174,6 +175,8 @@ func makeSyntax(root: SyntaxData?, data: SyntaxData) -> Syntax {
     return NamedBindingSyntax(root: root, data: data)
   case .typedBinding:
     return TypedBindingSyntax(root: root, data: data)
+  case .anonymousBinding:
+    return AnonymousBindingSyntax(root: root, data: data)
   case .basicExprList:
     return BasicExprListSyntax(root: root, data: data)
   case .namedBasicExpr:

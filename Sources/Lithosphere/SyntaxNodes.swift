@@ -2904,6 +2904,34 @@ public struct TypedBindingSyntax: BindingSyntax, _SyntaxBase {
 
 }
 
+public struct AnonymousBindingSyntax: BindingSyntax, _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
+  public enum Cursor: Int {
+    case underscoreToken
+  }
+
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+  public init(underscoreToken: TokenSyntax) {
+    let raw = RawSyntax.node(.anonymousBinding, [
+      underscoreToken.raw,
+    ], .present)
+    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)
+    self.init(root: data, data: data)
+  }
+  public var underscoreToken: TokenSyntax {
+    return child(at: Cursor.underscoreToken) as! TokenSyntax
+  }
+  public func withUnderscoreToken(_ syntax: TokenSyntax) -> AnonymousBindingSyntax {
+    let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.underscoreToken)
+    return AnonymousBindingSyntax(root: newRoot, data: newData)
+  }
+
+}
+
 public struct BasicExprListSyntax: _SyntaxBase {
   let _root: SyntaxData
   unowned let _data: SyntaxData

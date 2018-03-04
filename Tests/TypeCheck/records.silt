@@ -26,3 +26,6 @@ record Σ (S : Type)(T : S -> Type) : Type where
     fst : S
   field
     snd : T fst
+
+_×_ : Type -> Type -> Type
+X × Y = Σ X (\ _ -> Y)

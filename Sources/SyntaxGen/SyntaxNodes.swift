@@ -311,9 +311,11 @@ let syntaxNodes = [
 
   // application ::= <basic-expr> <application>
 
-  // binding-list ::= <qualified-name>
+  // binding-list ::= '_'
+  //                | <id>
   //                | <typed-parameter>
-  //                | <qualified-name> <binding-list>
+  //                | '_' <binding-list>
+  //                | <id> <binding-list>
   //                | <typed-parameter> <binding-list>
 
   Node("BindingList", element: "Binding"),
@@ -324,6 +326,10 @@ let syntaxNodes = [
 
   Node("TypedBinding", kind: "Binding", children: [
     Child("parameter", kind: "TypedParameter")
+  ]),
+
+  Node("AnonymousBinding", kind: "Binding", children: [
+    Child("underscoreToken", kind: "UnderscoreToken")
   ]),
 
   // basic-expr-list ::= <basic-expr>
