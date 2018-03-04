@@ -29,5 +29,3 @@ record Σ (S : Type)(T : S -> Type) : Type where
 
 _×_ : Type -> Type -> Type
 X × Y = Σ X (\ _ -> Y)
-
-

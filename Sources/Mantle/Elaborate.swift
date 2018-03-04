@@ -104,9 +104,8 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
     // -----------------------------
     //   Γ ⊢ λ x -> t : (x: A) → B
     case let .lambda((name, ty), lamBody):
-      let elabTy = self.elaborate(ty, expecting: TT.type, bindLocal: bindLocal)
       let dom = self.addMeta(in: self.environment.asContext,
-                             from: ty, expect: elabTy)
+                             from: ty, expect: TT.type)
       let (cod, body)
             = self.underExtendedEnvironment([(name, dom)]) { () -> (TT, TT) in
         let cod = self.addMeta(in: self.environment.asContext,
