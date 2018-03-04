@@ -90,7 +90,11 @@ expr ::= <typed-parameter-list> '->' <expr>
 
 application ::= <basic-expr> <application>
 
-binding-list ::= '(' <typed-parameter> ')'
+binding-list ::= '_'
+               | <id>
+               | <typed-parameter>
+               | '_' <binding-list>
+               | <id> <binding-list>
                | <typed-parameter> <binding-list>
 
 basic-expr-list ::= <basic-expr>

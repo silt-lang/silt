@@ -472,7 +472,8 @@ extension TypeChecker where PhaseState == SolvePhaseState {
           type = substCodomain
           constrs.append(contentsOf: unifyFrame)
         }
-      // case let (.project(proj1), .project(proj2)):
+//      case let (.project(proj1), .project(proj2)):
+//        fatalError()
       default:
         print(type.description, elims1, elims2)
         fatalError("Spines not equal")

@@ -1009,6 +1009,8 @@ extension Parser {
     while true {
       if isStartOfTypedParameter() {
         pieces.append(try parseTypedBinding())
+      } else if case .underscore = peek() {
+        pieces.append(try parseAnonymousBinding())
       } else if case .identifier(_) = peek(), peek() != .arrow {
         pieces.append(try parseNamedBinding())
       } else {
@@ -1031,6 +1033,11 @@ extension Parser {
   func parseTypedBinding() throws -> TypedBindingSyntax {
     let parameter = try parseTypedParameter()
     return TypedBindingSyntax(parameter: parameter)
+  }
+
+  func parseAnonymousBinding() throws -> AnonymousBindingSyntax {
+    let underscore = try consume(.underscore)
+    return AnonymousBindingSyntax(underscoreToken: underscore)
   }
 }
 
