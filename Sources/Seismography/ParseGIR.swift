@@ -321,6 +321,8 @@ extension GIRParser {
       let typeRepr = try self.parser.parseGIRTypeExpr()
 
       resultValue = B.createDataInitSimple(ident.render)
+    case .unreachable:
+      resultValue = B.createUnreachable()
     }
 
     guard let resName = resultName, let resValue = resultValue else {
