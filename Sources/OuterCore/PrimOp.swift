@@ -221,9 +221,9 @@ public final class DataInitSimpleOp: PrimOp {
   }
 }
 
-public final class UnreachableOp: PrimOp {
-  public init() {
-    super.init(opcode: .unreachable)
+public final class UnreachableOp: TerminalOp {
+  public init(parent: Continuation) {
+    super.init(opcode: .unreachable, parent: parent)
   }
 }
 

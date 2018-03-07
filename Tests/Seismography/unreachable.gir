@@ -1,0 +1,10 @@
+-- RUN: %silt %s --dump parse-gir --no-colors 2>&1 | %FileCheck %s
+
+-- CHECK: module unreachable where
+module unreachable where
+
+@unreachable : () -> _ {
+bb0:
+-- CHECK: unreachable
+  unreachable
+}

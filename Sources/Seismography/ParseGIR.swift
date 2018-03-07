@@ -322,7 +322,7 @@ extension GIRParser {
 
       resultValue = B.createDataInitSimple(ident.render)
     case .unreachable:
-      resultValue = B.createUnreachable()
+      resultValue = B.createUnreachable(cont)
     }
 
     guard let resName = resultName, let resValue = resultValue else {

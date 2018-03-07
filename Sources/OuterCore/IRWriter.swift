@@ -330,6 +330,5 @@ extension GIRWriter: PrimOpVisitor {
   }
 
   public func visitUnreachableOp(_ op: UnreachableOp) {
-    self.write("unreachable")
   }
 }
