@@ -328,4 +328,8 @@ extension GIRWriter: PrimOpVisitor {
   public func visitDataInitSimpleOp(_ op: DataInitSimpleOp) {
     self.write(op.constructor)
   }
+
+  public func visitUnreachableOp(_ op: UnreachableOp) {
+    self.write("unreachable")
+  }
 }

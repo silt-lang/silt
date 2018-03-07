@@ -34,7 +34,12 @@ public class PrimOp: Value {
     /// An operation that represents a reference to a continuation.
     case functionRef = "function_ref"
 
+    /// A simple constructor call with no parameters
     case dataInitSimple = "data_init_simple"
+
+    /// An instruction that is considered 'unreachable' that will trap at
+    /// runtime.
+    case unreachable
   }
 
   /// All the operands of this operation.
@@ -216,6 +221,12 @@ public final class DataInitSimpleOp: PrimOp {
   }
 }
 
+public final class UnreachableOp: PrimOp {
+  public init() {
+    super.init(opcode: .unreachable)
+  }
+}
+
 public protocol PrimOpVisitor {
   func visitApplyOp(_ op: ApplyOp)
   func visitCopyValueOp(_ op: CopyValueOp)
@@ -223,6 +234,7 @@ public protocol PrimOpVisitor {
   func visitFunctionRefOp(_ op: FunctionRefOp)
   func visitSwitchConstrOp(_ op: SwitchConstrOp)
   func visitDataInitSimpleOp(_ op: DataInitSimpleOp)
+  func visitUnreachableOp(_ op: UnreachableOp)
 }
 
 extension PrimOpVisitor {
@@ -242,6 +254,8 @@ extension PrimOpVisitor {
     case .switchConstr: self.visitSwitchConstrOp(code as! SwitchConstrOp)
       // swiftlint:disable force_cast
     case .dataInitSimple: self.visitDataInitSimpleOp(code as! DataInitSimpleOp)
+    // swiftlint:disable force_cast
+    case .unreachable: self.visitUnreachableOp(code as! UnreachableOp)
     }
   }
 }
