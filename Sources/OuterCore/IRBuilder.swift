@@ -6,10 +6,10 @@
 /// available in the repository.
 
 import Foundation
+import Seismography
 
 public final class IRBuilder {
   public let module: GIRModule
-  let env = Environment()
 
   public init(module: GIRModule) {
     self.module = module
@@ -26,20 +26,6 @@ public final class IRBuilder {
     module.addPrimOp(primOp)
     return primOp
   }
-
-  func insert<T: TerminalOp>(_ primOp: T) -> T {
-    module.addPrimOp(primOp)
-    // Tie the knot
-    primOp.parent.terminalOp = primOp
-    return primOp
-  }
-
-  func insert(
-    _ primOp: DestroyValueOp, in cont: Continuation) -> DestroyValueOp {
-    module.addPrimOp(primOp)
-    cont.destroys.append(primOp)
-    return primOp
-  }
 }
 
 extension IRBuilder {
@@ -54,7 +40,9 @@ extension IRBuilder {
 
   public func createDestroyValue(
     _ value: Value, in cont: Continuation) -> DestroyValueOp {
-    return insert(DestroyValueOp(value), in: cont)
+    let destroy = insert(DestroyValueOp(value))
+    cont.appendDestroyable(destroy)
+    return destroy
   }
 
   public func createFunctionRef(_ cont: Continuation) -> FunctionRefOp {

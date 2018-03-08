@@ -7,6 +7,7 @@
 
 import Foundation
 import Lithosphere
+import Seismography
 import PrettyStackTrace
 
 public final class IRVerifier {

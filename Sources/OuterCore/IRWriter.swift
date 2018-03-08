@@ -7,6 +7,45 @@
 
 import Foundation
 import Lithosphere
+import Seismography
+
+extension GIRModule {
+  public func dump() {
+    let stream = FileHandle.standardOutput
+    stream.write("module \(self.name) where")
+    stream.write("\n")
+    var visited = Set<Continuation>()
+    for cont in self.continuations {
+      guard visited.insert(cont).inserted else { continue }
+      let scope = Scope(cont)
+      scope.dump()
+      visited.formUnion(scope.continuations)
+    }
+  }
+}
+
+extension PrimOp {
+  public func dump() {
+    var stream = FileHandle.standardOutput
+    GIRWriter(stream: &stream).writePrimOp(self)
+  }
+}
+
+extension Continuation {
+  public func dump() {
+    print("\(self.name)(", terminator: "")
+    self.parameters.forEach { param in
+      param.dump()
+    }
+    print("):")
+  }
+}
+
+extension Parameter {
+  public func dump() {
+    print("%\(self.index) : \(self.type)", terminator: "")
+  }
+}
 
 func name(for value: Value) -> String {
   switch value {

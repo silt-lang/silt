@@ -5,27 +5,6 @@
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 
-import Basic
-
-public final class Environment {
-  var uniqueNamePool = 0
-  var counter = [String: Int]()
-
-  func makeUnique(_ string: String?) -> String {
-    guard let string = string else {
-      defer { uniqueNamePool += 1 }
-      return "\(uniqueNamePool)"
-    }
-    let existingCount = counter[string, default: 0]
-    counter[string] = existingCount + 1
-    if existingCount == 0 {
-      return string
-    } else {
-      return makeUnique("\(string).\(existingCount)")
-    }
-  }
-}
-
 public struct ParameterSemantics {
   var parameter: Parameter
   var mustDestroy: Bool
@@ -37,15 +16,13 @@ public final class Continuation: Value, Graph {
     case topLevel
     case functionHead(parent: Continuation)
   }
-  let env = Environment()
-  var destructors = [Destructor]()
-  var parameters = [Parameter]()
-  var destroys = [DestroyValueOp]()
+  public private(set) var parameters = [Parameter]()
+  public private(set) var destroys = [DestroyValueOp]()
 
   weak var module: GIRModule?
 
   var predecessorList: Successor
-  weak var terminalOp: TerminalOp?
+  public weak var terminalOp: TerminalOp?
 
   // FIXME: This can't possibly be right?
   public var predecessors: AnySequence<Continuation> {
@@ -73,16 +50,19 @@ public final class Continuation: Value, Graph {
   }
 
   @discardableResult
-  public func appendParameter(type: Value, ownership: Ownership = .owned,
-                              name: String? = nil) -> Parameter {
+  public func appendParameter(type: Value,
+                              ownership: Ownership = .owned) -> Parameter {
     let param = Parameter(parent: self, index: parameters.count,
-                          type: type, ownership: ownership,
-                          name: env.makeUnique(name))
+                          type: type, ownership: ownership)
     parameters.append(param)
     return param
   }
 
-  override var type: Value {
+  public func appendDestroyable(_ value: DestroyValueOp) {
+    self.destroys.append(value)
+  }
+
+  public override var type: Value {
     get {
       guard let module = module else {
         fatalError("cannot get type of Continuation without module")
@@ -91,13 +71,5 @@ public final class Continuation: Value, Graph {
                                  returnType: module.bottomType)
     }
     set { /* do nothing */ }
-  }
-
-  public override func dump() {
-    print("\(self.name)(", terminator: "")
-    self.parameters.forEach { param in
-      param.dump()
-    }
-    print("):")
   }
 }

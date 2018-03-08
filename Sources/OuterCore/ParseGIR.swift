@@ -7,7 +7,7 @@
 
 import Lithosphere
 import Crust
-import OuterCore
+import Seismography
 
 public final class GIRParser {
   struct ParserScope {
@@ -183,7 +183,7 @@ extension GIRParser {
         let typeRepr = try self.parser.parseGIRTypeExpr()
 
         let arg = cont.appendParameter(type: GIRType(typeRepr),
-                                       ownership: .owned, name: name)
+                                       ownership: .owned)
 
         self.setLocalValue(arg, name)
       } while try self.parser.consumeIf(.semicolon) != nil

@@ -7,24 +7,24 @@
 
 public final class Successor {
   /// The primop that contains this successor.
-  var containingInst: PrimOp?
+  public private(set) var containingInst: PrimOp?
 
   /// If non-null, this is the continuation that this continuation branches to.
-  var successor: Continuation?
+  public private(set) var successor: Continuation?
 
-  weak var parent: Continuation?
+  public private(set) weak var parent: Continuation?
 
   /// A pointer to the successor that represents the previous successors in the
   /// predecessor list for `successor`.
   ///
   /// - note: Must be `nil` if `successor` is.
-  weak var previous: Successor?
+  public private(set) weak var previous: Successor?
 
   /// A pointer to the successor that represents the next successor in the
   /// predecessor list for `successor`.
   ///
   /// - note: Must be `nil` if `successor` is.
-  var next: Successor?
+  public private(set) var next: Successor?
 
   init(_ CI: PrimOp?) {
     self.containingInst = CI
