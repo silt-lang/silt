@@ -71,7 +71,7 @@ extension IRBuilder {
     return insert(SwitchConstrOp(parent, matching: src, patterns: caseVals))
   }
 
-  public func createUnreachable() -> UnreachableOp {
-    return insert(UnreachableOp())
+  public func createUnreachable(_ parent: Continuation) -> UnreachableOp {
+    return insert(UnreachableOp(parent: parent))
   }
 }
