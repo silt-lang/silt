@@ -6,6 +6,7 @@
 /// available in the repository.
 
 import Foundation
+import Seismography
 
 final class Scope {
   private var defs = Set<Value>()

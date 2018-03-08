@@ -5,6 +5,8 @@
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 
+import Seismography
+
 /// A schedule adds SSA-like operations before a CPS-style call. 
 final class Schedule {
   /// Whether this operation is scheduled early (before the 'terminator'), or

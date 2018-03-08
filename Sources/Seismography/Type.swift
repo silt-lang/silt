@@ -66,8 +66,8 @@ public final class TypeType: Type {
 }
 
 public final class ArchetypeType: Type {
-  unowned let parent: ParameterizedType
-  let index: Int
+  public unowned let parent: ParameterizedType
+  public let index: Int
 
   init(parent: ParameterizedType, index: Int) {
     self.parent = parent
@@ -87,7 +87,7 @@ public final class ArchetypeType: Type {
 
 public class ParameterizedType: Type {
   public struct Parameter: Hashable {
-    /*owned */let archetype: ArchetypeType
+    public /*owned */let archetype: ArchetypeType
     let value: NameAndType
 
     public static func == (lhs: Parameter, rhs: Parameter) -> Bool {
@@ -213,8 +213,8 @@ public final class FunctionType: Type {
 }
 
 public final class SubstitutedType: Type {
-  unowned let substitutee: ParameterizedType
-  let substitutions: UnownedDictionary<Type, Type>
+  public unowned let substitutee: ParameterizedType
+  public let substitutions: UnownedDictionary<Type, Type>
 
   init(substitutee: ParameterizedType, substitutions: [Type: Type]) {
     self.substitutee = substitutee

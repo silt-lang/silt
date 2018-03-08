@@ -8,8 +8,8 @@
 import Foundation
 
 public class Value: Hashable {
-  let name: String
-  var type: Value
+  public let name: String
+  public private(set) var type: Value
 
 
   init(name: String, type: Value) {
@@ -53,10 +53,6 @@ public class Value: Hashable {
       user.value = RHS
     }
   }
-
-  open func dump() {
-    fatalError()
-  }
 }
 
 public enum Ownership {
@@ -66,15 +62,14 @@ public enum Ownership {
 
 public class Parameter: Value {
   unowned let parent: Continuation
-  let index: Int
-  let ownership: Ownership
+  public let index: Int
+  public let ownership: Ownership
 
-  init(parent: Continuation, index: Int, type: Value, ownership: Ownership,
-       name: String) {
+  init(parent: Continuation, index: Int, type: Value, ownership: Ownership) {
     self.parent = parent
     self.index = index
     self.ownership = ownership
-    super.init(name: name, type: type)
+    super.init(name: "", type: type)
   }
 
   var isOwned: Bool {
@@ -82,10 +77,6 @@ public class Parameter: Value {
   }
   var isBorrowed: Bool {
     return ownership == .borrowed
-  }
-
-  public override func dump() {
-    print("%\(self.index) : \(self.type)", terminator: "")
   }
 }
 
@@ -176,9 +167,5 @@ public final class Operand: Hashable {
       next.back = self.nextUse
     }
     self.value.firstUse = self
-  }
-
-  public func dump() {
-    self.value.dump()
   }
 }

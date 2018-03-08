@@ -43,9 +43,9 @@ let package = Package(
       dependencies: ["Lithosphere", "Moho", "Utility", "PrettyStackTrace"]),
     .target(
       name: "OuterCore",
-      dependencies: ["Crust", "Utility"]),
+      dependencies: ["Crust", "Seismography", "Utility"]),
     .target(
       name: "Seismography",
-      dependencies: ["OuterCore", "Crust"]),
+      dependencies: ["Crust"]),
   ]
 )

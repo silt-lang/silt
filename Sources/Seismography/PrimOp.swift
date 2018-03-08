@@ -43,7 +43,7 @@ public class PrimOp: Value {
   }
 
   /// All the operands of this operation.
-  fileprivate(set) var operands: [Operand] = []
+  public private(set) var operands: [Operand] = []
 
   /// Which specific operation this PrimOp represents.
   public let opcode: Code
@@ -69,21 +69,22 @@ public class PrimOp: Value {
   fileprivate func addOperands(_ ops: [Operand]) {
     self.operands.append(contentsOf: ops)
   }
-
-  public override func dump() {
-    var stream = FileHandle.standardOutput
-    GIRWriter(stream: &stream).writePrimOp(self)
-  }
 }
 
 public class TerminalOp: PrimOp {
-  var parent: Continuation
-  var successors: [Successor] {
+  public var parent: Continuation
+
+  public var successors: [Successor] {
     return []
   }
   init(opcode: Code, parent: Continuation) {
     self.parent = parent
     super.init(opcode: opcode)
+    // Tie the knot
+    self.parent.terminalOp = self
+  }
+  func overrideParent(_ parent: Continuation) {
+    self.parent = parent
   }
 }
 
@@ -115,17 +116,17 @@ public final class ApplyOp: TerminalOp {
 
   private var successors_: [Successor] = []
 
-  override var successors: [Successor] {
+  public override var successors: [Successor] {
     return successors_
   }
 
   /// The value being applied to.
-  var callee: Value {
+  public var callee: Value {
     return self.operands[0].value
   }
 
   /// The arguments being applied to the callee.
-  var arguments: ArraySlice<Operand> {
+  public var arguments: ArraySlice<Operand> {
     return self.operands.dropFirst()
   }
 }
@@ -140,7 +141,7 @@ public final class CopyValueOp: PrimOp {
     return self
   }
 
-  var value: Operand {
+  public var value: Operand {
     return self.operands[0]
   }
 }
@@ -151,15 +152,15 @@ public final class DestroyValueOp: PrimOp {
     self.addOperands([Operand(owner: self, value: value)])
   }
 
-  var value: Operand {
+  public var value: Operand {
     return self.operands[0]
   }
 }
 
 public final class FunctionRefOp: PrimOp {
-  let function: Continuation
+  public let function: Continuation
 
-  init(continuation: Continuation) {
+  public init(continuation: Continuation) {
     self.function = continuation
     super.init(opcode: .functionRef)
     self.addOperands([Operand(owner: self, value: continuation)])
@@ -198,7 +199,7 @@ public final class SwitchConstrOp: TerminalOp {
 
   private var successors_: [Successor] = []
 
-  override var successors: [Successor] {
+  public override var successors: [Successor] {
     return successors_
   }
 
