@@ -20,7 +20,7 @@ public final class CheckPhaseState {
 // MARK: Declarations
 
 extension TypeChecker where PhaseState == CheckPhaseState {
-  public func checkTopLevelModule(_ syntax: DeclaredModule) -> Module {
+  public func checkTopLevelModule(_ syntax: DeclaredModule) -> TopLevelModule {
     let module = checkModule(syntax)
     if self.options.contains(.debugMetas) {
       self.signature.dumpMetas({ $0 })
@@ -28,7 +28,10 @@ extension TypeChecker where PhaseState == CheckPhaseState {
     if self.options.contains(.debugNormalizedMetas) {
       self.signature.dumpMetas(self.toNormalForm)
     }
-    return module
+    return TopLevelModule(name: syntax.moduleName,
+                          signature: self.signature,
+                          environment: self.environment,
+                          rootModule: module, tc: self)
   }
 
   private func checkModule(_ syntax: DeclaredModule) -> Module {

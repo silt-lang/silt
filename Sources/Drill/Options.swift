@@ -48,6 +48,8 @@ public enum Mode {
     /// the source text and dump the solving process.
     case typecheck
 
+    case girGen
+
     case parseGIR = "parse-gir"
   }
   case dump(DumpLayer)
