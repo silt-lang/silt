@@ -6,7 +6,6 @@
 /// available in the repository.
 
 import Foundation
-import Seismography
 
 public final class IRBuilder {
   public let module: GIRModule
@@ -16,7 +15,7 @@ public final class IRBuilder {
   }
 
   public func buildContinuation(
-    name: String, type: Type = BottomType.shared) -> Continuation {
+    name: String, type: GIRType = BottomType.shared) -> Continuation {
     let continuation = Continuation(name: name, type: type)
     module.addContinuation(continuation)
     return continuation

@@ -44,7 +44,7 @@ public final class Continuation: Value, Graph {
     }
   }
 
-  public override init(name: String, type: Type) {
+  public override init(name: String, type: GIRType) {
     self.predecessorList = Successor(nil)
     super.init(name: name, type: type)
   }

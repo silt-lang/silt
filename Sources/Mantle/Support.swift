@@ -108,11 +108,19 @@ extension Opened where K: Equatable, T: Equatable {
 /// Every term may be lifted to a contextual term - in the trivial case one has
 /// an empty telescope.
 public struct Contextual<T, A> {
-  let telescope: Telescope<T>
-  let inside: A
+  public let telescope: Telescope<T>
+  public let inside: A
 }
 
-public typealias Module = Contextual<TT, Set<QualifiedName>>
+public struct TopLevelModule {
+  public let name: QualifiedName
+  public let signature: Signature
+  public let environment: Environment
+  public let rootModule: Module
+  public let tc: TypeChecker<CheckPhaseState>
+}
+
+public typealias Module = Contextual<TT, [QualifiedName]>
 public typealias ContextualDefinition = Contextual<TT, Definition>
 public typealias ContextualType = Contextual<TT, Type<TT>>
 
@@ -390,7 +398,7 @@ public final class Environment {
   ///
   /// The returned variable contains the appropriate de Bruijn index for the
   /// associated term.
-  func lookupName(_ name: Name, _ elim: (TT, [Elim<TT>]) -> TT) -> (Var, TT)? {
+  public func lookupName(_ name: Name, _ elim: (TT, [Elim<TT>]) -> TT) -> (Var, TT)? {
     guard !self.isEmpty else {
       return nil
     }
@@ -408,7 +416,7 @@ public final class Environment {
 
   /// Looks up a de Bruijn-indexed variable in the current environment.  If no
   /// such entry exists, the result is `nil`.
-  func lookupVariable(_ v: Var, _ elim: (TT, [Elim<TT>]) -> TT) -> TT? {
+  public func lookupVariable(_ v: Var, _ elim: (TT, [Elim<TT>]) -> TT) -> TT? {
     let ctx = self.asContext
     if v.index > UInt(ctx.count) {
       return nil
@@ -528,8 +536,8 @@ public struct Projection: Equatable {
 // MARK: Clauses
 
 public struct Clause {
-  let patterns: [Pattern]
-  let body: Term<TT>?
+  public let patterns: [Pattern]
+  public let body: Term<TT>?
 
   var boundCount: Int {
     return self.patterns.reduce(0) { (acc, next) in
@@ -556,7 +564,7 @@ public enum Instantiability {
     case notInvertible([Clause])
     case invertible([Clause])
 
-    var ignoreInvertibility: [Clause] {
+    public var ignoreInvertibility: [Clause] {
       switch self {
       case let .notInvertible(cs): return cs
       case let .invertible(cs): return cs

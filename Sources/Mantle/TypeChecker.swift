@@ -141,7 +141,7 @@ extension TypeChecker {
   }
 
   // Unroll a Pi type into a telescope of names and types and the final type.
-  func unrollPi(
+  public func unrollPi(
     _ t: Type<TT>, _ ns: [Name]? = nil) -> (Telescope<Type<TT>>, Type<TT>) {
     // FIXME: Try harder, maybe
     let defaultName = Name(name: TokenSyntax(.identifier("_")))

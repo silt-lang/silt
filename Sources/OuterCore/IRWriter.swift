@@ -83,7 +83,7 @@ func name(for value: Value) -> String {
     return "@\(escape(value.name))"
   case is Parameter:
     return "%\(escape(value.name))"
-  case is GIRType:
+  case is GIRExprType:
     return "TYPE"
   default:
     fatalError("attempt to serialize unknown value \(value)")
