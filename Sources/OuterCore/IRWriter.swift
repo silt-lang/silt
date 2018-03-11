@@ -166,7 +166,7 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   func writeBlock(_ block: Schedule.Block, in schedule: Schedule) {
     self.writeBlockArgumentUses(block, in: schedule)
 
-    self.write(self.getID(for: block, in: schedule).description)
+    self.write(self.getID(for: block.parent, in: schedule).description)
     self.writeBlockArguments(block, in: schedule)
     self.write(":")
 
@@ -256,7 +256,7 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   }
 
   var currentSchedule: Schedule?
-  var blocksToIDs: [Schedule.Block: Int] = [:]
+  var blocksContsToIDs: [Continuation: Int] = [:]
   var valuesToIDs: [Value: Int] = [:]
 
   private func setContext(_ scope: Schedule?) {
@@ -264,22 +264,22 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
       return
     }
 
-    self.blocksToIDs.removeAll()
+    self.blocksContsToIDs.removeAll()
     self.valuesToIDs.removeAll()
     self.currentSchedule = scope
   }
 
-  private func getID(for block: Schedule.Block, in scope: Schedule) -> GID {
+  private func getID(for cont: Continuation, in scope: Schedule) -> GID {
     self.setContext(scope)
 
-    if self.blocksToIDs.isEmpty {
+    if self.blocksContsToIDs.isEmpty {
       for (idx, b) in scope.blocks.enumerated() {
-        self.blocksToIDs[b] = idx
+        self.blocksContsToIDs[b.parent] = idx
       }
     }
 
     return GID(kind: .bbLikeContinuation,
-              number: self.blocksToIDs[block, default: 0])
+              number: self.blocksContsToIDs[cont, default: 0])
   }
 
   private func getID(of value: Value, in scope: Schedule? = nil) -> GID {
@@ -361,7 +361,19 @@ extension GIRWriter: PrimOpVisitor {
 
   public func visitFunctionRefOp(_ op: FunctionRefOp) {
     self.write("@")
-    self.write(op.function.name)
+    guard let schedule = self.currentSchedule else {
+      self.write(op.function.name)
+      return
+    }
+    guard let entryBlock = schedule.blocks.first else {
+      self.write(op.function.name)
+      return
+    }
+    guard op.function.name.starts(with: entryBlock.parent.name) else {
+      self.write(op.function.name)
+      return
+    }
+    self.write(self.getID(for: op.function, in: schedule).description)
   }
 
   public func visitDataInitSimpleOp(_ op: DataInitSimpleOp) {
