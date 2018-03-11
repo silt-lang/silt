@@ -71,8 +71,8 @@ extension Named where I: Numeric & Comparable {
 
 /// Marks a keyed name that has been opened into scope by the type checker.
 public struct Opened<K, T> {
-  let key: K
-  let args: [Term<T>]
+  public let key: K
+  public let args: [Term<T>]
 
   init(_ key: K, _ args: [Term<T>]) {
     self.key = key
@@ -450,7 +450,7 @@ public struct Meta: Comparable, Hashable, CustomStringConvertible {
   public struct Binding {
     /// The arity of the given binding.
     let arity: Int
-    let body: TT
+    public let body: TT
 
     init(arity: Int, body: TT) {
       self.arity = arity
@@ -458,7 +458,7 @@ public struct Meta: Comparable, Hashable, CustomStringConvertible {
     }
 
     /// Returns the body of the metavariable binding as a TT term.
-    var internalize: TT {
+    public var internalize: TT {
       var tm: TT =  self.body
       for _ in 0..<self.arity {
         tm = TT.lambda(tm)

@@ -110,6 +110,8 @@ final class GIRGenFunction {
   let params: [(Name, Type<TT>)]
   let returnTy: Type<TT>
   let telescope: Telescope<TT>
+  let tc: TypeChecker<CheckPhaseState>
+  var varLocs: [Var: Value] = [:]
 
   init(_ GGM: GIRGenModule, _ f: Continuation, _ ty: Type<TT>, _ tel: Telescope<TT>) {
     self.f = f
@@ -118,21 +120,34 @@ final class GIRGenFunction {
     let (ps, result) = GGM.tc.unrollPi(ty)
     self.params = ps
     self.returnTy = result
+    self.tc = GGM.tc
   }
 
   func emitFunction(_ clauses: [Clause]) {
-    let returnCont = self.buildParameterList()
-    self.emitPatternMatrix(clauses, returnCont)
+    let (paramVals, returnCont) = self.buildParameterList()
+    self.emitPatternMatrix(clauses, paramVals, returnCont)
   }
 
-  func buildParameterList() -> Value {
+  func buildParameterList() -> ([Value], Value) {
+    var params = [Value]()
     for (_, paramTy) in self.params {
-      self.f.appendParameter(type: BottomType.shared, ownership: .owned)
+      let p = self.f.appendParameter(type: BottomType.shared, ownership: .owned)
+      params.append(p)
     }
-    return self.f.appendParameter(type: BottomType.shared, ownership: .owned)
+    let ret = self.f.appendParameter(type: BottomType.shared, ownership: .owned)
+    return (params, ret)
   }
 
-  func emitPatternMatrix(_ matrix: [Clause], _ returnCont: Value) {
+  func allIrrefutable(_ patterns: [Pattern]) -> Bool {
+    return patterns.reduce(true) { acc, next in
+      guard case .variable(_) = next else {
+        return false
+      }
+      return acc
+    }
+  }
+
+  func emitPatternMatrix(_ matrix: [Clause], _ params: [Value], _ returnCont: Value) {
     guard let firstRow = matrix.first else {
       _ = self.B.createUnreachable(self.f)
       return
@@ -153,11 +168,156 @@ final class GIRGenFunction {
       return
     }
 
-    let RV = self.emitRValue(body)
-    _ = self.B.createApply(self.f, returnCont, [RV])
+    guard !allIrrefutable(firstRow.patterns) else {
+      let RV = self.emitRValue(body)
+      _ = self.B.createApply(self.f, returnCont, [RV])
+      return
+    }
+
+    var unspecialized = Set<Int>(0..<params.count)
+    self.stepSpecialization(self.f, matrix, params, returnCont, &unspecialized)
+  }
+
+  func stepSpecialization(
+    _ root: Continuation, _ matrix: [Clause], _ params: [Value],
+    _ returnCont: Value, _ unspecialized: inout Set<Int>) {
+    let scores = scoreColumns(matrix, params.count, unspecialized)
+    guard unspecialized.count == 1 else {
+      let (colIdx, _) = scores[0]
+      var specializers = [String: [Clause]]()
+      var switchNest = [(String, Value)]()
+      var destMap = [(String, Continuation)]()
+      for (idx, clause) in matrix.enumerated() {
+        let pat = colIdx < clause.patterns.count
+          ? clause.patterns[colIdx]
+          : Pattern.variable(Var(wildcardName, 0))
+        switch pat {
+        case .absurd:
+          fatalError()
+        case let .constructor(name, args):
+          assert(args.isEmpty)
+          if specializers[name.key.string] == nil {
+            let destBB = self.B.buildContinuation(name: root.name + "#col\(colIdx)row\(idx)")
+            let ref = self.B.createFunctionRef(destBB)
+            destMap.append((name.key.string, destBB))
+            switchNest.append((name.key.string, ref))
+          }
+          specializers[name.key.string, default: []].append(clause)
+        case .variable(_):
+          fatalError()
+        }
+      }
+
+      _ = self.B.createSwitchConstr(root, params[colIdx], switchNest)
+      for (key, dest) in destMap {
+        guard let specializedMatrix = specializers[key] else {
+          fatalError()
+        }
+        unspecialized.remove(colIdx)
+        self.stepSpecialization(dest, specializedMatrix, params, returnCont, &unspecialized)
+        unspecialized.insert(colIdx)
+      }
+      return
+    }
+    let (col, _) = scores[0]
+    self.emitFinalColumn(root, col, params[col], returnCont, matrix)
+  }
+
+  func emitFinalColumn(_ parent: Continuation, _ colIdx: Int, _ param: Value, _ retParam: Value, _ matrix: [Clause]) {
+    var dests = [(String, Value)]()
+    for (idx, clause) in matrix.enumerated() {
+      guard let body = clause.body else {
+        fatalError()
+      }
+
+      let pat = colIdx < clause.patterns.count
+        ? clause.patterns[colIdx]
+        : Pattern.variable(Var(wildcardName, 0))
+      switch pat {
+      case .absurd:
+        fatalError()
+      case .variable(_):
+        fatalError()
+      case let .constructor(name, pats):
+        assert(allIrrefutable(pats))
+        let destBB = self.B.buildContinuation(name: f.name + "#col\(colIdx)row\(idx)")
+        for _ in pats {
+          destBB.appendParameter(type: BottomType.shared, ownership: .owned)
+        }
+        let ref = self.B.createFunctionRef(destBB)
+        self.emitBodyExpr(destBB, retParam, body)
+        dests.append((name.key.string, ref))
+      }
+    }
+    _ = self.B.createSwitchConstr(parent, param, dests)
+  }
+
+  func emitBodyExpr(_ bb: Continuation, _ retParam: Value, _ body: Term<TT>) {
+    switch body {
+    case let .constructor(name, args):
+      guard !args.isEmpty else {
+        let retVal = self.B.createDataInitSimple(name.key.string)
+        _ = self.B.createApply(bb, retParam, [retVal])
+        return
+      }
+      fatalError()
+    case let .apply(head, args):
+      switch head {
+      case .definition(_):
+        fatalError()
+      case let .meta(mv):
+        guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
+          fatalError()
+        }
+        self.emitBodyExpr(bb, retParam, self.tc.toNormalForm(bind.internalize))
+      case .variable(_):
+        fatalError()
+      }
+    default:
+      fatalError()
+    }
+  }
+
+  func scoreColumns(_ pm: [Clause], _ maxWidth: Int, _ keep: Set<Int>) -> [(Int, Int)] {
+    var scoreMatrix = [(Int, Int)]()
+    scoreMatrix.reserveCapacity(maxWidth)
+    for i in 0..<maxWidth {
+      scoreMatrix.append((i, 0))
+    }
+
+    for j in 0..<pm.count {
+      for i in 0..<maxWidth {
+        guard keep.contains(i) else { continue }
+
+        let clause = pm[j]
+        guard i < clause.patterns.count else {
+          continue
+        }
+
+        switch clause.patterns[i] {
+        case .absurd:
+          fatalError()
+        case .variable(_):
+          continue
+        case .constructor(_, _):
+          scoreMatrix[i].1 += 1
+        }
+      }
+    }
+    return scoreMatrix.sorted(by: { (lhs, rhs) -> Bool in
+      return lhs.1 > rhs.1
+    })
   }
 
   func emitRValue(_ body: Term<TT>) -> Value {
     fatalError()
+  }
+
+  public var wildcardToken: TokenSyntax {
+    return TokenSyntax.implicit(.underscore)
+  }
+
+  public var wildcardName: Name {
+    return Name(name: wildcardToken)
   }
 }

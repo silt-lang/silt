@@ -1,0 +1,92 @@
+-- RUN: %silt %s --dump girGen --no-colors 2>&1 | %FileCheck %s
+
+
+-- CHECK: module switch-dispatch where
+module switch-dispatch where
+
+data Bool : Type where
+  tt : Bool
+  ff : Bool
+
+
+dispatch : Bool -> Bool
+dispatch tt = tt
+dispatch ff = ff
+-- CHECK: @switch-dispatch.dispatch
+-- CHECK: bb0(%0, %1):
+-- CHECK:   %2 = function_ref @bb2
+-- CHECK:   %3 = function_ref @bb1
+-- CHECK:   switch_constr %0 ; switch-dispatch.tt : %2 ; switch-dispatch.ff : %3
+-- CHECK: bb1:
+-- CHECK:   %5 = data_init_simple switch-dispatch.ff
+-- CHECK:   apply %1(%5)
+-- CHECK: bb2:
+-- CHECK:   %7 = data_init_simple switch-dispatch.tt
+-- CHECK:   apply %1(%7)
+-- CHECK: } -- end gir function switch-dispatch.dispatch
+
+and : Bool -> Bool -> Bool
+and tt tt = tt
+and ff tt = ff
+and tt ff = ff
+and ff ff = ff
+-- CHECK: @switch-dispatch.and 
+-- CHECK: bb0(%0, %1, %2):
+-- CHECK:   %3 = function_ref @bb4
+-- CHECK:   %4 = function_ref @bb1 
+-- CHECK:   switch_constr %0 ; switch-dispatch.tt : %3 ; switch-dispatch.ff : %4 
+-- CHECK: bb1:
+-- CHECK:   %6 = function_ref @bb3
+-- CHECK:   %7 = function_ref @bb2
+-- CHECK:   switch_constr %1 ; switch-dispatch.tt : %6 ; switch-dispatch.ff : %7 
+-- CHECK: bb2:
+-- CHECK:   %9 = data_init_simple switch-dispatch.ff        
+-- CHECK:   apply %2(%9) : ⊥                               
+-- CHECK: bb3:
+-- CHECK:   %11 = data_init_simple switch-dispatch.ff     
+-- CHECK:   apply %2(%11) : ⊥                            
+-- CHECK: bb4:
+-- CHECK:   %13 = function_ref @bb6                     
+-- CHECK:   %14 = function_ref @bb5                    
+-- CHECK:   switch_constr %1 ; switch-dispatch.tt : %13 ; switch-dispatch.ff : %14
+-- CHECK: bb5:
+-- CHECK:   %16 = data_init_simple switch-dispatch.ff    
+-- CHECK:   apply %2(%16) : ⊥                           
+-- CHECK: bb6:
+-- CHECK:   %18 = data_init_simple switch-dispatch.tt  
+-- CHECK:   apply %2(%18) : ⊥                         
+-- CHECK:  } -- end gir function switch-dispatch.and
+
+
+or : Bool -> Bool -> Bool
+or tt tt = tt
+or tt ff = tt
+or ff tt = tt
+or ff ff = ff
+-- CHECK: @switch-dispatch.or 
+-- CHECK: bb0(%0, %1, %2):
+-- CHECK:   %3 = function_ref @bb4                          
+-- CHECK:   %4 = function_ref @bb1                          
+-- CHECK:   switch_constr %0 ; switch-dispatch.tt : %3 ; switch-dispatch.ff : %4 
+-- CHECK: bb1:
+-- CHECK:   %6 = function_ref @bb3                          
+-- CHECK:   %7 = function_ref @bb2                          
+-- CHECK:   switch_constr %1 ; switch-dispatch.tt : %6 ; switch-dispatch.ff : %7 
+-- CHECK: bb2:
+-- CHECK:   %9 = data_init_simple switch-dispatch.ff        
+-- CHECK:   apply %2(%9) : ⊥                                
+-- CHECK: bb3:
+-- CHECK:   %11 = data_init_simple switch-dispatch.tt       
+-- CHECK:   apply %2(%11) : ⊥                               
+-- CHECK: bb4:
+-- CHECK:   %13 = function_ref @bb6                         
+-- CHECK:   %14 = function_ref @bb5                         
+-- CHECK:   switch_constr %1 ; switch-dispatch.tt : %13 ; switch-dispatch.ff : %14 
+-- CHECK: bb5:
+-- CHECK:   %16 = data_init_simple switch-dispatch.tt       
+-- CHECK:   apply %2(%16) : ⊥                               
+-- CHECK: bb6:
+-- CHECK:   %18 = data_init_simple switch-dispatch.tt       
+-- CHECK:   apply %2(%18) : ⊥                               
+-- CHECK:  } -- end gir function switch-dispatch.or
+
