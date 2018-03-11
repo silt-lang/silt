@@ -9,7 +9,7 @@ import Lithosphere
 
 public struct NameAndType: Hashable {
   public let name: String
-  public unowned let type: Type
+  public unowned let type: GIRType
 
   public static func == (lhs: NameAndType, rhs: NameAndType) -> Bool {
     return lhs.name == rhs.name && lhs.type == rhs.type
@@ -21,7 +21,7 @@ public struct NameAndType: Hashable {
 }
 
 // FIXME: Temporary
-public final class GIRType: Type {
+public final class GIRExprType: GIRType {
   let expr: ExprSyntax
   public init(_ expr: ExprSyntax) {
     self.expr = expr
@@ -29,7 +29,7 @@ public final class GIRType: Type {
   }
 }
 
-public final class TypeMetadataType: Type {
+public final class TypeMetadataType: GIRType {
   init() {
     super.init(name: "", type: TypeType.shared)
   }
@@ -41,7 +41,7 @@ public final class TypeMetadataType: Type {
   }
 }
 
-public final class TypeType: Type {
+public final class TypeType: GIRType {
   static let shared = TypeType()
 
   init() {
@@ -65,7 +65,7 @@ public final class TypeType: Type {
   }
 }
 
-public final class ArchetypeType: Type {
+public final class ArchetypeType: GIRType {
   public unowned let parent: ParameterizedType
   public let index: Int
 
@@ -85,7 +85,7 @@ public final class ArchetypeType: Type {
   }
 }
 
-public class ParameterizedType: Type {
+public class ParameterizedType: GIRType {
   public struct Parameter: Hashable {
     public /*owned */let archetype: ArchetypeType
     let value: NameAndType
@@ -101,11 +101,11 @@ public class ParameterizedType: Type {
   public private(set) var parameters = [Parameter]()
   public private(set) var substitutions = Set<SubstitutedType>()
 
-  init(name: String, indices: Type) {
+  init(name: String, indices: GIRType) {
     super.init(name: name, type: indices)
   }
 
-  public func addParameter(name: String, type: Type) {
+  public func addParameter(name: String, type: GIRType) {
     let archetype = ArchetypeType(parent: self, index: parameters.count)
     let value = NameAndType(name: name, type: type)
     parameters.append(Parameter(archetype: archetype, value: value))
@@ -120,7 +120,7 @@ public class ParameterizedType: Type {
     }
   }
 
-  public func substituted(_ substitutions: [Type: Type]) -> SubstitutedType {
+  public func substituted(_ substitutions: [GIRType: GIRType]) -> SubstitutedType {
     let subst = SubstitutedType(substitutee: self, substitutions: substitutions)
     return self.substitutions.getOrInsert(subst)
   }
@@ -140,7 +140,7 @@ public final class DataType: ParameterizedType {
   public typealias Constructor = NameAndType
   public private(set) var constructors = [Constructor]()
 
-  public func addConstructor(name: String, type: Type) {
+  public func addConstructor(name: String, type: GIRType) {
     constructors.append(Constructor(name: name, type: type))
   }
 
@@ -163,13 +163,13 @@ public final class DataType: ParameterizedType {
   }
 }
 
-public typealias Type = Value
+public typealias GIRType = Value
 
 public final class RecordType: ParameterizedType {
   public typealias Field = NameAndType
   public private(set) var fields = [Field]()
 
-  public func addField(name: String, type: Type) {
+  public func addField(name: String, type: GIRType) {
     fields.append(Field(name: name, type: type))
   }
 
@@ -192,11 +192,11 @@ public final class RecordType: ParameterizedType {
   }
 }
 
-public final class FunctionType: Type {
-  public let arguments: UnownedArray<Type>
-  public unowned let returnType: Type
+public final class FunctionType: GIRType {
+  public let arguments: UnownedArray<GIRType>
+  public unowned let returnType: GIRType
 
-  init(arguments: [Type], returnType: Type) {
+  init(arguments: [GIRType], returnType: GIRType) {
     self.arguments = UnownedArray(values: arguments)
     self.returnType = returnType
     super.init(name: "", type: TypeType.shared)
@@ -212,11 +212,11 @@ public final class FunctionType: Type {
   }
 }
 
-public final class SubstitutedType: Type {
+public final class SubstitutedType: GIRType {
   public unowned let substitutee: ParameterizedType
-  public let substitutions: UnownedDictionary<Type, Type>
+  public let substitutions: UnownedDictionary<GIRType, GIRType>
 
-  init(substitutee: ParameterizedType, substitutions: [Type: Type]) {
+  init(substitutee: ParameterizedType, substitutions: [GIRType: GIRType]) {
     self.substitutee = substitutee
     self.substitutions = UnownedDictionary(substitutions)
     super.init(name: "", type: TypeType.shared)
@@ -233,7 +233,7 @@ public final class SubstitutedType: Type {
   }
 }
 
-public final class BottomType: Type {
+public final class BottomType: GIRType {
   public static let shared = BottomType()
 
   init() {

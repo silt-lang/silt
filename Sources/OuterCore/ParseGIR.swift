@@ -182,7 +182,7 @@ extension GIRParser {
         _ = try self.parser.consume(.colon)
         let typeRepr = try self.parser.parseGIRTypeExpr()
 
-        let arg = cont.appendParameter(type: GIRType(typeRepr),
+        let arg = cont.appendParameter(type: GIRExprType(typeRepr),
                                        ownership: .owned)
 
         self.setLocalValue(arg, name)

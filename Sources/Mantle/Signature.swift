@@ -190,15 +190,15 @@ extension Signature {
 }
 
 extension Signature {
-  func lookupMetaBinding(_ mv: Meta) -> Meta.Binding? {
+  public func lookupMetaBinding(_ mv: Meta) -> Meta.Binding? {
     return self.metaBindings[mv]
   }
 
-  func lookupMetaType(_ mv: Meta) -> TT? {
+  public func lookupMetaType(_ mv: Meta) -> TT? {
     return self.metaTypes[mv]
   }
 
-  func lookupDefinition(_ name: QualifiedName) -> ContextualDefinition? {
+  public func lookupDefinition(_ name: QualifiedName) -> ContextualDefinition? {
     return self.definitions[name]
   }
 }

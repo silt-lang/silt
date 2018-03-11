@@ -153,7 +153,7 @@ extension TypeChecker {
         return nil
       case let .apply(.definition(_), es):
         return self.elimsAsPatterns(es)
-      case let .apply(.variable(v), es) where es.isEmpty:
+      case let .apply(.variable(_), es) where es.isEmpty:
         fatalError(expr.description)
       default:
         fatalError(expr.description)

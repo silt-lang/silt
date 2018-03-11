@@ -139,29 +139,6 @@ public struct TypeSignature {
   public let plicity: [ArgumentPlicity]
 }
 
-/// Represents a fully scope-checked pattern.
-public enum Pattern {
-  /// A wildcard pattern.
-  ///
-  /// ```
-  /// foo _ _ _ = ...
-  /// ```
-  case wild
-  /// A variable pattern.
-  ///
-  /// ```
-  /// foo x y z = ...
-  /// ```
-  case variable(QualifiedName)
-  /// A constructor pattern.
-  ///
-  /// ```
-  /// foo [] x y          = ...
-  /// foo (cons x xs) y z = ...
-  /// ```
-  case constructor(QualifiedName, [Pattern])
-}
-
 /// Represents a clause in a pattern.
 public struct DeclaredClause: CustomStringConvertible {
   public let patterns: [DeclaredPattern]
@@ -196,9 +173,31 @@ public struct DeclaredClause: CustomStringConvertible {
 /// Represents an intermediate pattern that better conveys structure than the
 /// syntax tree.
 public enum DeclaredPattern: CustomStringConvertible {
+  /// A wildcard pattern.
+  ///
+  /// ```
+  /// foo _ _ _ = ...
+  /// ```
   case wild
+  /// A variable pattern.
+  ///
+  /// ```
+  /// foo x y z = ...
+  /// ```
   case variable(Name)
+  /// A constructor pattern.
+  ///
+  /// ```
+  /// foo [] x y          = ...
+  /// foo (_::_ x xs) y z = ...
+  /// ```
   case constructor(QualifiedName, [DeclaredPattern])
+  /// An uninhabited pattern.
+  ///
+  /// ```
+  /// foo [] ()          = ...
+  /// foo (_::_ x xs) () = ...
+  /// ```
   case absurd(AbsurdExprSyntax)
 
   public var name: Name? {

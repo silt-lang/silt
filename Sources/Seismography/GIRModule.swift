@@ -33,21 +33,21 @@ public final class GIRModule {
   }
 
   public func recordType(name: String,
-                         indices: Type? = nil,
+                         indices: GIRType? = nil,
                          actions: (RecordType) -> Void) -> RecordType {
     let record = RecordType(name: name, indices: indices ?? TypeType.shared)
     actions(record)
     return knownRecordTypes.getOrInsert(record)
   }
 
-  public func functionType(arguments: [Type],
-                           returnType: Type) -> FunctionType {
+  public func functionType(arguments: [GIRType],
+                           returnType: GIRType) -> FunctionType {
     let function = FunctionType(arguments: arguments, returnType: returnType)
     return knownFunctionTypes.getOrInsert(function)
   }
 
   public func dataType(name: String,
-                       indices: Type? = nil,
+                       indices: GIRType? = nil,
                        actions: (DataType) -> Void) -> DataType {
     let data = DataType(name: name, indices: indices ?? TypeType.shared)
     actions(data)

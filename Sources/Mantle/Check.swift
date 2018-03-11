@@ -46,7 +46,7 @@ extension TypeChecker where PhaseState == CheckPhaseState {
     let names = self.underExtendedEnvironment(paramCtx) {
       return syntax.decls.map { self.checkDecl($0).key }
     }
-    return Module(telescope: paramCtx, inside: Set(names))
+    return Module(telescope: paramCtx, inside: names)
   }
 
   public func checkDecl(_ d: Decl) -> Opened<QualifiedName, TT> {
