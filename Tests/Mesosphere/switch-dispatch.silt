@@ -90,3 +90,24 @@ or ff ff = ff
 -- CHECK:   apply %2(%18) : ⊥                               
 -- CHECK:  } -- end gir function switch-dispatch.or
 
+wild : Bool -> Bool -> Bool
+wild _ x = x
+-- CHECK: @switch-dispatch.wild 
+-- CHECK: bb0(%0, %1, %2):
+-- CHECK:   apply %2(%1)
+-- CHECK: } -- end gir function switch-dispatch.wild
+
+and2 : Bool -> Bool -> Bool
+and2 tt b = b
+and2 ff b = ff
+-- CHECK: @switch-dispatch.and2 
+-- CHECK: bb0(%0, %1, %2):
+-- CHECK:   %3 = function_ref @bb2   
+-- CHECK:   %4 = function_ref @bb1  
+-- CHECK:   switch_constr %0 ; switch-dispatch.tt : %3 ; switch-dispatch.ff : %4 
+-- CHECK: bb1:
+-- CHECK:   %6 = data_init_simple switch-dispatch.ff
+-- CHECK:   apply %2(%6) 
+-- CHECK: bb2:
+-- CHECK:   apply %2(%1) 
+-- CHECK: } -- end gir function switch-dispatch.and2

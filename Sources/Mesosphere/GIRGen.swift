@@ -111,7 +111,7 @@ final class GIRGenFunction {
   let returnTy: Type<TT>
   let telescope: Telescope<TT>
   let tc: TypeChecker<CheckPhaseState>
-  var varLocs: [Var: Value] = [:]
+  var varLocs: [Name: Value] = [:]
 
   init(_ GGM: GIRGenModule, _ f: Continuation, _ ty: Type<TT>, _ tel: Telescope<TT>) {
     self.f = f
@@ -138,13 +138,16 @@ final class GIRGenFunction {
     return (params, ret)
   }
 
-  func allIrrefutable(_ patterns: [Pattern]) -> Bool {
-    return patterns.reduce(true) { acc, next in
-      guard case .variable(_) = next else {
-        return false
+  func allIrrefutable(_ patterns: [Pattern]) -> [Var]? {
+    var result = [Var]()
+    result.reserveCapacity(patterns.count)
+    for pattern in patterns {
+      guard case let .variable(v) = pattern else {
+        return nil
       }
-      return acc
+      result.append(v)
     }
+    return result
   }
 
   func emitPatternMatrix(_ matrix: [Clause], _ params: [Value], _ returnCont: Value) {
@@ -168,9 +171,12 @@ final class GIRGenFunction {
       return
     }
 
-    guard !allIrrefutable(firstRow.patterns) else {
-      let RV = self.emitRValue(body)
-      _ = self.B.createApply(self.f, returnCont, [RV])
+    if let vars = allIrrefutable(firstRow.patterns) {
+      assert(vars.count == params.count)
+      for (v, param) in zip(vars, params) {
+        self.varLocs[v.name] = param
+      }
+      self.emitBodyExpr(self.f, returnCont, body)
       return
     }
 
@@ -236,17 +242,21 @@ final class GIRGenFunction {
       switch pat {
       case .absurd:
         fatalError()
-      case .variable(_):
-        fatalError()
+      case let .variable(v):
+        assert(matrix.count == 1)
+        self.varLocs[v.name] = param
+        self.emitBodyExpr(parent, retParam, body)
+        self.varLocs[v.name] = nil
+        return
       case let .constructor(name, pats):
-        assert(allIrrefutable(pats))
-        let destBB = self.B.buildContinuation(name: f.name + "#col\(colIdx)row\(idx)")
+        let destBB = self.B.buildContinuation(name: parent.name + "#col\(colIdx)row\(idx)")
+        let destRef = self.B.createFunctionRef(destBB)
+        assert(allIrrefutable(pats) != nil)
         for _ in pats {
           destBB.appendParameter(type: BottomType.shared, ownership: .owned)
         }
-        let ref = self.B.createFunctionRef(destBB)
         self.emitBodyExpr(destBB, retParam, body)
-        dests.append((name.key.string, ref))
+        dests.append((name.key.string, destRef))
       }
     }
     _ = self.B.createSwitchConstr(parent, param, dests)
@@ -269,9 +279,12 @@ final class GIRGenFunction {
         guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
           fatalError()
         }
-        self.emitBodyExpr(bb, retParam, self.tc.toNormalForm(bind.internalize))
-      case .variable(_):
-        fatalError()
+        self.emitBodyExpr(bb, retParam, self.tc.toNormalForm(bind.body))
+      case let .variable(v):
+        guard let varLoc = self.varLocs[v.name] else {
+          fatalError()
+        }
+        _ = self.B.createApply(bb, retParam, [varLoc])
       }
     default:
       fatalError()
@@ -287,7 +300,10 @@ final class GIRGenFunction {
 
     for j in 0..<pm.count {
       for i in 0..<maxWidth {
-        guard keep.contains(i) else { continue }
+        guard keep.contains(i) else {
+          scoreMatrix[i].1 = Int.min
+          continue
+        }
 
         let clause = pm[j]
         guard i < clause.patterns.count else {

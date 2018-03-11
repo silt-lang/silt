@@ -181,7 +181,7 @@ public final class SwitchConstrOp: TerminalOp {
   ///   - value: The value you're pattern matching.
   ///   - patterns: A list of pattern/apply pairs.
   public init(_ parent: Continuation, matching value: Value,
-              patterns: [(pattern: String, apply: Value)]) {
+              patterns: [(pattern: String, apply: Value)], default: Value?) {
     self.patterns = patterns
     super.init(opcode: .switchConstr, parent: parent)
 
