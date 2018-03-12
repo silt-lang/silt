@@ -315,12 +315,25 @@ extension GIRParser {
       let ident = try self.parser.parseIdentifierToken()
       let resultFn = getReferencedContinuation(B, ident)
       resultValue = B.createFunctionRef(resultFn)
-    case .dataInitSimple:
+    case .dataInit:
       let ident = try self.parser.parseQualifiedName()
       _ = try self.parser.consume(.colon)
       let typeRepr = try self.parser.parseGIRTypeExpr()
 
-      resultValue = B.createDataInitSimple(ident.render)
+      var args = [Value]()
+      while case .semicolon = self.parser.peek() {
+        _ = try self.parser.consume(.semicolon)
+
+        guard let arg = self.tryParseGIRValueToken() else {
+          return false
+        }
+        let argVal = self.getLocalValue(arg)
+        _ = try self.parser.consume(.colon)
+        _ = try self.parser.parseGIRTypeExpr()
+        args.append(argVal)
+      }
+
+      resultValue = B.createDataInit(ident.render, args)
     case .unreachable:
       resultValue = B.createUnreachable(cont)
     }

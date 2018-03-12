@@ -6,7 +6,6 @@ module unreachable where
 
 data Falsum : Type
 
-
 no-body : Falsum
 -- CHECK-GIR:  @unreachable.no-body
 -- CHECK-GIR-NEXT:    bb0(%0):

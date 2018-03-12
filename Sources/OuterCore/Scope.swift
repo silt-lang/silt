@@ -28,6 +28,12 @@ final class Scope {
       guard def != entry else {
         continue
       }
+
+      guard !(def is Continuation) else {
+        Scope.enqueue(&queue, &self.defs, &self.continuations, def)
+        continue
+      }
+
       for use in def.users {
         Scope.enqueue(&queue, &self.defs, &self.continuations, use.user)
       }
@@ -58,11 +64,11 @@ final class Scope {
         assert(defs.insert(param).inserted)
         queue.append(param)
       }
-    } else if let switchConstr = val as? SwitchConstrOp {
-      for succ in switchConstr.successors {
+    } else if let terminal = val as? TerminalOp {
+      queue.append(terminal.parent)
+      for succ in terminal.successors {
         guard let succ = succ.successor else { continue }
 
-        conts.append(succ)
         queue.append(succ)
       }
     }

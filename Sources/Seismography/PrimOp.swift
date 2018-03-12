@@ -35,7 +35,7 @@ public class PrimOp: Value {
     case functionRef = "function_ref"
 
     /// A simple constructor call with no parameters
-    case dataInitSimple = "data_init_simple"
+    case dataInit = "data_init"
 
     /// An instruction that is considered 'unreachable' that will trap at
     /// runtime.
@@ -218,11 +218,12 @@ public final class SwitchConstrOp: TerminalOp {
   public let `default`: Value?
 }
 
-public final class DataInitSimpleOp: PrimOp {
+public final class DataInitOp: PrimOp {
   public let constructor: String
-  public init(constructor: String) {
+  public init(constructor: String, arguments: [Value]) {
     self.constructor = constructor
-    super.init(opcode: .dataInitSimple)
+    super.init(opcode: .dataInit)
+    self.addOperands(arguments.map { Operand(owner: self, value: $0) })
   }
 
   public override var result: Value? {
@@ -242,7 +243,7 @@ public protocol PrimOpVisitor {
   func visitDestroyValueOp(_ op: DestroyValueOp)
   func visitFunctionRefOp(_ op: FunctionRefOp)
   func visitSwitchConstrOp(_ op: SwitchConstrOp)
-  func visitDataInitSimpleOp(_ op: DataInitSimpleOp)
+  func visitDataInitOp(_ op: DataInitOp)
   func visitUnreachableOp(_ op: UnreachableOp)
 }
 
@@ -262,7 +263,7 @@ extension PrimOpVisitor {
       // swiftlint:disable force_cast
     case .switchConstr: self.visitSwitchConstrOp(code as! SwitchConstrOp)
       // swiftlint:disable force_cast
-    case .dataInitSimple: self.visitDataInitSimpleOp(code as! DataInitSimpleOp)
+    case .dataInit: self.visitDataInitOp(code as! DataInitOp)
     // swiftlint:disable force_cast
     case .unreachable: self.visitUnreachableOp(code as! UnreachableOp)
     }

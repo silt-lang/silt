@@ -22,10 +22,10 @@ dispatch ff = ff
 -- CHECK:   %3 = function_ref @bb1
 -- CHECK:   switch_constr %0 ; switch-dispatch.tt : %2 ; switch-dispatch.ff : %3
 -- CHECK: bb1:
--- CHECK:   %5 = data_init_simple switch-dispatch.ff
+-- CHECK:   %5 = data_init switch-dispatch.ff
 -- CHECK:   apply %1(%5)
 -- CHECK: bb2:
--- CHECK:   %7 = data_init_simple switch-dispatch.tt
+-- CHECK:   %7 = data_init switch-dispatch.tt
 -- CHECK:   apply %1(%7)
 -- CHECK: } -- end gir function switch-dispatch.dispatch
 
@@ -44,20 +44,20 @@ and ff ff = ff
 -- CHECK:   %7 = function_ref @bb2
 -- CHECK:   switch_constr %1 ; switch-dispatch.tt : %6 ; switch-dispatch.ff : %7 
 -- CHECK: bb2:
--- CHECK:   %9 = data_init_simple switch-dispatch.ff        
+-- CHECK:   %9 = data_init switch-dispatch.ff        
 -- CHECK:   apply %2(%9)
 -- CHECK: bb3:
--- CHECK:   %11 = data_init_simple switch-dispatch.ff     
+-- CHECK:   %11 = data_init switch-dispatch.ff     
 -- CHECK:   apply %2(%11)
 -- CHECK: bb4:
 -- CHECK:   %13 = function_ref @bb6                     
 -- CHECK:   %14 = function_ref @bb5                    
 -- CHECK:   switch_constr %1 ; switch-dispatch.tt : %13 ; switch-dispatch.ff : %14
 -- CHECK: bb5:
--- CHECK:   %16 = data_init_simple switch-dispatch.ff    
+-- CHECK:   %16 = data_init switch-dispatch.ff    
 -- CHECK:   apply %2(%16)
 -- CHECK: bb6:
--- CHECK:   %18 = data_init_simple switch-dispatch.tt  
+-- CHECK:   %18 = data_init switch-dispatch.tt  
 -- CHECK:   apply %2(%18)
 -- CHECK:  } -- end gir function switch-dispatch.and
 
@@ -77,20 +77,20 @@ or ff ff = ff
 -- CHECK:   %7 = function_ref @bb2                          
 -- CHECK:   switch_constr %1 ; switch-dispatch.tt : %6 ; switch-dispatch.ff : %7 
 -- CHECK: bb2:
--- CHECK:   %9 = data_init_simple switch-dispatch.ff        
+-- CHECK:   %9 = data_init switch-dispatch.ff        
 -- CHECK:   apply %2(%9)
 -- CHECK: bb3:
--- CHECK:   %11 = data_init_simple switch-dispatch.tt       
+-- CHECK:   %11 = data_init switch-dispatch.tt       
 -- CHECK:   apply %2(%11)
 -- CHECK: bb4:
 -- CHECK:   %13 = function_ref @bb6                         
 -- CHECK:   %14 = function_ref @bb5                         
 -- CHECK:   switch_constr %1 ; switch-dispatch.tt : %13 ; switch-dispatch.ff : %14 
 -- CHECK: bb5:
--- CHECK:   %16 = data_init_simple switch-dispatch.tt       
+-- CHECK:   %16 = data_init switch-dispatch.tt       
 -- CHECK:   apply %2(%16)
 -- CHECK: bb6:
--- CHECK:   %18 = data_init_simple switch-dispatch.tt       
+-- CHECK:   %18 = data_init switch-dispatch.tt       
 -- CHECK:   apply %2(%18)
 -- CHECK:  } -- end gir function switch-dispatch.or
 
@@ -110,7 +110,7 @@ and2 ff b = ff
 -- CHECK:   %4 = function_ref @bb1  
 -- CHECK:   switch_constr %0 ; switch-dispatch.tt : %3 ; switch-dispatch.ff : %4 
 -- CHECK: bb1:
--- CHECK:   %6 = data_init_simple switch-dispatch.ff
+-- CHECK:   %6 = data_init switch-dispatch.ff
 -- CHECK:   apply %2(%6) 
 -- CHECK: bb2:
 -- CHECK:   apply %2(%1) 
@@ -135,22 +135,22 @@ maranget _  _  tt = four
 -- CHECK:   %11 = function_ref @bb3
 -- CHECK:   switch_constr %2 ; switch-dispatch.ff : %10 ; switch-dispatch.tt : %11
 -- CHECK: bb3:
--- CHECK:   %13 = data_init_simple switch-dispatch.four
+-- CHECK:   %13 = data_init switch-dispatch.four
 -- CHECK:   apply %3(%13)
 -- CHECK: bb4:
--- CHECK:   %15 = data_init_simple switch-dispatch.three
+-- CHECK:   %15 = data_init switch-dispatch.three
 -- CHECK:   apply %3(%15)
 -- CHECK: bb5:
--- CHECK:   %17 = data_init_simple switch-dispatch.two
+-- CHECK:   %17 = data_init switch-dispatch.two
 -- CHECK:   apply %3(%17)
 -- CHECK: bb6:
 -- CHECK:   %19 = function_ref @bb8
 -- CHECK:   %20 = function_ref @bb7
 -- CHECK:   switch_constr %2 ; switch-dispatch.tt : %19 ; switch-dispatch.ff : %20
 -- CHECK: bb7:
--- CHECK:   %22 = data_init_simple switch-dispatch.three
+-- CHECK:   %22 = data_init switch-dispatch.three
 -- CHECK:   apply %3(%22)
 -- CHECK: bb8:
--- CHECK:   %24 = data_init_simple switch-dispatch.one
+-- CHECK:   %24 = data_init switch-dispatch.one
 -- CHECK:   apply %3(%24)
 -- CHECK: } -- end gir function switch-dispatch.maranget
