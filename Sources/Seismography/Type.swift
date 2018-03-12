@@ -120,7 +120,8 @@ public class ParameterizedType: GIRType {
     }
   }
 
-  public func substituted(_ substitutions: [GIRType: GIRType]) -> SubstitutedType {
+  public func substituted(
+    _ substitutions: [GIRType: GIRType]) -> SubstitutedType {
     let subst = SubstitutedType(substitutee: self, substitutions: substitutions)
     return self.substitutions.getOrInsert(subst)
   }

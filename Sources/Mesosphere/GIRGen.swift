@@ -23,9 +23,9 @@ public final class GIRGenModule {
 
   var emittedFunctions: [DeclRef: Continuation] = [:]
 
-  typealias DelayedEmitter = (Continuation) -> ()
+  typealias DelayedEmitter = (Continuation) -> Void
 
-  var delayedFunctions: [DeclRef: (Continuation) -> ()] = [:]
+  var delayedFunctions: [DeclRef: DelayedEmitter] = [:]
 
   public init(_ root: TopLevelModule) {
     self.module = root.rootModule
@@ -69,7 +69,8 @@ extension GIRGenModule {
     }
   }
 
-  func emitContextualConstant(_ name: String, _ c: Definition.Constant, _ ty: Type<TT>, _ tel: Telescope<TT>) {
+  func emitContextualConstant(_ name: String, _ c: Definition.Constant,
+                              _ ty: Type<TT>, _ tel: Telescope<TT>) {
     switch c {
     case let .function(inst):
       self.emitFunction(name, inst, ty, tel)
@@ -82,7 +83,8 @@ extension GIRGenModule {
     }
   }
 
-  func emitFunction(_ name: String, _ inst: Instantiability, _ ty: Type<TT>, _ tel: Telescope<TT>) {
+  func emitFunction(_ name: String, _ inst: Instantiability,
+                    _ ty: Type<TT>, _ tel: Telescope<TT>) {
     switch inst {
     case .open:
       return // Nothing to do for opaque functions.
@@ -95,7 +97,9 @@ extension GIRGenModule {
     }
   }
 
-  func emitFunctionBody(_ constant: DeclRef, _ emitter: @escaping DelayedEmitter) {
+  func emitFunctionBody(
+    _ constant: DeclRef, _ emitter: @escaping DelayedEmitter
+  ) {
     guard let f = self.getEmittedFunction(constant) else {
       self.delayedFunctions[constant] = emitter
       return
@@ -113,7 +117,8 @@ final class GIRGenFunction {
   let tc: TypeChecker<CheckPhaseState>
   var varLocs: [Name: Value] = [:]
 
-  init(_ GGM: GIRGenModule, _ f: Continuation, _ ty: Type<TT>, _ tel: Telescope<TT>) {
+  init(_ GGM: GIRGenModule, _ f: Continuation,
+       _ ty: Type<TT>, _ tel: Telescope<TT>) {
     self.f = f
     self.B = IRBuilder(module: GGM.M)
     self.telescope = tel
@@ -128,7 +133,7 @@ final class GIRGenFunction {
     self.emitPatternMatrix(clauses, paramVals, returnCont)
   }
 
-  func buildParameterList() -> ([Value], Value) {
+  private func buildParameterList() -> ([Value], Value) {
     var params = [Value]()
     for (_, paramTy) in self.params {
       let p = self.f.appendParameter(type: BottomType.shared, ownership: .owned)
@@ -136,305 +141,5 @@ final class GIRGenFunction {
     }
     let ret = self.f.appendParameter(type: BottomType.shared, ownership: .owned)
     return (params, ret)
-  }
-
-  func allIrrefutable(_ patterns: [Pattern], _ mask: Set<Int>) -> [Var]? {
-    var result = [Var]()
-    result.reserveCapacity(patterns.count)
-    for (idx, pattern) in patterns.enumerated() {
-      guard mask.contains(idx) else {
-        result.append(Var(wildcardName, 0))
-        continue
-      }
-
-      if case .absurd = pattern {
-        continue
-      }
-
-      guard case let .variable(v) = pattern else {
-        return nil
-      }
-      result.append(v)
-    }
-    return result
-  }
-
-  func emitPatternMatrix(_ matrix: [Clause], _ params: [Value], _ returnCont: Value) {
-    guard let firstRow = matrix.first else {
-      _ = self.B.createUnreachable(self.f)
-      return
-    }
-
-    guard !firstRow.patterns.isEmpty else {
-      guard let body = firstRow.body else {
-        _ = self.B.createUnreachable(self.f)
-        return
-      }
-      let (newParent, RV) = self.emitRValue(self.f, body)
-      _ = self.B.createApply(newParent, returnCont, [RV])
-      return
-    }
-
-    var unspecialized = Set<Int>(0..<params.count)
-    self.stepSpecialization(self.f, matrix, params, returnCont, &unspecialized)
-  }
-
-  func stepSpecialization(
-    _ root: Continuation, _ matrix: [Clause], _ params: [Value],
-    _ returnCont: Value, _ unspecialized: inout Set<Int>) {
-    if matrix.count == 1, let vars = allIrrefutable(matrix[0].patterns, unspecialized) {
-      for (idx, v) in vars.enumerated() {
-        guard unspecialized.contains(idx) else { continue }
-        self.varLocs[v.name] = params[idx]
-      }
-      guard let body = matrix[0].body else {
-        _ = self.B.createUnreachable(self.f)
-        return
-      }
-      self.emitBodyExpr(root, returnCont, body)
-      return
-    }
-
-    let (colIdx, necessaryHasWilds) = scoreColumns(matrix, params.count, unspecialized)
-    guard unspecialized.count == 1 else {
-      var specializers = [String: [Clause]]()
-      var switchNest = [(String, Value)]()
-      var destMap = [(String, Continuation)]()
-      var defaultedHeadMatrix = [Clause]()
-      var defaultedMatrix = [Clause]()
-      var defaults: (cont: Continuation, ref: Value)? = nil
-      for (idx, clause) in matrix.enumerated() {
-        let pat = colIdx < clause.patterns.count
-          ? clause.patterns[colIdx]
-          : Pattern.variable(Var(wildcardName, 0))
-        switch pat {
-        case .absurd:
-          fatalError()
-        case let .constructor(name, args):
-          if necessaryHasWilds && specializers.count != 0 {
-            defaultedHeadMatrix.append(clause)
-            continue
-          }
-
-          if specializers[name.key.string] == nil {
-            let destBB = self.B.buildContinuation(name: root.name + "#col\(colIdx)row\(idx)")
-            let ref = self.B.createFunctionRef(destBB)
-            destMap.append((name.key.string, destBB))
-            switchNest.append((name.key.string, ref))
-            for _ in args {
-              _ = destBB.appendParameter(type: BottomType.shared)
-            }
-          }
-          let specialClause = clause.bySpecializing(column: colIdx, patterns: args)
-          specializers[name.key.string, default: []].append(specialClause)
-        case .variable(_):
-          if defaults == nil {
-            let defaultDestBB = self.B.buildContinuation(name: root.name + "#default")
-            let defaultRef = self.B.createFunctionRef(defaultDestBB)
-            defaults = (cont: defaultDestBB, ref: defaultRef)
-          }
-          defaultedMatrix.append(clause)
-        }
-      }
-
-      _ = self.B.createSwitchConstr(root, params[colIdx], switchNest, defaults?.ref)
-      assert(!necessaryHasWilds || destMap.count == 1)
-      for (key, dest) in destMap {
-        guard var specializedMatrix = specializers[key] else {
-          fatalError()
-        }
-        if necessaryHasWilds && !defaultedHeadMatrix.isEmpty {
-          specializedMatrix.append(defaultedMatrix[0])
-        }
-        var parameters = params
-        if !dest.parameters.isEmpty {
-          parameters.remove(at: colIdx)
-          parameters.insert(contentsOf: dest.parameters as [Value], at: colIdx)
-        } else {
-          unspecialized.remove(colIdx)
-        }
-        self.stepSpecialization(dest, specializedMatrix, parameters, returnCont, &unspecialized)
-        unspecialized.insert(colIdx)
-      }
-
-      if let (defaultDest, _) = defaults {
-        unspecialized.remove(colIdx)
-        self.stepSpecialization(defaultDest, defaultedHeadMatrix + defaultedMatrix, params, returnCont, &unspecialized)
-        unspecialized.insert(colIdx)
-      }
-      return
-    }
-    self.emitFinalColumn(root, colIdx, params[colIdx], returnCont, matrix)
-  }
-
-  func emitFinalColumn(_ parent: Continuation, _ colIdx: Int, _ param: Value, _ retParam: Value, _ matrix: [Clause]) {
-    var dests = [(String, Value)]()
-    for (idx, clause) in matrix.enumerated() {
-      guard let body = clause.body else {
-        fatalError()
-      }
-
-      let pat = colIdx < clause.patterns.count
-        ? clause.patterns[colIdx]
-        : Pattern.variable(Var(wildcardName, 0))
-      switch pat {
-      case .absurd:
-        fatalError()
-      case let .variable(v):
-//        assert(matrix.count == 1)
-        self.varLocs[v.name] = param
-        self.emitBodyExpr(parent, retParam, body)
-        self.varLocs[v.name] = nil
-        return
-      case let .constructor(name, pats):
-        let destBB = self.B.buildContinuation(name: parent.name + "#col\(colIdx)row\(idx)")
-        let destRef = self.B.createFunctionRef(destBB)
-//        assert(allIrrefutable(pats) != nil)
-        for _ in pats {
-          destBB.appendParameter(type: BottomType.shared, ownership: .owned)
-        }
-        self.emitBodyExpr(destBB, retParam, body)
-        dests.append((name.key.string, destRef))
-      }
-    }
-    _ = self.B.createSwitchConstr(parent, param, dests)
-  }
-
-  func emitBodyExpr(_ bb: Continuation, _ retParam: Value, _ body: Term<TT>) {
-    switch body {
-    case let .constructor(name, args):
-      guard !args.isEmpty else {
-        let retVal = self.B.createDataInit(name.key.string, [])
-        _ = self.B.createApply(bb, retParam, [retVal])
-        return
-      }
-      let (newParent, bodyVal) = self.emitRValue(bb, body)
-      _ = self.B.createApply(newParent, retParam, [bodyVal])
-    case let .apply(head, args):
-      switch head {
-      case .definition(_):
-        fatalError()
-      case let .meta(mv):
-        guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
-          fatalError()
-        }
-        self.emitBodyExpr(bb, retParam, self.tc.toNormalForm(bind.body))
-      case let .variable(v):
-        guard let varLoc = self.varLocs[v.name] else {
-          fatalError()
-        }
-        _ = self.B.createApply(bb, retParam, [varLoc])
-      }
-    default:
-      fatalError()
-    }
-  }
-
-  func scoreColumns(_ pm: [Clause], _ maxWidth: Int, _ keep: Set<Int>) -> (Int, Bool) {
-    assert(!pm.isEmpty)
-
-    var scoreMatrix = [(Int, Int)]()
-    scoreMatrix.reserveCapacity(maxWidth)
-    for i in 0..<maxWidth {
-      scoreMatrix.append((i, 0))
-    }
-
-    var wildcardColumns = Set<Int>()
-    for j in 0..<pm.count {
-      for i in 0..<maxWidth {
-        guard keep.contains(i) else {
-          scoreMatrix[i].1 = Int.min
-          continue
-        }
-
-        let clause = pm[j]
-        guard i < clause.patterns.count else {
-          wildcardColumns.insert(i)
-          continue
-        }
-
-        switch clause.patterns[i] {
-        case .absurd:
-          fatalError()
-        case .variable(_):
-          wildcardColumns.insert(i)
-          continue
-        case .constructor(_, _):
-          guard !wildcardColumns.contains(i) else { continue }
-          scoreMatrix[i].1 += 1
-        }
-      }
-    }
-    let sortedScores = scoreMatrix.sorted(by: { (lhs, rhs) -> Bool in
-      return lhs.1 > rhs.1
-    })
-    assert(!sortedScores.isEmpty)
-    return (sortedScores[0].0, wildcardColumns.contains(sortedScores[0].0))
-  }
-
-  func emitRValue(_ parent: Continuation, _ body: Term<TT>) -> (Continuation, Value) {
-    switch body {
-    case let .apply(head, args):
-      switch head {
-      case let .definition(defName):
-        let constant = DeclRef(defName.key.string, .function)
-        let callee = self.B.module.lookupContinuation(constant)!
-        let calleeRef = self.B.createFunctionRef(callee)
-        let applyDest = self.B.buildContinuation(name: self.f.name + "apply#\(defName.key.string)")
-        let applyDestRef = self.B.createFunctionRef(applyDest)
-        let param = applyDest.appendParameter(type: BottomType.shared)
-        var lastParent = parent
-        var argVals = [Value]()
-        argVals.reserveCapacity(args.count)
-        for arg in args {
-          let (newParent, value) = self.emitElimAsRValue(lastParent, arg)
-          argVals.append(value)
-          lastParent = newParent
-        }
-        argVals.append(applyDestRef)
-        _ = self.B.createApply(parent, calleeRef, argVals)
-        return (applyDest, param)
-      case let .meta(mv):
-        guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
-          fatalError()
-        }
-        return self.emitRValue(parent, bind.body)
-      case let .variable(v):
-        guard let varLoc = self.varLocs[v.name] else {
-          fatalError()
-        }
-        return (parent, varLoc)
-      }
-    case let .constructor(tag, args):
-      var lastParent = parent
-      var argVals = [Value]()
-      argVals.reserveCapacity(args.count)
-      for arg in args {
-        let (newParent, value) = self.emitRValue(lastParent, arg)
-        argVals.append(value)
-        lastParent = newParent
-      }
-      return (lastParent, self.B.createDataInit(tag.key.string, argVals))
-    default:
-      print(body.description)
-      fatalError()
-    }
-  }
-
-  func emitElimAsRValue(_ parent: Continuation, _ elim: Elim<TT>) -> (Continuation, Value) {
-    switch elim {
-    case let .apply(val):
-      return self.emitRValue(parent, val)
-    case .project(_):
-      fatalError()
-    }
-  }
-
-  public var wildcardToken: TokenSyntax {
-    return TokenSyntax.implicit(.underscore)
-  }
-
-  public var wildcardName: Name {
-    return Name(name: wildcardToken)
   }
 }

@@ -398,7 +398,9 @@ public final class Environment {
   ///
   /// The returned variable contains the appropriate de Bruijn index for the
   /// associated term.
-  public func lookupName(_ name: Name, _ elim: (TT, [Elim<TT>]) -> TT) -> (Var, TT)? {
+  public func lookupName(
+    _ name: Name, _ elim: (TT, [Elim<TT>]) -> TT
+  ) -> (Var, TT)? {
     guard !self.isEmpty else {
       return nil
     }
