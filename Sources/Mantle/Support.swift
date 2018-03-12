@@ -551,6 +551,16 @@ public struct Clause {
       }
     }
   }
+
+  public func bySpecializing(column: Int, patterns: [Pattern]) -> Clause {
+    guard !patterns.isEmpty else {
+      return self
+    }
+    var pats = patterns
+    pats.remove(at: column)
+    pats.insert(contentsOf: patterns, at: column)
+    return Clause(patterns: pats, body: self.body)
+  }
 }
 
 //

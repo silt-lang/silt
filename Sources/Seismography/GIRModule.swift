@@ -11,6 +11,7 @@ public final class GIRModule {
   public let name: String
 
   public private(set) var continuations = [Continuation]()
+  public private(set) var continuationTable = [DeclRef: Continuation]()
   public private(set) var primops = [PrimOp]()
   public private(set) var knownFunctionTypes = Set<FunctionType>()
   public private(set) var knownRecordTypes = Set<RecordType>()
@@ -25,11 +26,16 @@ public final class GIRModule {
 
   public func addContinuation(_ continuation: Continuation) {
     continuations.append(continuation)
+    continuationTable[DeclRef(continuation.name, .function)] = continuation
     continuation.module = self
   }
 
   public func addPrimOp(_ primOp: PrimOp) {
     primops.append(primOp)
+  }
+
+  public func lookupContinuation(_ ref: DeclRef) -> Continuation? {
+    return self.continuationTable[ref]
   }
 
   public func recordType(name: String,

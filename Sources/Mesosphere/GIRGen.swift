@@ -170,8 +170,8 @@ final class GIRGenFunction {
         _ = self.B.createUnreachable(self.f)
         return
       }
-      let RV = self.emitRValue(body)
-      _ = self.B.createApply(self.f, returnCont, [RV])
+      let (newParent, RV) = self.emitRValue(self.f, body)
+      _ = self.B.createApply(newParent, returnCont, [RV])
       return
     }
 
@@ -211,7 +211,6 @@ final class GIRGenFunction {
         case .absurd:
           fatalError()
         case let .constructor(name, args):
-          assert(args.isEmpty)
           if necessaryHasWilds && specializers.count != 0 {
             defaultedHeadMatrix.append(clause)
             continue
@@ -222,9 +221,12 @@ final class GIRGenFunction {
             let ref = self.B.createFunctionRef(destBB)
             destMap.append((name.key.string, destBB))
             switchNest.append((name.key.string, ref))
+            for _ in args {
+              _ = destBB.appendParameter(type: BottomType.shared)
+            }
           }
-
-          specializers[name.key.string, default: []].append(clause)
+          let specialClause = clause.bySpecializing(column: colIdx, patterns: args)
+          specializers[name.key.string, default: []].append(specialClause)
         case .variable(_):
           if defaults == nil {
             let defaultDestBB = self.B.buildContinuation(name: root.name + "#default")
@@ -244,8 +246,14 @@ final class GIRGenFunction {
         if necessaryHasWilds && !defaultedHeadMatrix.isEmpty {
           specializedMatrix.append(defaultedMatrix[0])
         }
-        unspecialized.remove(colIdx)
-        self.stepSpecialization(dest, specializedMatrix, params, returnCont, &unspecialized)
+        var parameters = params
+        if !dest.parameters.isEmpty {
+          parameters.remove(at: colIdx)
+          parameters.insert(contentsOf: dest.parameters as [Value], at: colIdx)
+        } else {
+          unspecialized.remove(colIdx)
+        }
+        self.stepSpecialization(dest, specializedMatrix, parameters, returnCont, &unspecialized)
         unspecialized.insert(colIdx)
       }
 
@@ -296,11 +304,12 @@ final class GIRGenFunction {
     switch body {
     case let .constructor(name, args):
       guard !args.isEmpty else {
-        let retVal = self.B.createDataInitSimple(name.key.string)
+        let retVal = self.B.createDataInit(name.key.string, [])
         _ = self.B.createApply(bb, retParam, [retVal])
         return
       }
-      fatalError()
+      let (newParent, bodyVal) = self.emitRValue(bb, body)
+      _ = self.B.createApply(newParent, retParam, [bodyVal])
     case let .apply(head, args):
       switch head {
       case .definition(_):
@@ -363,8 +372,62 @@ final class GIRGenFunction {
     return (sortedScores[0].0, wildcardColumns.contains(sortedScores[0].0))
   }
 
-  func emitRValue(_ body: Term<TT>) -> Value {
-    fatalError()
+  func emitRValue(_ parent: Continuation, _ body: Term<TT>) -> (Continuation, Value) {
+    switch body {
+    case let .apply(head, args):
+      switch head {
+      case let .definition(defName):
+        let constant = DeclRef(defName.key.string, .function)
+        let callee = self.B.module.lookupContinuation(constant)!
+        let calleeRef = self.B.createFunctionRef(callee)
+        let applyDest = self.B.buildContinuation(name: self.f.name + "apply#\(defName.key.string)")
+        let applyDestRef = self.B.createFunctionRef(applyDest)
+        let param = applyDest.appendParameter(type: BottomType.shared)
+        var lastParent = parent
+        var argVals = [Value]()
+        argVals.reserveCapacity(args.count)
+        for arg in args {
+          let (newParent, value) = self.emitElimAsRValue(lastParent, arg)
+          argVals.append(value)
+          lastParent = newParent
+        }
+        argVals.append(applyDestRef)
+        _ = self.B.createApply(parent, calleeRef, argVals)
+        return (applyDest, param)
+      case let .meta(mv):
+        guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
+          fatalError()
+        }
+        return self.emitRValue(parent, bind.body)
+      case let .variable(v):
+        guard let varLoc = self.varLocs[v.name] else {
+          fatalError()
+        }
+        return (parent, varLoc)
+      }
+    case let .constructor(tag, args):
+      var lastParent = parent
+      var argVals = [Value]()
+      argVals.reserveCapacity(args.count)
+      for arg in args {
+        let (newParent, value) = self.emitRValue(lastParent, arg)
+        argVals.append(value)
+        lastParent = newParent
+      }
+      return (lastParent, self.B.createDataInit(tag.key.string, argVals))
+    default:
+      print(body.description)
+      fatalError()
+    }
+  }
+
+  func emitElimAsRValue(_ parent: Continuation, _ elim: Elim<TT>) -> (Continuation, Value) {
+    switch elim {
+    case let .apply(val):
+      return self.emitRValue(parent, val)
+    case .project(_):
+      fatalError()
+    }
   }
 
   public var wildcardToken: TokenSyntax {
