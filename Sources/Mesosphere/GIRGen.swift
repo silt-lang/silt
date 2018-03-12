@@ -138,10 +138,19 @@ final class GIRGenFunction {
     return (params, ret)
   }
 
-  func allIrrefutable(_ patterns: [Pattern]) -> [Var]? {
+  func allIrrefutable(_ patterns: [Pattern], _ mask: Set<Int>) -> [Var]? {
     var result = [Var]()
     result.reserveCapacity(patterns.count)
-    for pattern in patterns {
+    for (idx, pattern) in patterns.enumerated() {
+      guard mask.contains(idx) else {
+        result.append(Var(wildcardName, 0))
+        continue
+      }
+
+      if case .absurd = pattern {
+        continue
+      }
+
       guard case let .variable(v) = pattern else {
         return nil
       }
@@ -166,20 +175,6 @@ final class GIRGenFunction {
       return
     }
 
-    guard let body = firstRow.body else {
-      _ = self.B.createUnreachable(self.f)
-      return
-    }
-
-    if let vars = allIrrefutable(firstRow.patterns) {
-      assert(vars.count == params.count)
-      for (v, param) in zip(vars, params) {
-        self.varLocs[v.name] = param
-      }
-      self.emitBodyExpr(self.f, returnCont, body)
-      return
-    }
-
     var unspecialized = Set<Int>(0..<params.count)
     self.stepSpecialization(self.f, matrix, params, returnCont, &unspecialized)
   }
@@ -187,12 +182,27 @@ final class GIRGenFunction {
   func stepSpecialization(
     _ root: Continuation, _ matrix: [Clause], _ params: [Value],
     _ returnCont: Value, _ unspecialized: inout Set<Int>) {
-    let scores = scoreColumns(matrix, params.count, unspecialized)
+    if matrix.count == 1, let vars = allIrrefutable(matrix[0].patterns, unspecialized) {
+      for (idx, v) in vars.enumerated() {
+        guard unspecialized.contains(idx) else { continue }
+        self.varLocs[v.name] = params[idx]
+      }
+      guard let body = matrix[0].body else {
+        _ = self.B.createUnreachable(self.f)
+        return
+      }
+      self.emitBodyExpr(root, returnCont, body)
+      return
+    }
+
+    let (colIdx, necessaryHasWilds) = scoreColumns(matrix, params.count, unspecialized)
     guard unspecialized.count == 1 else {
-      let (colIdx, _) = scores[0]
       var specializers = [String: [Clause]]()
       var switchNest = [(String, Value)]()
       var destMap = [(String, Continuation)]()
+      var defaultedHeadMatrix = [Clause]()
+      var defaultedMatrix = [Clause]()
+      var defaults: (cont: Continuation, ref: Value)? = nil
       for (idx, clause) in matrix.enumerated() {
         let pat = colIdx < clause.patterns.count
           ? clause.patterns[colIdx]
@@ -202,31 +212,51 @@ final class GIRGenFunction {
           fatalError()
         case let .constructor(name, args):
           assert(args.isEmpty)
+          if necessaryHasWilds && specializers.count != 0 {
+            defaultedHeadMatrix.append(clause)
+            continue
+          }
+
           if specializers[name.key.string] == nil {
             let destBB = self.B.buildContinuation(name: root.name + "#col\(colIdx)row\(idx)")
             let ref = self.B.createFunctionRef(destBB)
             destMap.append((name.key.string, destBB))
             switchNest.append((name.key.string, ref))
           }
+
           specializers[name.key.string, default: []].append(clause)
         case .variable(_):
-          fatalError()
+          if defaults == nil {
+            let defaultDestBB = self.B.buildContinuation(name: root.name + "#default")
+            let defaultRef = self.B.createFunctionRef(defaultDestBB)
+            defaults = (cont: defaultDestBB, ref: defaultRef)
+          }
+          defaultedMatrix.append(clause)
         }
       }
 
-      _ = self.B.createSwitchConstr(root, params[colIdx], switchNest)
+      _ = self.B.createSwitchConstr(root, params[colIdx], switchNest, defaults?.ref)
+      assert(!necessaryHasWilds || destMap.count == 1)
       for (key, dest) in destMap {
-        guard let specializedMatrix = specializers[key] else {
+        guard var specializedMatrix = specializers[key] else {
           fatalError()
+        }
+        if necessaryHasWilds && !defaultedHeadMatrix.isEmpty {
+          specializedMatrix.append(defaultedMatrix[0])
         }
         unspecialized.remove(colIdx)
         self.stepSpecialization(dest, specializedMatrix, params, returnCont, &unspecialized)
         unspecialized.insert(colIdx)
       }
+
+      if let (defaultDest, _) = defaults {
+        unspecialized.remove(colIdx)
+        self.stepSpecialization(defaultDest, defaultedHeadMatrix + defaultedMatrix, params, returnCont, &unspecialized)
+        unspecialized.insert(colIdx)
+      }
       return
     }
-    let (col, _) = scores[0]
-    self.emitFinalColumn(root, col, params[col], returnCont, matrix)
+    self.emitFinalColumn(root, colIdx, params[colIdx], returnCont, matrix)
   }
 
   func emitFinalColumn(_ parent: Continuation, _ colIdx: Int, _ param: Value, _ retParam: Value, _ matrix: [Clause]) {
@@ -243,7 +273,7 @@ final class GIRGenFunction {
       case .absurd:
         fatalError()
       case let .variable(v):
-        assert(matrix.count == 1)
+//        assert(matrix.count == 1)
         self.varLocs[v.name] = param
         self.emitBodyExpr(parent, retParam, body)
         self.varLocs[v.name] = nil
@@ -251,7 +281,7 @@ final class GIRGenFunction {
       case let .constructor(name, pats):
         let destBB = self.B.buildContinuation(name: parent.name + "#col\(colIdx)row\(idx)")
         let destRef = self.B.createFunctionRef(destBB)
-        assert(allIrrefutable(pats) != nil)
+//        assert(allIrrefutable(pats) != nil)
         for _ in pats {
           destBB.appendParameter(type: BottomType.shared, ownership: .owned)
         }
@@ -291,13 +321,16 @@ final class GIRGenFunction {
     }
   }
 
-  func scoreColumns(_ pm: [Clause], _ maxWidth: Int, _ keep: Set<Int>) -> [(Int, Int)] {
+  func scoreColumns(_ pm: [Clause], _ maxWidth: Int, _ keep: Set<Int>) -> (Int, Bool) {
+    assert(!pm.isEmpty)
+
     var scoreMatrix = [(Int, Int)]()
     scoreMatrix.reserveCapacity(maxWidth)
     for i in 0..<maxWidth {
       scoreMatrix.append((i, 0))
     }
 
+    var wildcardColumns = Set<Int>()
     for j in 0..<pm.count {
       for i in 0..<maxWidth {
         guard keep.contains(i) else {
@@ -307,6 +340,7 @@ final class GIRGenFunction {
 
         let clause = pm[j]
         guard i < clause.patterns.count else {
+          wildcardColumns.insert(i)
           continue
         }
 
@@ -314,15 +348,19 @@ final class GIRGenFunction {
         case .absurd:
           fatalError()
         case .variable(_):
+          wildcardColumns.insert(i)
           continue
         case .constructor(_, _):
+          guard !wildcardColumns.contains(i) else { continue }
           scoreMatrix[i].1 += 1
         }
       }
     }
-    return scoreMatrix.sorted(by: { (lhs, rhs) -> Bool in
+    let sortedScores = scoreMatrix.sorted(by: { (lhs, rhs) -> Bool in
       return lhs.1 > rhs.1
     })
+    assert(!sortedScores.isEmpty)
+    return (sortedScores[0].0, wildcardColumns.contains(sortedScores[0].0))
   }
 
   func emitRValue(_ body: Term<TT>) -> Value {

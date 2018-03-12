@@ -183,6 +183,7 @@ public final class SwitchConstrOp: TerminalOp {
   public init(_ parent: Continuation, matching value: Value,
               patterns: [(pattern: String, apply: Value)], default: Value?) {
     self.patterns = patterns
+    self.`default` = `default`
     super.init(opcode: .switchConstr, parent: parent)
 
     self.addOperands([Operand(owner: self, value: value)])
@@ -193,6 +194,12 @@ public final class SwitchConstrOp: TerminalOp {
         continue
       }
       successors_.append(Successor(parent, self, destCont))
+    }
+    if let defaultDest = `default` {
+      ops.append(Operand(owner: self, value: defaultDest))
+      if let destCont = (defaultDest as? FunctionRefOp)?.function {
+        successors_.append(Successor(parent, self, destCont))
+      }
     }
     self.addOperands(ops)
   }
@@ -208,6 +215,7 @@ public final class SwitchConstrOp: TerminalOp {
   }
 
   public let patterns: [(pattern: String, apply: Value)]
+  public let `default`: Value?
 }
 
 public final class DataInitSimpleOp: PrimOp {

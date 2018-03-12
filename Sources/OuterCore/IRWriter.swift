@@ -357,6 +357,12 @@ extension GIRWriter: PrimOpVisitor {
                       self.write(self.getID(of: arg.apply).description)
                     },
                     { self.write(" ; ") })
+    guard let defaultDest = op.`default` else {
+      return
+    }
+    self.write(" ; ")
+    self.write("default : ")
+    self.write(self.getID(of: defaultDest).description)
   }
 
   public func visitFunctionRefOp(_ op: FunctionRefOp) {
