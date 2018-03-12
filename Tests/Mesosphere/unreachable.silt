@@ -1,0 +1,20 @@
+-- RUN: %silt %s --dump girGen --no-colors 2>&1 | %FileCheck %s --prefixes CHECK-GIR
+
+
+-- CHECK-GIR: module unreachable where
+module unreachable where
+
+data Falsum : Type
+
+no-body : Falsum
+-- CHECK-GIR:  @unreachable.no-body
+-- CHECK-GIR-NEXT:    bb0(%0):
+-- CHECK-GIR-NEXT:      unreachable
+-- CHECK-GIR: } -- end gir function unreachable.no-body
+
+no-clause-body : Falsum -> Falsum
+no-clause-body ()
+-- CHECK-GIR: @unreachable.no-clause-body
+-- CHECK-GIR-NEXT: bb0(%0, %1):
+-- CHECK-GIR-NEXT:      unreachable
+-- CHECK-GIR: } -- end gir function unreachable.no-clause-body

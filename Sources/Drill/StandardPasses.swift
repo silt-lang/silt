@@ -10,8 +10,9 @@ import Lithosphere
 import Crust
 import Moho
 import Mantle
-import OuterCore
 import Seismography
+import Mesosphere
+import OuterCore
 
 enum Passes {
   /// Reads a file and returns both the String contents of the file and
@@ -68,10 +69,16 @@ enum Passes {
   /// The TypeCheck pass ensures a well-scoped program is also well-typed.
   static let typeCheck =
     DiagnosticGatePass(
-      Pass<DeclaredModule, Module>(name: "Type Check") { module, context in
+      Pass<DeclaredModule, TopLevelModule>(name: "Type Check") { module, ctx in
         let tc =
-          TypeChecker<CheckPhaseState>(CheckPhaseState(), context.engine,
-              options: context.options.typeCheckerDebugOptions)
+          TypeChecker<CheckPhaseState>(CheckPhaseState(), ctx.engine,
+              options: ctx.options.typeCheckerDebugOptions)
         return tc.checkTopLevelModule(module)
     })
+
+  static let girGen =
+    Pass<TopLevelModule, GIRModule>(name: "Generate GraphIR") { module, _ in
+      let girGenModule = GIRGenModule(module)
+      return girGenModule.emitTopLevelModule()
+    }
 }

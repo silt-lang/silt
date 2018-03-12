@@ -55,7 +55,7 @@ extension TypeChecker {
   ///
   /// This strategy is the most drastic form of evaluation and also the most
   /// expensive.  In most cases WHNF suffices.
-  func toNormalForm(_ t: TT) -> TT {
+  public func toNormalForm(_ t: TT) -> TT {
     let normTerm = self.toWeakHeadNormalForm(t).ignoreBlocking
     switch normTerm {
     case .refl:

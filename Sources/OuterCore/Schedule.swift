@@ -45,9 +45,13 @@ final class Schedule {
     self.scope = scope
     self.tag = tag
 
-    // until we have sth better simply use the RPO of the CFG
     var i = 0
     for n in scope.entry.reversePostOrder {
+      defer { i += 1 }
+      self.blocks.append(Block(n, [], i))
+      self.indices[n] = i
+    }
+    for n in scope.continuations where self.indices[n] == nil {
       defer { i += 1 }
       self.blocks.append(Block(n, [], i))
       self.indices[n] = i
@@ -73,9 +77,6 @@ private final class Scheduler {
   let scope: Scope
   let schedule: Schedule
 
-  private var def2early = [Value: Continuation]()
-  private var def2late = [Value: Continuation]()
-
   init(_ schedule: Schedule) {
     self.scope = schedule.scope
     self.schedule = schedule
@@ -87,9 +88,6 @@ private final class Scheduler {
       }
     case .late:
       fatalError()
-//      for (primop, _) in def2uses where primop is PrimOp {
-//        _ = self.schedule_late(primop)
-//      }
     }
   }
 

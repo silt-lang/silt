@@ -71,8 +71,8 @@ extension Named where I: Numeric & Comparable {
 
 /// Marks a keyed name that has been opened into scope by the type checker.
 public struct Opened<K, T> {
-  let key: K
-  let args: [Term<T>]
+  public let key: K
+  public let args: [Term<T>]
 
   init(_ key: K, _ args: [Term<T>]) {
     self.key = key
@@ -398,7 +398,9 @@ public final class Environment {
   ///
   /// The returned variable contains the appropriate de Bruijn index for the
   /// associated term.
-  public func lookupName(_ name: Name, _ elim: (TT, [Elim<TT>]) -> TT) -> (Var, TT)? {
+  public func lookupName(
+    _ name: Name, _ elim: (TT, [Elim<TT>]) -> TT
+  ) -> (Var, TT)? {
     guard !self.isEmpty else {
       return nil
     }
@@ -450,7 +452,7 @@ public struct Meta: Comparable, Hashable, CustomStringConvertible {
   public struct Binding {
     /// The arity of the given binding.
     let arity: Int
-    let body: TT
+    public let body: TT
 
     init(arity: Int, body: TT) {
       self.arity = arity
@@ -458,7 +460,7 @@ public struct Meta: Comparable, Hashable, CustomStringConvertible {
     }
 
     /// Returns the body of the metavariable binding as a TT term.
-    var internalize: TT {
+    public var internalize: TT {
       var tm: TT =  self.body
       for _ in 0..<self.arity {
         tm = TT.lambda(tm)
@@ -550,6 +552,16 @@ public struct Clause {
         return acc + Clause(patterns: pats, body: TT.type).boundCount
       }
     }
+  }
+
+  public func bySpecializing(column: Int, patterns: [Pattern]) -> Clause {
+    guard !patterns.isEmpty else {
+      return self
+    }
+    var pats = patterns
+    pats.remove(at: column)
+    pats.insert(contentsOf: patterns, at: column)
+    return Clause(patterns: pats, body: self.body)
   }
 }
 

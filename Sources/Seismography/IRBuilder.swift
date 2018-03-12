@@ -48,14 +48,16 @@ extension IRBuilder {
     return insert(FunctionRefOp(continuation: cont))
   }
 
-  public func createDataInitSimple(_ constr: String) -> DataInitSimpleOp {
-    return insert(DataInitSimpleOp(constructor: constr))
+  public func createDataInit(_ constr: String, _ args: [Value]) -> DataInitOp {
+    return insert(DataInitOp(constructor: constr, arguments: args))
   }
 
   public func createSwitchConstr(
-    _ parent: Continuation, _ src: Value, _ caseVals: [(String, Value)]
+    _ parent: Continuation, _ src: Value, _ caseVals: [(String, Value)],
+    _ default: Value? = nil
   ) -> SwitchConstrOp {
-    return insert(SwitchConstrOp(parent, matching: src, patterns: caseVals))
+    return insert(SwitchConstrOp(parent, matching: src, patterns: caseVals,
+                                 default: `default`))
   }
 
   public func createUnreachable(_ parent: Continuation) -> UnreachableOp {

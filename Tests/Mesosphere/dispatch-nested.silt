@@ -1,0 +1,28 @@
+-- RUN: %silt %s --dump girGen --no-colors 2>&1 | %FileCheck %s --prefixes CHECK-GIR
+
+-- CHECK-GIR: module dispatch-nested where
+module dispatch-nested where
+
+data Nat : Type where
+  zero : Nat
+  suc  : Nat -> Nat
+
+_+_ : Nat -> Nat -> Nat
+zero  + m = m
+suc n + m = suc (n + m)
+-- CHECK-GIR: dispatch-nested._+_
+-- CHECK-GIR: bb0(%0, %1, %2):
+-- CHECK-GIR:   %3 = function_ref @bb2
+-- CHECK-GIR:   %4 = function_ref @bb1
+-- CHECK-GIR:   switch_constr %0 ; dispatch-nested.zero : %3 ; dispatch-nested.suc : %4
+-- CHECK-GIR: bb1(%6):
+-- CHECK-GIR:   %7 = function_ref @bb0
+-- CHECK-GIR:   %8 = function_ref @bb3
+-- CHECK-GIR:   apply %7(%6 ; %1 ; %8)
+-- CHECK-GIR: bb2:
+-- CHECK-GIR:   apply %2(%1)
+-- CHECK-GIR: bb3(%11):
+-- CHECK-GIR:   %12 = data_init dispatch-nested.suc ; %11
+-- CHECK-GIR:   apply %2(%12)
+-- CHECK-GIR: } -- end gir function dispatch-nested._+_
+

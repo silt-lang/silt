@@ -82,6 +82,7 @@ public struct Invocation {
     let parseGIRFile = lexFile |> Passes.parseGIR
     let scopeCheckFile = parseFile |> Passes.scopeCheck
     let typeCheckFile = scopeCheckFile |> Passes.typeCheck
+    let girGenModule = typeCheckFile |> Passes.girGen
 
     for path in options.inputPaths {
       let url = URL(fileURLWithPath: path)
@@ -123,6 +124,10 @@ public struct Invocation {
       case .dump(.typecheck):
         run(typeCheckFile |> Pass(name: "Type Check") { module, _ in
           print(module)
+        })
+      case .dump(.girGen):
+        run(girGenModule |> Pass(name: "GraphIR Generation") { module, _ in
+          module.dump()
         })
       case .dump(.parseGIR):
         run(parseGIRFile |> Pass(name: "Dump Parsed GIR") { module, _ in

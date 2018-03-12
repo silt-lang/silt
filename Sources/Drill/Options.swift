@@ -48,6 +48,10 @@ public enum Mode {
     /// the source text and dump the solving process.
     case typecheck
 
+    /// The compiler will lex, layout, parse, scope check, type check, then
+    /// lower the module to GraphIR.
+    case girGen
+
     case parseGIR = "parse-gir"
   }
   case dump(DumpLayer)

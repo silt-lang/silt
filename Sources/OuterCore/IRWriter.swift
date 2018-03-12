@@ -279,14 +279,14 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     }
 
     return GID(kind: .bbLikeContinuation,
-              number: self.blocksContsToIDs[cont, default: 0])
+              number: self.blocksContsToIDs[cont, default: -1])
   }
 
   private func getID(of value: Value, in scope: Schedule? = nil) -> GID {
     self.setContext(scope ?? self.currentSchedule)
 
     guard self.valuesToIDs.isEmpty else {
-      return GID(kind: .ssaValue, number: self.valuesToIDs[value, default: 0])
+      return GID(kind: .ssaValue, number: self.valuesToIDs[value, default: -1])
     }
 
     if let scope = scope {
@@ -357,6 +357,12 @@ extension GIRWriter: PrimOpVisitor {
                       self.write(self.getID(of: arg.apply).description)
                     },
                     { self.write(" ; ") })
+    guard let defaultDest = op.`default` else {
+      return
+    }
+    self.write(" ; ")
+    self.write("default : ")
+    self.write(self.getID(of: defaultDest).description)
   }
 
   public func visitFunctionRefOp(_ op: FunctionRefOp) {
@@ -376,8 +382,15 @@ extension GIRWriter: PrimOpVisitor {
     self.write(self.getID(for: op.function, in: schedule).description)
   }
 
-  public func visitDataInitSimpleOp(_ op: DataInitSimpleOp) {
+  public func visitDataInitOp(_ op: DataInitOp) {
     self.write(op.constructor)
+    guard !op.operands.isEmpty else {
+      return
+    }
+    self.write(" ; ")
+    self.interleave(op.operands,
+                    { self.write(self.getID(of: $0.value).description) },
+                    { self.write(" ; ") })
   }
 
   public func visitUnreachableOp(_ op: UnreachableOp) {
