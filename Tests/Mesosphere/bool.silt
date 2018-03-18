@@ -1,0 +1,8 @@
+data Bool : Type where
+  true : Bool
+  false : Bool
+
+_&&_ : Bool -> Bool -> Bool
+true && x = x
+x && true = x
+_ && _ = false
