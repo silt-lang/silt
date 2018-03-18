@@ -10,6 +10,7 @@ let package = Package(
     .package(url: "https://github.com/llvm-swift/FileCheck.git", from: "0.0.4"),
     .package(url: "https://github.com/llvm-swift/Symbolic.git", from: "0.0.1"),
     .package(url: "https://github.com/onevcat/Rainbow.git", from: "3.0.0"),
+    .package(url: "https://github.com/llvm-swift/LLVMSwift.git", from: "0.2.3"),
     .package(url: "https://github.com/llvm-swift/Lite.git", from: "0.0.3"),
     .package(url: "https://github.com/llvm-swift/PrettyStackTrace.git", from: "0.0.1"),
   ],
@@ -25,7 +26,10 @@ let package = Package(
       dependencies: []),
     .target(
       name: "Drill",
-      dependencies: ["Boring", "Lithosphere", "Crust", "Moho", "Mantle", "Mesosphere", "OuterCore", "Seismography", "Utility"]),
+      dependencies: [
+        "Boring", "Lithosphere", "Crust", "Moho", "Mantle", "Seismography",
+        "Mesosphere", "OuterCore", "InnerCore", "Utility"
+    ]),
     .target(
       name: "silt",
       dependencies: ["Drill", "Utility"]),
@@ -53,5 +57,8 @@ let package = Package(
     .target(
       name: "Seismography",
       dependencies: ["Crust"]),
+    .target(
+      name: "InnerCore",
+      dependencies: ["Crust", "Seismography", "OuterCore", "LLVM"]),
   ]
 )
