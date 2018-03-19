@@ -7,45 +7,28 @@
 
 // MARK: RFC 3492
 
-// MARK: 5: Parameter values for Punycode
-
-private let base        = 36
-private let tmin        = 1
-private let tmax        = 26
-private let skew        = 38
-private let damp        = 700
-private let initialBias = 72
-private let initialN    = 128 as Unicode.UTF32.CodeUnit
-
-private func isValidUnicodeScalar(_ unit: Unicode.UTF32.CodeUnit) -> Bool {
-  return (unit < 0xD880) || (unit >= 0xE000 && unit <= 0x1FFFFF)
-}
-
-// MARK: 6.1: Bias adaptation function
-
-private func adapt(
-  _ startDelta: Int, _ numPoints: Int, _ firstTime: Bool) -> Int {
-  var delta = startDelta
-  if firstTime {
-    delta /= damp
-  } else {
-    delta /= 2
-  }
-  delta += delta / numPoints
-  var k = 0
-  while delta > ((base - tmin) * tmax) / 2 {
-    delta /= base - tmin
-    k += base
-  }
-  return k + (((base - tmin + 1) * delta) / (delta + skew))
-}
-
+/// An object that encodes and decodes UTF-8 strings using the Punycode encoding
+/// standard.
+///
+/// Punycode represents Unicode characters using only sequences of 7-bit ASCII
+/// characters and is suitable for interaction with legacy systems such as
+/// network hostnames for DNS lookups or symbol names in Mach-O binaries.
+///
+/// RFC 3492 describes the Punycode standard.  This file is a faithful
+/// recreation of these algorithms in Swift with added safety checks and
+/// type-safe encoding.
+///
+/// - warning: Creation of a `Punycode` object may be expensive and the object
+///            itself does not guarantee thread safety.  It is recommended that
+///            one instance be created per-thread if necessary.
 public final class Punycode {
   public let delimiter: String
   private let delimiterCodeUnit: UTF32.CodeUnit
   private let encodeTable: [Int: Character]
   private let decodeTable: [UTF32.CodeUnit: Int]
 
+  /// Creates a new, reusable Punycode encoder with the Silt's default
+  /// delimiter ("_") and encoding alphabet (`[a-zA-J]`).
   public init() {
     self.delimiter = "_"
     guard let delimUnitRes = UTF32.encode("_") else {
@@ -82,13 +65,13 @@ public final class Punycode {
     codeUnits.reserveCapacity(utf8String.count)
     let sink = { codeUnits.append($0) }
     guard !transcode(utf8String.makeIterator(), from: UTF8.self, to: UTF32.self,
-                    stoppingOnError: true, into: sink) else {
+                     stoppingOnError: true, into: sink) else {
       return nil
     }
     var sinkChars: [UTF32.CodeUnit] = []
     sinkChars.reserveCapacity(utf8String.count)
     guard self.decode(utf32String: codeUnits, &sinkChars) else {
-      fatalError()
+      return nil
     }
 
     var scalars: [Unicode.Scalar] = []
@@ -159,12 +142,12 @@ public final class Punycode {
     codeUnits.reserveCapacity(utf8String.count)
     let sink = { codeUnits.append($0) }
     guard !transcode(utf8String.makeIterator(), from: UTF8.self, to: UTF32.self,
-                    stoppingOnError: true, into: sink) else {
+                     stoppingOnError: true, into: sink) else {
       return nil
     }
     var sinkStr: String = ""
     guard self.encode(utf32String: codeUnits, &sinkStr) else {
-      fatalError()
+      return nil
     }
     return sinkStr
   }
@@ -243,4 +226,37 @@ public final class Punycode {
     }
     return true
   }
+}
+
+// MARK: 5: Parameter values for Punycode
+
+private let base        = 36
+private let tmin        = 1
+private let tmax        = 26
+private let skew        = 38
+private let damp        = 700
+private let initialBias = 72
+private let initialN    = 128 as Unicode.UTF32.CodeUnit
+
+private func isValidUnicodeScalar(_ unit: Unicode.UTF32.CodeUnit) -> Bool {
+  return (unit < 0xD880) || (unit >= 0xE000 && unit <= 0x1FFFFF)
+}
+
+// MARK: 6.1: Bias adaptation function
+
+private func adapt(
+  _ startDelta: Int, _ numPoints: Int, _ firstTime: Bool) -> Int {
+  var delta = startDelta
+  if firstTime {
+    delta /= damp
+  } else {
+    delta /= 2
+  }
+  delta += delta / numPoints
+  var k = 0
+  while delta > ((base - tmin) * tmax) / 2 {
+    delta /= base - tmin
+    k += base
+  }
+  return k + (((base - tmin + 1) * delta) / (delta + skew))
 }
