@@ -1,4 +1,4 @@
-/// IRWriter.swift
+/// GIRWriter.swift
 ///
 /// Copyright 2017, The Silt Language Project.
 ///
