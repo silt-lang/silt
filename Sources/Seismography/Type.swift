@@ -20,9 +20,49 @@ public struct NameAndType: Hashable {
   }
 }
 
+public protocol TypeVisitor {
+  func visitGIRExprType(_ type: GIRExprType)
+  func visitTypeMetadataType(_ type: TypeMetadataType)
+  func visitTypeType(_ type: TypeType)
+  func visitArchetypeType(_ type: ArchetypeType)
+  func visitParameterizedType(_ type: ParameterizedType)
+  func visitDataType(_ type: DataType)
+  func visitRecordType(_ type: RecordType)
+  func visitFunctionType(_ type: FunctionType)
+  func visitSubstitutedType(_ type: SubstitutedType)
+  func visitBottomType(_ type: BottomType)
+}
+
+extension TypeVisitor {
+  public func visitType(_ value: Value) {
+    switch value {
+    case let type as DataType:
+      return self.visitDataType(type)
+    case let type as RecordType:
+      return self.visitRecordType(type)
+    case let type as ArchetypeType:
+      return self.visitArchetypeType(type)
+    case let type as SubstitutedType:
+      return self.visitSubstitutedType(type)
+    case let type as FunctionType:
+      return self.visitFunctionType(type)
+    case let type as TypeMetadataType:
+      return self.visitTypeMetadataType(type)
+    case let type as TypeType:
+      return self.visitTypeType(type)
+    case let type as BottomType:
+      return self.visitBottomType(type)
+    case let type as GIRExprType:
+      return self.visitGIRExprType(type)
+    default:
+      fatalError("attempt to serialize unknown value \(value)")
+    }
+  }
+}
+
 // FIXME: Temporary
 public final class GIRExprType: GIRType {
-  let expr: ExprSyntax
+  public let expr: ExprSyntax
   public init(_ expr: ExprSyntax) {
     self.expr = expr
     super.init(name: "", type: TypeType.shared)

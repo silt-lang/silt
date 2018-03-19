@@ -47,54 +47,6 @@ extension Parameter {
   }
 }
 
-func name(for value: Value) -> String {
-  switch value {
-  case let type as DataType:
-    return escape(type.name)
-  case let type as RecordType:
-    return escape(type.name)
-  case let type as ArchetypeType:
-    let p = type.parent
-    return "\(name(for: p)).\(escape(p.parameter(at: type.index).name))"
-  case let type as SubstitutedType:
-    var s = "\(name(for: type.substitutee))["
-    var substs = [String]()
-    for param in type.substitutee.parameters {
-      if let subst = type.substitutions[param.archetype] {
-        substs.append(name(for: subst))
-      } else {
-        substs.append("_")
-      }
-    }
-    s += substs.joined(separator: ", ") + "]"
-    return s
-  case let type as FunctionType:
-    let args = type.arguments
-                   .map(name(for:))
-                   .joined(separator: ", ")
-    return "(\(args)) -> \(name(for: type.returnType))"
-  case is TypeMetadataType:
-    return "TypeMetadata"
-  case is TypeType:
-    return "Type"
-  case is BottomType:
-    return "⊥"
-  case is Continuation:
-    return "@\(escape(value.name))"
-  case is Parameter:
-    return "%\(escape(value.name))"
-  case is GIRExprType:
-    return "TYPE"
-  default:
-    fatalError("attempt to serialize unknown value \(value)")
-  }
-}
-
-func escape(_ name: String) -> String {
-  if Set(name).intersection("@[] ,()->").isEmpty { return name }
-  return "\"\(name)\""
-}
-
 public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
   private struct GID: Comparable, CustomStringConvertible {
     enum Kind: Int, Comparable {
@@ -142,7 +94,7 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     self.write("@")
     self.write(scheduleName)
     self.write(" : ")
-    self.write(name(for: schedule.blocks[0].parent.type))
+    self.visitType(schedule.blocks[0].parent.type)
     self.writeLine(" {")
     self.writeScheduleBlocks(schedule)
     self.write("} -- end gir function ")
@@ -197,9 +149,13 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
     self.write("(")
     let params = block.parent.parameters
     self.write(self.getID(of: params[0], in: schedule).description)
+    self.write(" : ")
+    self.visitType(params[0].type)
     for param in params.dropFirst() {
-      self.write(", ")
+      self.write("; ")
       self.write(self.getID(of: param, in: schedule).description)
+      self.write(" : ")
+      self.visitType(param.type)
     }
     self.write(")")
   }
@@ -336,7 +292,7 @@ extension GIRWriter: PrimOpVisitor {
                     { self.write(self.getID(of: $0.value).description) },
                     { self.write(" ; ") })
     self.write(") : ")
-    self.write(name(for: op.callee.type))
+    self.visitType(op.callee.type)
   }
 
   public func visitCopyValueOp(_ op: CopyValueOp) {
@@ -349,6 +305,8 @@ extension GIRWriter: PrimOpVisitor {
 
   public func visitSwitchConstrOp(_ op: SwitchConstrOp) {
     self.write(self.getID(of: op.matchedValue).description)
+    self.write(" : ")
+    self.visitType(op.matchedValue.type)
     self.write(" ; ")
     self.interleave(op.patterns,
                     { arg in
@@ -383,6 +341,8 @@ extension GIRWriter: PrimOpVisitor {
   }
 
   public func visitDataInitOp(_ op: DataInitOp) {
+    self.visitType(op.dataType)
+    self.write(" ; ")
     self.write(op.constructor)
     guard !op.operands.isEmpty else {
       return
@@ -393,6 +353,85 @@ extension GIRWriter: PrimOpVisitor {
                     { self.write(" ; ") })
   }
 
-  public func visitUnreachableOp(_ op: UnreachableOp) {
+  public func visitUnreachableOp(_ op: UnreachableOp) {}
+}
+
+extension GIRWriter: TypeVisitor {
+  public func visitGIRExprType(_ type: GIRExprType) {
+    self.write(type.expr.diagnosticSourceText)
+  }
+  public func visitTypeMetadataType(_ type: TypeMetadataType) {}
+  public func visitTypeType(_ type: TypeType) {}
+  public func visitArchetypeType(_ type: ArchetypeType) {}
+  public func visitParameterizedType(_ type: ParameterizedType) {}
+  public func visitDataType(_ type: DataType) {
+    self.write(type.name)
+  }
+  public func visitRecordType(_ type: RecordType) {
+    self.write(type.name)
+  }
+  public func visitFunctionType(_ type: FunctionType) {
+    guard !type.arguments.isEmpty else {
+      return self.visitType(type.returnType)
+    }
+    self.write("(")
+    self.interleave(type.arguments,
+                    { self.visitType($0) },
+                    { self.write(" ; ") })
+    self.write(") -> ")
+    return self.visitType(type.returnType)
+  }
+  public func visitSubstitutedType(_ type: SubstitutedType) {}
+  public func visitBottomType(_ type: BottomType) {
+    self.write("_")
   }
 }
+
+/*
+
+func name(for value: Value) -> String {
+  switch value {
+  case let type as DataType:
+    return escape(type.name)
+  case let type as RecordType:
+    return escape(type.name)
+  case let type as ArchetypeType:
+    let p = type.parent
+    return "\(name(for: p)).\(escape(p.parameter(at: type.index).name))"
+  case let type as SubstitutedType:
+    var s = "\(name(for: type.substitutee))["
+    var substs = [String]()
+    for param in type.substitutee.parameters {
+      if let subst = type.substitutions[param.archetype] {
+        substs.append(name(for: subst))
+      } else {
+        substs.append("_")
+      }
+    }
+    s += substs.joined(separator: ", ") + "]"
+    return s
+  case let type as FunctionType:
+    guard !type.arguments.isEmpty else {
+      return name(for: type.returnType)
+    }
+    let args = type.arguments
+                   .map(name(for:))
+                   .joined(separator: ", ")
+    return "(\(args)) -> \(name(for: type.returnType))"
+  case is TypeMetadataType:
+    return "TypeMetadata"
+  case is TypeType:
+    return "Type"
+  case is BottomType:
+    return "_"
+  case is Continuation:
+    return "@\(escape(value.name))"
+  case is Parameter:
+    return "%\(escape(value.name))"
+  case is GIRExprType:
+    return "TYPE"
+  default:
+    fatalError("attempt to serialize unknown value \(value)")
+  }
+}
+ */

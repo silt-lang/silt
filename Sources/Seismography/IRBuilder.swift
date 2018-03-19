@@ -14,9 +14,8 @@ public final class IRBuilder {
     self.module = module
   }
 
-  public func buildContinuation(
-    name: String, type: GIRType = BottomType.shared) -> Continuation {
-    let continuation = Continuation(name: name, type: type)
+  public func buildContinuation(name: String) -> Continuation {
+    let continuation = Continuation(name: name)
     module.addContinuation(continuation)
     return continuation
   }
@@ -48,8 +47,8 @@ extension IRBuilder {
     return insert(FunctionRefOp(continuation: cont))
   }
 
-  public func createDataInit(_ constr: String, _ args: [Value]) -> DataInitOp {
-    return insert(DataInitOp(constructor: constr, arguments: args))
+  public func createDataInit(_ constr: String, _ type: Value, _ args: [Value]) -> DataInitOp {
+    return insert(DataInitOp(constructor: constr, type: type, arguments: args))
   }
 
   public func createSwitchConstr(

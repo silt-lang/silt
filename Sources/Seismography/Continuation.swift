@@ -11,11 +11,6 @@ public struct ParameterSemantics {
 }
 
 public final class Continuation: Value, Graph {
-  enum Kind {
-    case basicBlock(parent: Continuation)
-    case topLevel
-    case functionHead(parent: Continuation)
-  }
   public private(set) var parameters = [Parameter]()
   public private(set) var destroys = [DestroyValueOp]()
 
@@ -24,7 +19,6 @@ public final class Continuation: Value, Graph {
   var predecessorList: Successor
   public weak var terminalOp: TerminalOp?
 
-  // FIXME: This can't possibly be right?
   public var predecessors: AnySequence<Continuation> {
     guard let first = self.predecessorList.parent else {
       return AnySequence<Continuation>([])
@@ -44,16 +38,28 @@ public final class Continuation: Value, Graph {
     }
   }
 
-  public override init(name: String, type: GIRType) {
+  public init(name: String) {
     self.predecessorList = Successor(nil)
-    super.init(name: name, type: type)
+    super.init(name: name, type: BottomType.shared /*to be overwritten*/)
   }
 
   @discardableResult
-  public func appendParameter(type: Value,
+  public func appendParameter(named name: String = "", type: Value,
                               ownership: Ownership = .owned) -> Parameter {
-    let param = Parameter(parent: self, index: parameters.count,
+    let param = Parameter(name: name, parent: self, index: parameters.count,
                           type: type, ownership: ownership)
+    parameters.append(param)
+    return param
+  }
+
+  @discardableResult
+  public func setReturnParameter(type: Value) -> Parameter {
+    guard let module = module else { fatalError() }
+
+    let returnTy = module.functionType(arguments: [type],
+                                       returnType: module.bottomType)
+    let param = Parameter(name: "", parent: self, index: parameters.count,
+                          type: returnTy, ownership: .owned)
     parameters.append(param)
     return param
   }
@@ -62,13 +68,26 @@ public final class Continuation: Value, Graph {
     self.destroys.append(value)
   }
 
+  public var returnValueType: Value {
+    guard let module = module else { fatalError() }
+
+    guard let lastTy = parameters.last?.type else {
+      return module.bottomType
+    }
+    guard let funcTy = lastTy as? FunctionType else {
+      return module.bottomType
+    }
+    return funcTy.arguments[0]
+  }
+
   public override var type: Value {
     get {
       guard let module = module else {
         fatalError("cannot get type of Continuation without module")
       }
-      return module.functionType(arguments: parameters.map { $0.type },
-                                 returnType: module.bottomType)
+      let returnTy = parameters.last?.type ?? module.bottomType
+      return module.functionType(arguments: parameters.dropLast().map { $0.type },
+                                 returnType: returnTy)
     }
     set { /* do nothing */ }
   }

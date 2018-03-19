@@ -19,9 +19,11 @@ public final class GIRModule {
   public let bottomType = BottomType.shared
   public let metadataType = TypeMetadataType()
   public let typeType = TypeType.shared
-
+  public let typeConverter = TypeConverter()
+  
   public init(name: String = "main") {
     self.name = name
+    self.typeConverter.module = self
   }
 
   public func addContinuation(_ continuation: Continuation) {

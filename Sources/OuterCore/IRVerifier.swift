@@ -47,14 +47,14 @@ public final class IRVerifier {
   }
 
   func verifyType(_ type: Value) {
-    trace("verifying GIR type '\(name(for: type))'") {
+    trace("verifying GIR type '\(type.name)'") {
       guard valueIsKnown(type) else {
-        fatalError("unknown type '\(name(for: type))'")
+        fatalError("unknown type '\(type.name)'")
       }
       switch type {
       case let type as ParameterizedType:
         fatalError("""
-          type \(name(for: type)) must have all parameters substituted
+          type \(type.name) must have all parameters substituted
           """)
       default:
         break

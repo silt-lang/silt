@@ -186,8 +186,13 @@ extension GIRGenFunction {
               fatalError()
           }
           let (pTys, _) = self.tc.unrollPi(ty.inside)
-          for (ty, _) in zip(pTys, args) {
-            _ = destBB.appendParameter(type: self.getLoweredType(ty.1))
+          for (ty, argPat) in zip(pTys, args) {
+            if case let .variable(vn) = argPat {
+              _ = destBB.appendParameter(named: vn.name.description,
+                                         type: self.getLoweredType(ty.1))
+            } else {
+              _ = destBB.appendParameter(type: self.getLoweredType(ty.1))
+            }
           }
         }
 
@@ -238,10 +243,13 @@ extension GIRGenFunction {
 
       var parameters = params
       if !dest.parameters.isEmpty {
-        for i in 0..<dest.parameters.count {
+        for (i, param) in dest.parameters.enumerated() {
           unspecialized.insert(parameters.count + i)
+          parameters.append(param)
+          if !param.name.isEmpty {
+            self.varLocs[Name(name: .implicit(.identifier(param.name)))] = param
+          }
         }
-        parameters.append(contentsOf: dest.parameters as [Value])
       }
       // Recur and specialize on this constructor head.
       unspecialized.remove(colIdx)

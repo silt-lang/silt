@@ -558,7 +558,7 @@ public struct Clause {
     guard !patterns.isEmpty else {
       return self
     }
-    var pats = patterns
+    var pats = self.patterns
     pats.append(contentsOf: patterns)
     return Clause(patterns: pats, body: self.body)
   }

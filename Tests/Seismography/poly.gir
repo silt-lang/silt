@@ -5,7 +5,7 @@ module poly where
 
 -- CHECK-NEXT: @id :
 @id : (T : Type) -> (T) -> (T -> _) {
--- CHECK: bb0(%0, [[VALUE1:%.*]], [[RETURN:%.*]]):
+-- CHECK: bb0(%0 : {{.*}} ; [[VALUE1:%.*]] : {{.*}} ; [[RETURN:%.*]] : {{.*}}):
 id(%0 : Type ; %1 : %0 ; %return : (%0) -> _):
   -- CHECK-NEXT: [[INPUT:%.*]] = copy_value [[VALUE1]]
   %2 = copy_value %1 : %0
