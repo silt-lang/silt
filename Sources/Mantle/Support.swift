@@ -559,8 +559,7 @@ public struct Clause {
       return self
     }
     var pats = patterns
-    pats.remove(at: column)
-    pats.insert(contentsOf: patterns, at: column)
+    pats.append(contentsOf: patterns)
     return Clause(patterns: pats, body: self.body)
   }
 }
