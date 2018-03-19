@@ -82,13 +82,13 @@ public final class Punycode {
     codeUnits.reserveCapacity(utf8String.count)
     let sink = { codeUnits.append($0) }
     guard !transcode(utf8String.makeIterator(), from: UTF8.self, to: UTF32.self,
-                    stoppingOnError: true, into: sink) else {
+                     stoppingOnError: true, into: sink) else {
       return nil
     }
     var sinkChars: [UTF32.CodeUnit] = []
     sinkChars.reserveCapacity(utf8String.count)
     guard self.decode(utf32String: codeUnits, &sinkChars) else {
-      fatalError()
+      return nil
     }
 
     var scalars: [Unicode.Scalar] = []
@@ -159,12 +159,12 @@ public final class Punycode {
     codeUnits.reserveCapacity(utf8String.count)
     let sink = { codeUnits.append($0) }
     guard !transcode(utf8String.makeIterator(), from: UTF8.self, to: UTF32.self,
-                    stoppingOnError: true, into: sink) else {
+                     stoppingOnError: true, into: sink) else {
       return nil
     }
     var sinkStr: String = ""
     guard self.encode(utf32String: codeUnits, &sinkStr) else {
-      fatalError()
+      return nil
     }
     return sinkStr
   }
