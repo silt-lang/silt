@@ -176,8 +176,23 @@ extension GIRGenFunction {
           // `function_ref` pointing at it in the switch nest.
           destMap.append((specKey, destBB))
           switchNest.append((specKey, ref))
-          for _ in args {
-            _ = destBB.appendParameter(type: BottomType.shared)
+
+          guard let def = self.tc.signature.lookupDefinition(name.key) else {
+            fatalError()
+          }
+          guard
+            case let .dataConstructor(_, _, ty) = def.inside
+            else {
+              fatalError()
+          }
+          let (pTys, _) = self.tc.unrollPi(ty.inside)
+          for (ty, argPat) in zip(pTys, args) {
+            if case let .variable(vn) = argPat {
+              _ = destBB.appendParameter(named: vn.name.description,
+                                         type: self.getLoweredType(ty.1))
+            } else {
+              _ = destBB.appendParameter(type: self.getLoweredType(ty.1))
+            }
           }
         }
 
@@ -227,21 +242,17 @@ extension GIRGenFunction {
       }
 
       var parameters = params
-      if dest.parameters.isEmpty {
-        // No parameters to unpack, no problem.  Specialize the column.
-        unspecialized.remove(colIdx)
-      } else {
-        // Fix the flattened parameters in place of the specialized constructor
-        // head at this column so the specialized matrix can wire up its
-        // arguments properly when it emits its body.
-        //
-        // FIXME: Generalize to n-many arguments by performing something that
-        // looks damn closed to a weakning on the unspecialized set.
-        assert(dest.parameters.count == 1) // FIXME: For now.
-        parameters.remove(at: colIdx)
-        parameters.insert(contentsOf: dest.parameters as [Value], at: colIdx)
+      if !dest.parameters.isEmpty {
+        for (i, param) in dest.parameters.enumerated() {
+          unspecialized.insert(parameters.count + i)
+          parameters.append(param)
+          if !param.name.isEmpty {
+            self.varLocs[Name(name: .implicit(.identifier(param.name)))] = param
+          }
+        }
       }
       // Recur and specialize on this constructor head.
+      unspecialized.remove(colIdx)
       self.stepSpecialization(dest, specializedMatrix, parameters,
                               returnCont, &unspecialized)
       unspecialized.insert(colIdx)
@@ -299,7 +310,16 @@ extension GIRGenFunction {
     switch body {
     case let .constructor(name, args):
       guard !args.isEmpty else {
-        let retVal = self.B.createDataInit(name.key.string, [])
+        guard let def = self.tc.signature.lookupDefinition(name.key) else {
+          fatalError()
+        }
+        guard
+          case let .dataConstructor(_, _, ty) = def.inside
+        else {
+          fatalError()
+        }
+        let type = self.getLoweredType(ty.inside)
+        let retVal = self.B.createDataInit(name.key.string, type, [])
         _ = self.B.createApply(bb, retParam, [retVal])
         return
       }

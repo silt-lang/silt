@@ -169,6 +169,10 @@ public final class FunctionRefOp: PrimOp {
   public override var result: Value? {
     return self
   }
+
+  public override var type: Value {
+    return self.function.type
+  }
 }
 
 public final class SwitchConstrOp: TerminalOp {
@@ -220,8 +224,10 @@ public final class SwitchConstrOp: TerminalOp {
 
 public final class DataInitOp: PrimOp {
   public let constructor: String
-  public init(constructor: String, arguments: [Value]) {
+  public let dataType: Value
+  public init(constructor: String, type: Value, arguments: [Value]) {
     self.constructor = constructor
+    self.dataType = type
     super.init(opcode: .dataInit)
     self.addOperands(arguments.map { Operand(owner: self, value: $0) })
   }

@@ -7,14 +7,14 @@ module unreachable where
 data Falsum : Type
 
 no-body : Falsum
--- CHECK-GIR:  @unreachable.no-body
--- CHECK-GIR-NEXT:    bb0(%0):
--- CHECK-GIR-NEXT:      unreachable
+-- CHECK-GIR:  @unreachable.no-body : (unreachable.Falsum) -> _ {
+-- CHECK-GIR-NEXT: bb0(%0 : (unreachable.Falsum) -> _):
+-- CHECK-GIR-NEXT:   unreachable
 -- CHECK-GIR: } -- end gir function unreachable.no-body
 
 no-clause-body : Falsum -> Falsum
 no-clause-body ()
--- CHECK-GIR: @unreachable.no-clause-body
--- CHECK-GIR-NEXT: bb0(%0, %1):
--- CHECK-GIR-NEXT:      unreachable
+-- CHECK-GIR: @unreachable.no-clause-body : (unreachable.Falsum) -> (unreachable.Falsum) -> _ {
+-- CHECK-GIR-NEXT: bb0(%0 : unreachable.Falsum; %1 : (unreachable.Falsum) -> _):
+-- CHECK-GIR-NEXT:   unreachable
 -- CHECK-GIR: } -- end gir function unreachable.no-clause-body

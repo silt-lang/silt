@@ -10,19 +10,19 @@ data Nat : Type where
 _+_ : Nat -> Nat -> Nat
 zero  + m = m
 suc n + m = suc (n + m)
--- CHECK-GIR: dispatch-nested._+_
--- CHECK-GIR: bb0(%0, %1, %2):
+-- CHECK-GIR: dispatch-nested._+_ : (dispatch-nested.Nat ; dispatch-nested.Nat) -> (dispatch-nested.Nat) -> _ {
+-- CHECK-GIR: bb0(%0 : dispatch-nested.Nat; %1 : dispatch-nested.Nat; %2 : (dispatch-nested.Nat) -> _):
 -- CHECK-GIR:   %3 = function_ref @bb2
 -- CHECK-GIR:   %4 = function_ref @bb1
--- CHECK-GIR:   switch_constr %0 ; dispatch-nested.zero : %3 ; dispatch-nested.suc : %4
--- CHECK-GIR: bb1(%6):
+-- CHECK-GIR:   switch_constr %0 : dispatch-nested.Nat ; dispatch-nested.zero : %3 ; dispatch-nested.suc : %4
+-- CHECK-GIR: bb1(%6 : dispatch-nested.Nat):
 -- CHECK-GIR:   %7 = function_ref @bb0
 -- CHECK-GIR:   %8 = function_ref @bb3
--- CHECK-GIR:   apply %7(%6 ; %1 ; %8)
+-- CHECK-GIR:   apply %7(%6 ; %1 ; %8) : (dispatch-nested.Nat ; dispatch-nested.Nat) -> (dispatch-nested.Nat) -> _
 -- CHECK-GIR: bb2:
--- CHECK-GIR:   apply %2(%1)
--- CHECK-GIR: bb3(%11):
--- CHECK-GIR:   %12 = data_init dispatch-nested.suc ; %11
--- CHECK-GIR:   apply %2(%12)
+-- CHECK-GIR:   apply %2(%1) : (dispatch-nested.Nat) -> _
+-- CHECK-GIR: bb3(%11 : dispatch-nested.Nat):
+-- CHECK-GIR:   %12 = data_init dispatch-nested.Nat ; dispatch-nested.suc ; %11
+-- CHECK-GIR:   apply %2(%12) : (dispatch-nested.Nat) -> _
 -- CHECK-GIR: } -- end gir function dispatch-nested._+_
 

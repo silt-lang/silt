@@ -65,11 +65,11 @@ public class Parameter: Value {
   public let index: Int
   public let ownership: Ownership
 
-  init(parent: Continuation, index: Int, type: Value, ownership: Ownership) {
+  init(name: String, parent: Continuation, index: Int, type: Value, ownership: Ownership) {
     self.parent = parent
     self.index = index
     self.ownership = ownership
-    super.init(name: "", type: type)
+    super.init(name: name, type: type)
   }
 
   var isOwned: Bool {

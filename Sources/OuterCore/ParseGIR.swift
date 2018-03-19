@@ -53,12 +53,12 @@ public final class GIRParser {
   func namedContinuation(_ B: IRBuilder, _ name: String) -> Continuation {
     // If there was no name specified for this block, just create a new one.
     if name.isEmpty {
-      return B.buildContinuation(name: name, type: BottomType.shared)
+      return B.buildContinuation(name: name)
     }
 
     // If the block has never been named yet, just create it.
     guard let cont = self.continuationsByName[name] else {
-      let cont = B.buildContinuation(name: name, type: BottomType.shared)
+      let cont = B.buildContinuation(name: name)
       self.continuationsByName[name] = cont
       return cont
     }
@@ -80,7 +80,7 @@ public final class GIRParser {
     guard let cont = self.continuationsByName[name] else {
       // Otherwise, create it and remember that this is a forward reference so
       // that we can diagnose use without definition problems.
-      let cont = B.buildContinuation(name: name, type: BottomType.shared)
+      let cont = B.buildContinuation(name: name)
       self.continuationsByName[name] = cont
       self.undefinedContinuation[cont] = syntax
       return cont
@@ -316,9 +316,10 @@ extension GIRParser {
       let resultFn = getReferencedContinuation(B, ident)
       resultValue = B.createFunctionRef(resultFn)
     case .dataInit:
-      let ident = try self.parser.parseQualifiedName()
-      _ = try self.parser.consume(.colon)
       let typeRepr = try self.parser.parseGIRTypeExpr()
+      _ = try self.parser.consume(.semicolon)
+      let ident = try self.parser.parseQualifiedName()
+      let type = GIRExprType(typeRepr)
 
       var args = [Value]()
       while case .semicolon = self.parser.peek() {
@@ -333,7 +334,7 @@ extension GIRParser {
         args.append(argVal)
       }
 
-      resultValue = B.createDataInit(ident.render, args)
+      resultValue = B.createDataInit(ident.render, type, args)
     case .unreachable:
       resultValue = B.createUnreachable(cont)
     }

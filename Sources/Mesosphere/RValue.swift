@@ -24,7 +24,7 @@ extension GIRGenFunction {
         let applyDest = self.B.buildContinuation(
                           name: self.f.name + "apply#\(defName.key.string)")
         let applyDestRef = self.B.createFunctionRef(applyDest)
-        let param = applyDest.appendParameter(type: BottomType.shared)
+        let param = applyDest.appendParameter(type: callee.returnValueType)
         var lastParent = parent
         var argVals = [Value]()
         argVals.reserveCapacity(args.count)
@@ -34,7 +34,7 @@ extension GIRGenFunction {
           lastParent = newParent
         }
         argVals.append(applyDestRef)
-        _ = self.B.createApply(parent, calleeRef, argVals)
+        _ = self.B.createApply(lastParent, calleeRef, argVals)
         return (applyDest, param)
       case let .meta(mv):
         guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
@@ -56,7 +56,17 @@ extension GIRGenFunction {
         argVals.append(value)
         lastParent = newParent
       }
-      return (lastParent, self.B.createDataInit(tag.key.string, argVals))
+      guard let def = self.tc.signature.lookupDefinition(tag.key) else {
+        fatalError()
+      }
+      guard
+        case let .dataConstructor(_, _, ty) = def.inside
+      else {
+          fatalError()
+      }
+      let (_, endType) = tc.unrollPi(ty.inside)
+      let type = self.getLoweredType(endType)
+      return (lastParent, self.B.createDataInit(tag.key.string, type, argVals))
     default:
       print(body.description)
       fatalError()

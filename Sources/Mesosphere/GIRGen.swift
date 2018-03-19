@@ -91,7 +91,7 @@ extension GIRGenModule {
     case let .invertible(body):
       let clauses = body.ignoreInvertibility
       let constant = DeclRef(name, .function)
-      let f = Continuation(name: constant.name, type: BottomType.shared)
+      let f = Continuation(name: constant.name)
       self.M.addContinuation(f)
       GIRGenFunction(self, f, ty, tel).emitFunction(clauses)
     }
@@ -133,13 +133,19 @@ final class GIRGenFunction {
     self.emitPatternMatrix(clauses, paramVals, returnCont)
   }
 
+  func getLoweredType(_ type: Type<TT>) -> GIRType {
+    return self.B.module.typeConverter.getLoweredType(self.tc, type)
+  }
+
   private func buildParameterList() -> ([Value], Value) {
     var params = [Value]()
     for (_, paramTy) in self.params {
-      let p = self.f.appendParameter(type: BottomType.shared, ownership: .owned)
+      let ty = self.getLoweredType(self.tc.toNormalForm(paramTy))
+      let p = self.f.appendParameter(type: ty, ownership: .owned)
       params.append(p)
     }
-    let ret = self.f.appendParameter(type: BottomType.shared, ownership: .owned)
+    let returnContTy = self.getLoweredType(self.tc.toNormalForm(self.returnTy))
+    let ret = self.f.setReturnParameter(type: returnContTy)
     return (params, ret)
   }
 }

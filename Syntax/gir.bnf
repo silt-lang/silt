@@ -59,7 +59,7 @@ gir-primop-stmt ::= (<gir-value-id> '=')? gir-primop
 
 gir-primop ::= 'function_ref' <qualified-name> ':' gir-type
 
-gir-primop ::= 'data_init' <gir-type> ';' <qualified-name> (';' <operand>)?
+gir-primop ::= 'data_init' <gir-type> ';' <qualified-name> ';' (';' <operand>)?
 
 gir-primop ::= 'copy_value' <operand>
 
