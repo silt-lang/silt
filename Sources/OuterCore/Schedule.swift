@@ -8,19 +8,19 @@
 import Seismography
 
 /// A schedule adds SSA-like operations before a CPS-style call. 
-final class Schedule {
+public final class Schedule {
   /// Whether this operation is scheduled early (before the 'terminator'), or
   /// late (after the 'terminator').
-  enum Tag {
+  public enum Tag {
     case early
     case late
   }
 
   /// A 'block' abstraction that 
-  final class Block: Equatable, Hashable {
-    var parent: Continuation
-    var primops: [PrimOp]
-    var index: Int
+  public final class Block: Equatable, Hashable {
+    public internal(set) var parent: Continuation
+    public internal(set)var primops: [PrimOp]
+    public internal(set)var index: Int
 
     init(_ parent: Continuation, _ primops: [PrimOp], _ idx: Int) {
       self.parent = parent
@@ -37,9 +37,9 @@ final class Schedule {
     }
   }
 
-  let scope: Scope
-  let tag: Tag
-  var blocks: [Block] = []
+  public let scope: Scope
+  public let tag: Tag
+  public internal(set) var blocks: [Block] = []
   var indices: [Continuation: Int] = [:]
   init(_ scope: Scope, _ tag: Tag) {
     self.scope = scope

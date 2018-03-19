@@ -8,12 +8,12 @@
 import Foundation
 import Seismography
 
-final class Scope {
+public final class Scope: Hashable {
   private var defs = Set<Value>()
-  let entry: Continuation
-  var continuations: [Continuation] = []
+  public let entry: Continuation
+  public private(set) var continuations: [Continuation] = []
 
-  var definitions: Set<Value> {
+  public var definitions: Set<Value> {
     return self.defs
   }
 
@@ -41,7 +41,7 @@ final class Scope {
     }
   }
 
-  func contains(_ val: Value) -> Bool {
+  public func contains(_ val: Value) -> Bool {
     return self.defs.contains(val)
   }
 
@@ -78,6 +78,28 @@ final class Scope {
         queue.append(succ)
       }
     }
+  }
+
+  public static func == (lhs: Scope, rhs: Scope) -> Bool {
+    return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+  }
+
+  public var hashValue: Int {
+    return ObjectIdentifier(self).hashValue
+  }
+}
+
+extension GIRModule {
+  public var topLevelScopes: [Scope] {
+    var scopes = [Scope]()
+    var visited = Set<Continuation>()
+    for cont in self.continuations {
+      guard visited.insert(cont).inserted else { continue }
+      let scope = Scope(cont)
+      scopes.append(scope)
+      visited.formUnion(scope.continuations)
+    }
+    return scopes
   }
 }
 

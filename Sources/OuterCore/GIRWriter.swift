@@ -14,12 +14,8 @@ extension GIRModule {
     let stream = FileHandle.standardOutput
     stream.write("module \(self.name) where")
     stream.write("\n")
-    var visited = Set<Continuation>()
-    for cont in self.continuations {
-      guard !visited.contains(cont) else { continue }
-      let scope = Scope(cont, visited)
+    for scope in topLevelScopes {
       scope.dump()
-      visited.formUnion(scope.continuations)
     }
   }
 }

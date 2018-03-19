@@ -19,38 +19,16 @@ test🔥 -> X10test_oeHDc
 
 ## Type Mangling
 
-Silt types will be mangled according to the following pseudocode rules.
+Top-level Silt types will be mangled according to the following pseudocode rules.
 
 ### Record Types
 
 ```
-mangle-record-type(name, indices) ::= 'R' len(name) name mangle-indices(indices)
+mangle-record-type(name, indices) ::= 'R' mangle-id(indices)
 ```
 
 ### Data Types
 
 ```
-mangle-data-type(name, indices) ::= 'D' len(name) name mangle-indices(indices)
-```
-
-### Metadata Types
-
-```
-mangle-opaque-metadata-type ::= 'O'
-mangle-metadata-type(underlying) ::= 'M' mangle-type(underlying)
-```
-
-#### Example
-
-### Function Types
-
-```
-mangle-function-type(parameters, return) ::= 
-  'F' mangle-types(parameters) 'r' mangle-type(return)
-```
-
-#### Example
-
-```
-(Nat, 💩) -> Bool -> Nat = FD3NatDX4lsIhFD4BoolrD3Nat
+mangle-data-type(name, indices) ::= 'D' mangle-id(name)
 ```
