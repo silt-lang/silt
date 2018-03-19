@@ -1,4 +1,4 @@
-/// IRBuilder.swift
+/// GIRBuilder.swift
 ///
 /// Copyright 2017, The Silt Language Project.
 ///
@@ -7,7 +7,7 @@
 
 import Foundation
 
-public final class IRBuilder {
+public final class GIRBuilder {
   public let module: GIRModule
 
   public init(module: GIRModule) {
@@ -26,7 +26,7 @@ public final class IRBuilder {
   }
 }
 
-extension IRBuilder {
+extension GIRBuilder {
   public func createApply(
     _ parent: Continuation, _ fnVal: Value, _ argVals: [Value]) -> ApplyOp {
     return insert(ApplyOp(parent, fnVal, argVals))

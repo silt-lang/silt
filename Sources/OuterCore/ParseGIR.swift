@@ -50,7 +50,7 @@ public final class GIRParser {
     return try actions()
   }
 
-  func namedContinuation(_ B: IRBuilder, _ name: String) -> Continuation {
+  func namedContinuation(_ B: GIRBuilder, _ name: String) -> Continuation {
     // If there was no name specified for this block, just create a new one.
     if name.isEmpty {
       return B.buildContinuation(name: name)
@@ -73,7 +73,7 @@ public final class GIRParser {
   }
 
   func getReferencedContinuation(
-    _ B: IRBuilder, _ syntax: TokenSyntax) -> Continuation {
+    _ B: GIRBuilder, _ syntax: TokenSyntax) -> Continuation {
     assert(syntax.render.starts(with: "@"))
     let name = String(syntax.render.dropFirst())
     // If the block has already been created, use it.
@@ -131,7 +131,7 @@ extension GIRParser {
       _ = try self.parser.consume(.whereKeyword)
       let mod = GIRModule(name: moduleId)
       self.module = mod
-      let builder = IRBuilder(module: mod)
+      let builder = GIRBuilder(module: mod)
       try self.parseDecls(builder)
       assert(self.parser.currentToken?.tokenKind == .eof)
       return mod
@@ -140,13 +140,13 @@ extension GIRParser {
     }
   }
 
-  func parseDecls(_ B: IRBuilder) throws {
+  func parseDecls(_ B: GIRBuilder) throws {
     while self.parser.peek() != .rightBrace && self.parser.peek() != .eof {
       _ = try parseDecl(B)
     }
   }
 
-  func parseDecl(_ B: IRBuilder) throws -> Bool {
+  func parseDecl(_ B: GIRBuilder) throws -> Bool {
     guard
       case let .identifier(identStr) = parser.peek(), identStr.starts(with: "@")
     else {
@@ -167,7 +167,7 @@ extension GIRParser {
     }
   }
 
-  func parseGIRBasicBlock(_ B: IRBuilder) throws -> Bool {
+  func parseGIRBasicBlock(_ B: GIRBuilder) throws -> Bool {
     let ident = try self.parser.parseIdentifierToken()
     var blockName = ident.render
     if blockName.hasSuffix(":") {
@@ -212,7 +212,7 @@ extension GIRParser {
   }
 
   func parseGIRInstruction(
-    _ B: IRBuilder, in cont: Continuation) throws -> Bool {
+    _ B: GIRBuilder, in cont: Continuation) throws -> Bool {
     guard self.parser.peekToken()!.leadingTrivia.containsNewline else {
       fatalError("Instruction must begin on a new line")
     }

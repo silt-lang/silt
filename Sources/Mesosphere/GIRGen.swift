@@ -110,7 +110,7 @@ extension GIRGenModule {
 
 final class GIRGenFunction {
   var f: Continuation
-  let B: IRBuilder
+  let B: GIRBuilder
   let params: [(Name, Type<TT>)]
   let returnTy: Type<TT>
   let telescope: Telescope<TT>
@@ -120,7 +120,7 @@ final class GIRGenFunction {
   init(_ GGM: GIRGenModule, _ f: Continuation,
        _ ty: Type<TT>, _ tel: Telescope<TT>) {
     self.f = f
-    self.B = IRBuilder(module: GGM.M)
+    self.B = GIRBuilder(module: GGM.M)
     self.telescope = tel
     let (ps, result) = GGM.tc.unrollPi(ty)
     self.params = ps
