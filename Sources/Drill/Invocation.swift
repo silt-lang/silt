@@ -13,6 +13,7 @@ import Crust
 import Moho
 import Mantle
 import OuterCore
+import InnerCore
 
 extension Diagnostic.Message {
   static let noInputFiles = Diagnostic.Message(.error,
@@ -93,6 +94,7 @@ public struct Invocation {
     let scopeCheckFile = parseFile |> Passes.scopeCheck
     let typeCheckFile = scopeCheckFile |> Passes.typeCheck
     let girGenModule = typeCheckFile |> Passes.girGen
+    let irGenModule = girGenModule |> Passes.irGen
 
     for url in options.inputURLs {
       func run<PassTy: PassProtocol>(_ pass: PassTy) -> PassTy.Output?
@@ -134,11 +136,15 @@ public struct Invocation {
           print(module)
         })
       case .dump(.girGen):
-        run(girGenModule |> Pass(name: "GraphIR Generation") { module, _ in
+        run(girGenModule |> Pass(name: "Dump Generated GIR") { module, _ in
           module.dump()
         })
       case .dump(.parseGIR):
         run(parseGIRFile |> Pass(name: "Dump Parsed GIR") { module, _ in
+          module.dump()
+        })
+      case .dump(.irGen):
+        run(irGenModule |> Pass(name: "Dump LLVM IR") { module, _ in
           module.dump()
         })
       case .verify(let verification):

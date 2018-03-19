@@ -8,11 +8,13 @@
 import Foundation
 import Lithosphere
 import Crust
+import LLVM
 import Moho
 import Mantle
 import Seismography
 import Mesosphere
 import OuterCore
+import InnerCore
 
 private func processImportedFile(_ modPath: URL) -> LocalNames? {
   let options = Options()
@@ -110,5 +112,10 @@ enum Passes {
     Pass<TopLevelModule, GIRModule>(name: "Generate GraphIR") { module, _ in
       let girGenModule = GIRGenModule(module)
       return girGenModule.emitTopLevelModule()
+    }
+
+  static let irGen =
+    Pass<GIRModule, LLVM.Module>(name: "Generate LLVM IR") { module, _ in
+      return IRGen.emit(module)
     }
 }

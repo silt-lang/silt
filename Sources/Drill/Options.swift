@@ -54,6 +54,10 @@ public enum Mode {
     /// lower the module to GraphIR.
     case girGen = "girgen"
 
+    /// The compiler will lex, layout, parse, scope check, type check, lower
+    /// to GIR, then lower the module to LLVM IR.
+    case irGen = "irgen"
+
     /// The compiler will parse a GIR module then dump the parsed module.
     case parseGIR = "parse-gir"
   }

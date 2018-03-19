@@ -1,18 +1,24 @@
 /// GIRMangler.swift
 ///
-/// Copyright 2017, The Silt Language Project.
+/// Copyright 2017-2018, The Silt Language Project.
 ///
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 
 import Foundation
-import LLVM
 import Seismography
 import OuterCore
 
 public struct GIRMangler {
   let punycoder = Punycode()
+
   public init() {}
+
+  func prefix(_ isTopLevel: Bool) -> String {
+    return isTopLevel ? "_S" : ""
+  }
+
+  /// Mangles a Silt identifier, punycode-encoding if necessary.
   public func mangleIdentifier(_ identifier: String) -> String {
     let requiresPunycode = identifier.unicodeScalars.contains { !$0.isASCII }
     if requiresPunycode {
@@ -24,7 +30,17 @@ public struct GIRMangler {
     return "\(identifier.utf8.count)\(identifier)"
   }
 
+  public func mangle(_ dataType: DataType,
+                     isTopLevel: Bool = false) -> String {
+    return "\(prefix(isTopLevel))D\(mangleIdentifier(dataType.name))"
+  }
+
+  public func mangle(_ recordType: RecordType,
+                     isTopLevel: Bool = false) -> String {
+    return "\(prefix(isTopLevel))R\(mangleIdentifier(recordType.name))"
+  }
+
   public func mangle(_ continuation: Continuation) -> String {
-    return "C\(mangleIdentifier(continuation.name))"
+    return "\(prefix(true))C\(mangleIdentifier(continuation.name))"
   }
 }
