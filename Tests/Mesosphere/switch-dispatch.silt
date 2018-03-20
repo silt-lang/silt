@@ -1,4 +1,4 @@
--- RUN: %silt %s --dump girGen --no-colors 2>&1 | %FileCheck %s
+-- RUN: %silt %s --dump girgen --no-colors 2>&1 | %FileCheck %s
 
 -- CHECK: module switch-dispatch where
 module switch-dispatch where

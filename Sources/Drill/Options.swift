@@ -42,6 +42,8 @@ public enum Mode {
     /// file from the token stream including implicit scope marking tokens.
     case shined
 
+    /// The compiler will lex, layout, parse, and scope check the source text
+    /// then print the scopes to stdout.
     case scopes
 
     /// The compiler will lex, layout, parse, scope check, then type check
@@ -50,8 +52,9 @@ public enum Mode {
 
     /// The compiler will lex, layout, parse, scope check, type check, then
     /// lower the module to GraphIR.
-    case girGen
+    case girGen = "girgen"
 
+    /// The compiler will parse a GIR module then dump the parsed module.
     case parseGIR = "parse-gir"
   }
   case dump(DumpLayer)
