@@ -41,7 +41,7 @@ public final class Schedule {
   public let tag: Tag
   public internal(set) var blocks: [Block] = []
   var indices: [Continuation: Int] = [:]
-  init(_ scope: Scope, _ tag: Tag) {
+  public init(_ scope: Scope, _ tag: Tag) {
     self.scope = scope
     self.tag = tag
 

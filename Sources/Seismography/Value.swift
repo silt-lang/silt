@@ -68,7 +68,7 @@ public enum Ownership {
 }
 
 public class Parameter: Value {
-  unowned let parent: Continuation
+  unowned public let parent: Continuation
   public let index: Int
   public let ownership: Ownership = .owned
 

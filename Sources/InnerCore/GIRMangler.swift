@@ -30,6 +30,10 @@ public struct GIRMangler {
     return "\(identifier.utf8.count)\(identifier)"
   }
 
+  public func mangle(_ module: GIRModule) -> String {
+    return "\(prefix(true))\(mangleIdentifier(module.name))"
+  }
+
   public func mangle(_ dataType: DataType,
                      isTopLevel: Bool = false) -> String {
     return "\(prefix(isTopLevel))D\(mangleIdentifier(dataType.name))"
