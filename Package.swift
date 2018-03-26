@@ -59,6 +59,6 @@ let package = Package(
       dependencies: ["Crust"]),
     .target(
       name: "InnerCore",
-      dependencies: ["Crust", "Seismography", "OuterCore", "LLVM"]),
+      dependencies: ["Crust", "Seismography", "Mesosphere", "OuterCore", "LLVM"]),
   ]
 )

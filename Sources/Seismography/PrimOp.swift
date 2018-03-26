@@ -277,40 +277,39 @@ public final class UnreachableOp: TerminalOp {
 }
 
 public protocol PrimOpVisitor {
+  associatedtype Ret
   func visitAllocaOp(_ op: AllocaOp)
-  func visitApplyOp(_ op: ApplyOp)
-  func visitCopyValueOp(_ op: CopyValueOp)
+  func visitApplyOp(_ op: ApplyOp) -> Ret
+  func visitCopyValueOp(_ op: CopyValueOp) -> Ret
   func visitDeallocaOp(_ op: DeallocaOp)
-  func visitDestroyValueOp(_ op: DestroyValueOp)
-  func visitFunctionRefOp(_ op: FunctionRefOp)
-  func visitSwitchConstrOp(_ op: SwitchConstrOp)
-  func visitDataInitOp(_ op: DataInitOp)
-  func visitUnreachableOp(_ op: UnreachableOp)
+  func visitDestroyValueOp(_ op: DestroyValueOp) -> Ret
+  func visitFunctionRefOp(_ op: FunctionRefOp) -> Ret
+  func visitSwitchConstrOp(_ op: SwitchConstrOp) -> Ret
+  func visitDataInitOp(_ op: DataInitOp) -> Ret
+  func visitUnreachableOp(_ op: UnreachableOp) -> Ret
 }
 
 extension PrimOpVisitor {
-  public func visitPrimOp(_ code: PrimOp) {
+  public func visitPrimOp(_ code: PrimOp) -> Ret {
     switch code.opcode {
     case .noop:
       fatalError()
+      // swiftlint:disable force_cast
+    case .apply: return self.visitApplyOp(code as! ApplyOp)
+      // swiftlint:disable force_cast
+    case .copyValue: return self.visitCopyValueOp(code as! CopyValueOp)
     // swiftlint:disable force_cast
-    case .alloca: self.visitAllocaOp(code as! AllocaOp)
+    case .dealloca: return self.visitDeallocaOp(code as! DeallocaOp)
+      // swiftlint:disable force_cast
+    case .destroyValue: return self.visitDestroyValueOp(code as! DestroyValueOp)
+      // swiftlint:disable force_cast
+    case .functionRef: return self.visitFunctionRefOp(code as! FunctionRefOp)
+      // swiftlint:disable force_cast
+    case .switchConstr: return self.visitSwitchConstrOp(code as! SwitchConstrOp)
+      // swiftlint:disable force_cast
+    case .dataInit: return self.visitDataInitOp(code as! DataInitOp)
     // swiftlint:disable force_cast
-    case .apply: self.visitApplyOp(code as! ApplyOp)
-    // swiftlint:disable force_cast
-    case .copyValue: self.visitCopyValueOp(code as! CopyValueOp)
-    // swiftlint:disable force_cast
-    case .dealloca: self.visitDeallocaOp(code as! DeallocaOp)
-    // swiftlint:disable force_cast
-    case .destroyValue: self.visitDestroyValueOp(code as! DestroyValueOp)
-    // swiftlint:disable force_cast
-    case .functionRef: self.visitFunctionRefOp(code as! FunctionRefOp)
-    // swiftlint:disable force_cast
-    case .switchConstr: self.visitSwitchConstrOp(code as! SwitchConstrOp)
-    // swiftlint:disable force_cast
-    case .dataInit: self.visitDataInitOp(code as! DataInitOp)
-    // swiftlint:disable force_cast
-    case .unreachable: self.visitUnreachableOp(code as! UnreachableOp)
+    case .unreachable: return self.visitUnreachableOp(code as! UnreachableOp)
     }
   }
 }
