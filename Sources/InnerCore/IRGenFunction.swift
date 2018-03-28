@@ -5,6 +5,7 @@ import PrettyStackTrace
 
 final class IRGenFunction: PrimOpVisitor {
   unowned let IGM: IRGenModule
+  var igr: IRGenRuntime!
   let scope: Scope
   let schedule: Schedule
   var function: Function?
@@ -19,15 +20,18 @@ final class IRGenFunction: PrimOpVisitor {
     self.IGM = irGenModule
     self.schedule = Schedule(scope, .early)
     self.scope = scope
+    self.igr = IRGenRuntime(irGenFunction: self)
   }
 
   func emitDeclaration() {
     trace("emitting LLVM IR declaration for function '\(scope.entry.name)'") {
       let name = IGM.mangler.mangle(scope.entry)
-      let bottom = PointerType.toVoid
+      let returnIGT = IRGenType(type: returnType(), irGenModule: IGM)
       let type = FunctionType(argTypes:
         scope.entry.parameters
-             .dropLast().map { _ in bottom}, returnType: bottom)
+             .dropLast().map {
+               IRGenType(type: $0.type, irGenModule: IGM).emit()
+             }, returnType: returnIGT.emit())
       self.function = B.addFunction(name, type: type)
     }
   }
@@ -71,6 +75,19 @@ final class IRGenFunction: PrimOpVisitor {
     }
   }
 
+  func returnType() -> GIRType {
+    guard let lastParam = scope.entry.parameters.last else {
+      fatalError("entry continuation with no parameters?")
+    }
+    guard let retCont = lastParam.type as? Seismography.FunctionType else {
+      fatalError("last parameter is not continuation?")
+    }
+    guard let retType = retCont.arguments.first else {
+      fatalError("return continuation has no parameters?")
+    }
+    return retType
+  }
+
   func visitApplyOp(_ op: ApplyOp) -> IRValue {
     return trace("emitting LLVM IR for apply '\(op)'") {
       switch op.callee {
@@ -94,19 +111,24 @@ final class IRGenFunction: PrimOpVisitor {
 
   func visitCopyValueOp(_ op: CopyValueOp) -> IRValue {
     return trace("emitting LLVM IR for copy_value '\(op)'") {
-      return B.buildUnreachable()
+      let val = emit(op.value.value)
+      return igr.emitCopyValue(val)
     }
   }
 
   func visitDestroyValueOp(_ op: DestroyValueOp) -> IRValue {
     return trace("emitting LLVM IR for destroy_value '\(op)'") {
-      return B.buildUnreachable()
+      let val = emit(op.value.value)
+      igr.emitDestroyValue(val)
+      return 0
     }
   }
 
   func visitFunctionRefOp(_ op: FunctionRefOp) -> IRValue {
     return trace("emitting LLVM IR for function_ref '\(op)'") {
-      return blockMap[op.function]!
+      if let b = blockMap[op.function] { return b }
+      // recursion is not handled yet
+      return B.buildUnreachable()
     }
   }
 
