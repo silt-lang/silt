@@ -32,7 +32,7 @@ let package = Package(
     ]),
     .target(
       name: "silt",
-      dependencies: ["Drill", "Utility"]),
+      dependencies: ["Drill", "Utility", "Ferrite"]),
     .target(
       name: "SyntaxGen",
       dependencies: ["Utility", "Lithosphere"]),
@@ -60,5 +60,9 @@ let package = Package(
     .target(
       name: "InnerCore",
       dependencies: ["Crust", "Seismography", "Mesosphere", "OuterCore", "LLVM"]),
-  ]
+    .target(
+      name: "Ferrite",
+      dependencies: []),
+  ],
+  cxxLanguageStandard: .cxx14
 )
