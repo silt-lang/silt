@@ -21,8 +21,11 @@ let package = Package(
       name: "Crust",
       dependencies: ["Lithosphere"]),
     .target(
+      name: "Boring",
+      dependencies: []),
+    .target(
       name: "Drill",
-      dependencies: ["Lithosphere", "Crust", "Moho", "Mantle", "Mesosphere", "OuterCore", "Seismography", "Utility"]),
+      dependencies: ["Boring", "Lithosphere", "Crust", "Moho", "Mantle", "Mesosphere", "OuterCore", "Seismography", "Utility"]),
     .target(
       name: "silt",
       dependencies: ["Drill", "Utility"]),
