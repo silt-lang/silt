@@ -11,7 +11,7 @@ import Lithosphere
 typealias FullyQualifiedName = QualifiedName
 
 // A mapping of module-defined names to information about that name.
-typealias LocalNames = [Name: NameInfo]
+public typealias LocalNames = [Name: NameInfo]
 
 // A namespace is a fully-qualified named scope into which a number of unique
 // names may be placed.
@@ -44,7 +44,7 @@ final class Scope {
   // contains multiple items then that name is ambiguous.
   var openedNames: [Name: [FullyQualifiedName]]
   // The imported modules.
-  var importedModules: [FullyQualifiedName: (NumImplicitArguments, LocalNames)]
+  var importedModules: [FullyQualifiedName: LocalNames]
 
   var fixities: [Name: FixityDeclSyntax]
 

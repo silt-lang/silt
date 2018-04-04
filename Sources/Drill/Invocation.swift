@@ -19,6 +19,16 @@ extension Diagnostic.Message {
                                                "no input files provided")
 }
 
+extension Passes {
+  // Create passes that perform the whole readFile->...->finalPass pipeline.
+  static let lexFile = Passes.readFile |> Passes.lex
+  static let shineFile = lexFile |> Passes.shine
+  static let parseFile = shineFile |> Passes.parse
+  static let scopeCheckFile = parseFile |> Passes.scopeCheck
+  static let scopeCheckAsImport = parseFile |> Passes.scopeCheckImport
+  static let typeCheckFile = scopeCheckFile |> Passes.typeCheck
+}
+
 public struct Invocation {
   public let options: Options
 
@@ -64,7 +74,7 @@ public struct Invocation {
       Rainbow.outputTarget = .console
     }
 
-    if options.inputPaths.isEmpty {
+    if options.inputURLs.isEmpty {
       context.engine.diagnose(.noInputFiles)
       return true
     }
@@ -84,9 +94,7 @@ public struct Invocation {
     let typeCheckFile = scopeCheckFile |> Passes.typeCheck
     let girGenModule = typeCheckFile |> Passes.girGen
 
-    for path in options.inputPaths {
-      let url = URL(fileURLWithPath: path)
-
+    for url in options.inputURLs {
       func run<PassTy: PassProtocol>(_ pass: PassTy) -> PassTy.Output?
         where PassTy.Input == URL {
         return pass.run(url, in: context)
@@ -96,33 +104,33 @@ public struct Invocation {
       case .compile:
         fatalError("only Parse is implemented")
       case .dump(.tokens):
-        run(lexFile |> Pass(name: "Describe Tokens") { tokens, _ in
+        run(Passes.lexFile |> Pass(name: "Describe Tokens") { tokens, _ in
           TokenDescriber.describe(tokens, to: &stdoutStreamHandle)
         })
       case .dump(.file):
-        run(lexFile |> Pass(name: "Reprint File") { tokens, _ -> Void in
+        run(Passes.lexFile |> Pass(name: "Reprint File") { tokens, _ -> Void in
           for token in tokens {
             token.writeSourceText(to: &stdoutStreamHandle,
                                   includeImplicit: false)
           }
         })
       case .dump(.shined):
-        run(shineFile |> Pass(name: "Dump Shined") { tokens, _ in
+        run(Passes.shineFile |> Pass(name: "Dump Shined") { tokens, _ in
           for token in tokens {
             token.writeSourceText(to: &stdoutStreamHandle,
                                   includeImplicit: true)
           }
         })
       case .dump(.parse):
-        run(parseFile |> Pass(name: "Dump Parsed") { module, _ in
+        run(Passes.parseFile |> Pass(name: "Dump Parsed") { module, _ in
           SyntaxDumper(stream: &stderrStreamHandle).dump(module)
         })
       case .dump(.scopes):
-        run(scopeCheckFile |> Pass(name: "Dump Scopes") { module, _ in
+        run(Passes.scopeCheckFile |> Pass(name: "Dump Scopes") { module, _ in
           print(module)
         })
       case .dump(.typecheck):
-        run(typeCheckFile |> Pass(name: "Type Check") { module, _ in
+        run(Passes.typeCheckFile |> Pass(name: "Type Check") { module, _ in
           print(module)
         })
       case .dump(.girGen):
@@ -137,10 +145,10 @@ public struct Invocation {
         context.engine.unregister(printingConsumerToken)
         switch verification {
         case .parse:
-          return run(makeVerifyPass(url: url, pass: parseFile,
+          return run(makeVerifyPass(url: url, pass: Passes.parseFile,
                                     context: context))!
         case .scopes:
-          return run(makeVerifyPass(url: url, pass: scopeCheckFile,
+          return run(makeVerifyPass(url: url, pass: Passes.scopeCheckFile,
                                     context: context))!
         case .typecheck:
           return run(makeVerifyPass(url: url, pass: typeCheckFile,

@@ -96,7 +96,10 @@ func parseOptions() -> Options {
       kind: [String].self,
       usage: "One or more input file(s)",
       completion: .filename),
-    to: { opt, fs in opt.inputPaths.formUnion(fs) })
+    to: { opt, fs in
+      let url = fs.map(URL.init(fileURLWithPath:))
+      return opt.inputURLs.append(contentsOf: url)
+  })
 
   let args = Array(CommandLine.arguments.dropFirst())
   guard let result = try? cli.parse(args) else {

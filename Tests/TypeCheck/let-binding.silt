@@ -1,6 +1,6 @@
 -- RUN: %silt --dump typecheck %s
 
-module LetBinding where
+module let-binding where
 
 infix 20 _$_
 

@@ -1,0 +1,5 @@
+module topmodule.submodule.subsubmodule where
+
+data OtherData : Type where
+  snoc : OtherData
+

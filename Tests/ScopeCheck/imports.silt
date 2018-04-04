@@ -1,0 +1,30 @@
+-- RUN: %silt --verify scopes %s
+
+module incorrect-imports where -- expected-error {{module name 'incorrect-imports' does not match expected module structure}}
+-- expected-note@-1 {{module name 'incorrect-imports' implies 'imports.silt' should be at path}}
+
+open import topmodule.Submodule -- expected-error {{no such module topmodule.Submodule}}
+open import topmodule.submodule -- correct import succeeds and scope checking recovers
+
+import topmodule.submodule.subsubmodule
+
+ref : Data
+ref = cons
+
+ref2 : topmodule.submodule.Data
+ref2 = cons
+
+ref3 : Data
+ref3 = topmodule.submodule.cons
+
+ref4 : OtherData -- expected-error {{use of undeclared identifier 'OtherData'}}
+ref4 = snoc -- expected-error {{use of undeclared identifier 'snoc'}}
+
+ref5 : topmodule.submodule.subsubmodule.OtherData
+ref5 = snoc -- expected-error {{use of undeclared identifier 'snoc'}}
+
+ref6 : OtherData -- expected-error {{use of undeclared identifier 'OtherData'}}
+ref6 = topmodule.submodule.subsubmodule.snoc
+
+ref7 : topmodule.submodule.subsubmodule.OtherData
+ref7 = topmodule.submodule.subsubmodule.snoc

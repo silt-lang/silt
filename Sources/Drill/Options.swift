@@ -66,7 +66,7 @@ public class Options {
   public var mode: Mode = .compile
   public var colorsEnabled: Bool = true
   public var shouldPrintTiming: Bool = false
-  public var inputPaths: Set<String> = []
+  public var inputURLs: [URL] = []
   public var typeCheckerDebugOptions: TypeCheckerDebugOptions = []
 
   public init() {}

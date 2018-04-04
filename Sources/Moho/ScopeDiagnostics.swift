@@ -91,6 +91,35 @@ extension Diagnostic.Message {
   static var ignoringExcessPattern: Diagnostic.Message {
     return Diagnostic.Message(.note, "extra pattern will be ignored")
   }
+
+  static func incorrectModuleStructure(_ name: QualifiedName) -> Diagnostic.Message {
+    return Diagnostic.Message(.error,
+      """
+      module name '\(name)' does not match expected module structure
+      """)
+  }
+
+  static func expectedModulePath(
+    _ name: QualifiedName, _ fileName: String,
+    _ expectedDir: String, _ actualDir: String
+  ) -> Diagnostic.Message {
+    return Diagnostic.Message(.note,
+      """
+      module name '\(name)' implies '\(fileName)' should be at path
+      '\(expectedDir)'; it is currently at path '\(actualDir)'
+      """)
+  }
+
+  static func unexpectedDirectory(_ fileName: String) -> Diagnostic.Message {
+    return Diagnostic.Message(.note,
+      """
+      '\(fileName)' references a directory; it must reference a file
+      """)
+  }
+
+  static func incorrectModuleName(_ name: QualifiedName) -> Diagnostic.Message {
+    return Diagnostic.Message(.error, "no such module \(name)")
+  }
 }
 
 // MARK: Reparsing

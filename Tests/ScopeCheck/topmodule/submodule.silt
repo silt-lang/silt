@@ -1,0 +1,5 @@
+module topmodule.submodule where
+
+data Data : Type where
+  cons : Data
+
