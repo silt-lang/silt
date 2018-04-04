@@ -29,4 +29,17 @@ final class IRGenModule {
       }
     }
   }
+
+  func emitMain() {
+    let fn = B.addFunction("main", type: FunctionType(
+      argTypes: [],
+      returnType: IntType.int32
+    ))
+    let entry = fn.appendBasicBlock(named: "entry")
+    B.positionAtEnd(of: entry)
+    let andFn = module.function(named: "_SC9bool._&&_")!
+    let call = B.buildCall(andFn, args: [true, false])
+    let retVal = B.buildZExt(call, type: IntType.int32)
+    B.buildRet(retVal)
+  }
 }

@@ -12,6 +12,15 @@ final class IRGenFunction: PrimOpVisitor {
   var blockMap = [Continuation: BasicBlock]()
   var primOpMap = [PrimOp: IRValue]()
 
+  lazy var trapBlock: BasicBlock = {
+    let insertBlock = B.insertBlock!
+    let block = function!.appendBasicBlock(named: "trap")
+    B.positionAtEnd(of: block)
+    B.buildUnreachable()
+    B.positionAtEnd(of: insertBlock)
+    return block
+  }()
+
   var B: IRBuilder {
     return IGM.B
   }
@@ -134,13 +143,53 @@ final class IRGenFunction: PrimOpVisitor {
 
   func visitSwitchConstrOp(_ op: SwitchConstrOp) -> IRValue {
     return trace("emitting LLVM IR for switch_constr '\(op)'") {
+      guard let dataTy = op.matchedValue.type as? DataType else {
+        fatalError("can only switch on simple types")
+      }
+      let igt = IRGenType(type: dataTy, irGenModule: IGM)
+      let ty = igt.lower()
+      switch ty {
+      case .complexData(_, _, _):
+        fatalError("complex data types are unsupported")
+      case .simpleData(_):
+        let indexesAndFuncs = op.patterns.map { caseDef -> (Int, BasicBlock) in
+          // FIXME: String matching on constructor names is very bad here.
+          let idx = dataTy.constructors.index { $0.name == caseDef.pattern }!
+          return (idx, emit(caseDef.apply) as! BasicBlock)
+        }
+        let matched = emit(op.matchedValue)
+
+        let defaultBlock = op.default.map(emit) as? BasicBlock ?? trapBlock
+
+        let select = B.buildSwitch(matched, else: defaultBlock,
+                                   caseCount: indexesAndFuncs.count)
+        for (idx, bb) in indexesAndFuncs {
+          let val = igt.initialize(tag: idx)
+          select.addCase(val, bb)
+        }
+        return select
+      case .void:
+        break
+      }
       return B.buildUnreachable()
     }
   }
 
   func visitDataInitOp(_ op: DataInitOp) -> IRValue {
     return trace("emitting LLVM IR for data_init '\(op)'") {
-      return B.buildUnreachable()
+      guard op.operands.isEmpty else {
+        // Cannot handle complex data types...
+        return B.buildUnreachable()
+      }
+      guard let ty = op.dataType as? DataType else {
+        fatalError("non data type in data_init?")
+      }
+
+      // FIXME: Adjust representation to actually store constructor tags instead
+      //        of this fragile string lookup.
+      let idx = ty.constructors.index { $0.name == op.constructor }!
+      let igt = IRGenType(type: ty, irGenModule: IGM)
+      return igt.initialize(tag: idx)
     }
   }
 
