@@ -178,12 +178,13 @@ extension TypeChecker {
 }
 
 extension TypeChecker {
-  func openContextualType(_ ctxt: ContextualType, _ args: [Term<TT>]) -> TT {
+  public func openContextualType(
+    _ ctxt: ContextualType, _ args: [Term<TT>]) -> TT {
     assert(ctxt.telescope.count == args.count)
     return self.forceInstantiate(ctxt.inside, args)
   }
 
-  func openContextualDefinition(
+  public func openContextualDefinition(
       _ ctxt: ContextualDefinition, _ args: [Term<TT>]) -> OpenedDefinition {
     func openAccessor<T>(_ accessor: T) -> Opened<T, TT> {
       return Opened<T, TT>(accessor, args)
@@ -216,7 +217,7 @@ extension TypeChecker {
     }
   }
 
-  func openDefinition(
+  public func openDefinition(
     _ name: QualifiedName, _ args: [Term<TT>]) -> Opened<QualifiedName, TT> {
     let e = self.environment
     guard let lastBlock = e.scopes.last, e.context.isEmpty else {
@@ -226,7 +227,7 @@ extension TypeChecker {
     return Opened<QualifiedName, TT>(name, args)
   }
 
-  func getOpenedDefinition(
+  public func getOpenedDefinition(
       _ name: QualifiedName) -> (Opened<QualifiedName, TT>, OpenedDefinition) {
     func getOpenedArguments(_ name: QualifiedName) -> [TT] {
       precondition(!self.environment.scopes.isEmpty)
@@ -249,7 +250,7 @@ extension TypeChecker {
     return (Opened<QualifiedName, TT>(name, args), def)
   }
 
-  func getTypeOfOpenedDefinition(_ t: OpenedDefinition) -> Type<TT> {
+  public func getTypeOfOpenedDefinition(_ t: OpenedDefinition) -> Type<TT> {
     switch t {
     case let .constant(ty, _):
       return ty

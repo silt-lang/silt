@@ -278,10 +278,10 @@ public final class UnreachableOp: TerminalOp {
 
 public protocol PrimOpVisitor {
   associatedtype Ret
-  func visitAllocaOp(_ op: AllocaOp)
+  func visitAllocaOp(_ op: AllocaOp) -> Ret
   func visitApplyOp(_ op: ApplyOp) -> Ret
   func visitCopyValueOp(_ op: CopyValueOp) -> Ret
-  func visitDeallocaOp(_ op: DeallocaOp)
+  func visitDeallocaOp(_ op: DeallocaOp) -> Ret
   func visitDestroyValueOp(_ op: DestroyValueOp) -> Ret
   func visitFunctionRefOp(_ op: FunctionRefOp) -> Ret
   func visitSwitchConstrOp(_ op: SwitchConstrOp) -> Ret
@@ -294,7 +294,9 @@ extension PrimOpVisitor {
     switch code.opcode {
     case .noop:
       fatalError()
-      // swiftlint:disable force_cast
+    // swiftlint:disable force_cast
+    case .alloca: return self.visitAllocaOp(code as! AllocaOp)
+    // swiftlint:disable force_cast
     case .apply: return self.visitApplyOp(code as! ApplyOp)
       // swiftlint:disable force_cast
     case .copyValue: return self.visitCopyValueOp(code as! CopyValueOp)

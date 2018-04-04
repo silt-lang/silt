@@ -12,7 +12,7 @@ public struct NameAndType: Hashable {
   public unowned let type: GIRType
 
   public static func == (lhs: NameAndType, rhs: NameAndType) -> Bool {
-    return lhs.name == rhs.name && lhs.type == rhs.type
+    return lhs.name == rhs.name && lhs.type === rhs.type
   }
 
   public var hashValue: Int {

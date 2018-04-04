@@ -6,6 +6,7 @@
 /// available in the repository.
 
 import Mantle
+import Moho
 import Seismography
 
 extension TypeConverter {
@@ -24,7 +25,7 @@ extension TypeConverter {
         guard let def = tc.signature.lookupDefinition(name.key) else {
           fatalError()
         }
-        return self.lowerContextualDefinition(tc, name.key.string, def)
+        return self.lowerContextualDefinition(tc, name.key, def)
       case .variable(_):
         fatalError()
       }
@@ -41,7 +42,8 @@ extension TypeConverter {
   }
 
   private func lowerContextualDefinition(
-    _ tc: TypeChecker<CheckPhaseState>, _ name: String,
+    _ tc: TypeChecker<CheckPhaseState>,
+    _ name: QualifiedName,
     _ def: ContextualDefinition
   ) -> GIRType {
     precondition(def.telescope.isEmpty, "Cannot gen generics yet")
@@ -59,16 +61,27 @@ extension TypeConverter {
   }
 
   private func lowerContextualConstant(
-    _ tc: TypeChecker<CheckPhaseState>, _ name: String,
+    _ tc: TypeChecker<CheckPhaseState>,
+    _ name: QualifiedName,
     _ c: Definition.Constant
   ) -> GIRType {
+    if let ty = self.inProgressLowerings[name] { return ty }
     switch c {
     case .function(_):
       fatalError()
     case .postulate:
       fatalError()
-    case .data(_):
-      return self.module!.dataType(name: name, category: .object) { _ in }
+    case let .data(constructors):
+    return self.module!.dataType(name: name.string, category: .object ) { dt in
+        self.inProgressLowerings[name] = dt
+        defer { self.inProgressLowerings[name] = nil }
+        for constr in constructors {
+          let (_, constrDef) = tc.getOpenedDefinition(constr)
+          let ty = tc.getTypeOfOpenedDefinition(constrDef)
+          let girType = getLoweredType(tc, ty)
+          dt.addConstructor(name: constr.string, type: girType)
+        }
+      }
     case .record(_, _, _):
       fatalError()
     }
