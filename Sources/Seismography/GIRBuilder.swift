@@ -44,11 +44,8 @@ extension GIRBuilder {
     return insert(CopyValueOp(value))
   }
 
-  public func createDestroyValue(
-    _ value: Value, in cont: Continuation) -> DestroyValueOp {
-    let destroy = insert(DestroyValueOp(value))
-    cont.appendDestroyable(destroy)
-    return destroy
+  public func createDestroyValue(_ value: Value) -> DestroyValueOp {
+    return DestroyValueOp(value)
   }
 
   public func createFunctionRef(_ cont: Continuation) -> FunctionRefOp {
