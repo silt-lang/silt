@@ -210,6 +210,7 @@ extension GIRParser {
     return true
   }
 
+  // swiftlint:disable function_body_length
   func parseGIRInstruction(
     _ B: GIRBuilder, in cont: Continuation) throws -> Bool {
     guard self.parser.peekToken()!.leadingTrivia.containsNewline else {
@@ -279,14 +280,14 @@ extension GIRParser {
       }
       _ = try self.parser.consumeIf(.colon)
       let typeRepr = try self.parser.parseGIRTypeExpr()
-      resultValue = B.createDealloca(self.getLocalValue(valueName))
+      cont.appendCleanupOp(B.createDealloca(self.getLocalValue(valueName)))
     case .destroyValue:
       guard let valueName = tryParseGIRValueToken() else {
         return false
       }
       _ = try self.parser.consumeIf(.colon)
       _ = try self.parser.parseGIRTypeExpr()
-      _ = B.createDestroyValue(self.getLocalValue(valueName))
+      cont.appendCleanupOp(B.createDestroyValue(self.getLocalValue(valueName)))
     case .switchConstr:
       guard let val = self.tryParseGIRValueToken() else {
         return false

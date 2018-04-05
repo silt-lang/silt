@@ -83,7 +83,7 @@ import Seismography
 /// explanation.  See the specialization and scoring functions.
 extension GIRGenFunction {
   func emitPatternMatrix(_ matrix: [Clause],
-                         _ params: [Value], _ returnCont: Value) {
+                         _ params: [ManagedValue], _ returnCont: Value) {
     guard let firstRow = matrix.first else {
       // If the pattern matrix is empty, emit `unreachable` and bail.
       _ = self.B.createUnreachable(self.f)
@@ -98,7 +98,7 @@ extension GIRGenFunction {
         return
       }
       let (newParent, RV) = self.emitRValue(self.f, body)
-      _ = self.B.createApply(newParent, returnCont, [RV])
+      _ = self.B.createApply(newParent, returnCont, [RV.forward(self)])
       return
     }
 
@@ -109,7 +109,7 @@ extension GIRGenFunction {
 
   /// Specialize a pattern matrix into a particular continuation.
   private func stepSpecialization(
-    _ root: Continuation, _ matrix: [Clause], _ params: [Value],
+    _ root: Continuation, _ matrix: [Clause], _ params: [ManagedValue],
     _ returnCont: Value, _ unspecialized: inout Set<Int>) {
     // If the pattern matrix turns out to be a pattern row vector, we're done.
     if
@@ -120,7 +120,7 @@ extension GIRGenFunction {
       // corresponding (R)Values.
       for (idx, v) in vars.enumerated() {
         guard unspecialized.contains(idx) else { continue }
-        self.varLocs[v.name] = params[idx]
+        self.varLocs[v.name] = params[idx].value
       }
       // Emit the clause's body.
       guard let body = matrix[0].body else {
@@ -223,7 +223,7 @@ extension GIRGenFunction {
     }
 
     // Emit a branch in the decision tree for all nodes we've seen.
-    _ = self.B.createSwitchConstr(root, params[colIdx],
+    _ = self.B.createSwitchConstr(root, params[colIdx].value,
                                   switchNest, defaultInfo?.ref)
     // N.B. Having wildcards in the column implies we've only got only one thing
     // to specialize and a rather large default matrix...
@@ -245,7 +245,7 @@ extension GIRGenFunction {
       if !dest.parameters.isEmpty {
         for (i, param) in dest.parameters.enumerated() {
           unspecialized.insert(parameters.count + i)
-          parameters.append(param)
+          parameters.append(self.pairValueWithCleanup(param))
           if !param.name.isEmpty {
             self.varLocs[Name(name: .implicit(.identifier(param.name)))] = param
           }
@@ -270,7 +270,7 @@ extension GIRGenFunction {
 
   private func emitFinalColumn(
     _ parent: Continuation, _ colIdx: Int,
-    _ param: Value, _ retParam: Value, _ matrix: [Clause]
+    _ param: ManagedValue, _ retParam: Value, _ matrix: [Clause]
   ) {
     var dests = [(String, Value)]()
     for (idx, clause) in matrix.enumerated() {
@@ -286,7 +286,7 @@ extension GIRGenFunction {
         fatalError()
       case let .variable(v):
         assert(matrix.count == 1)
-        self.varLocs[v.name] = param
+        self.varLocs[v.name] = param.value
         self.emitFinalColumnBody(parent, retParam, body)
         self.varLocs[v.name] = nil
         return
@@ -296,13 +296,13 @@ extension GIRGenFunction {
         let destRef = self.B.createFunctionRef(destBB)
         //        assert(allIrrefutable(pats) != nil)
         for _ in pats {
-          destBB.appendParameter(type: BottomType.shared, ownership: .owned)
+          destBB.appendParameter(type: BottomType.shared)
         }
         self.emitFinalColumnBody(destBB, retParam, body)
         dests.append((name.key.string, destRef))
       }
     }
-    _ = self.B.createSwitchConstr(parent, param, dests)
+    _ = self.B.createSwitchConstr(parent, param.value, dests)
   }
 
   private func emitFinalColumnBody(_ bb: Continuation, _ retParam: Value,
@@ -320,16 +320,18 @@ extension GIRGenFunction {
         }
         let type = self.getLoweredType(ty.inside)
         let retVal = self.B.createDataInit(name.key.string, type, [])
+        self.cleanupStack.emitCleanups(self, in: bb)
         _ = self.B.createApply(bb, retParam, [retVal])
         return
       }
       let (newParent, bodyVal) = self.emitRValue(bb, body)
-      _ = self.B.createApply(newParent, retParam, [bodyVal])
+      _ = self.B.createApply(newParent, retParam, [bodyVal.forward(self)])
     case let .apply(head, _):
       switch head {
       case .definition(_):
-        let (newParent, bodyVal) = self.emitRValue(bb, body)
-        _ = self.B.createApply(newParent, retParam, [bodyVal])
+        let (bb, bodyVal) = self.emitRValue(bb, body)
+        self.cleanupStack.emitCleanups(self, in: bb)
+        _ = self.B.createApply(bb, retParam, [bodyVal.forward(self)])
       case let .meta(mv):
         guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
           fatalError()
@@ -339,7 +341,9 @@ extension GIRGenFunction {
         guard let varLoc = self.varLocs[v.name] else {
           fatalError()
         }
-        _ = self.B.createApply(bb, retParam, [varLoc])
+        let varValue = ManagedValue.unmanaged(varLoc).copy(self).forward(self)
+        self.cleanupStack.emitCleanups(self, in: bb)
+        _ = self.B.createApply(bb, retParam, [varValue])
       }
     default:
       fatalError()

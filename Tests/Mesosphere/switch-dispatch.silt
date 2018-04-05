@@ -23,10 +23,12 @@ dispatch ff = ff
 -- CHECK:   switch_constr %0 : switch-dispatch.Bool ; switch-dispatch.tt : %2 ; switch-dispatch.ff : %3
 -- CHECK: bb1:
 -- CHECK:   %5 = data_init switch-dispatch.Bool ; switch-dispatch.ff
+-- CHECK:   destroy_value %0
 -- CHECK:   apply %1(%5) : (switch-dispatch.Bool) -> _
 -- CHECK: bb2:
--- CHECK:   %7 = data_init switch-dispatch.Bool ; switch-dispatch.tt
--- CHECK:   apply %1(%7) : (switch-dispatch.Bool) -> _
+-- CHECK:   %8 = data_init switch-dispatch.Bool ; switch-dispatch.tt
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %1(%8) : (switch-dispatch.Bool) -> _
 -- CHECK: } -- end gir function switch-dispatch.dispatch
 
 and : Bool -> Bool -> Bool
@@ -45,20 +47,28 @@ and ff ff = ff
 -- CHECK:   switch_constr %1 : switch-dispatch.Bool ; switch-dispatch.tt : %6 ; switch-dispatch.ff : %7
 -- CHECK: bb2:
 -- CHECK:   %9 = data_init switch-dispatch.Bool ; switch-dispatch.ff
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
 -- CHECK:   apply %2(%9)
 -- CHECK: bb3:
--- CHECK:   %11 = data_init switch-dispatch.Bool ; switch-dispatch.ff
--- CHECK:   apply %2(%11)
+-- CHECK:   %13 = data_init switch-dispatch.Bool ; switch-dispatch.ff
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %2(%13)
 -- CHECK: bb4:
--- CHECK:   %13 = function_ref @bb6
--- CHECK:   %14 = function_ref @bb5
--- CHECK:   switch_constr %1 : switch-dispatch.Bool ; switch-dispatch.tt : %13 ; switch-dispatch.ff : %14
+-- CHECK:   %17 = function_ref @bb6
+-- CHECK:   %18 = function_ref @bb5
+-- CHECK:   switch_constr %1 : switch-dispatch.Bool ; switch-dispatch.tt : %17 ; switch-dispatch.ff : %18
 -- CHECK: bb5:
--- CHECK:   %16 = data_init switch-dispatch.Bool ; switch-dispatch.ff
--- CHECK:   apply %2(%16) : (switch-dispatch.Bool) -> _
+-- CHECK:   %20 = data_init switch-dispatch.Bool ; switch-dispatch.ff
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %2(%20) : (switch-dispatch.Bool) -> _
 -- CHECK: bb6:
--- CHECK:   %18 = data_init switch-dispatch.Bool ; switch-dispatch.tt
--- CHECK:   apply %2(%18) : (switch-dispatch.Bool) -> _
+-- CHECK:   %24 = data_init switch-dispatch.Bool ; switch-dispatch.tt
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %2(%24) : (switch-dispatch.Bool) -> _
 -- CHECK:  } -- end gir function switch-dispatch.and
 
 
@@ -78,27 +88,38 @@ or ff ff = ff
 -- CHECK:   switch_constr %1 : switch-dispatch.Bool ; switch-dispatch.tt : %6 ; switch-dispatch.ff : %7
 -- CHECK: bb2:
 -- CHECK:   %9 = data_init switch-dispatch.Bool ; switch-dispatch.ff
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
 -- CHECK:   apply %2(%9) : (switch-dispatch.Bool) -> _
 -- CHECK: bb3:
--- CHECK:   %11 = data_init switch-dispatch.Bool ; switch-dispatch.tt
--- CHECK:   apply %2(%11) : (switch-dispatch.Bool) -> _
+-- CHECK:   %13 = data_init switch-dispatch.Bool ; switch-dispatch.tt
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %2(%13) : (switch-dispatch.Bool) -> _
 -- CHECK: bb4:
--- CHECK:   %13 = function_ref @bb6
--- CHECK:   %14 = function_ref @bb5
--- CHECK:   switch_constr %1 : switch-dispatch.Bool ; switch-dispatch.tt : %13 ; switch-dispatch.ff : %14
+-- CHECK:   %17 = function_ref @bb6
+-- CHECK:   %18 = function_ref @bb5
+-- CHECK:   switch_constr %1 : switch-dispatch.Bool ; switch-dispatch.tt : %17 ; switch-dispatch.ff : %18
 -- CHECK: bb5:
--- CHECK:   %16 = data_init switch-dispatch.Bool ; switch-dispatch.tt
--- CHECK:   apply %2(%16) : (switch-dispatch.Bool) -> _
+-- CHECK:   %20 = data_init switch-dispatch.Bool ; switch-dispatch.tt
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %2(%20) : (switch-dispatch.Bool) -> _
 -- CHECK: bb6:
--- CHECK:   %18 = data_init switch-dispatch.Bool ; switch-dispatch.tt
--- CHECK:   apply %2(%18) : (switch-dispatch.Bool) -> _
+-- CHECK:   %24 = data_init switch-dispatch.Bool ; switch-dispatch.tt
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %2(%24) : (switch-dispatch.Bool) -> _
 -- CHECK:  } -- end gir function switch-dispatch.or
 
 wild : Bool -> Bool -> Bool
 wild _ x = x
 -- CHECK: @switch-dispatch.wild : (switch-dispatch.Bool ; switch-dispatch.Bool) -> (switch-dispatch.Bool) -> _ {
 -- CHECK: bb0(%0 : switch-dispatch.Bool; %1 : switch-dispatch.Bool; %2 : (switch-dispatch.Bool) -> _):
--- CHECK:   apply %2(%1) : (switch-dispatch.Bool) -> _
+-- CHECK:   %3 = copy_value %1
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %2(%3) : (switch-dispatch.Bool) -> _
 -- CHECK: } -- end gir function switch-dispatch.wild
 
 and2 : Bool -> Bool -> Bool
@@ -111,9 +132,14 @@ and2 ff b = ff
 -- CHECK:   switch_constr %0 : switch-dispatch.Bool ; switch-dispatch.tt : %3 ; switch-dispatch.ff : %4
 -- CHECK: bb1:
 -- CHECK:   %6 = data_init switch-dispatch.Bool ; switch-dispatch.ff
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
 -- CHECK:   apply %2(%6) : (switch-dispatch.Bool) -> _
 -- CHECK: bb2:
--- CHECK:   apply %2(%1) : (switch-dispatch.Bool) -> _
+-- CHECK:   %10 = copy_value %1
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %2(%10) : (switch-dispatch.Bool) -> _
 -- CHECK: } -- end gir function switch-dispatch.and2
 
 maranget : Bool -> Bool -> Bool -> Index
@@ -136,23 +162,38 @@ maranget _  _  tt = four
 -- CHECK:   switch_constr %2 : switch-dispatch.Bool ; switch-dispatch.ff : %10 ; switch-dispatch.tt : %11
 -- CHECK: bb3:
 -- CHECK:   %13 = data_init switch-dispatch.Index ; switch-dispatch.four
+-- CHECK:   destroy_value %2
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
 -- CHECK:   apply %3(%13) : (switch-dispatch.Index) -> _
 -- CHECK: bb4:
--- CHECK:   %15 = data_init switch-dispatch.Index ; switch-dispatch.three
--- CHECK:   apply %3(%15) : (switch-dispatch.Index) -> _
+-- CHECK:   %18 = data_init switch-dispatch.Index ; switch-dispatch.three
+-- CHECK:   destroy_value %2
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %3(%18) : (switch-dispatch.Index) -> _
 -- CHECK: bb5:
--- CHECK:   %17 = data_init switch-dispatch.Index ; switch-dispatch.two
--- CHECK:   apply %3(%17) : (switch-dispatch.Index) -> _
+-- CHECK:   %23 = data_init switch-dispatch.Index ; switch-dispatch.two
+-- CHECK:   destroy_value %2
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %3(%23) : (switch-dispatch.Index) -> _
 -- CHECK: bb6:
--- CHECK:   %19 = function_ref @bb8
--- CHECK:   %20 = function_ref @bb7
--- CHECK:   switch_constr %2 : switch-dispatch.Bool ; switch-dispatch.tt : %19 ; switch-dispatch.ff : %20
+-- CHECK:   %28 = function_ref @bb8
+-- CHECK:   %29 = function_ref @bb7
+-- CHECK:   switch_constr %2 : switch-dispatch.Bool ; switch-dispatch.tt : %28 ; switch-dispatch.ff : %29
 -- CHECK: bb7:
--- CHECK:   %22 = data_init switch-dispatch.Index ; switch-dispatch.three
--- CHECK:   apply %3(%22) : (switch-dispatch.Index) -> _
+-- CHECK:   %31 = data_init switch-dispatch.Index ; switch-dispatch.three
+-- CHECK:   destroy_value %2
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %3(%31) : (switch-dispatch.Index) -> _
 -- CHECK: bb8:
--- CHECK:   %24 = data_init switch-dispatch.Index ; switch-dispatch.one
--- CHECK:   apply %3(%24) : (switch-dispatch.Index) -> _
+-- CHECK:   %36 = data_init switch-dispatch.Index ; switch-dispatch.one
+-- CHECK:   destroy_value %2
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %3(%36) : (switch-dispatch.Index) -> _
 -- CHECK: } -- end gir function switch-dispatch.maranget
 
 if_then_else_ : Bool -> Bool -> Bool -> Bool
@@ -164,9 +205,17 @@ if ff then _ else x = x
 -- CHECK:   %5 = function_ref @bb1
 -- CHECK:   switch_constr %0 : switch-dispatch.Bool ; switch-dispatch.tt : %4 ; switch-dispatch.ff : %5
 -- CHECK: bb1:
--- CHECK:   apply %3(%2) : (switch-dispatch.Bool) -> _
+-- CHECK:   %7 = copy_value %2
+-- CHECK:   destroy_value %2
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %3(%7) : (switch-dispatch.Bool) -> _
 -- CHECK: bb2:
--- CHECK:   apply %3(%1) : (switch-dispatch.Bool) -> _
+-- CHECK:   %12 = copy_value %1
+-- CHECK:   destroy_value %2
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
+-- CHECK:   apply %3(%12) : (switch-dispatch.Bool) -> _
 -- CHECK: } -- end gir function switch-dispatch.if_then_else_
 
 _?_::_ : Bool -> Bool -> Bool -> Bool
@@ -177,5 +226,8 @@ cond ? t :: f = if cond then t else f
 -- CHECK:   %5 = function_ref @bb1
 -- CHECK:   apply %4(%0 ; %1 ; %2 ; %5) : (switch-dispatch.Bool ; switch-dispatch.Bool ; switch-dispatch.Bool) -> (switch-dispatch.Bool) -> _
 -- CHECK: bb1(%7 : switch-dispatch.Bool):
+-- CHECK:   destroy_value %2
+-- CHECK:   destroy_value %1
+-- CHECK:   destroy_value %0
 -- CHECK:   apply %3(%7) : (switch-dispatch.Bool) -> _
 -- CHECK: } -- end gir function switch-dispatch._?_::_
