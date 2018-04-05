@@ -8,13 +8,19 @@
 import Foundation
 
 public class Value: Hashable {
+  public enum Category {
+    case object
+    case address
+  }
+
   public let name: String
   public private(set) var type: Value
+  public let category: Value.Category
 
-
-  init(name: String, type: Value) {
+  init(name: String, type: Value, category: Value.Category) {
     self.name = name
     self.type = type
+    self.category = category
   }
 
   /// All values are equatable and hashable using reference equality and
@@ -56,27 +62,20 @@ public class Value: Hashable {
 }
 
 public enum Ownership {
-  case borrowed
+  case trivial
+  case unowned
   case owned
 }
 
 public class Parameter: Value {
   unowned let parent: Continuation
   public let index: Int
-  public let ownership: Ownership
+  public let ownership: Ownership = .owned
 
-  init(name: String, parent: Continuation, index: Int, type: Value, ownership: Ownership) {
+  init(name: String, parent: Continuation, index: Int, type: Value) {
     self.parent = parent
     self.index = index
-    self.ownership = ownership
-    super.init(name: name, type: type)
-  }
-
-  var isOwned: Bool {
-    return ownership == .owned
-  }
-  var isBorrowed: Bool {
-    return ownership == .borrowed
+    super.init(name: name, type: type, category: type.category)
   }
 }
 

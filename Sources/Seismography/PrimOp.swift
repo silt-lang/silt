@@ -57,9 +57,10 @@ public class PrimOp: Value {
   /// Initializes a PrimOp with the provided OpCode and no operands.
   ///
   /// - Parameter opcode: The opcode this PrimOp represents.
-  init(opcode: Code) {
+  init(opcode: Code, category: Value.Category) {
     self.opcode = opcode
-    super.init(name: self.opcode.rawValue, type: BottomType.shared)
+    super.init(name: self.opcode.rawValue,
+               type: BottomType.shared, category: category)
   }
 
   /// Adds the provided operands to this PrimOp's operand list.
@@ -79,7 +80,7 @@ public class TerminalOp: PrimOp {
   }
   init(opcode: Code, parent: Continuation) {
     self.parent = parent
-    super.init(opcode: opcode)
+    super.init(opcode: opcode, category: .object)
     // Tie the knot
     self.parent.terminalOp = self
   }
@@ -91,7 +92,7 @@ public class TerminalOp: PrimOp {
 /// A primitive operation that contains no operands and has no effect.
 public final class NoOp: PrimOp {
   public init() {
-    super.init(opcode: .noop)
+    super.init(opcode: .noop, category: .object)
   }
 }
 
@@ -133,7 +134,7 @@ public final class ApplyOp: TerminalOp {
 
 public final class CopyValueOp: PrimOp {
   public init(_ value: Value) {
-    super.init(opcode: .copyValue)
+    super.init(opcode: .copyValue, category: value.type.category)
     self.addOperands([Operand(owner: self, value: value)])
   }
 
@@ -148,7 +149,7 @@ public final class CopyValueOp: PrimOp {
 
 public final class DestroyValueOp: PrimOp {
   public init(_ value: Value) {
-    super.init(opcode: .destroyValue)
+    super.init(opcode: .destroyValue, category: .object)
     self.addOperands([Operand(owner: self, value: value)])
   }
 
@@ -162,7 +163,7 @@ public final class FunctionRefOp: PrimOp {
 
   public init(continuation: Continuation) {
     self.function = continuation
-    super.init(opcode: .functionRef)
+    super.init(opcode: .functionRef, category: .object)
     self.addOperands([Operand(owner: self, value: continuation)])
   }
 
@@ -228,7 +229,7 @@ public final class DataInitOp: PrimOp {
   public init(constructor: String, type: Value, arguments: [Value]) {
     self.constructor = constructor
     self.dataType = type
-    super.init(opcode: .dataInit)
+    super.init(opcode: .dataInit, category: type.category)
     self.addOperands(arguments.map { Operand(owner: self, value: $0) })
   }
 
@@ -244,8 +245,10 @@ public final class UnreachableOp: TerminalOp {
 }
 
 public protocol PrimOpVisitor {
+  func visitAllocaOp(_ op: AllocaOp)
   func visitApplyOp(_ op: ApplyOp)
   func visitCopyValueOp(_ op: CopyValueOp)
+  func visitDeallocaOp(_ op: DeallocaOp)
   func visitDestroyValueOp(_ op: DestroyValueOp)
   func visitFunctionRefOp(_ op: FunctionRefOp)
   func visitSwitchConstrOp(_ op: SwitchConstrOp)
@@ -258,17 +261,21 @@ extension PrimOpVisitor {
     switch code.opcode {
     case .noop:
       fatalError()
-      // swiftlint:disable force_cast
+    // swiftlint:disable force_cast
+    case .alloca: self.visitAllocaOp(code as! AllocaOp)
+    // swiftlint:disable force_cast
     case .apply: self.visitApplyOp(code as! ApplyOp)
-      // swiftlint:disable force_cast
+    // swiftlint:disable force_cast
     case .copyValue: self.visitCopyValueOp(code as! CopyValueOp)
-      // swiftlint:disable force_cast
+    // swiftlint:disable force_cast
+    case .dealloca: self.visitDeallocaOp(code as! DeallocaOp)
+    // swiftlint:disable force_cast
     case .destroyValue: self.visitDestroyValueOp(code as! DestroyValueOp)
-      // swiftlint:disable force_cast
+    // swiftlint:disable force_cast
     case .functionRef: self.visitFunctionRefOp(code as! FunctionRefOp)
-      // swiftlint:disable force_cast
+    // swiftlint:disable force_cast
     case .switchConstr: self.visitSwitchConstrOp(code as! SwitchConstrOp)
-      // swiftlint:disable force_cast
+    // swiftlint:disable force_cast
     case .dataInit: self.visitDataInitOp(code as! DataInitOp)
     // swiftlint:disable force_cast
     case .unreachable: self.visitUnreachableOp(code as! UnreachableOp)

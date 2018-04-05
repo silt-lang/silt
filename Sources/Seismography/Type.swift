@@ -65,13 +65,13 @@ public final class GIRExprType: GIRType {
   public let expr: ExprSyntax
   public init(_ expr: ExprSyntax) {
     self.expr = expr
-    super.init(name: "", type: TypeType.shared)
+    super.init(name: "", type: TypeType.shared, category: .object)
   }
 }
 
 public final class TypeMetadataType: GIRType {
   init() {
-    super.init(name: "", type: TypeType.shared)
+    super.init(name: "", type: TypeType.shared, category: .address)
   }
   public override func equals(_ other: Value) -> Bool {
     return other is TypeMetadataType
@@ -88,7 +88,7 @@ public final class TypeType: GIRType {
     let typeType =
       /// HACK: This only exists to appease the typechecker.
       unsafeBitCast(nil as TypeType?, to: TypeType.self)
-    super.init(name: "", type: typeType)
+    super.init(name: "", type: typeType, category: .address)
   }
 
   public override var type: Value {
@@ -112,7 +112,7 @@ public final class ArchetypeType: GIRType {
   init(parent: ParameterizedType, index: Int) {
     self.parent = parent
     self.index = index
-    super.init(name: "", type: TypeType.shared)
+    super.init(name: "", type: TypeType.shared, category: .address)
   }
 
   public override func equals(_ other: Value) -> Bool {
@@ -141,8 +141,8 @@ public class ParameterizedType: GIRType {
   public private(set) var parameters = [Parameter]()
   public private(set) var substitutions = Set<SubstitutedType>()
 
-  init(name: String, indices: GIRType) {
-    super.init(name: name, type: indices)
+  init(name: String, indices: GIRType, category: Value.Category) {
+    super.init(name: name, type: indices, category: category)
   }
 
   public func addParameter(name: String, type: GIRType) {
@@ -240,7 +240,7 @@ public final class FunctionType: GIRType {
   init(arguments: [GIRType], returnType: GIRType) {
     self.arguments = UnownedArray(values: arguments)
     self.returnType = returnType
-    super.init(name: "", type: TypeType.shared)
+    super.init(name: "", type: TypeType.shared, category: returnType.category)
   }
 
   public override func equals(_ other: Value) -> Bool {
@@ -260,7 +260,7 @@ public final class SubstitutedType: GIRType {
   init(substitutee: ParameterizedType, substitutions: [GIRType: GIRType]) {
     self.substitutee = substitutee
     self.substitutions = UnownedDictionary(substitutions)
-    super.init(name: "", type: TypeType.shared)
+    super.init(name: "", type: TypeType.shared, category: substitutee.category)
   }
 
   public override func equals(_ other: Value) -> Bool {
@@ -278,7 +278,7 @@ public final class BottomType: GIRType {
   public static let shared = BottomType()
 
   init() {
-    super.init(name: "", type: TypeType.shared)
+    super.init(name: "", type: TypeType.shared, category: .object)
   }
 
   public override var type: Value {
