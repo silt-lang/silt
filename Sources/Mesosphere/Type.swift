@@ -9,7 +9,9 @@ import Mantle
 import Seismography
 
 extension TypeConverter {
-  func getLoweredType(_ tc: TypeChecker<CheckPhaseState>, _ type: Type<TT>) -> GIRType {
+  func getLoweredType(
+    _ tc: TypeChecker<CheckPhaseState>, _ type: Type<TT>
+  ) -> GIRType {
     switch type {
     case let .apply(head, elims) where elims.isEmpty:
       switch head {
@@ -30,14 +32,18 @@ extension TypeConverter {
     case let .pi(dom, cod):
       let loweredDom = self.getLoweredType(tc, dom)
       let loweredCod = self.getLoweredType(tc, cod)
-      return module!.functionType(arguments: [loweredDom], returnType: loweredCod)
+      return module!.functionType(arguments: [loweredDom],
+                                  returnType: loweredCod)
     default:
       fatalError()
     }
     fatalError()
   }
 
-  private func lowerContextualDefinition(_ tc: TypeChecker<CheckPhaseState>, _ name: String, _ def: ContextualDefinition) -> GIRType {
+  private func lowerContextualDefinition(
+    _ tc: TypeChecker<CheckPhaseState>, _ name: String,
+    _ def: ContextualDefinition
+  ) -> GIRType {
     precondition(def.telescope.isEmpty, "Cannot gen generics yet")
 
     switch def.inside {
@@ -52,7 +58,10 @@ extension TypeConverter {
     }
   }
 
-  private func lowerContextualConstant(_ tc: TypeChecker<CheckPhaseState>, _ name: String, _ c: Definition.Constant) -> GIRType {
+  private func lowerContextualConstant(
+    _ tc: TypeChecker<CheckPhaseState>, _ name: String,
+    _ c: Definition.Constant
+  ) -> GIRType {
     switch c {
     case .function(_):
       fatalError()

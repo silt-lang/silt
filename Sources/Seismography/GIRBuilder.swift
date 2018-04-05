@@ -47,7 +47,9 @@ extension GIRBuilder {
     return insert(FunctionRefOp(continuation: cont))
   }
 
-  public func createDataInit(_ constr: String, _ type: Value, _ args: [Value]) -> DataInitOp {
+  public func createDataInit(
+    _ constr: String, _ type: Value, _ args: [Value]
+  ) -> DataInitOp {
     return insert(DataInitOp(constructor: constr, type: type, arguments: args))
   }
 

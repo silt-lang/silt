@@ -103,7 +103,9 @@ extension FileManager {
       #if os(macOS)
       res = fcntl(fd, F_GETPATH, buffer)
       #elseif os(Linux)
-      guard realpath(pathRepr, buffer.assumingMemoryBound(to: Int8.self)) != nil else {
+      guard
+        realpath(pathRepr, buffer.assumingMemoryBound(to: Int8.self)) != nil
+      else {
         res = -1
         continue
       }
@@ -133,13 +135,13 @@ extension NameBinding {
                                     _ inferDirectoryStructure: Bool) -> URL? {
     var pathBase = self.fileURL
     pathBase.deleteLastPathComponent()
-    let modPath = name.module.reversed().reduce(name.name.string) { (acc, next) in
+    let mPath = name.module.reversed().reduce(name.name.string) { (acc, next) in
       if inferDirectoryStructure { pathBase.deleteLastPathComponent() }
       return next.string + "/" + acc
     }
     var isDir: ObjCBool = false
     let expectedPath = pathBase
-                        .appendingPathComponent(modPath)
+                        .appendingPathComponent(mPath)
                         .appendingPathExtension("silt")
     guard
       FileManager.default.casePreservingFileExists(atPath: expectedPath.path,
