@@ -12,7 +12,7 @@ public struct ParameterSemantics {
 
 public final class Continuation: Value, GraphNode {
   public private(set) var parameters = [Parameter]()
-  public private(set) var destroys = [DestroyValueOp]()
+  public private(set) var cleanups = [PrimOp]()
 
   weak var module: GIRModule?
 
@@ -40,16 +40,22 @@ public final class Continuation: Value, GraphNode {
 
   public init(name: String) {
     self.predecessorList = Successor(nil)
-    super.init(name: name, type: BottomType.shared /*to be overwritten*/)
+    super.init(name: name, type: BottomType.shared /*to be overwritten*/,
+               category: .address)
   }
 
   @discardableResult
-  public func appendParameter(named name: String = "", type: Value,
-                              ownership: Ownership = .owned) -> Parameter {
+  public func appendParameter(
+    named name: String = "", type: Value
+  ) -> Parameter {
     let param = Parameter(name: name, parent: self, index: parameters.count,
-                          type: type, ownership: ownership)
+                          type: type)
     parameters.append(param)
     return param
+  }
+
+  public func appendCleanupOp(_ cleanup: PrimOp) {
+    self.cleanups.append(cleanup)
   }
 
   @discardableResult
@@ -59,13 +65,9 @@ public final class Continuation: Value, GraphNode {
     let returnTy = module.functionType(arguments: [type],
                                        returnType: module.bottomType)
     let param = Parameter(name: "", parent: self, index: parameters.count,
-                          type: returnTy, ownership: .owned)
+                          type: returnTy)
     parameters.append(param)
     return param
-  }
-
-  public func appendDestroyable(_ value: DestroyValueOp) {
-    self.destroys.append(value)
   }
 
   public var returnValueType: Value {

@@ -20,9 +20,13 @@ suc n + m = suc (n + m)
 -- CHECK-GIR:   %8 = function_ref @bb3
 -- CHECK-GIR:   apply %7(%6 ; %1 ; %8) : (dispatch-nested.Nat ; dispatch-nested.Nat) -> (dispatch-nested.Nat) -> _
 -- CHECK-GIR: bb2:
--- CHECK-GIR:   apply %2(%1) : (dispatch-nested.Nat) -> _
--- CHECK-GIR: bb3(%11 : dispatch-nested.Nat):
--- CHECK-GIR:   %12 = data_init dispatch-nested.Nat ; dispatch-nested.suc ; %11
--- CHECK-GIR:   apply %2(%12) : (dispatch-nested.Nat) -> _
+-- CHECK-GIR:   %10 = copy_value %1
+-- CHECK-GIR:   destroy_value %1
+-- CHECK-GIR:   destroy_value %0
+-- CHECK-GIR:   apply %2(%10) : (dispatch-nested.Nat) -> _
+-- CHECK-GIR: bb3(%14 : dispatch-nested.Nat):
+-- CHECK-GIR:   %15 = copy_value %14
+-- CHECK-GIR:   %16 = data_init dispatch-nested.Nat ; dispatch-nested.suc ; %15
+-- CHECK-GIR:   apply %2(%16) : (dispatch-nested.Nat) -> _
 -- CHECK-GIR: } -- end gir function dispatch-nested._+_
 

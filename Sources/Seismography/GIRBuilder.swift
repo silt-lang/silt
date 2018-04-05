@@ -32,15 +32,20 @@ extension GIRBuilder {
     return insert(ApplyOp(parent, fnVal, argVals))
   }
 
+  public func createAlloca(_ type: GIRType) -> AllocaOp {
+    return insert(AllocaOp(type))
+  }
+
+  public func createDealloca(_ value: Value) -> DeallocaOp {
+    return DeallocaOp(value)
+  }
+
   public func createCopyValue(_ value: Value) -> CopyValueOp {
     return insert(CopyValueOp(value))
   }
 
-  public func createDestroyValue(
-    _ value: Value, in cont: Continuation) -> DestroyValueOp {
-    let destroy = insert(DestroyValueOp(value))
-    cont.appendDestroyable(destroy)
-    return destroy
+  public func createDestroyValue(_ value: Value) -> DestroyValueOp {
+    return DestroyValueOp(value)
   }
 
   public func createFunctionRef(_ cont: Continuation) -> FunctionRefOp {

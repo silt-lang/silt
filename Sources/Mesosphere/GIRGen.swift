@@ -116,6 +116,7 @@ final class GIRGenFunction {
   let telescope: Telescope<TT>
   let tc: TypeChecker<CheckPhaseState>
   var varLocs: [Name: Value] = [:]
+  let cleanupStack: CleanupStack = CleanupStack()
 
   init(_ GGM: GIRGenModule, _ f: Continuation,
        _ ty: Type<TT>, _ tel: Telescope<TT>) {
@@ -137,15 +138,41 @@ final class GIRGenFunction {
     return self.B.module.typeConverter.getLoweredType(self.tc, type)
   }
 
-  private func buildParameterList() -> ([Value], Value) {
-    var params = [Value]()
+  private func buildParameterList() -> ([ManagedValue], Value) {
+    var params = [ManagedValue]()
     for (_, paramTy) in self.params {
       let ty = self.getLoweredType(self.tc.toNormalForm(paramTy))
-      let p = self.f.appendParameter(type: ty, ownership: .owned)
+      let p = self.appendManagedParameter(type: ty)
       params.append(p)
     }
     let returnContTy = self.getLoweredType(self.tc.toNormalForm(self.returnTy))
     let ret = self.f.setReturnParameter(type: returnContTy)
     return (params, ret)
+  }
+
+  @discardableResult
+  private func appendManagedParameter(
+    named name: String = "", type: GIRType
+  ) -> ManagedValue {
+    let val = self.f.appendParameter(named: name, type: type)
+    return self.pairValueWithCleanup(val)
+  }
+}
+
+extension GIRGenFunction {
+  func pairValueWithCleanup(_ value: Value) -> ManagedValue {
+    return ManagedValue(value: value, cleanup: self.cleanupValue(value))
+  }
+
+  func cleanupValue(_ temp: Value) -> CleanupStack.Handle {
+    assert(temp.type.category == .object,
+           "value cleanup only applies to value types")
+    return cleanupStack.pushCleanup(DestroyValueCleanup.self, temp)
+  }
+
+  func cleanupAlloca(_ temp: Value) -> CleanupStack.Handle {
+    assert(temp.type.category == .address,
+           "alloca cleanup only applies to address types")
+    return cleanupStack.pushCleanup(DeallocaCleanup.self, temp)
   }
 }

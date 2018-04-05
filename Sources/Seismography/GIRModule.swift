@@ -40,14 +40,6 @@ public final class GIRModule {
     return self.continuationTable[ref]
   }
 
-  public func recordType(name: String,
-                         indices: GIRType? = nil,
-                         actions: (RecordType) -> Void) -> RecordType {
-    let record = RecordType(name: name, indices: indices ?? TypeType.shared)
-    actions(record)
-    return knownRecordTypes.getOrInsert(record)
-  }
-
   public func functionType(arguments: [GIRType],
                            returnType: GIRType) -> FunctionType {
     let function = FunctionType(arguments: arguments, returnType: returnType)
@@ -56,8 +48,10 @@ public final class GIRModule {
 
   public func dataType(name: String,
                        indices: GIRType? = nil,
+                       category: Value.Category,
                        actions: (DataType) -> Void) -> DataType {
-    let data = DataType(name: name, indices: indices ?? TypeType.shared)
+    let data = DataType(name: name,
+                        indices: indices ?? TypeType.shared, category: category)
     actions(data)
     return knownDataTypes.getOrInsert(data)
   }

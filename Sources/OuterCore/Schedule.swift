@@ -111,8 +111,8 @@ private final class Scheduler {
     for s in schedule.reversed().dropLast() {
       activeBlock.primops.append(s)
     }
-    for destroy in cont.destroys {
-      activeBlock.primops.append(destroy)
+    for cleanup in cont.cleanups {
+      activeBlock.primops.append(cleanup)
     }
     activeBlock.primops.append(term)
   }

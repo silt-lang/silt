@@ -13,7 +13,7 @@ import Seismography
 extension GIRGenFunction {
   func emitRValue(
     _ parent: Continuation, _ body: Term<TT>
-  ) -> (Continuation, Value) {
+  ) -> (Continuation, ManagedValue) {
     switch body {
     case let .apply(head, args):
       switch head {
@@ -30,22 +30,22 @@ extension GIRGenFunction {
         argVals.reserveCapacity(args.count)
         for arg in args {
           let (newParent, value) = self.emitElimAsRValue(lastParent, arg)
-          argVals.append(value)
+          argVals.append(value.forward(self))
           lastParent = newParent
         }
         argVals.append(applyDestRef)
         _ = self.B.createApply(lastParent, calleeRef, argVals)
-        return (applyDest, param)
+        return (applyDest, ManagedValue.unmanaged(param))
       case let .meta(mv):
         guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
           fatalError()
         }
         return self.emitRValue(parent, bind.body)
       case let .variable(v):
-        guard let varLoc = self.varLocs[v.name] else {
+        guard let varLocVal = self.varLocs[v.name] else {
           fatalError()
         }
-        return (parent, varLoc)
+        return (parent, ManagedValue.unmanaged(varLocVal))
       }
     case let .constructor(tag, args):
       var lastParent = parent
@@ -53,7 +53,7 @@ extension GIRGenFunction {
       argVals.reserveCapacity(args.count)
       for arg in args {
         let (newParent, value) = self.emitRValue(lastParent, arg)
-        argVals.append(value)
+        argVals.append(value.copy(self).forward(self))
         lastParent = newParent
       }
       guard let def = self.tc.signature.lookupDefinition(tag.key) else {
@@ -66,7 +66,8 @@ extension GIRGenFunction {
       }
       let (_, endType) = tc.unrollPi(ty.inside)
       let type = self.getLoweredType(endType)
-      return (lastParent, self.B.createDataInit(tag.key.string, type, argVals))
+      let dataVal = self.B.createDataInit(tag.key.string, type, argVals)
+      return (lastParent, self.pairValueWithCleanup(dataVal))
     default:
       print(body.description)
       fatalError()
@@ -75,7 +76,7 @@ extension GIRGenFunction {
 
   func emitElimAsRValue(
     _ parent: Continuation, _ elim: Elim<TT>
-  ) -> (Continuation, Value) {
+  ) -> (Continuation, ManagedValue) {
     switch elim {
     case let .apply(val):
       return self.emitRValue(parent, val)
