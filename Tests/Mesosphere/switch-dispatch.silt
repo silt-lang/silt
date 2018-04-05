@@ -154,3 +154,28 @@ maranget _  _  tt = four
 -- CHECK:   %24 = data_init switch-dispatch.Index ; switch-dispatch.one
 -- CHECK:   apply %3(%24) : (switch-dispatch.Index) -> _
 -- CHECK: } -- end gir function switch-dispatch.maranget
+
+if_then_else_ : Bool -> Bool -> Bool -> Bool
+if tt then x else _ = x
+if ff then _ else x = x
+-- CHECK: @switch-dispatch.if_then_else_ : (switch-dispatch.Bool ; switch-dispatch.Bool ; switch-dispatch.Bool) -> (switch-dispatch.Bool) -> _ {
+-- CHECK: bb0(%0 : switch-dispatch.Bool; %1 : switch-dispatch.Bool; %2 : switch-dispatch.Bool; %3 : (switch-dispatch.Bool) -> _):
+-- CHECK:   %4 = function_ref @bb2
+-- CHECK:   %5 = function_ref @bb1
+-- CHECK:   switch_constr %0 : switch-dispatch.Bool ; switch-dispatch.tt : %4 ; switch-dispatch.ff : %5
+-- CHECK: bb1:
+-- CHECK:   apply %3(%2) : (switch-dispatch.Bool) -> _
+-- CHECK: bb2:
+-- CHECK:   apply %3(%1) : (switch-dispatch.Bool) -> _
+-- CHECK: } -- end gir function switch-dispatch.if_then_else_
+
+_?_::_ : Bool -> Bool -> Bool -> Bool
+cond ? t :: f = if cond then t else f
+-- CHECK: @switch-dispatch._?_::_ : (switch-dispatch.Bool ; switch-dispatch.Bool ; switch-dispatch.Bool) -> (switch-dispatch.Bool) -> _ {
+-- CHECK: bb0(%0 : switch-dispatch.Bool; %1 : switch-dispatch.Bool; %2 : switch-dispatch.Bool; %3 : (switch-dispatch.Bool) -> _):
+-- CHECK:   %4 = function_ref @switch-dispatch.if_then_else_
+-- CHECK:   %5 = function_ref @bb1
+-- CHECK:   apply %4(%0 ; %1 ; %2 ; %5) : (switch-dispatch.Bool ; switch-dispatch.Bool ; switch-dispatch.Bool) -> (switch-dispatch.Bool) -> _
+-- CHECK: bb1(%7 : switch-dispatch.Bool):
+-- CHECK:   apply %3(%7) : (switch-dispatch.Bool) -> _
+-- CHECK: } -- end gir function switch-dispatch._?_::_

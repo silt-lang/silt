@@ -16,8 +16,8 @@ extension GIRModule {
     stream.write("\n")
     var visited = Set<Continuation>()
     for cont in self.continuations {
-      guard visited.insert(cont).inserted else { continue }
-      let scope = Scope(cont)
+      guard !visited.contains(cont) else { continue }
+      let scope = Scope(cont, visited)
       scope.dump()
       visited.formUnion(scope.continuations)
     }

@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents an abstraction over graph-like objects.
-public protocol Graph: AnyObject, Hashable {
+public protocol GraphNode: AnyObject, Hashable {
   /// The successor sequence type for this node.
   associatedtype Successors: Sequence where Successors.Element == Self
   associatedtype Predecessors: Sequence where Predecessors.Element == Self
@@ -20,22 +20,16 @@ public protocol Graph: AnyObject, Hashable {
   var predecessors: Predecessors { get }
 }
 
-public extension Graph {
-  /// A sequence that iterates over the reverse post-order traversal of this
-  /// graph.
-  var reversePostOrder: ReversePostOrderSequence<Self> {
-    return ReversePostOrderSequence(graph: self)
-  }
-}
-
 /// A sequence that computes the reverse post-order traversal of a given graph.
-public struct ReversePostOrderSequence<Node: Graph>: Sequence {
+public struct ReversePostOrderSequence<Node: GraphNode>: Sequence {
   public struct Iterator: IteratorProtocol {
+    let mayVisit: Set<Node>
     var visited = Set<Node>()
     var postorder = [Node]()
     fileprivate var nodeIndices = [Node: Int]()
 
-    init(start: Node) {
+    init(start: Node, mayVisit: Set<Node>) {
+      self.mayVisit = mayVisit
       traverse(start)
     }
 
@@ -44,7 +38,9 @@ public struct ReversePostOrderSequence<Node: Graph>: Sequence {
     mutating func traverse(_ node: Node) {
       visited.insert(node)
       for child in node.successors {
-        if visited.contains(child) { continue }
+        guard mayVisit.contains(child) && !visited.contains(child) else {
+          continue
+        }
         traverse(child)
       }
       nodeIndices[node] = postorder.count
@@ -67,13 +63,20 @@ public struct ReversePostOrderSequence<Node: Graph>: Sequence {
     }
   }
 
-  let graph: Node
+  let root: Node
+  let mayVisit: Set<Node>
+
+  public init(root: Node, mayVisit: Set<Node>) {
+    self.root = root
+    self.mayVisit = mayVisit
+  }
 
   public func makeIterator() -> ReversePostOrderSequence<Node>.Iterator {
-    return Iterator(start: graph)
+    return Iterator(start: root, mayVisit: mayVisit)
   }
 
   public func makeIndexer() -> Indexer {
-    return Indexer(indices: Iterator(start: graph).nodeIndices)
+    let it = Iterator(start: root, mayVisit: mayVisit)
+    return Indexer(indices: it.nodeIndices)
   }
 }

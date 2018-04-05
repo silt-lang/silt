@@ -10,7 +10,7 @@ public struct ParameterSemantics {
   var mustDestroy: Bool
 }
 
-public final class Continuation: Value, Graph {
+public final class Continuation: Value, GraphNode {
   public private(set) var parameters = [Parameter]()
   public private(set) var destroys = [DestroyValueOp]()
 

@@ -17,11 +17,11 @@ final class Scope {
     return self.defs
   }
 
-  init(_ entry: Continuation) {
+  init(_ entry: Continuation, _ blacklist: Set<Continuation>) {
     self.entry = entry
     var queue = [Value]()
 
-    Scope.enqueue(&queue, &self.defs, &self.continuations, entry)
+    Scope.enqueue(&queue, &self.defs, &self.continuations, entry, blacklist)
 
     while !queue.isEmpty {
       let def = queue.removeFirst()
@@ -30,12 +30,13 @@ final class Scope {
       }
 
       guard !(def is Continuation) else {
-        Scope.enqueue(&queue, &self.defs, &self.continuations, def)
+        Scope.enqueue(&queue, &self.defs, &self.continuations, def, blacklist)
         continue
       }
 
       for use in def.users {
-        Scope.enqueue(&queue, &self.defs, &self.continuations, use.user)
+        Scope.enqueue(&queue, &self.defs, &self.continuations,
+                      use.user, blacklist)
       }
     }
   }
@@ -51,13 +52,18 @@ final class Scope {
 
   private static func enqueue(
     _ queue: inout [Value], _ defs: inout Set<Value>,
-    _ conts: inout [Continuation], _ val: Value) {
+    _ conts: inout [Continuation], _ val: Value,
+    _ blacklist: Set<Continuation>) {
     guard defs.insert(val).inserted else {
       return
     }
     queue.append(val)
 
     if let continuation = val as? Continuation {
+      guard !blacklist.contains(continuation) else {
+        return
+      }
+
       conts.append(continuation)
 
       for param in continuation.parameters {
@@ -72,5 +78,14 @@ final class Scope {
         queue.append(succ)
       }
     }
+  }
+}
+
+extension Scope {
+  /// A sequence that iterates over the reverse post-order traversal of this
+  /// graph.
+  var reversePostOrder: ReversePostOrderSequence<Continuation> {
+    return ReversePostOrderSequence(root: self.entry,
+                                    mayVisit: Set(self.continuations))
   }
 }
