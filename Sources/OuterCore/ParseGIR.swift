@@ -182,8 +182,7 @@ extension GIRParser {
         _ = try self.parser.consume(.colon)
         let typeRepr = try self.parser.parseGIRTypeExpr()
 
-        let arg = cont.appendParameter(type: GIRExprType(typeRepr),
-                                       ownership: .owned)
+        let arg = cont.appendParameter(type: GIRExprType(typeRepr))
 
         self.setLocalValue(arg, name)
       } while try self.parser.consumeIf(.semicolon) != nil
@@ -234,6 +233,10 @@ extension GIRParser {
     switch opcode {
     case .noop:
       fatalError("noop cannot be spelled")
+    case .alloca:
+      let typeRepr = try self.parser.parseGIRTypeExpr()
+      let type = GIRExprType(typeRepr)
+      resultValue = B.createAlloca(type)
     case .apply:
       guard let fnName = tryParseGIRValueToken() else {
         return false
@@ -270,13 +273,20 @@ extension GIRParser {
       _ = try self.parser.consumeIf(.colon)
       _ = try self.parser.parseGIRTypeExpr()
       resultValue = B.createCopyValue(self.getLocalValue(valueName))
+    case .dealloca:
+      guard let valueName = tryParseGIRValueToken() else {
+        return false
+      }
+      _ = try self.parser.consumeIf(.colon)
+      let typeRepr = try self.parser.parseGIRTypeExpr()
+      resultValue = B.createDealloca(self.getLocalValue(valueName))
     case .destroyValue:
       guard let valueName = tryParseGIRValueToken() else {
         return false
       }
       _ = try self.parser.consumeIf(.colon)
       _ = try self.parser.parseGIRTypeExpr()
-      _ = B.createDestroyValue(self.getLocalValue(valueName), in: cont)
+      _ = B.createDestroyValue(self.getLocalValue(valueName))
     case .switchConstr:
       guard let val = self.tryParseGIRValueToken() else {
         return false

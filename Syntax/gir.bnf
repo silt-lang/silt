@@ -65,6 +65,10 @@ gir-primop ::= 'copy_value' <operand>
 
 gir-primop ::= 'destroy_value' <operand>
 
+gir-primop ::= 'alloca' <gir-type>
+
+gir-primop ::= 'dealloca' <operand>
+
 ## Terminators
 
 terminator ::= 'apply' <gir-value-id> '(' (<gir-value-id> (';' <gir-value-id>)*)? ')' ':' gir-type

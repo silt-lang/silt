@@ -18,6 +18,12 @@ public class PrimOp: Value {
     /// A no-op operation.
     case noop
 
+    /// Stack allocation.
+    case alloca
+
+    /// Stack deallocation.
+    case dealloca
+
     /// An application of a function-type value.
     case apply
 
@@ -129,6 +135,32 @@ public final class ApplyOp: TerminalOp {
   /// The arguments being applied to the callee.
   public var arguments: ArraySlice<Operand> {
     return self.operands.dropFirst()
+  }
+}
+
+public final class AllocaOp: PrimOp {
+  public init(_ type: GIRType) {
+    super.init(opcode: .alloca, category: .address)
+    self.addOperands([Operand(owner: self, value: type)])
+  }
+
+  public override var result: Value? {
+    return self
+  }
+
+  public var addressType: GIRType {
+    return self.operands[0].value
+  }
+}
+
+public final class DeallocaOp: PrimOp {
+  public init(_ type: GIRType) {
+    super.init(opcode: .dealloca, category: .object)
+    self.addOperands([Operand(owner: self, value: type)])
+  }
+
+  public var addressValue: Value {
+    return self.operands[0].value
   }
 }
 

@@ -285,6 +285,16 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
 }
 
 extension GIRWriter: PrimOpVisitor {
+  public func visitAllocaOp(_ op: AllocaOp) {
+    self.visitType(op.addressType)
+  }
+
+  public func visitDeallocaOp(_ op: DeallocaOp) {
+    self.write(self.getID(of: op.addressValue).description)
+    self.write(" : ")
+    self.visitType(op.addressValue.type)
+  }
+
   public func visitApplyOp(_ op: ApplyOp) {
     self.write(self.getID(of: op.callee).description)
     self.write("(")
