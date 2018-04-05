@@ -92,7 +92,9 @@ extension Diagnostic.Message {
     return Diagnostic.Message(.note, "extra pattern will be ignored")
   }
 
-  static func incorrectModuleStructure(_ name: QualifiedName) -> Diagnostic.Message {
+  static func incorrectModuleStructure(
+    _ name: QualifiedName
+  ) -> Diagnostic.Message {
     return Diagnostic.Message(.error,
       """
       module name '\(name)' does not match expected module structure

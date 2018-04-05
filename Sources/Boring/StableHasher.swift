@@ -102,28 +102,28 @@ extension SipHasher: Hasher {
   public mutating func append(bits: Int8) {
     var bitCpy = bits
     withUnsafeBytes(of: &bitCpy) { ptr in
-      self.append(bits)
+      self.append(bits: ptr)
     }
   }
 
   public mutating func append(bits: UInt8) {
     var bitCpy = bits
     withUnsafeBytes(of: &bitCpy) { ptr in
-      self.append(bits)
+      self.append(bits: ptr)
     }
   }
 
   public mutating func append(bits: Int16) {
     var bitCpy = bits
     withUnsafeBytes(of: &bitCpy) { ptr in
-      self.append(bits)
+      self.append(bits: ptr)
     }
   }
 
   public mutating func append(bits: UInt16) {
     var bitCpy = bits
     withUnsafeBytes(of: &bitCpy) { ptr in
-      self.append(bits)
+      self.append(bits: ptr)
     }
   }
 
@@ -207,11 +207,13 @@ private func extendHostToLittle(
     index += 4
   }
   if index + 1 < length {
-    out |= UInt64(buf.load(fromByteOffset: start + index, as: UInt16.self)) << (index * 8)
+    let load = UInt64(buf.load(fromByteOffset: start + index, as: UInt16.self))
+    out |= load << (index * 8)
     index += 2
   }
   if index < length {
-    out |= buf.load(fromByteOffset: start + index, as: UInt64.self) << (index * 8)
+    let load = buf.load(fromByteOffset: start + index, as: UInt64.self)
+    out |= load << (index * 8)
     index += 1
   }
   assert(index == length)

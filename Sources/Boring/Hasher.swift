@@ -132,4 +132,3 @@ extension UInt: HashableByHasher {
     hasher.append(bits: self)
   }
 }
-

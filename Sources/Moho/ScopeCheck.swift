@@ -26,8 +26,8 @@ extension NameBinding {
     let params = module.typedParameterList.map(self.scopeCheckParameter)
     let qmodName = topLevel ? moduleName : self.qualify(name: moduleName.name)
     let noteScope = walkNotations(module, qmodName)
-    
-    let moduleCheck : (Scope) -> DeclaredModule = { _ in
+
+    let moduleCheck: (Scope) -> DeclaredModule = { _ in
       let filteredDecls = self.reparseDecls(module.declList)
       return DeclaredModule(
         moduleName: self.activeScope.nameSpace.module,
@@ -920,7 +920,9 @@ extension NameBinding {
     return []
   }
 
-  private func scopeCheckOpenImportDecl(_ syntax: OpenImportDeclSyntax) -> [Decl] {
+  private func scopeCheckOpenImportDecl(
+    _ syntax: OpenImportDeclSyntax
+  ) -> [Decl] {
     let name = QualifiedName(ast: syntax.importIdentifier)
     guard let dependentURL = self.validateImportName(name) else {
       self.engine.diagnose(.incorrectModuleName(name), node: name.node)

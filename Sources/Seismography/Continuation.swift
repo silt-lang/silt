@@ -86,8 +86,8 @@ public final class Continuation: Value, GraphNode {
         fatalError("cannot get type of Continuation without module")
       }
       let returnTy = parameters.last?.type ?? module.bottomType
-      return module.functionType(arguments: parameters.dropLast().map { $0.type },
-                                 returnType: returnTy)
+      let paramTys = parameters.dropLast().map { $0.type }
+      return module.functionType(arguments: paramTys, returnType: returnTy)
     }
     set { /* do nothing */ }
   }
