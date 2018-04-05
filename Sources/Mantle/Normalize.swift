@@ -244,6 +244,9 @@ extension TypeChecker {
     guard !ps.isEmpty else {
       return result
     }
+    guard es.count >= ps.count else {
+      return ClauseMatch.failure(.fail(()))
+    }
     var idx = 0
     var arguments = [TT]()
     arguments.reserveCapacity(ps.count)
