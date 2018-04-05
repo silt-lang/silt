@@ -46,7 +46,7 @@ final class Schedule {
     self.tag = tag
 
     var i = 0
-    for n in scope.entry.reversePostOrder {
+    for n in scope.reversePostOrder {
       defer { i += 1 }
       self.blocks.append(Block(n, [], i))
       self.indices[n] = i

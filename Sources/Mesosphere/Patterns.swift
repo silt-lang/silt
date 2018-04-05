@@ -325,10 +325,11 @@ extension GIRGenFunction {
       }
       let (newParent, bodyVal) = self.emitRValue(bb, body)
       _ = self.B.createApply(newParent, retParam, [bodyVal])
-    case let .apply(head, args):
+    case let .apply(head, _):
       switch head {
       case .definition(_):
-        fatalError()
+        let (newParent, bodyVal) = self.emitRValue(bb, body)
+        _ = self.B.createApply(newParent, retParam, [bodyVal])
       case let .meta(mv):
         guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
           fatalError()
