@@ -68,7 +68,7 @@ extension TypeConverter {
     case .postulate:
       fatalError()
     case .data(_):
-      return self.module!.dataType(name: name, category: .object)
+      return self.module!.dataType(name: name, category: .object) { _ in }
     case .record(_, _, _):
       fatalError()
     }

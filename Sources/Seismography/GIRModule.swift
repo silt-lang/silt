@@ -48,9 +48,11 @@ public final class GIRModule {
 
   public func dataType(name: String,
                        indices: GIRType? = nil,
-                       category: Value.Category) -> DataType {
+                       category: Value.Category,
+                       actions: (DataType) -> Void) -> DataType {
     let data = DataType(name: name,
                         indices: indices ?? TypeType.shared, category: category)
+    actions(data)
     return knownDataTypes.getOrInsert(data)
   }
 }
