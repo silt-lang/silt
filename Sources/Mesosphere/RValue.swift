@@ -45,19 +45,51 @@ extension GIRGenFunction {
         guard let varLocVal = self.varLocs[v.name] else {
           fatalError()
         }
+        if varLocVal.type is BoxType {
+          let lowering = self.lowerType(varLocVal.type)
+          if !lowering.addressOnly {
+            let loadVal = self.B.createLoadBox(varLocVal)
+            return (parent, ManagedValue.unmanaged(loadVal))
+          } else {
+            let projected = self.B.createProjectBox(varLocVal)
+            return (parent, ManagedValue.unmanaged(projected))
+          }
+        }
         return (parent, ManagedValue.unmanaged(varLocVal))
       }
     case let .constructor(tag, args):
       var lastParent = parent
       var argVals = [Value]()
+      let payloadType = self.getPayloadTypeOfConstructor(tag)
+      assert(payloadType.count == args.count)
       argVals.reserveCapacity(args.count)
-      for arg in args {
-        let (newParent, value) = self.emitRValue(lastParent, arg)
-        if value.value is Parameter {
-          argVals.append(value.copy(self).forward(self))
+      for (ty, arg) in zip(payloadType, args) {
+        let (newParent, originalValue) = self.emitRValue(lastParent, arg)
+        if ty is BoxType {
+          let underlyingTyLowering = self.lowerType(ty)
+          if underlyingTyLowering.addressOnly {
+            let box = B.createAllocBox(underlyingTyLowering.type)
+            let addr = B.createProjectBox(box)
+            let storedBox = B.createCopyAddress(
+              originalValue.forward(self), to: addr)
+            let finalValue = ManagedValue(value: storedBox,
+                                          cleanup: cleanupAddress(storedBox))
+            argVals.append(finalValue.forward(self))
+          } else {
+            let box = B.createAllocBox(underlyingTyLowering.type)
+            let storedBox = B.createStoreBox(
+              originalValue.copy(self).forward(self), to: box)
+            let finalValue = self.pairValueWithCleanup(storedBox)
+            argVals.append(finalValue.forward(self))
+          }
         } else {
-          argVals.append(value.forward(self))
+          if originalValue.value is Parameter {
+            argVals.append(originalValue.copy(self).forward(self))
+          } else {
+            argVals.append(originalValue.forward(self))
+          }
         }
+
         lastParent = newParent
       }
       guard let def = self.tc.signature.lookupDefinition(tag.key) else {

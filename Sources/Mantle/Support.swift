@@ -89,8 +89,8 @@ public struct Opened<K, T> {
   }
 }
 
-extension Opened where K: Equatable, T: Equatable {
-  static func == (lhs: Opened<K, T>, rhs: Opened<K, T>) -> Bool {
+extension Opened: Equatable where K: Equatable, T: Equatable {
+  public static func == (lhs: Opened<K, T>, rhs: Opened<K, T>) -> Bool {
     guard lhs.key == rhs.key else {
       return false
     }
@@ -98,6 +98,12 @@ extension Opened where K: Equatable, T: Equatable {
       let (l, r) = next
       return acc && (l == r)
     })
+  }
+}
+
+extension Opened: Hashable where K: Hashable, T: Equatable {
+  public var hashValue: Int {
+    return self.key.hashValue
   }
 }
 

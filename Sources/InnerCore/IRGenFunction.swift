@@ -227,6 +227,34 @@ final class IRGenFunction: PrimOpVisitor {
     }
   }
 
+  func visitLoadBoxOp(_ op: LoadBoxOp) -> IRValue {
+    fatalError()
+  }
+
+  func visitStoreBoxOp(_ op: StoreBoxOp) -> IRValue {
+    fatalError()
+  }
+
+  func visitAllocBoxOp(_ op: AllocBoxOp) -> IRValue {
+    fatalError()
+  }
+
+  func visitProjectBoxOp(_ op: ProjectBoxOp) -> IRValue {
+    fatalError()
+  }
+
+  func visitDeallocBoxOp(_ op: DeallocBoxOp) -> IRValue {
+    fatalError()
+  }
+
+  func visitCopyAddressOp(_ op: CopyAddressOp) -> IRValue {
+    fatalError()
+  }
+
+  func visitDestroyAddressOp(_ op: DestroyAddressOp) -> IRValue {
+    fatalError()
+  }
+
   func visitUnreachableOp(_ op: UnreachableOp) -> IRValue {
     return trace("emitting LLVM IR for unreachable '\(op)'") {
       return B.buildUnreachable()

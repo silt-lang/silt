@@ -8,6 +8,7 @@
 public struct DeclRef: Hashable {
   public enum Kind: Int {
     case function = 0
+    case dataConstructor = 1
   }
   public let name: String
   public let kind: Kind

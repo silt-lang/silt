@@ -39,10 +39,9 @@ struct ManagedValue {
       let value = GGF.B.createCopyValue(self.value)
       return ManagedValue(value: value, cleanup: GGF.cleanupValue(value))
     case .address:
-//      let alloc = GGF.B.createAlloca(self.value.type)
-//      GGF.B.createCopyAddr(self.value, alloc)
-//      return GGF.pairRValueWithCleanup(alloc)
-      fatalError()
+      let alloc = GGF.B.createAlloca(self.value.type)
+      let addr = GGF.B.createCopyAddress(self.value, to: alloc)
+      return ManagedValue(value: value, cleanup: GGF.cleanupAddress(addr))
     }
   }
 

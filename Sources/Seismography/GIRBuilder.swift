@@ -32,6 +32,26 @@ extension GIRBuilder {
     return insert(ApplyOp(parent, fnVal, argVals))
   }
 
+  public func createAllocBox(_ type: GIRType) -> AllocBoxOp {
+    return insert(AllocBoxOp(type))
+  }
+
+  public func createDeallocBox(_ value: Value) -> DeallocBoxOp {
+    return DeallocBoxOp(value)
+  }
+
+  public func createProjectBox(_ value: Value) -> ProjectBoxOp {
+    return insert(ProjectBoxOp(value))
+  }
+
+  public func createLoadBox(_ value: Value) -> LoadBoxOp {
+    return insert(LoadBoxOp(value))
+  }
+
+  public func createStoreBox(_ value: Value, to address: Value) -> StoreBoxOp {
+    return insert(StoreBoxOp(value, to: address))
+  }
+
   public func createAlloca(_ type: GIRType) -> AllocaOp {
     return insert(AllocaOp(type))
   }
@@ -46,6 +66,15 @@ extension GIRBuilder {
 
   public func createDestroyValue(_ value: Value) -> DestroyValueOp {
     return DestroyValueOp(value)
+  }
+
+  public func createCopyAddress(
+    _ value: Value, to address: Value) -> CopyAddressOp {
+    return insert(CopyAddressOp(value, to: address))
+  }
+
+  public func createDestroyAddress(_ value: Value) -> DestroyAddressOp {
+    return DestroyAddressOp(value)
   }
 
   public func createFunctionRef(_ cont: Continuation) -> FunctionRefOp {

@@ -65,9 +65,23 @@ gir-primop ::= 'copy_value' <operand>
 
 gir-primop ::= 'destroy_value' <operand>
 
+gir-primop ::= 'copy_addr' <operand> 'to' <operand> : <gir-type>
+
+gir-primop ::= 'destroy_addr' <operand>
+
 gir-primop ::= 'alloca' <gir-type>
 
 gir-primop ::= 'dealloca' <operand>
+
+gir-primop ::= 'alloc_box' <gir-type>
+
+gir-primop ::= 'project_box' <gir-type>
+
+gir-primop ::= 'dealloc_box' <operand>
+
+gir-primop ::= 'load_box' <operand> : <gir-type>
+
+gir-primop ::= 'store_box' <operand> 'to' <operand> : <gir-type>
 
 ## Terminators
 

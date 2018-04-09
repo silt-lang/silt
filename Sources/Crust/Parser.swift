@@ -87,7 +87,7 @@ extension Diagnostic.Message {
 }
 
 public class Parser {
-  let engine: DiagnosticEngine
+  public let engine: DiagnosticEngine
   let tokens: [TokenSyntax]
   public var index = 0
 

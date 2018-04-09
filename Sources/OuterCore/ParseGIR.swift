@@ -8,19 +8,21 @@
 import Lithosphere
 import Crust
 import Seismography
+import Mantle
 
 public final class GIRParser {
   struct ParserScope {
     let name: String
   }
   let parser: Parser
-  var module: GIRModule = GIRModule()
+  var module: GIRModule
 
   private var _activeScope: ParserScope?
   fileprivate var continuationsByName: [String: Continuation] = [:]
   fileprivate var undefinedContinuation: [Continuation: TokenSyntax] = [:]
   fileprivate var localValues: [String: Value] = [:]
   fileprivate var forwardRefLocalValues: [String: TokenSyntax] = [:]
+  private let tc: TypeChecker<CheckPhaseState>
 
   var currentScope: ParserScope {
     guard let scope = self._activeScope else {
@@ -31,6 +33,8 @@ public final class GIRParser {
 
   public init(_ parser: Parser) {
     self.parser = parser
+    self.tc = TypeChecker<CheckPhaseState>(CheckPhaseState(), parser.engine)
+    self.module = GIRModule(tc: TypeConverter(self.tc))
   }
 
   @discardableResult
@@ -129,7 +133,7 @@ extension GIRParser {
       _ = try self.parser.consume(.moduleKeyword)
       let moduleId = try self.parser.parseQualifiedName().render
       _ = try self.parser.consume(.whereKeyword)
-      let mod = GIRModule(name: moduleId)
+      let mod = GIRModule(name: moduleId, tc: TypeConverter(self.tc))
       self.module = mod
       let builder = GIRBuilder(module: mod)
       try self.parseDecls(builder)
@@ -154,7 +158,7 @@ extension GIRParser {
     }
     let ident = try self.parser.parseIdentifierToken()
     _ = try self.parser.consume(.colon)
-    let typeRepr = try self.parser.parseGIRTypeExpr()
+    _ = try self.parser.parseGIRTypeExpr()
     _ = try self.parser.consume(.leftBrace)
     return try self.withScope(named: ident.render) {
       repeat {
@@ -238,6 +242,10 @@ extension GIRParser {
       let typeRepr = try self.parser.parseGIRTypeExpr()
       let type = GIRExprType(typeRepr)
       resultValue = B.createAlloca(type)
+    case .allocBox:
+      let typeRepr = try self.parser.parseGIRTypeExpr()
+      let type = GIRExprType(typeRepr)
+      resultValue = B.createAllocBox(type)
     case .apply:
       guard let fnName = tryParseGIRValueToken() else {
         return false
@@ -258,7 +266,7 @@ extension GIRParser {
       _ = try self.parser.consume(.rightParen)
 
       _ = try self.parser.consume(.colon)
-      let typeRepr = try self.parser.parseGIRTypeExpr()
+      _ = try self.parser.parseGIRTypeExpr()
 
       var args = [Value]()
       for argName in argNames {
@@ -274,13 +282,32 @@ extension GIRParser {
       _ = try self.parser.consumeIf(.colon)
       _ = try self.parser.parseGIRTypeExpr()
       resultValue = B.createCopyValue(self.getLocalValue(valueName))
+    case .copyAddress:
+      guard let valueName = tryParseGIRValueToken() else {
+        return false
+      }
+      _ = try self.parser.consume(.identifier("to"))
+      guard let addressName = tryParseGIRValueToken() else {
+        return false
+      }
+      _ = try self.parser.consumeIf(.colon)
+      _ = try self.parser.parseGIRTypeExpr()
+      resultValue = B.createCopyAddress(self.getLocalValue(valueName),
+                                        to: self.getLocalValue(addressName))
     case .dealloca:
       guard let valueName = tryParseGIRValueToken() else {
         return false
       }
       _ = try self.parser.consumeIf(.colon)
-      let typeRepr = try self.parser.parseGIRTypeExpr()
+      _ = try self.parser.parseGIRTypeExpr()
       cont.appendCleanupOp(B.createDealloca(self.getLocalValue(valueName)))
+    case .deallocBox:
+      guard let valueName = tryParseGIRValueToken() else {
+        return false
+      }
+      _ = try self.parser.consumeIf(.colon)
+      _ = try self.parser.parseGIRTypeExpr()
+      cont.appendCleanupOp(B.createDeallocBox(self.getLocalValue(valueName)))
     case .destroyValue:
       guard let valueName = tryParseGIRValueToken() else {
         return false
@@ -288,13 +315,21 @@ extension GIRParser {
       _ = try self.parser.consumeIf(.colon)
       _ = try self.parser.parseGIRTypeExpr()
       cont.appendCleanupOp(B.createDestroyValue(self.getLocalValue(valueName)))
+    case .destroyAddress:
+      guard let valueName = tryParseGIRValueToken() else {
+        return false
+      }
+      _ = try self.parser.consumeIf(.colon)
+      _ = try self.parser.parseGIRTypeExpr()
+      cont.appendCleanupOp(
+        B.createDestroyAddress(self.getLocalValue(valueName)))
     case .switchConstr:
       guard let val = self.tryParseGIRValueToken() else {
         return false
       }
       let srcVal = self.getLocalValue(val)
       _ = try self.parser.consume(.colon)
-      let typeRepr = try self.parser.parseGIRTypeExpr()
+      _ = try self.parser.parseGIRTypeExpr()
 
       var caseConts = [(String, Value)]()
       while case .semicolon = self.parser.peek() {
@@ -346,6 +381,32 @@ extension GIRParser {
       }
 
       resultValue = B.createDataInit(ident.render, type, args)
+    case .projectBox:
+      guard let valueName = tryParseGIRValueToken() else {
+        return false
+      }
+      _ = try self.parser.consumeIf(.colon)
+      _ = try self.parser.parseGIRTypeExpr()
+      resultValue = B.createProjectBox(self.getLocalValue(valueName))
+    case .loadBox:
+      guard let valueName = tryParseGIRValueToken() else {
+        return false
+      }
+      _ = try self.parser.consumeIf(.colon)
+      _ = try self.parser.parseGIRTypeExpr()
+      resultValue = B.createLoadBox(self.getLocalValue(valueName))
+    case .storeBox:
+      guard let valueName = tryParseGIRValueToken() else {
+        return false
+      }
+      _ = try self.parser.consume(.identifier("to"))
+      guard let addressName = tryParseGIRValueToken() else {
+        return false
+      }
+      _ = try self.parser.consumeIf(.colon)
+      _ = try self.parser.parseGIRTypeExpr()
+      _ = B.createStoreBox(self.getLocalValue(valueName),
+                           to: self.getLocalValue(addressName))
     case .unreachable:
       resultValue = B.createUnreachable(cont)
     }

@@ -83,6 +83,12 @@ final class DestroyValueCleanup: Cleanup {
   }
 }
 
+final class DestroyAddressCleanup: Cleanup {
+  override func emit(_ GGF: GIRGenFunction, in cont: Continuation) {
+    cont.appendCleanupOp(GGF.B.createDestroyAddress(self.value))
+  }
+}
+
 final class DeallocaCleanup: Cleanup {
   override func emit(_ GGF: GIRGenFunction, in cont: Continuation) {
     cont.appendCleanupOp(GGF.B.createDealloca(self.value))

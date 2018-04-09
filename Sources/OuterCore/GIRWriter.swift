@@ -281,6 +281,32 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
 }
 
 extension GIRWriter: PrimOpVisitor {
+  public func visitStoreBoxOp(_ op: StoreBoxOp) {
+    self.write(self.getID(of: op.value).description)
+    self.write(" to ")
+    self.write(self.getID(of: op.address).description)
+  }
+
+  public func visitLoadBoxOp(_ op: LoadBoxOp) {
+    self.write(self.getID(of: op.addressee).description)
+    self.write(" : ")
+    self.visitType(op.addressee.type)
+  }
+
+  public func visitProjectBoxOp(_ op: ProjectBoxOp) {
+    self.write(self.getID(of: op.boxValue).description)
+  }
+
+  public func visitAllocBoxOp(_ op: AllocBoxOp) {
+    self.visitType(op.boxedType)
+  }
+
+  public func visitDeallocBoxOp(_ op: DeallocBoxOp) {
+    self.write(self.getID(of: op.box).description)
+    self.write(" : ")
+    self.visitType(op.box.type)
+  }
+
   public func visitAllocaOp(_ op: AllocaOp) {
     self.visitType(op.addressType)
   }
@@ -307,6 +333,16 @@ extension GIRWriter: PrimOpVisitor {
 
   public func visitDestroyValueOp(_ op: DestroyValueOp) {
     self.write(self.getID(of: op.value.value).description)
+  }
+
+  public func visitCopyAddressOp(_ op: CopyAddressOp) {
+    self.write(self.getID(of: op.value).description)
+    self.write(" to ")
+    self.write(self.getID(of: op.address).description)
+  }
+
+  public func visitDestroyAddressOp(_ op: DestroyAddressOp) {
+    self.write(self.getID(of: op.value).description)
   }
 
   public func visitSwitchConstrOp(_ op: SwitchConstrOp) {
@@ -373,6 +409,9 @@ extension GIRWriter: TypeVisitor {
   public func visitDataType(_ type: DataType) {
     self.write(type.name)
   }
+  public func visitBoxType(_ type: BoxType) {
+    self.write(type.name)
+  }
   public func visitRecordType(_ type: RecordType) {
     self.write(type.name)
   }
@@ -386,6 +425,13 @@ extension GIRWriter: TypeVisitor {
                     { self.write(" ; ") })
     self.write(") -> ")
     return self.visitType(type.returnType)
+  }
+  public func visitTupleType(_ type: TupleType) {
+    self.write("(")
+    self.interleave(type.elements,
+                    { self.visitType($0) },
+                    { self.write(" , ") })
+    self.write(")")
   }
   public func visitSubstitutedType(_ type: SubstitutedType) {}
   public func visitBottomType(_ type: BottomType) {
