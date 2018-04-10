@@ -1,0 +1,77 @@
+-- RUN: %silt --dump irgen %s 2>&1 | %FileCheck %s
+
+-- CHECK: ; ModuleID = '_S4bool'
+module bool where
+
+data Bool : Type where
+  false : Bool
+  true : Bool
+
+-- CHECK: define i1 @"_SC9bool._&&_"(i1, i1) {
+_&&_ : Bool -> Bool -> Bool
+-- CHECK:   "_SC9bool._&&_":
+-- CHECK:   switch i1 %0, label %trap [
+-- CHECK:       i1 true, label %"_SC18bool._&&_#col0row0"
+-- CHECK:       i1 false, label %"_SC18bool._&&_#col0row1"
+-- CHECK:   ]
+-- CHECK-DAG:   "_SC18bool._&&_#col0row0":
+-- CHECK-DAG:     ret i1 %1
+true && x = x
+-- CHECK-DAG:   "_SC18bool._&&_#col0row1":
+-- CHECK-DAG:     ret i1 false
+false && _ = false
+-- CHECK:   trap:
+-- CHECK:     unreachable
+-- CHECK:   }
+
+-- CHECK: define i1 @"_SC9bool._||_"(i1, i1) {
+_||_ : Bool -> Bool -> Bool
+
+-- CHECK: "_SC9bool._||_":
+-- CHECK:   switch i1 %0, label %trap [
+-- CHECK:     i1 true, label %"_SC18bool._||_#col0row0"
+-- CHECK:     i1 false, label %"_SC18bool._||_#col0row1"
+-- CHECK:   ]
+-- CHECK-DAG: "_SC18bool._||_#col0row0":
+-- CHECK-DAG:   ret i1 true
+true || _ = true
+-- CHECK-DAG: "_SC18bool._||_#col0row1":
+-- CHECK-DAG:   ret i1 %1
+false || x = x
+-- CHECK: trap:
+-- CHECK:   unreachable
+-- CHECK: }
+
+-- CHECK: define i1 @"_SC7bool.!_"(i1) {
+!_ : Bool -> Bool
+-- CHECK: "_SC7bool.!_":
+-- CHECK:   switch i1 %0, label %trap [
+-- CHECK:     i1 true, label %"_SC16bool.!_#col0row0"
+-- CHECK:     i1 false, label %"_SC16bool.!_#col0row1"
+-- CHECK:   ]
+-- CHECK-DAG: "_SC16bool.!_#col0row0":
+-- CHECK-DAG:   ret i1 false
+! true = false
+-- CHECK-DAG: "_SC16bool.!_#col0row1":
+-- CHECK-DAG:   ret i1 true
+! false = true
+-- CHECK: trap:
+-- CHECK:   unreachable
+-- CHECK: }
+
+-- CHECK: define i1 @_SC18bool.if_then_else_(i1, i1, i1) {
+if_then_else_ : Bool -> Bool -> Bool -> Bool
+-- CHECK: _SC18bool.if_then_else_:
+-- CHECK:   switch i1 %0, label %trap [
+-- CHECK:     i1 true, label %"_SC27bool.if_then_else_#col0row0"
+-- CHECK:     i1 false, label %"_SC27bool.if_then_else_#col0row1"
+-- CHECK:   ]
+-- CHECK-DAG: "_SC27bool.if_then_else_#col0row0":
+-- CHECK-DAG:   ret i1 %1
+if true then x else _ = x
+-- CHECK-DAG: "_SC27bool.if_then_else_#col0row1":
+-- CHECK-DAG:   ret i1 %2
+if false then _ else x = x
+-- CHECK: trap:
+-- CHECK:   unreachable
+-- CHECK: }
