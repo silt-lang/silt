@@ -6,7 +6,7 @@ import PrettyStackTrace
 final class IRGenFunction: PrimOpVisitor {
   unowned let IGM: IRGenModule
   var igr: IRGenRuntime!
-  let scope: Scope
+  let scope: OuterCore.Scope
   let schedule: Schedule
   var function: Function?
   var blockMap = [Continuation: BasicBlock]()
@@ -25,7 +25,7 @@ final class IRGenFunction: PrimOpVisitor {
     return IGM.B
   }
 
-  init(irGenModule: IRGenModule, scope: Scope) {
+  init(irGenModule: IRGenModule, scope: OuterCore.Scope) {
     self.IGM = irGenModule
     self.schedule = Schedule(scope, .early)
     self.scope = scope
@@ -36,11 +36,14 @@ final class IRGenFunction: PrimOpVisitor {
     trace("emitting LLVM IR declaration for function '\(scope.entry.name)'") {
       let name = IGM.mangler.mangle(scope.entry)
       let returnIGT = IRGenType(type: returnType(), irGenModule: IGM)
+      let returnLowered = returnIGT.lower()
       let type = FunctionType(argTypes:
         scope.entry.parameters
              .dropLast().map {
-               IRGenType(type: $0.type, irGenModule: IGM).emit()
-             }, returnType: returnIGT.emit())
+               let igt = IRGenType(type: $0.type, irGenModule: IGM)
+               let lowered = igt.lower()
+               return igt.emit(lowered)
+             }, returnType: returnIGT.emit(returnLowered))
       self.function = B.addFunction(name, type: type)
     }
   }
@@ -110,7 +113,10 @@ final class IRGenFunction: PrimOpVisitor {
                "return continuations must have 1 argument")
         return B.buildRet(emit(op.arguments.first!.value))
       case let funcRef as FunctionRefOp:
-        let bb = emit(funcRef) as! BasicBlock
+        let irFunc = emit(funcRef)
+        guard let bb = irFunc as? BasicBlock else {
+          return B.buildUnreachable()
+        }
         return B.buildBr(bb)
       default:
         return B.buildUnreachable()
@@ -118,17 +124,25 @@ final class IRGenFunction: PrimOpVisitor {
     }
   }
 
+  func visitAllocaOp(_ op: AllocaOp) -> IRValue {
+    return B.buildUnreachable()
+  }
+
+  func visitDeallocaOp(_ op: DeallocaOp) -> IRValue {
+    return B.buildUnreachable()
+  }
+
   func visitCopyValueOp(_ op: CopyValueOp) -> IRValue {
     return trace("emitting LLVM IR for copy_value '\(op)'") {
       let val = emit(op.value.value)
-      return igr.emitCopyValue(val)
+      return val // igr.emitCopyValue(val)
     }
   }
 
   func visitDestroyValueOp(_ op: DestroyValueOp) -> IRValue {
     return trace("emitting LLVM IR for destroy_value '\(op)'") {
       let val = emit(op.value.value)
-      igr.emitDestroyValue(val)
+      // igr.emitDestroyValue(val)
       return 0
     }
   }
@@ -149,9 +163,9 @@ final class IRGenFunction: PrimOpVisitor {
       let igt = IRGenType(type: dataTy, irGenModule: IGM)
       let ty = igt.lower()
       switch ty {
-      case .complexData(_, _, _):
-        fatalError("complex data types are unsupported")
-      case .simpleData(_):
+      case .taggedUnion(_, _):
+        return IGM.B.buildUnreachable()
+      case .tagged(_):
         let indexesAndFuncs = op.patterns.map { caseDef -> (Int, BasicBlock) in
           // FIXME: String matching on constructor names is very bad here.
           let idx = dataTy.constructors.index { $0.name == caseDef.pattern }!
@@ -177,19 +191,38 @@ final class IRGenFunction: PrimOpVisitor {
 
   func visitDataInitOp(_ op: DataInitOp) -> IRValue {
     return trace("emitting LLVM IR for data_init '\(op)'") {
-      guard op.operands.isEmpty else {
-        // Cannot handle complex data types...
-        return B.buildUnreachable()
-      }
       guard let ty = op.dataType as? DataType else {
         fatalError("non data type in data_init?")
       }
-
       // FIXME: Adjust representation to actually store constructor tags instead
       //        of this fragile string lookup.
       let idx = ty.constructors.index { $0.name == op.constructor }!
       let igt = IRGenType(type: ty, irGenModule: IGM)
-      return igt.initialize(tag: idx)
+      let lowered = igt.lower()
+
+      switch lowered {
+      case .void: return VoidType().null()
+      case .tagged(_, _):
+        return igt.initialize(tag: idx)
+      case let .taggedUnion(_, unionTy):
+        let operands = op.operands.map { emit($0.value) }
+        guard let payloadType = unionTy.payloadTypes[idx] else {
+          return igt.initialize(tag: idx)
+        }
+        let irType = igt.emit(payloadType)
+        var payloadValue = irType.null()
+        for (i, operand) in operands.enumerated() {
+          payloadValue = IGM.B.buildInsertValue(
+            aggregate: payloadValue,
+            element: operand,
+            index: i
+          )
+        }
+        let alloca = IGM.B.buildAlloca(type: igt.emit(lowered))
+        let addr = igt.extractAddressOfPayload(atTag: idx, from: alloca)
+        IGM.B.buildStore(payloadValue, to: addr)
+        return IGM.B.buildLoad(alloca)
+      }
     }
   }
 

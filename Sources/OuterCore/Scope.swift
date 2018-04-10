@@ -94,7 +94,7 @@ extension GIRModule {
     var scopes = [Scope]()
     var visited = Set<Continuation>()
     for cont in self.continuations {
-      guard visited.insert(cont).inserted else { continue }
+      guard !visited.contains(cont) else { continue }
       let scope = Scope(cont, visited)
       scopes.append(scope)
       visited.formUnion(scope.continuations)

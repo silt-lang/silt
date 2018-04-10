@@ -34,6 +34,11 @@ public struct GIRMangler {
     return "\(prefix(true))\(mangleIdentifier(module.name))"
   }
 
+  public func mangle(_ constructor: DataType.Constructor,
+                     isTopLevel: Bool = false) -> String {
+    return "\(prefix(isTopLevel))c\(mangleIdentifier(constructor.name))"
+  }
+
   public func mangle(_ dataType: DataType,
                      isTopLevel: Bool = false) -> String {
     return "\(prefix(isTopLevel))D\(mangleIdentifier(dataType.name))"

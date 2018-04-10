@@ -14,12 +14,33 @@ import Seismography
 import LLVM
 import PrettyStackTrace
 
+struct LoweredStructure {
+  let typeName: String
+  let fields: [LoweredDataType]
+}
+
+struct TaggedUnionType {
+  /// The type of the tag bits of this struct.
+  /// If this is `nil`, this struct doesn't need tags because it only
+  /// has one constructor.
+  var tagType: IntType?
+  var payloadTypes: [Int: LoweredStructure]
+
+  var payloadIndex: Int32 {
+    return tagType == nil ? 0 : 1
+  }
+}
+
 enum LoweredDataType {
+  /// A type with no constructors, e.g. ⏊
   case void
-  case simpleData(numberOfBits: Int)
-  case complexData(tagBits: Int,
-                   parameters: [DataType.Parameter],
-                   constructors: [DataType.Constructor])
+
+  /// A simple tagged type with no parameterized values.
+  case tagged(String, IntType)
+
+  /// A tagged union which contains a type-erased container of bits equal to
+  /// the size of the largest payload.
+  case taggedUnion(String, TaggedUnionType)
 }
 
 struct IRGenType {
@@ -31,49 +52,146 @@ struct IRGenType {
     self.igm = irGenModule
   }
 
+
+  /// Converts a curried function type into a flattened list of fields.
+  ///
+  /// This extracts the curried arguments except the final result type as
+  /// a flattened list, e.g. `A -> B -> C -> D` yields [A, B, C].
+  ///
+  /// - Parameter function: The possibly-curried function.
+  /// - Returns: The list of uncurried arguments.
+  func uncurryFunctionArgs(_ function: Seismography.FunctionType) -> [GIRType] {
+    var fields = [GIRType]()
+    var type: GIRType = function
+    while let fn = type as? Seismography.FunctionType {
+      guard let arg = fn.arguments.first, fn.arguments.count == 1 else {
+        fatalError("must have only 1 argument in curried function")
+      }
+      fields.append(arg)
+      type = fn.returnType
+    }
+    return fields
+  }
+
   func lower() -> LoweredDataType {
     guard let data = type as? DataType else {
       fatalError("only know how to emit data types")
     }
-    if data.constructors.isEmpty {
-      return .void
-    }
+    let name = igm.mangler.mangle(data, isTopLevel: true)
 
     let largestValueNeeded = data.constructors.count - 1
-    let numBitsRequired = largestValueNeeded.bitWidth - largestValueNeeded.leadingZeroBitCount
+    let numBitsRequired =
+      largestValueNeeded.bitWidth - largestValueNeeded.leadingZeroBitCount
+
+    let tagType = numBitsRequired == 0 ? nil : IntType(width: numBitsRequired)
 
     let hasParameterizedConstructors =
       data.constructors.contains { $0.type is Seismography.FunctionType }
+
+    // Simple case: No payloads, all constructors are simple.
     if data.parameters.isEmpty && !hasParameterizedConstructors {
-      return .simpleData(numberOfBits: numBitsRequired)
+      guard let tagType = tagType else { return .void }
+      return .tagged(name, tagType)
     }
 
-    return .complexData(tagBits: numBitsRequired,
-                        parameters: data.parameters,
-                        constructors: data.constructors)
+    // Otherwise, build a registry of payload types.
+    // This maps tag bits to the corresponding struct type in the union.
+    var tags = [Int: LoweredStructure]()
+    for (idx, constructor) in data.constructors.enumerated() {
+      guard let fnType = constructor.type as? Seismography.FunctionType else {
+        continue
+      }
+
+      let typeName =
+        igm.mangler.mangle(constructor, isTopLevel: true) + ".payload"
+
+      // Turn the function constructors into a flattened list of members.
+      let fields = uncurryFunctionArgs(fnType).map { type in
+        return IRGenType(type: type, irGenModule: igm).lower()
+      }
+
+      tags[idx] = LoweredStructure(typeName: typeName, fields: fields)
+    }
+    return .taggedUnion(
+      name,
+      TaggedUnionType(tagType: tagType, payloadTypes: tags))
   }
 
-  func emit() -> IRType {
+  func emit(_ structure: LoweredStructure) -> StructType {
+    if let ty = igm.module.type(named: structure.typeName) {
+      return ty as! StructType
+    }
+    return igm.B.createStruct(
+      name: structure.typeName,
+      types: structure.fields.map(emit),
+      isPacked: true
+    )
+  }
+
+  func emit(_ lowered: LoweredDataType) -> IRType {
     return trace("emitting LLVM IR for GIR type \(type.name)") {
-      switch lower() {
-      case let .simpleData(numberOfBits):
-        return IntType(width: numberOfBits)
+      switch lowered {
+      case let .tagged(_, type): return type
       case .void:
         return VoidType()
-      case .complexData(_, _, _):
-        fatalError("complex data types are unsupported")
+      case let .taggedUnion(name, union):
+        if let type = igm.module.type(named: name) { return type }
+        let layout = self.igm.module.dataLayout
+        let fieldTys = union.payloadTypes.values.map(emit)
+        let maxPayloadSize = fieldTys.map(layout.abiSize).max()!
+        let byteVector = ArrayType(
+          elementType: IntType.int8,
+          count: maxPayloadSize
+        )
+
+        var types: [IRType] = [byteVector]
+        if let tag = union.tagType {
+          types.insert(tag, at: 0)
+        }
+        return igm.B.createStruct(
+          name: name,
+          types: types,
+          isPacked: true
+        )
       }
     }
   }
 
+  func extractAddressOfPayload(atTag tag: Int, from value: IRValue) -> IRValue {
+    let lowered = lower()
+    guard case let .taggedUnion(_, unionTy) = lowered else {
+      fatalError("cannot extract value from type \(lowered) with no payload")
+    }
+    guard let payloadType = unionTy.payloadTypes[tag] else {
+      fatalError("no payload on constructor \(tag)")
+    }
+    let irType = emit(payloadType)
+    let gep = igm.B.buildGEP(value, indices: [0, unionTy.payloadIndex])
+    return igm.B.buildBitCast(gep, type: PointerType(pointee: irType))
+  }
+
+  func extractPayload(atTag tag: Int, from value: IRValue) -> IRValue {
+    return igm.B.buildLoad(extractAddressOfPayload(atTag: tag, from: value))
+  }
+
   func initialize(tag: Int) -> IRValue {
-    switch lower() {
-    case let .simpleData(numberOfBits):
-      return IntType(width: numberOfBits).constant(tag)
+    let type = lower()
+    switch type {
+    case let .tagged(_, intType):
+      return intType.constant(tag)
     case .void:
       return VoidType().null()
-    case .complexData(_, _, _):
-      fatalError("complex data types are unsupported")
+    case let .taggedUnion(_, unionTy):
+      let structTy = emit(type) as! StructType
+      var value = structTy.null()
+      if let tagType = unionTy.tagType {
+        value = igm.B.buildInsertValue(
+          aggregate: value,
+          element: tagType.constant(tag),
+          index: 0
+        )
+      }
+      return value
     }
   }
 

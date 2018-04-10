@@ -1,3 +1,4 @@
+import cllvm
 import LLVM
 import Seismography
 import OuterCore
@@ -8,10 +9,16 @@ final class IRGenModule {
   let girModule: GIRModule
   let module: Module
   let mangler = GIRMangler()
-  private(set) var scopeMap = [Scope: IRGenFunction]()
+  private(set) var scopeMap = [OuterCore.Scope: IRGenFunction]()
   private(set) var dataTypeMap = [DataType: IRGenDataType]()
 
   init(module: GIRModule) {
+    initializeLLVM()
+    LLVMInstallFatalErrorHandler { msg in
+      let str = String(cString: msg!)
+      print(str)
+      exit(EXIT_FAILURE)
+    }
     self.girModule = module
     self.module = Module(name: mangler.mangle(girModule))
     self.B = IRBuilder(module: self.module)
@@ -37,9 +44,10 @@ final class IRGenModule {
     ))
     let entry = fn.appendBasicBlock(named: "entry")
     B.positionAtEnd(of: entry)
-    let andFn = module.function(named: "_SC9bool._&&_")!
-    let call = B.buildCall(andFn, args: [true, false])
-    let retVal = B.buildZExt(call, type: IntType.int32)
-    B.buildRet(retVal)
+    B.buildRet(0 as Int32)
+//    let andFn = module.function(named: "_SC9bool._&&_")!
+//    let call = B.buildCall(andFn, args: [true, true])
+//    let retVal = B.buildZExt(call, type: IntType.int32)
+//    B.buildRet(retVal)
   }
 }
