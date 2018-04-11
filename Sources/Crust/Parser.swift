@@ -157,6 +157,12 @@ public class Parser {
     return token
   }
 
+  public func consumeUntil(_ kind: TokenKind) {
+    while let token = currentToken, token.tokenKind != kind {
+      advance()
+    }
+  }
+
   public func peek(ahead n: Int = 0) -> TokenKind {
     return peekToken(ahead: n)?.tokenKind ?? .eof
   }
@@ -255,8 +261,15 @@ extension Parser {
   func parseDeclList() throws -> DeclListSyntax {
     var pieces = [DeclSyntax]()
     while peek() != .rightBrace {
-      // Recover from invalid declarations by ignoring them.
+      guard peek() != .eof else {
+        throw engine.diagnose(.unexpectedEOF)
+      }
+
+      // Recover from invalid declarations by ignoring them and parsing to the
+      // next semicolon.
       guard let decl = try? parseDecl() else {
+        consumeUntil(.semicolon)
+        _ = try consume(.semicolon)
         continue
       }
 
