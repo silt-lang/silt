@@ -176,16 +176,7 @@ extension GIRGenFunction {
           // `function_ref` pointing at it in the switch nest.
           destMap.append((specKey, destBB))
           switchNest.append((specKey, ref))
-
-          guard let def = self.tc.signature.lookupDefinition(name.key) else {
-            fatalError()
-          }
-          guard
-            case let .dataConstructor(_, _, ty) = def.inside
-            else {
-              fatalError()
-          }
-          let (pTys, _) = self.tc.unrollPi(ty.inside)
+          let (pTys, _) = self.tc.unrollPi(self.getTypeOfConstructor(name))
           for (ty, argPat) in zip(pTys, args) {
             if case let .variable(vn) = argPat {
               _ = destBB.appendParameter(named: vn.name.description,
@@ -294,9 +285,15 @@ extension GIRGenFunction {
         let destBB = self.B.buildContinuation(
                       name: parent.name + "#col\(colIdx)row\(idx)")
         let destRef = self.B.createFunctionRef(destBB)
-        //        assert(allIrrefutable(pats) != nil)
-        for _ in pats {
-          destBB.appendParameter(type: BottomType.shared)
+        let (pTys, _) = self.tc.unrollPi(self.getTypeOfConstructor(name))
+        for (ty, argPat) in zip(pTys, pats) {
+          if case let .variable(vn) = argPat {
+            let param = destBB.appendParameter(named: vn.name.description,
+                                               type: self.getLoweredType(ty.1))
+            self.varLocs[vn.name] = param
+          } else {
+            _ = destBB.appendParameter(type: self.getLoweredType(ty.1))
+          }
         }
         self.emitFinalColumnBody(destBB, retParam, body)
         dests.append((name.key.string, destRef))
@@ -310,15 +307,7 @@ extension GIRGenFunction {
     switch body {
     case let .constructor(name, args):
       guard !args.isEmpty else {
-        guard let def = self.tc.signature.lookupDefinition(name.key) else {
-          fatalError()
-        }
-        guard
-          case let .dataConstructor(_, _, ty) = def.inside
-        else {
-          fatalError()
-        }
-        let type = self.getLoweredType(ty.inside)
+        let type = self.getLoweredType(self.getTypeOfConstructor(name))
         let retVal = self.B.createDataInit(name.key.string, type, [])
         self.cleanupStack.emitCleanups(self, in: bb)
         _ = self.B.createApply(bb, retParam, [retVal])
@@ -440,6 +429,17 @@ extension GIRGenFunction {
       result.append(v)
     }
     return result
+  }
+
+  private func getTypeOfConstructor(
+    _ name: Opened<QualifiedName, TT>) -> Type<TT> {
+    guard let def = self.tc.signature.lookupDefinition(name.key) else {
+      fatalError("Name \(name) does not correspond to opened definition?")
+    }
+    guard case let .dataConstructor(_, _, ty) = def.inside else {
+      fatalError("Name \(name) does not correspond to opened data constructor?")
+    }
+    return ty.inside
   }
 
   var wildcardToken: TokenSyntax {

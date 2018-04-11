@@ -53,7 +53,11 @@ extension GIRGenFunction {
       argVals.reserveCapacity(args.count)
       for arg in args {
         let (newParent, value) = self.emitRValue(lastParent, arg)
-        argVals.append(value.copy(self).forward(self))
+        if value.value is Parameter {
+          argVals.append(value.copy(self).forward(self))
+        } else {
+          argVals.append(value.forward(self))
+        }
         lastParent = newParent
       }
       guard let def = self.tc.signature.lookupDefinition(tag.key) else {
