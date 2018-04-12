@@ -211,37 +211,9 @@ extension TypeChecker {
       return Substitution.instantiate(next, acc)
     }), self.eliminate)
   }
-
-  // FIXME: Conditional conformances obviate this overload
-  func forceInstantiate(_ t: TT, _ ts: [Term<TT>]) -> TT {
-    guard let substTm = try? self.instantiate(t, ts) else {
-      fatalError()
-    }
-    return substTm
-  }
-
-  // FIXME: Conditional conformances obviate this overload
-  func instantiate(_ t: TT, _ ts: [Term<TT>]) throws -> TT {
-    return try t.applySubstitution(ts.reduce(Substitution(), { acc, next in
-      return Substitution.instantiate(next, acc)
-    }), self.eliminate)
-  }
 }
 
-extension Contextual where T == TT, A: Substitutable {
-  public func applySubstitution(
-    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT
-  ) throws -> Contextual<T, A> {
-    return Contextual(telescope: try self.telescope.map {
-                          return ($0.0, try $0.1.applySubstitution(subst, elim))
-                                 },
-                      inside: try self.inside.applySubstitution(
-                                            .lift(self.telescope.count, subst),
-                                            elim))
-  }
-}
-
-extension Contextual where T == TT {
+extension Contextual: Substitutable where T: Substitutable {
   public func applySubstitution(
     _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT
   ) throws -> Contextual<T, A> {
@@ -252,7 +224,7 @@ extension Contextual where T == TT {
   }
 }
 
-extension Opened where T == TT {
+extension Opened: Substitutable where T: Substitutable {
   func forceApplySubstitution(
     _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) -> Opened<K, T> {
     guard let substTm = try? self.applySubstitution(subst, elim) else {
@@ -274,7 +246,7 @@ public enum LookupError: Error {
   case failed(Var)
 }
 
-extension TypeTheory where T == Expr {
+extension TypeTheory: Substitutable where T == Expr {
   func forceApplySubstitution(
     _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) -> TypeTheory<T> {
     guard let substTm = try? self.applySubstitution(subst, elim) else {
@@ -337,14 +309,7 @@ extension Clause: Substitutable {
   }
 }
 
-extension Elim: Substitutable {
-  public func applySubstitution(
-    _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) throws -> Elim<T> {
-    fatalError()
-  }
-}
-
-extension Elim where T == TT {
+extension Elim: Substitutable where T: Substitutable {
   public func applySubstitution(
     _ subst: Substitution, _ elim: (TT, [Elim<TT>]) -> TT) throws -> Elim<T> {
     switch self {
