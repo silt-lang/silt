@@ -856,7 +856,7 @@ extension NameBinding {
     _ syntax: C, _ plicity: [ArgumentPlicity], _ implicit: T,
     _ valuesFn: (C.Element) -> [T], allowExtraneous: Bool = false
   ) -> ([T], ArgumentConsumptionError?)
-    where C: Collection, C.IndexDistance == Int, C.Indices.Index == Int {
+    where C: Collection, C.Indices.Index == Int {
     var arguments = [T]()
     var lastExplicit = -1
     var syntaxIdx = 0

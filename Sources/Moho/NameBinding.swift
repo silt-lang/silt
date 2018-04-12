@@ -73,15 +73,6 @@ public class NameBinding {
   }
 }
 
-#if os(Linux)
-extension ObjCBool {
-  // HACK: Garbage representation mismatch that is cleared up by 4.1.
-  var boolValue: Bool {
-    return self
-  }
-}
-#endif
-
 extension FileManager {
   fileprivate func casePreservingFileExists(
     atPath path: String, isDirectory: UnsafeMutablePointer<ObjCBool>) -> Bool {

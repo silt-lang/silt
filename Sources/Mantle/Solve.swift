@@ -242,8 +242,8 @@ extension TypeChecker where PhaseState == SolvePhaseState {
       return self.unify((ctx, ty, t1, t2))
 
     case let .suppose(constr1, constr2):
-      let extraConstrs = self.solveConstraint(constr1).flatMap({ (mv, constr) in
-        return constr.simplify.map { c in [(mv, c)] }
+      let extraConstrs = self.solveConstraint(constr1).compactMap({ (mv, csr) in
+        return csr.simplify.map { c in [(mv, c)] }
       }).joined()
       if extraConstrs.isEmpty {
         return self.solveConstraint(constr2)
