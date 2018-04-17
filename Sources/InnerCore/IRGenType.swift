@@ -119,6 +119,7 @@ struct IRGenType {
 
   func emit(_ structure: LoweredStructure) -> StructType {
     if let ty = igm.module.type(named: structure.typeName) {
+      // swiftlint:disable force_cast
       return ty as! StructType
     }
     return igm.B.createStruct(
@@ -182,6 +183,7 @@ struct IRGenType {
     case .void:
       return VoidType().null()
     case let .taggedUnion(_, unionTy):
+      // swiftlint:disable force_cast
       let structTy = emit(type) as! StructType
       var value = structTy.null()
       if let tagType = unionTy.tagType {
