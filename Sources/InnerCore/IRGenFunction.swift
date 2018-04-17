@@ -169,6 +169,7 @@ final class IRGenFunction: PrimOpVisitor {
         let indexesAndFuncs = op.patterns.map { caseDef -> (Int, BasicBlock) in
           // FIXME: String matching on constructor names is very bad here.
           let idx = dataTy.constructors.index { $0.name == caseDef.pattern }!
+          // swiftlint:disable force_cast
           return (idx, emit(caseDef.apply) as! BasicBlock)
         }
         let matched = emit(op.matchedValue)
