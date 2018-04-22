@@ -455,7 +455,12 @@ extension TypeChecker where PhaseState == CheckPhaseState {
           fatalError()
         }
         return (.absurd, type)
-      case let .constructor(dataCon, synPats):
+      case let .constructor(dataConSet, synPats):
+        guard
+          let dataCon = self.disambiguateConstructor(dataConSet, patType)
+        else {
+          fatalError()
+        }
         // Use the data constructor to locate back up the parent so we can
         // retrieve its argument telescope.
         guard let data = self.signature.lookupDefinition(dataCon) else {

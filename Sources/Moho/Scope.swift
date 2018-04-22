@@ -8,26 +8,24 @@
 import Lithosphere
 
 // Indicates that a name is fully qualified.
-typealias FullyQualifiedName = QualifiedName
+public typealias FullyQualifiedName = QualifiedName
 
 // A mapping of module-defined names to information about that name.
 public typealias LocalNames = [Name: NameInfo]
 
 // A namespace is a fully-qualified named scope into which a number of unique
 // names may be placed.
-struct NameSpace {
+final class NameSpace {
   var module: FullyQualifiedName
   // The definitions defined in some module.
   var localNames: LocalNames
 
-  init() {
-    self.module = FullyQualifiedName()
-    self.localNames = [:]
-  }
+  weak var parent: NameSpace?
 
-  init(_ qn: FullyQualifiedName) {
+  init(_ qn: FullyQualifiedName, parent: NameSpace?) {
     self.module = qn
     self.localNames = [:]
+    self.parent = parent
   }
 }
 
@@ -38,8 +36,6 @@ final class Scope {
   var vars: [Name: TokenSyntax]
   // The namespace for the current module.
   var nameSpace: NameSpace
-  // The namespaces for the parent modules.
-  var parentNameSpaces: [NameSpace]
   // Mapping from "opened" names to fully qualified names.  If the mapping
   // contains multiple items then that name is ambiguous.
   var openedNames: [Name: [FullyQualifiedName]]
@@ -53,22 +49,20 @@ final class Scope {
 
   private static var scopeIDPool: UInt = 0
 
-  init(_ n: FullyQualifiedName) {
+  init(rooted n: FullyQualifiedName) {
     defer { Scope.scopeIDPool += 1 }
     self.scopeID = Scope.scopeIDPool
     self.vars = [:]
-    self.nameSpace = NameSpace(n)
-    self.parentNameSpaces = []
+    self.nameSpace = NameSpace(n, parent: nil)
     self.openedNames = [:]
     self.importedModules = [:]
     self.fixities = [:]
   }
 
-  init(_ s: Scope) {
+  init(cons s: Scope, _ name: FullyQualifiedName? = nil) {
     self.scopeID = s.scopeID
     self.vars = s.vars
-    self.nameSpace = s.nameSpace
-    self.parentNameSpaces = s.parentNameSpaces
+    self.nameSpace = NameSpace(name ?? s.nameSpace.module, parent: s.nameSpace)
     self.openedNames = s.openedNames
     self.importedModules = s.importedModules
     self.fixities = s.fixities
@@ -76,5 +70,10 @@ final class Scope {
 
   func local<T>(_ s: (Scope) throws -> T) rethrows -> T {
     return try s(self)
+  }
+
+  /// Qualify a name with the module of the current scope.
+  func qualify(name: Name) -> FullyQualifiedName {
+    return QualifiedName(cons: name, self.nameSpace.module)
   }
 }

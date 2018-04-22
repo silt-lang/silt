@@ -32,4 +32,13 @@ extension Diagnostic.Message {
       possible valid pattern: '\(pat)'
       """)
   }
+
+  static func useOfAmbiguousConstructor(_ name: Name) -> Diagnostic.Message {
+    return Diagnostic.Message(.error, "use of ambiguous constructor '\(name)'")
+  }
+
+  static func ambiguousConstructorCandidate(
+    _ name: QualifiedName) -> Diagnostic.Message {
+    return Diagnostic.Message(.note, "candidate constructor: '\(name)'")
+  }
 }

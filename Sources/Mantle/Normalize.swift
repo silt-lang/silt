@@ -179,6 +179,20 @@ extension TypeChecker {
     return pats
   }
 
+  func disambiguateConstructor(
+    _ set: [QualifiedName], _ ty: Type<TT>) -> QualifiedName? {
+    precondition(!set.isEmpty)
+    guard set.count > 1 else {
+      return set[0]
+    }
+    switch ty {
+    case let .apply(.definition(name), _):
+      return QualifiedName(cons: set[0].name, name.key)
+    default:
+      return nil
+    }
+  }
+
   func matchingConstructors(
     _ name: Opened<QualifiedName, TT>, _ cs: [QualifiedName], _ es: [Elim<TT>]
   ) -> [Pattern] {

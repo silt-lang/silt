@@ -1,0 +1,51 @@
+-- RUN: %silt --verify typecheck %s
+
+module overload where
+
+data Nat : Type where
+  z : Nat
+  s : Nat
+
+data Bool : Type where
+  tt : Bool
+  ff : Bool
+
+data List (A : Type) : Type where
+  []   : List A
+  _::_ : A -> List A -> List A
+
+data Vector (A : Type) : Type where
+  []   : Vector A
+  _::_ : A -> Vector A -> Vector A
+
+data Array (A : Type) : Type where
+  []   : Array A
+  _::_ : A -> Array A -> Array A
+
+foo : Array Nat
+foo = []
+
+bar : List Nat
+bar = []
+
+ty : Type
+ty = Vector Nat
+
+baz : ty
+baz = []
+
+ty2 : Type -> Type
+ty2 = Vector
+
+quux : ty2 Nat
+quux = []
+
+ty3 : Bool -> Type
+ty3 tt = Vector Nat
+ty3 ff = Array Nat
+
+quuz : (b : Bool) -> ty3 b
+quuz = [] -- expected-error {{use of ambiguous constructor '[]'}}
+-- expected-note@-1 {{candidate constructor: 'overload.List.[]'}}
+-- expected-note@-2 {{candidate constructor: 'overload.Vector.[]'}}
+-- expected-note@-3 {{candidate constructor: 'overload.Array.[]'}}

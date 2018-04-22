@@ -9,7 +9,7 @@ import Lithosphere
 
 /// A internalized representation of an unqualified name.
 public struct Name: Equatable, Comparable, Hashable, CustomStringConvertible {
-  let syntax: TokenSyntax
+  public let syntax: TokenSyntax
   let string: String
 
   /// Create a `Name` by extracting it from a `TokenSyntax` node.
@@ -38,8 +38,8 @@ public struct Name: Equatable, Comparable, Hashable, CustomStringConvertible {
 /// A sequence of unqualified names forming a unique named scope under which
 /// declarations may be qualified.
 public struct QualifiedName: Equatable, Hashable, CustomStringConvertible {
-  let name: Name
-  let module: [Name]
+  public let name: Name
+  public let module: [Name]
 
   public init() {
     self.name = Name(name: TokenSyntax(.identifier("")))
@@ -99,7 +99,7 @@ public struct QualifiedName: Equatable, Hashable, CustomStringConvertible {
   }
 
   public var description: String {
-    var pieces = self.module.map { $0.description }
+    var pieces = self.module.reversed().map { $0.description }
     pieces.append(name.description)
     return pieces.joined(separator: ".")
   }
