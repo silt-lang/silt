@@ -138,8 +138,19 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
       return self.expect(exType, TT.equal(eqTy, eqMetaTy, eqMetaTy),
                          TT.refl, from: syntax)
 
-    case let .constructor(dataCon, constructorArgs):
-      let (openedCon, dc) = self.getOpenedDefinition(dataCon)
+    case let .constructor(user, dataConSet, constructorArgs):
+      guard let constr = self.disambiguateConstructor(dataConSet, exType) else {
+        self.engine.diagnose(.useOfAmbiguousConstructor(user.name),
+                             node: user.name.syntax) {
+          for cand in dataConSet {
+            $0.note(.ambiguousConstructorCandidate(cand),
+                    node: user.name.syntax)
+          }
+        }
+        return self.addMeta(in: self.environment.asContext,
+                            from: syntax, expect: exType)
+      }
+      let (openedCon, dc) = self.getOpenedDefinition(constr)
       guard case let .dataConstructor(tyCon, _, dataConType) = dc else {
         fatalError()
       }

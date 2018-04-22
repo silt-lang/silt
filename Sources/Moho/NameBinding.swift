@@ -27,7 +27,7 @@ public enum NameInfo {
   case definition([ArgumentPlicity])
   /// The result was a constructor, retrieves the number of implicit and
   /// explicit arguments.
-  case constructor([ArgumentPlicity])
+  case constructor([(FullyQualifiedName, [ArgumentPlicity])])
   /// The result was a record projection, retrieves the number of implicit
   /// arguments.
   case projection
@@ -55,7 +55,7 @@ public class NameBinding {
               fileURL: URL,
               processImportedFile: @escaping (URL) -> LocalNames?) {
     let moduleName = QualifiedName(ast: topLevel.moduleIdentifier)
-    self.activeScope = Scope(moduleName)
+    self.activeScope = Scope(rooted: moduleName)
     self.engine = engine
     self.reparser = Reparser(engine: engine)
     self.fileURL = fileURL
@@ -165,10 +165,16 @@ extension NameBinding {
   }
 
   /// Under a new scope, execute a function returning a result.
-  func underScope<T>(_ s: (Scope) throws -> T) rethrows -> T {
+  func underScope<T>(
+    named: FullyQualifiedName? = nil, _ s: (Scope) throws -> T
+  ) rethrows -> T {
     let oldScope = self.activeScope
-    self.activeScope = Scope(self.activeScope)
-    let result = try s(self.activeScope)
+    if let name = named {
+      self.activeScope = Scope(cons: self.activeScope, name)
+    } else {
+      self.activeScope = Scope(cons: self.activeScope)
+    }
+    let result = try s(oldScope)
     self.activeScope = oldScope
     return result
   }
@@ -185,12 +191,17 @@ extension NameBinding {
   /// Traverses namespaces back-to-front looking for a match to the provided
   /// predicate.  If no namespace is suitable, this function returns `.none`.
   private func lookup<A>(in f: (NameSpace) -> A?) -> A? {
-    for ns in [self.activeScope.nameSpace] + self.activeScope.parentNameSpaces {
-      if let a = f(ns) {
-        return .some(a)
+    var ns = self.activeScope.nameSpace
+    while true {
+      guard let a = f(ns) else {
+        guard let parent = ns.parent else {
+          return .none
+        }
+        ns = parent
+        continue
       }
+      return .some(a)
     }
-    return .none
   }
 
   /// Looks up information about a locally-defined name.  If the name is in
@@ -291,11 +302,12 @@ extension NameBinding {
   /// Given the qualified name of a constructor, resolves it to a
   /// fully-qualified name and returns information about the constructor itself.
   func resolveConstructor(
-    _ m: QualifiedName) -> Resolution<[ArgumentPlicity]> {
+    _ m: QualifiedName
+  ) -> Resolution<[(FullyQualifiedName, [ArgumentPlicity])]> {
     let lkup = self.resolveQualifiedName(m)
     switch lkup {
-    case let .some(.nameInfo(qn, .constructor(plicity))):
-      return Resolution(qualifiedName: qn, info: plicity)
+    case let .some(.nameInfo(qn, .constructor(plicities))):
+      return Resolution(qualifiedName: qn, info: plicities)
     case .none:
       fatalError("\(m) is not in scope")
     default:
@@ -357,27 +369,39 @@ extension NameBinding {
 // MARK: Binding
 
 extension NameBinding {
-  /// Qualify a name with the module of the current active scope.
-  func qualify(name: Name) -> FullyQualifiedName {
-    return QualifiedName(cons: name, self.activeScope.nameSpace.module)
-  }
-
   /// Bind a local definition in the current active scope.  Suitable for types,
   /// constructors, and functions.
   func bindDefinition(
-    named n: Name, _ hidden: [ArgumentPlicity]) -> FullyQualifiedName? {
-    return self.bindLocal(named: n, info: .definition(hidden))
+    named n: Name, in scope: Scope? = nil,
+    _ plicity: [ArgumentPlicity]
+  ) -> FullyQualifiedName? {
+    return self.bindLocal(named: n, info: .definition(plicity), in: scope)
   }
 
   /// Bind a record projection function in the current active scope.
   func bindProjection(named n: Name) -> FullyQualifiedName? {
-    return self.bindLocal(named: n, info: .projection)
+    return self.bindLocal(named: n, info: .projection, in: nil)
   }
 
   /// Bind a data constructor in the current active scope.
   func bindConstructor(
-    named n: Name, _ plicity: [ArgumentPlicity]) -> FullyQualifiedName? {
-    return self.bindLocal(named: n, info: .constructor(plicity))
+    named fqn: FullyQualifiedName, in scope: Scope? = nil,
+    _ plicity: [ArgumentPlicity]
+  ) -> FullyQualifiedName? {
+    let name = fqn.name
+    guard checkNotReserved(name) && checkConstructorShadowing(name) else {
+      return nil
+    }
+
+    return (scope ?? self.activeScope).local { scope in
+      let lookupResult = scope.nameSpace.localNames[name]
+      guard case let .some(.constructor(oldSet)) = lookupResult else {
+        scope.nameSpace.localNames[name] = .constructor([(fqn, plicity)])
+        return fqn
+      }
+      scope.nameSpace.localNames[name] = .constructor(oldSet + [(fqn, plicity)])
+      return fqn
+    }
   }
 
   /// Bind a local variable in the current active scope.
@@ -401,14 +425,15 @@ extension NameBinding {
   /// This function checks if the variable name is reserved or previously
   /// declared in some scope.  If either of these is the case, the name is
   /// diagnosed.
-  func bindLocal(named n: Name, info ni: NameInfo) -> FullyQualifiedName? {
+  func bindLocal(
+    named n: Name, info ni: NameInfo, in scope: Scope?) -> FullyQualifiedName? {
     guard checkNotReserved(n) && checkNotShadowing(n) else {
       return nil
     }
 
-    return self.activeScope.local { scope in
+    return (scope ?? self.activeScope).local { scope in
       scope.nameSpace.localNames[n] = ni
-      return self.qualify(name: n)
+      return scope.qualify(name: n)
     }
   }
 
@@ -452,6 +477,25 @@ extension NameBinding {
 
   private func checkNotShadowing(_ n: Name) -> Bool {
     return self.activeScope.vars[n] == nil && self.lookupLocalName(n) == nil
+  }
+
+  private func checkConstructorShadowing(_ n: Name) -> Bool {
+    // Constructors cannot shadow locals
+    guard self.activeScope.vars[n] == nil else {
+      return false
+    }
+
+    // No local name, no shadowing.
+    guard let localName = self.lookupLocalName(n) else {
+      return true
+    }
+
+    // Must be shadowing another constructor
+    guard case .constructor(_) = localName.1 else {
+      return false
+    }
+
+    return true
   }
 }
 

@@ -191,7 +191,7 @@ public enum DeclaredPattern: CustomStringConvertible {
   /// foo [] x y          = ...
   /// foo (_::_ x xs) y z = ...
   /// ```
-  case constructor(QualifiedName, [DeclaredPattern])
+  case constructor([QualifiedName], [DeclaredPattern])
   /// An uninhabited pattern.
   ///
   /// ```
@@ -254,7 +254,7 @@ public indirect enum Expr: Equatable, CustomStringConvertible {
   /// that may depend on those variables.
   case lambda((Name, Expr), Expr)
   /// A type constructor for a term.
-  case constructor(QualifiedName, [Expr])
+  case constructor(QualifiedName, [QualifiedName], [Expr])
   /// The "Type" sort.
   ///
   /// Yeah, it's probably not a good idea to call a sort "Type", but it's better
@@ -338,7 +338,7 @@ public indirect enum Expr: Equatable, CustomStringConvertible {
       return "let \(declDesc) in \(expr)"
     case let .equal(eqTy, lhs, rhs):
       return "\(lhs) =(\(eqTy))= \(rhs)"
-    case let .constructor(openTm, args):
+    case let .constructor(_, openTm, args):
       return "\(openTm)(\(args.map({$0.description}).joined(separator: ", ")))"
     case let .apply(head, elims):
       switch head {

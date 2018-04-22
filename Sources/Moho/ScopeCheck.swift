@@ -24,7 +24,12 @@ extension NameBinding {
                                topLevel: Bool = false) -> DeclaredModule {
     let moduleName = QualifiedName(ast: module.moduleIdentifier)
     let params = module.typedParameterList.map(self.scopeCheckParameter)
-    let qmodName = topLevel ? moduleName : self.qualify(name: moduleName.name)
+    let qmodName: QualifiedName
+    if topLevel {
+      qmodName = moduleName
+    } else {
+      qmodName = self.activeScope.qualify(name: moduleName.name)
+    }
     let noteScope = walkNotations(module, qmodName)
 
     let moduleCheck: (Scope) -> DeclaredModule = { _ in
@@ -92,15 +97,15 @@ extension NameBinding {
       args.append(contentsOf: argBuf)
     case let .nameInfo(fqn, info):
       switch info {
-      case .constructor(_):
-        args.append(contentsOf: argBuf)
-        return .constructor(fqn, args)
       case let .definition(plicity):
         head = .definition(fqn)
         let (result, _) = self.consumeArguments(argBuf, plicity,
                                                 Expr.meta, { [$0] },
                                                 allowExtraneous: true)
         args.append(contentsOf: result)
+      case let .constructor(set):
+        args.append(contentsOf: argBuf)
+        return .constructor(n, set.map { $0.0 }, args)
       default:
         head = .definition(fqn)
         args.append(contentsOf: argBuf)
@@ -428,48 +433,38 @@ extension NameBinding {
   }
 
   private func scopeCheckDataDecl(_ syntax: DataDeclSyntax) -> [Decl] {
-    typealias ScopeCheckType = (Decl, [TypeSignature], Decl, [ArgumentPlicity])?
-    let scopedValues = self.underScope { (_) -> ScopeCheckType in
+    return self.underScope { (parentScope) -> [Decl] in
       let params = syntax.typedParameterList.map(self.scopeCheckParameter)
       let rebindExpr = self.reparseExpr(syntax.typeIndices.indexExpr)
       let (type, names, plicity)
         = self.rollPi(params, self.scopeCheckExpr(rebindExpr))
       let dataName = Name(name: syntax.dataIdentifier)
       guard
-        let boundDataName = self.bindDefinition(named: dataName, plicity)
+        let boundDataName = self.bindDefinition(named: dataName,
+                                                in: parentScope, plicity)
       else {
         // If this declaration does not have a unique name, diagnose it and
         // recover by ignoring it.
         self.engine.diagnose(.nameShadows(dataName), node: syntax)
-        return nil
+        return []
       }
-
       let asc = Decl.dataSignature(TypeSignature(name: boundDataName,
                                                  type: type,
                                                  plicity: plicity))
-      let cs = syntax.constructorList.flatMap(self.scopeCheckConstructor)
-      return (asc, cs, Decl.data(boundDataName, names, cs), plicity)
-    }
 
-    guard let (asc, cs, dataBody, plicity) = scopedValues else {
-      return []
-    }
-
-    let dataName = Name(name: syntax.dataIdentifier)
-    guard self.bindDefinition(named: dataName, plicity) != nil else {
-      // If this declaration does not have a unique name, diagnose it and
-      // recover by ignoring it.
-      self.engine.diagnose(.nameShadows(dataName), node: syntax)
-      return []
-    }
-
-    for constr in cs {
-      guard self.bindConstructor(named: constr.name.name, plicity) != nil else {
-        fatalError("Constructor names should be unique by now!")
+      let cs = self.underScope(named: boundDataName) { _ in
+        return syntax.constructorList.flatMap(self.scopeCheckConstructor)
       }
-    }
 
-    return [ asc, dataBody ]
+      for constr in cs {
+        guard self.bindConstructor(named: constr.name,
+                                   in: parentScope, plicity) != nil else {
+          fatalError("Constructor names should be unique by now!")
+        }
+      }
+
+      return [ asc, Decl.data(boundDataName, names, cs) ]
+    }
   }
 
   private func scopeCheckRecordDecl(_ syntax: RecordDeclSyntax) -> [Decl] {
@@ -542,7 +537,8 @@ extension NameBinding {
                                 plicity: declField.plicity))
     }
 
-    guard let bindName = self.bindConstructor(named: recConstr, plicity) else {
+    let fqn = self.activeScope.qualify(name: recConstr)
+    guard let bindName = self.bindConstructor(named: fqn, plicity) else {
       // If this declaration does not have a unique name, diagnose it and
       // recover by ignoring it.
       self.engine.diagnose(.nameShadows(recConstr), node: recConstr.syntax)
@@ -585,7 +581,8 @@ extension NameBinding {
       let ascExpr = self.scopeCheckExpr(rebindExpr)
       let plicity = self.computePlicity(rebindExpr)
 
-      guard let bindName = self.bindConstructor(named: name, plicity) else {
+      let fqn = self.activeScope.qualify(name: name)
+      guard let bindName = self.bindConstructor(named: fqn, plicity) else {
         // If this declaration does not have a unique name, diagnose it and
         // recover by ignoring it.
         self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
@@ -705,10 +702,10 @@ extension NameBinding {
     case let syntax as NamedBasicExprSyntax:
       let headName = QualifiedName(ast: syntax.name).name
       let localName = self.lookupLocalName(headName)
-      if case let .some((fullName, .constructor(_))) = localName {
-        return [.constructor(fullName, [])]
+      guard case let .some((_, .constructor(overloadSet))) = localName else {
+        return [.variable(headName)]
       }
-      return [.variable(headName)]
+      return [.constructor(overloadSet.map { $0.0 }, [])]
     case let syntax as ApplicationExprSyntax:
       guard
         let firstExpr = syntax.exprs.first,
@@ -719,17 +716,19 @@ extension NameBinding {
       let argsExpr = syntax.exprs.dropFirst().flatMap(self.exprToDeclPattern)
       let headName = QualifiedName(ast: head.name).name
       let localName = self.lookupLocalName(headName)
-      guard case let .some((fullName, .constructor(_))) = localName else {
+      guard case let .some((_, .constructor(overloadSet))) = localName else {
         fatalError()
       }
-      return [.constructor(fullName, argsExpr)]
+      return [.constructor(overloadSet.map { $0.0 }, argsExpr)]
     case let syntax as ReparsedApplicationExprSyntax:
       let name = QualifiedName(ast: syntax.head.name).name
-      guard case let .some(fqn, .constructor(_)) = lookupLocalName(name) else {
+      let lookupResult = self.lookupLocalName(name)
+      guard case let .some(_, .constructor(overloadSet)) = lookupResult else {
         return self.exprToDeclPattern(syntax.head)
              + syntax.exprs.flatMap(self.exprToDeclPattern)
       }
-      return [.constructor(fqn, syntax.exprs.flatMap(self.exprToDeclPattern))]
+      return [.constructor(overloadSet.map { $0.0 },
+                           syntax.exprs.flatMap(self.exprToDeclPattern))]
     case let syntax as ParenthesizedExprSyntax:
       return self.exprToDeclPattern(syntax.expr)
     case _ as UnderscoreExprSyntax:

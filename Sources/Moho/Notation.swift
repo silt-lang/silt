@@ -168,29 +168,26 @@ extension NameBinding {
   /// a scope.
   func walkNotations(
     _ module: ModuleDeclSyntax, _ name: FullyQualifiedName) -> Scope {
-    return self.underScope { (scope) -> Scope in
-      scope.nameSpace = NameSpace(name)
-      for d in module.declList {
-        switch d {
-        case let node as DataDeclSyntax:
-          for constr in node.constructorList {
-            bindNotationInAscription(constr.ascription, scope)
-          }
-        case let node as FunctionDeclSyntax:
-          bindNotationInAscription(node.ascription, scope)
-        case is NonFixDeclSyntax, is LeftFixDeclSyntax, is RightFixDeclSyntax:
-          guard let fd = d as? FixityDeclSyntax else {
-            fatalError("Switch case cast bug")
-          }
-          guard self.bindFixity(fd) else {
-            return scope
-          }
-        default:
-          continue
+    for d in module.declList {
+      switch d {
+      case let node as DataDeclSyntax:
+        for constr in node.constructorList {
+          bindNotationInAscription(constr.ascription)
         }
+      case let node as FunctionDeclSyntax:
+        bindNotationInAscription(node.ascription)
+      case is NonFixDeclSyntax, is LeftFixDeclSyntax, is RightFixDeclSyntax:
+        guard let fd = d as? FixityDeclSyntax else {
+          fatalError("Switch case cast bug")
+        }
+        guard self.bindFixity(fd) else {
+          return self.activeScope
+        }
+      default:
+        continue
       }
-      return scope
     }
+    return self.activeScope
   }
 
   /// Teases apart a name that is known to introduce new notation into the
@@ -237,8 +234,7 @@ extension NameBinding {
 
   /// Walk all names in an ascription that act as notation and bind their
   /// fixities into the current scope.
-  private func bindNotationInAscription(
-    _ ascription: AscriptionSyntax, _ scope: Scope) {
+  private func bindNotationInAscription(_ ascription: AscriptionSyntax) {
     for name in ascription.boundNames {
       guard name.triviaFreeSourceText.contains("_" as Character) else {
         continue
