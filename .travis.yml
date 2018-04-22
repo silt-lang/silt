@@ -13,7 +13,7 @@ matrix:
         - swift LLVMSwift/utils/make-pkgconfig.swift
       script:
         - swiftlint
-        - swift build
+        - swift build -Xlinker -w
         - swift run lite
     - os: linux
       language: generic
