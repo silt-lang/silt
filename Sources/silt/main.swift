@@ -66,8 +66,8 @@ func parseOptions() -> Options {
       usage: "Verify the result of compiling up to a given layer"),
     to: { opt, r in opt.mode = .verify(r) })
   binder.bind(
-    option: cli.add(option: "--no-colors", kind: Bool.self),
-    to: { opt, r in opt.colorsEnabled = !r })
+    option: cli.add(option: "--color-diagnostics", kind: Bool.self),
+    to: { opt, r in opt.colorsEnabled = r })
   binder.bind(
     option: cli.add(option: "--debug-print-timing", kind: Bool.self),
     to: { opt, r in opt.shouldPrintTiming = r })

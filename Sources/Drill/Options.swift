@@ -68,7 +68,7 @@ public enum Mode {
 
 public class Options {
   public var mode: Mode = .compile
-  public var colorsEnabled: Bool = true
+  public var colorsEnabled: Bool = false
   public var shouldPrintTiming: Bool = false
   public var inputURLs: [URL] = []
   public var typeCheckerDebugOptions: TypeCheckerDebugOptions = []

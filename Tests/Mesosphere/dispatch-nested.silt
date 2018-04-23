@@ -1,4 +1,4 @@
--- RUN: %silt %s --dump girgen --no-colors 2>&1 | %FileCheck %s --prefixes CHECK-GIR
+-- RUN: %silt %s --dump girgen 2>&1 | %FileCheck %s --prefixes CHECK-GIR
 
 -- CHECK-GIR: module dispatch-nested where
 module dispatch-nested where
