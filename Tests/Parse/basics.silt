@@ -1,4 +1,4 @@
--- RUN: %silt %s --dump parse --no-colors 2>&1 | %FileCheck %s --prefixes CHECK-AST
+-- RUN: %silt %s --dump parse 2>&1 | %FileCheck %s --prefixes CHECK-AST
 -- RUN: %silt %s --dump shined 2>&1 | %FileCheck %s --prefixes CHECK-SHINED
 
 -- CHECK-AST: moduleDecl
