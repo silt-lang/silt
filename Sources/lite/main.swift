@@ -38,6 +38,13 @@ let runSerial =
   cli.add(option: "--no-parallel", kind: Bool.self,
           usage: "Don't run tests in parallel.")
 
+let filterRegexes =
+  cli.add(option: "--filter", kind: [String].self, strategy: .oneByOne,
+          usage: """
+                 A list of regexes to filter the test files. If a test matches
+                 any of the provided filters, it's included in the test run.
+                 """)
+
 func run() -> Int32 {
   let args = Array(CommandLine.arguments.dropFirst())
   guard let result = try? cli.parse(args) else {
@@ -66,11 +73,16 @@ func run() -> Int32 {
   let parallelismLevel: ParallelismLevel = isParallel ? .automatic : .none
 
   do {
+    let regexStrings = result.get(filterRegexes) ?? []
+    let regexes = try regexStrings.map {
+      try NSRegularExpression(pattern: $0)
+    }
     let allPassed = try runLite(substitutions: substitutions,
                                 pathExtensions: ["silt", "gir"],
                                 testDirPath: result.get(testDir),
                                 testLinePrefix: "--",
-                                parallelismLevel: parallelismLevel)
+                                parallelismLevel: parallelismLevel,
+                                filters: regexes)
     return allPassed ? EXIT_SUCCESS : EXIT_FAILURE
   } catch let err as LiteError {
     engine.diagnose(.init(.error, err.message))
