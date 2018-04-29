@@ -52,27 +52,6 @@ struct IRGenType {
     self.igm = irGenModule
   }
 
-
-  /// Converts a curried function type into a flattened list of fields.
-  ///
-  /// This extracts the curried arguments except the final result type as
-  /// a flattened list, e.g. `A -> B -> C -> D` yields [A, B, C].
-  ///
-  /// - Parameter function: The possibly-curried function.
-  /// - Returns: The list of uncurried arguments.
-  func uncurryFunctionArgs(_ function: Seismography.FunctionType) -> [GIRType] {
-    var fields = [GIRType]()
-    var type: GIRType = function
-    while let fn = type as? Seismography.FunctionType {
-      guard let arg = fn.arguments.first, fn.arguments.count == 1 else {
-        fatalError("must have only 1 argument in curried function")
-      }
-      fields.append(arg)
-      type = fn.returnType
-    }
-    return fields
-  }
-
   func lower() -> LoweredDataType {
     guard let data = type as? DataType else {
       fatalError("only know how to emit data types")
@@ -86,7 +65,7 @@ struct IRGenType {
     let tagType = numBitsRequired == 0 ? nil : IntType(width: numBitsRequired)
 
     let hasParameterizedConstructors =
-      data.constructors.contains { $0.type is Seismography.FunctionType }
+      data.constructors.contains { $0.payload != nil }
 
     // Simple case: No payloads, all constructors are simple.
     if data.parameters.isEmpty && !hasParameterizedConstructors {
@@ -98,7 +77,7 @@ struct IRGenType {
     // This maps tag bits to the corresponding struct type in the union.
     var tags = [Int: LoweredStructure]()
     for (idx, constructor) in data.constructors.enumerated() {
-      guard let fnType = constructor.type as? Seismography.FunctionType else {
+      guard let payloadType = constructor.payload else {
         continue
       }
 
@@ -106,7 +85,7 @@ struct IRGenType {
         igm.mangler.mangle(constructor, isTopLevel: true) + ".payload"
 
       // Turn the function constructors into a flattened list of members.
-      let fields = uncurryFunctionArgs(fnType).map { type in
+      let fields = payloadType.elements.map { type in
         return IRGenType(type: type, irGenModule: igm).lower()
       }
 

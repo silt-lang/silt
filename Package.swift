@@ -56,7 +56,7 @@ let package = Package(
       dependencies: ["Crust", "Seismography", "Utility"]),
     .target(
       name: "Seismography",
-      dependencies: ["Moho", "Crust"]),
+      dependencies: ["Moho", "Mantle", "Crust"]),
     .target(
       name: "InnerCore",
       dependencies: ["Crust", "Seismography", "Mesosphere", "OuterCore", "LLVM"]),

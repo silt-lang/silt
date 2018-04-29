@@ -29,7 +29,7 @@ public final class GIRGenModule {
 
   public init(_ root: TopLevelModule) {
     self.module = root.rootModule
-    self.M = GIRModule(name: root.name.string)
+    self.M = GIRModule(name: root.name.string, tc: TypeConverter(root.tc))
     self.environment = root.environment
     self.signature = root.signature
     self.tc = root.tc
@@ -134,8 +134,27 @@ final class GIRGenFunction {
     self.emitPatternMatrix(clauses, paramVals, returnCont)
   }
 
+  public func lowerType(_ type: Type<TT>) -> TypeConverter.Lowering {
+    return self.B.module.typeConverter.lowerType(type)
+  }
+
+  public func lowerType(_ type: GIRType) -> TypeConverter.Lowering {
+    return self.B.module.typeConverter.lowerType(type)
+  }
+
   func getLoweredType(_ type: Type<TT>) -> GIRType {
-    return self.B.module.typeConverter.getLoweredType(self.tc, type)
+    return self.B.module.typeConverter.lowerType(type).type
+  }
+
+  func getPayloadTypeOfConstructor(
+    _ con: Opened<QualifiedName, TT>
+  ) -> [GIRType] {
+    switch self.B.module.typeConverter.getPayloadTypeOfConstructor(con) {
+    case let ty as TupleType:
+      return ty.elements
+    default:
+      fatalError()
+    }
   }
 
   private func buildParameterList() -> ([ManagedValue], Value) {
@@ -161,7 +180,18 @@ final class GIRGenFunction {
 
 extension GIRGenFunction {
   func pairValueWithCleanup(_ value: Value) -> ManagedValue {
-    return ManagedValue(value: value, cleanup: self.cleanupValue(value))
+    let lowering = self.lowerType(value.type)
+    if lowering.trivial {
+      // Morally true.
+      return ManagedValue.unmanaged(value)
+    }
+
+    switch value.type.category {
+    case .object:
+      return ManagedValue(value: value, cleanup: self.cleanupValue(value))
+    case .address:
+      return ManagedValue(value: value, cleanup: self.cleanupAddress(value))
+    }
   }
 
   func cleanupValue(_ temp: Value) -> CleanupStack.Handle {
@@ -171,6 +201,12 @@ extension GIRGenFunction {
   }
 
   func cleanupAlloca(_ temp: Value) -> CleanupStack.Handle {
+    assert(temp.type.category == .address,
+           "alloca cleanup only applies to address types")
+    return cleanupStack.pushCleanup(DeallocaCleanup.self, temp)
+  }
+
+  func cleanupAddress(_ temp: Value) -> CleanupStack.Handle {
     assert(temp.type.category == .address,
            "alloca cleanup only applies to address types")
     return cleanupStack.pushCleanup(DeallocaCleanup.self, temp)

@@ -33,6 +33,18 @@ public class PrimOp: Value {
     /// A explicit destroy operation of a value.
     case destroyValue = "destroy_value"
 
+    /// When the type of the source value is loadable, loads the source
+    /// value and stores a copy of it to memory at the given address.
+    ///
+    /// When the type of the source value is address-only, copies the address
+    /// from the source value to the address at the destination value.
+    case copyAddress = "copy_address"
+
+    /// Destroys the value pointed to by the given address but does not
+    /// deallocate the memory at that address.  The appropriate memory
+    /// deallocation instruction should be scheduled instead.
+    case destroyAddress = "destroy_address"
+
     /// An operation that selects a matching pattern and dispatches to another
     /// continuation.
     case switchConstr = "switch_constr"
@@ -40,8 +52,27 @@ public class PrimOp: Value {
     /// An operation that represents a reference to a continuation.
     case functionRef = "function_ref"
 
-    /// A simple constructor call with no parameters
+    /// A data constructor call with all parameters provided at +1.
     case dataInit = "data_init"
+
+    /// Heap-allocate a box large enough to hold a given type.
+    case allocBox = "alloc_box"
+
+    /// Deallocate a heap-allocated box.
+    case deallocBox = "dealloc_box"
+
+    /// Retrieve the address of the value inside a box.
+    case projectBox = "project_box"
+
+    /// Load the value stored inside the box.
+    ///
+    /// This operation is forbidden on boxes containing values of address-only
+    /// type.  Use `project_box` instead.
+    case loadBox = "load_box"
+
+    /// Store a given value to memory allocated by a given box and returns the
+    /// newly-updated box value.
+    case storeBox = "store_box"
 
     /// An instruction that is considered 'unreachable' that will trap at
     /// runtime.
@@ -63,10 +94,10 @@ public class PrimOp: Value {
   /// Initializes a PrimOp with the provided OpCode and no operands.
   ///
   /// - Parameter opcode: The opcode this PrimOp represents.
-  init(opcode: Code, category: Value.Category) {
+  init(opcode: Code, type: GIRType, category: Value.Category) {
     self.opcode = opcode
     super.init(name: self.opcode.rawValue,
-               type: BottomType.shared, category: category)
+               type: type, category: category)
   }
 
   /// Adds the provided operands to this PrimOp's operand list.
@@ -86,7 +117,7 @@ public class TerminalOp: PrimOp {
   }
   init(opcode: Code, parent: Continuation) {
     self.parent = parent
-    super.init(opcode: opcode, category: .object)
+    super.init(opcode: opcode, type: BottomType.shared, category: .object)
     // Tie the knot
     self.parent.terminalOp = self
   }
@@ -98,7 +129,7 @@ public class TerminalOp: PrimOp {
 /// A primitive operation that contains no operands and has no effect.
 public final class NoOp: PrimOp {
   public init() {
-    super.init(opcode: .noop, category: .object)
+    super.init(opcode: .noop, type: BottomType.shared, category: .object)
   }
 }
 
@@ -140,7 +171,7 @@ public final class ApplyOp: TerminalOp {
 
 public final class AllocaOp: PrimOp {
   public init(_ type: GIRType) {
-    super.init(opcode: .alloca, category: .address)
+    super.init(opcode: .alloca, type: type, category: .address)
     self.addOperands([Operand(owner: self, value: type)])
   }
 
@@ -154,9 +185,9 @@ public final class AllocaOp: PrimOp {
 }
 
 public final class DeallocaOp: PrimOp {
-  public init(_ type: GIRType) {
-    super.init(opcode: .dealloca, category: .object)
-    self.addOperands([Operand(owner: self, value: type)])
+  public init(_ value: GIRType) {
+    super.init(opcode: .dealloca, type: BottomType.shared, category: .object)
+    self.addOperands([Operand(owner: self, value: value)])
   }
 
   public var addressValue: Value {
@@ -166,7 +197,8 @@ public final class DeallocaOp: PrimOp {
 
 public final class CopyValueOp: PrimOp {
   public init(_ value: Value) {
-    super.init(opcode: .copyValue, category: value.type.category)
+    super.init(opcode: .copyValue,
+               type: value.type, category: value.type.category)
     self.addOperands([Operand(owner: self, value: value)])
   }
 
@@ -181,7 +213,8 @@ public final class CopyValueOp: PrimOp {
 
 public final class DestroyValueOp: PrimOp {
   public init(_ value: Value) {
-    super.init(opcode: .destroyValue, category: .object)
+    super.init(opcode: .destroyValue,
+               type: BottomType.shared, category: .object)
     self.addOperands([Operand(owner: self, value: value)])
   }
 
@@ -190,12 +223,45 @@ public final class DestroyValueOp: PrimOp {
   }
 }
 
+public final class CopyAddressOp: PrimOp {
+  public init(_ value: Value, to address: Value) {
+    super.init(opcode: .copyAddress,
+               type: address.type, category: value.type.category)
+    self.addOperands([Operand(owner: self, value: value)])
+    self.addOperands([Operand(owner: self, value: address)])
+  }
+
+  public override var result: Value? {
+    return self
+  }
+
+  public var value: Value {
+    return self.operands[0].value
+  }
+
+  public var address: Value {
+    return self.operands[1].value
+  }
+}
+
+public final class DestroyAddressOp: PrimOp {
+  public init(_ value: Value) {
+    super.init(opcode: .destroyAddress,
+               type: BottomType.shared, category: .object)
+    self.addOperands([Operand(owner: self, value: value)])
+  }
+
+  public var value: Value {
+    return self.operands[0].value
+  }
+}
+
 public final class FunctionRefOp: PrimOp {
   public let function: Continuation
 
   public init(continuation: Continuation) {
     self.function = continuation
-    super.init(opcode: .functionRef, category: .object)
+    super.init(opcode: .functionRef, type: continuation.type, category: .object)
     self.addOperands([Operand(owner: self, value: continuation)])
   }
 
@@ -261,12 +327,90 @@ public final class DataInitOp: PrimOp {
   public init(constructor: String, type: Value, arguments: [Value]) {
     self.constructor = constructor
     self.dataType = type
-    super.init(opcode: .dataInit, category: type.category)
+    super.init(opcode: .dataInit, type: type, category: type.category)
     self.addOperands(arguments.map { Operand(owner: self, value: $0) })
   }
 
   public override var result: Value? {
     return self
+  }
+}
+
+public final class AllocBoxOp: PrimOp {
+  public init(_ type: Value) {
+    super.init(opcode: .allocBox, type: BoxType(type.name), category: .object)
+    self.addOperands([Operand(owner: self, value: type)])
+  }
+
+  public override var result: Value? {
+    return self
+  }
+
+  public var boxedType: GIRType {
+    return self.operands[0].value
+  }
+}
+
+public final class ProjectBoxOp: PrimOp {
+  public init(_ box: Value, type: GIRType) {
+    super.init(opcode: .projectBox, type: type, category: .address)
+    self.addOperands([ Operand(owner: self, value: box) ])
+  }
+
+  public override var result: Value? {
+    return self
+  }
+
+  public var boxValue: Value {
+    return operands[0].value
+  }
+}
+
+public final class LoadBoxOp: PrimOp {
+  public init(_ value: Value) {
+    super.init(opcode: .loadBox, type: value.type, category: .object)
+    self.addOperands([ Operand(owner: self, value: value) ])
+  }
+
+  public override var result: Value? {
+    return self
+  }
+
+  public var addressee: Value {
+    return operands[0].value
+  }
+}
+
+public final class StoreBoxOp: PrimOp {
+  public init(_ value: Value, to address: Value) {
+    super.init(opcode: .storeBox, type: value.type, category: .object)
+    self.addOperands([
+      Operand(owner: self, value: value),
+      Operand(owner: self, value: address),
+    ])
+  }
+
+  public override var result: Value? {
+    return self
+  }
+
+  public var value: Value {
+    return operands[0].value
+  }
+
+  public var address: Value {
+    return operands[1].value
+  }
+}
+
+public final class DeallocBoxOp: PrimOp {
+  public init(_ box: Value) {
+    super.init(opcode: .deallocBox, type: BottomType.shared, category: .object)
+    self.addOperands([ Operand(owner: self, value: box) ])
+  }
+
+  public var box: Value {
+    return operands[0].value
   }
 }
 
@@ -280,12 +424,19 @@ public protocol PrimOpVisitor {
   associatedtype Ret
   func visitAllocaOp(_ op: AllocaOp) -> Ret
   func visitApplyOp(_ op: ApplyOp) -> Ret
-  func visitCopyValueOp(_ op: CopyValueOp) -> Ret
   func visitDeallocaOp(_ op: DeallocaOp) -> Ret
+  func visitCopyValueOp(_ op: CopyValueOp) -> Ret
   func visitDestroyValueOp(_ op: DestroyValueOp) -> Ret
+  func visitCopyAddressOp(_ op: CopyAddressOp) -> Ret
+  func visitDestroyAddressOp(_ op: DestroyAddressOp) -> Ret
   func visitFunctionRefOp(_ op: FunctionRefOp) -> Ret
   func visitSwitchConstrOp(_ op: SwitchConstrOp) -> Ret
   func visitDataInitOp(_ op: DataInitOp) -> Ret
+  func visitLoadBoxOp(_ op: LoadBoxOp) -> Ret
+  func visitStoreBoxOp(_ op: StoreBoxOp) -> Ret
+  func visitAllocBoxOp(_ op: AllocBoxOp) -> Ret
+  func visitProjectBoxOp(_ op: ProjectBoxOp) -> Ret
+  func visitDeallocBoxOp(_ op: DeallocBoxOp) -> Ret
   func visitUnreachableOp(_ op: UnreachableOp) -> Ret
 }
 
@@ -298,20 +449,35 @@ extension PrimOpVisitor {
     case .alloca: return self.visitAllocaOp(code as! AllocaOp)
     // swiftlint:disable force_cast
     case .apply: return self.visitApplyOp(code as! ApplyOp)
-      // swiftlint:disable force_cast
-    case .copyValue: return self.visitCopyValueOp(code as! CopyValueOp)
     // swiftlint:disable force_cast
     case .dealloca: return self.visitDeallocaOp(code as! DeallocaOp)
-      // swiftlint:disable force_cast
+    // swiftlint:disable force_cast
+    case .copyValue: return self.visitCopyValueOp(code as! CopyValueOp)
+    // swiftlint:disable force_cast
     case .destroyValue: return self.visitDestroyValueOp(code as! DestroyValueOp)
-      // swiftlint:disable force_cast
+    // swiftlint:disable force_cast
+    case .copyAddress: return self.visitCopyAddressOp(code as! CopyAddressOp)
+    // swiftlint:disable force_cast
+    case .destroyAddress:
+      return self.visitDestroyAddressOp(code as! DestroyAddressOp)
+    // swiftlint:disable force_cast
     case .functionRef: return self.visitFunctionRefOp(code as! FunctionRefOp)
-      // swiftlint:disable force_cast
+    // swiftlint:disable force_cast
     case .switchConstr: return self.visitSwitchConstrOp(code as! SwitchConstrOp)
-      // swiftlint:disable force_cast
+    // swiftlint:disable force_cast
     case .dataInit: return self.visitDataInitOp(code as! DataInitOp)
     // swiftlint:disable force_cast
     case .unreachable: return self.visitUnreachableOp(code as! UnreachableOp)
+    // swiftlint:disable force_cast
+    case .loadBox: return self.visitLoadBoxOp(code as! LoadBoxOp)
+    // swiftlint:disable force_cast
+    case .storeBox: return self.visitStoreBoxOp(code as! StoreBoxOp)
+    // swiftlint:disable force_cast
+    case .allocBox: return self.visitAllocBoxOp(code as! AllocBoxOp)
+    // swiftlint:disable force_cast
+    case .projectBox: return self.visitProjectBoxOp(code as! ProjectBoxOp)
+    // swiftlint:disable force_cast
+    case .deallocBox: return self.visitDeallocBoxOp(code as! DeallocBoxOp)
     }
   }
 }

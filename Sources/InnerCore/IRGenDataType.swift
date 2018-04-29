@@ -16,11 +16,4 @@ final class IRGenDataType {
   init(_ type: DataType) {
     self.type = type
   }
-
-  func declareConstructors() {
-    for constr in type.constructors {
-      precondition(constr.type === type,
-                   "only nominal data types are supported")
-    }
-  }
 }

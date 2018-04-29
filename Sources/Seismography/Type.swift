@@ -26,10 +26,12 @@ public protocol TypeVisitor {
   func visitTypeType(_ type: TypeType)
   func visitArchetypeType(_ type: ArchetypeType)
   func visitParameterizedType(_ type: ParameterizedType)
+  func visitTupleType(_ type: TupleType)
   func visitDataType(_ type: DataType)
   func visitRecordType(_ type: RecordType)
   func visitFunctionType(_ type: FunctionType)
   func visitSubstitutedType(_ type: SubstitutedType)
+  func visitBoxType(_ type: BoxType)
   func visitBottomType(_ type: BottomType)
 }
 
@@ -54,6 +56,10 @@ extension TypeVisitor {
       return self.visitBottomType(type)
     case let type as GIRExprType:
       return self.visitGIRExprType(type)
+    case let type as TupleType:
+      return self.visitTupleType(type)
+    case let type as BoxType:
+      return self.visitBoxType(type)
     default:
       fatalError("attempt to serialize unknown value \(value)")
     }
@@ -177,18 +183,35 @@ public class ParameterizedType: GIRType {
   }
 }
 
+public final class TupleType: ParameterizedType {
+  public let elements: [GIRType]
+
+  init(elements: [GIRType], category: Value.Category) {
+    self.elements = elements
+    super.init(name: "", indices: TypeType.shared, category: category)
+  }
+
+  public override func equals(_ other: Value) -> Bool {
+    guard let other = other as? TupleType else { return false }
+    return elements == other.elements
+  }
+
+  public override var hashValue: Int {
+    return self.elements.reduce(0) { $0 ^ $1.hashValue }
+  }
+}
+
 public final class DataType: ParameterizedType {
-  public typealias Constructor = NameAndType
+  public typealias Constructor = (name: String, payload: TupleType?)
   public private(set) var constructors = [Constructor]()
 
-  public func addConstructor(name: String, type: GIRType) {
-    constructors.append(Constructor(name: name, type: type))
+  public func addConstructors(_ array: [Constructor]) {
+    constructors.append(contentsOf: array)
   }
 
   public override func equals(_ other: Value) -> Bool {
     guard let other = other as? DataType else { return false }
     return name == other.name &&
-           constructors == other.constructors &&
            parameters == other.parameters
   }
 
@@ -198,7 +221,7 @@ public final class DataType: ParameterizedType {
       h ^= param.hashValue
     }
     for constr in constructors {
-      h ^= constr.hashValue
+      h ^= constr.0.hashValue
     }
     return h
   }
@@ -271,6 +294,30 @@ public final class SubstitutedType: GIRType {
 
   public override var hashValue: Int {
     return substitutee.hashValue ^ substitutions.hashValue
+  }
+}
+
+public final class BoxType: ParameterizedType {
+  let payloadTypeName: String
+
+  init(_ name: String) {
+    self.payloadTypeName = name
+    super.init(name: "@box " + name,
+               indices: TypeType.shared, category: .object)
+  }
+
+  public override func equals(_ other: Value) -> Bool {
+    guard let other = other as? BoxType else { return false }
+    return name == other.name &&
+      parameters == other.parameters
+  }
+
+  public override var hashValue: Int {
+    var h = name.hashValue
+    for param in parameters {
+      h ^= param.hashValue
+    }
+    return h
   }
 }
 

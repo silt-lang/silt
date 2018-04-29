@@ -19,10 +19,11 @@ public final class GIRModule {
   public let bottomType = BottomType.shared
   public let metadataType = TypeMetadataType()
   public let typeType = TypeType.shared
-  public let typeConverter = TypeConverter()
+  public let typeConverter: TypeConverter
 
-  public init(name: String = "main") {
+  public init(name: String = "main", tc: TypeConverter) {
     self.name = name
+    self.typeConverter = tc
     self.typeConverter.module = self
   }
 
@@ -48,11 +49,9 @@ public final class GIRModule {
 
   public func dataType(name: String,
                        indices: GIRType? = nil,
-                       category: Value.Category,
-                       actions: (DataType) -> Void) -> DataType {
+                       category: Value.Category) -> DataType {
     let data = DataType(name: name,
                         indices: indices ?? TypeType.shared, category: category)
-    actions(data)
     return knownDataTypes.getOrInsert(data)
   }
 }
