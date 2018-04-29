@@ -180,7 +180,18 @@ final class GIRGenFunction {
 
 extension GIRGenFunction {
   func pairValueWithCleanup(_ value: Value) -> ManagedValue {
-    return ManagedValue(value: value, cleanup: self.cleanupValue(value))
+    let lowering = self.lowerType(value.type)
+    if lowering.trivial {
+      // Morally true.
+      return ManagedValue.unmanaged(value)
+    }
+
+    switch value.type.category {
+    case .object:
+      return ManagedValue(value: value, cleanup: self.cleanupValue(value))
+    case .address:
+      return ManagedValue(value: value, cleanup: self.cleanupAddress(value))
+    }
   }
 
   func cleanupValue(_ temp: Value) -> CleanupStack.Handle {

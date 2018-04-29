@@ -386,8 +386,9 @@ extension GIRParser {
         return false
       }
       _ = try self.parser.consumeIf(.colon)
-      _ = try self.parser.parseGIRTypeExpr()
-      resultValue = B.createProjectBox(self.getLocalValue(valueName))
+      let typeRepr = try self.parser.parseGIRTypeExpr()
+      resultValue = B.createProjectBox(self.getLocalValue(valueName),
+                                       type: GIRExprType(typeRepr))
     case .loadBox:
       guard let valueName = tryParseGIRValueToken() else {
         return false

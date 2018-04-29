@@ -40,8 +40,8 @@ extension GIRBuilder {
     return DeallocBoxOp(value)
   }
 
-  public func createProjectBox(_ value: Value) -> ProjectBoxOp {
-    return insert(ProjectBoxOp(value))
+  public func createProjectBox(_ value: Value, type: GIRType) -> ProjectBoxOp {
+    return insert(ProjectBoxOp(value, type: type))
   }
 
   public func createLoadBox(_ value: Value) -> LoadBoxOp {

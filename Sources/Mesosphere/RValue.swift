@@ -51,7 +51,8 @@ extension GIRGenFunction {
             let loadVal = self.B.createLoadBox(varLocVal)
             return (parent, ManagedValue.unmanaged(loadVal))
           } else {
-            let projected = self.B.createProjectBox(varLocVal)
+            let projected = self.B.createProjectBox(varLocVal,
+                                                    type: lowering.type)
             return (parent, ManagedValue.unmanaged(projected))
           }
         }
@@ -69,11 +70,10 @@ extension GIRGenFunction {
           let underlyingTyLowering = self.lowerType(ty)
           if underlyingTyLowering.addressOnly {
             let box = B.createAllocBox(underlyingTyLowering.type)
-            let addr = B.createProjectBox(box)
+            let addr = B.createProjectBox(box, type: underlyingTyLowering.type)
             let storedBox = B.createCopyAddress(
               originalValue.forward(self), to: addr)
-            let finalValue = ManagedValue(value: storedBox,
-                                          cleanup: cleanupAddress(storedBox))
+            let finalValue = self.pairValueWithCleanup(storedBox)
             argVals.append(finalValue.forward(self))
           } else {
             let box = B.createAllocBox(underlyingTyLowering.type)

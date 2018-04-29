@@ -295,6 +295,8 @@ extension GIRWriter: PrimOpVisitor {
 
   public func visitProjectBoxOp(_ op: ProjectBoxOp) {
     self.write(self.getID(of: op.boxValue).description)
+    self.write(" : ")
+    self.visitType(op.boxValue.type)
   }
 
   public func visitAllocBoxOp(_ op: AllocBoxOp) {

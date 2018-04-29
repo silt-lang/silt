@@ -34,6 +34,11 @@ struct ManagedValue {
 
   /// Emit a copy of this value with independent ownership.
   func copy(_ GGF: GIRGenFunction) -> ManagedValue {
+    let lowering = GGF.lowerType(self.value.type)
+    if lowering.trivial {
+      return self
+    }
+
     switch self.value.type.category {
     case .object:
       let value = GGF.B.createCopyValue(self.value)
