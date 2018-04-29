@@ -94,10 +94,10 @@ public class PrimOp: Value {
   /// Initializes a PrimOp with the provided OpCode and no operands.
   ///
   /// - Parameter opcode: The opcode this PrimOp represents.
-  init(opcode: Code, category: Value.Category) {
+  init(opcode: Code, type: GIRType, category: Value.Category) {
     self.opcode = opcode
     super.init(name: self.opcode.rawValue,
-               type: BottomType.shared, category: category)
+               type: type, category: category)
   }
 
   /// Adds the provided operands to this PrimOp's operand list.
@@ -117,7 +117,7 @@ public class TerminalOp: PrimOp {
   }
   init(opcode: Code, parent: Continuation) {
     self.parent = parent
-    super.init(opcode: opcode, category: .object)
+    super.init(opcode: opcode, type: BottomType.shared, category: .object)
     // Tie the knot
     self.parent.terminalOp = self
   }
@@ -129,7 +129,7 @@ public class TerminalOp: PrimOp {
 /// A primitive operation that contains no operands and has no effect.
 public final class NoOp: PrimOp {
   public init() {
-    super.init(opcode: .noop, category: .object)
+    super.init(opcode: .noop, type: BottomType.shared, category: .object)
   }
 }
 
@@ -171,7 +171,7 @@ public final class ApplyOp: TerminalOp {
 
 public final class AllocaOp: PrimOp {
   public init(_ type: GIRType) {
-    super.init(opcode: .alloca, category: .address)
+    super.init(opcode: .alloca, type: type, category: .address)
     self.addOperands([Operand(owner: self, value: type)])
   }
 
@@ -186,7 +186,7 @@ public final class AllocaOp: PrimOp {
 
 public final class DeallocaOp: PrimOp {
   public init(_ value: GIRType) {
-    super.init(opcode: .dealloca, category: .object)
+    super.init(opcode: .dealloca, type: BottomType.shared, category: .object)
     self.addOperands([Operand(owner: self, value: value)])
   }
 
@@ -197,7 +197,8 @@ public final class DeallocaOp: PrimOp {
 
 public final class CopyValueOp: PrimOp {
   public init(_ value: Value) {
-    super.init(opcode: .copyValue, category: value.type.category)
+    super.init(opcode: .copyValue,
+               type: value.type, category: value.type.category)
     self.addOperands([Operand(owner: self, value: value)])
   }
 
@@ -212,7 +213,8 @@ public final class CopyValueOp: PrimOp {
 
 public final class DestroyValueOp: PrimOp {
   public init(_ value: Value) {
-    super.init(opcode: .destroyValue, category: .object)
+    super.init(opcode: .destroyValue,
+               type: BottomType.shared, category: .object)
     self.addOperands([Operand(owner: self, value: value)])
   }
 
@@ -223,7 +225,8 @@ public final class DestroyValueOp: PrimOp {
 
 public final class CopyAddressOp: PrimOp {
   public init(_ value: Value, to address: Value) {
-    super.init(opcode: .copyAddress, category: value.type.category)
+    super.init(opcode: .copyAddress,
+               type: address.type, category: value.type.category)
     self.addOperands([Operand(owner: self, value: value)])
     self.addOperands([Operand(owner: self, value: address)])
   }
@@ -243,7 +246,8 @@ public final class CopyAddressOp: PrimOp {
 
 public final class DestroyAddressOp: PrimOp {
   public init(_ value: Value) {
-    super.init(opcode: .destroyAddress, category: .object)
+    super.init(opcode: .destroyAddress,
+               type: BottomType.shared, category: .object)
     self.addOperands([Operand(owner: self, value: value)])
   }
 
@@ -257,7 +261,7 @@ public final class FunctionRefOp: PrimOp {
 
   public init(continuation: Continuation) {
     self.function = continuation
-    super.init(opcode: .functionRef, category: .object)
+    super.init(opcode: .functionRef, type: continuation.type, category: .object)
     self.addOperands([Operand(owner: self, value: continuation)])
   }
 
@@ -323,7 +327,7 @@ public final class DataInitOp: PrimOp {
   public init(constructor: String, type: Value, arguments: [Value]) {
     self.constructor = constructor
     self.dataType = type
-    super.init(opcode: .dataInit, category: type.category)
+    super.init(opcode: .dataInit, type: type, category: type.category)
     self.addOperands(arguments.map { Operand(owner: self, value: $0) })
   }
 
@@ -334,7 +338,7 @@ public final class DataInitOp: PrimOp {
 
 public final class AllocBoxOp: PrimOp {
   public init(_ type: Value) {
-    super.init(opcode: .allocBox, category: .object)
+    super.init(opcode: .allocBox, type: BoxType(type.name), category: .object)
     self.addOperands([Operand(owner: self, value: type)])
   }
 
@@ -348,8 +352,8 @@ public final class AllocBoxOp: PrimOp {
 }
 
 public final class ProjectBoxOp: PrimOp {
-  public init(_ box: Value) {
-    super.init(opcode: .projectBox, category: .object)
+  public init(_ box: Value, type: GIRType) {
+    super.init(opcode: .projectBox, type: type, category: .address)
     self.addOperands([ Operand(owner: self, value: box) ])
   }
 
@@ -364,7 +368,7 @@ public final class ProjectBoxOp: PrimOp {
 
 public final class LoadBoxOp: PrimOp {
   public init(_ value: Value) {
-    super.init(opcode: .loadBox, category: .object)
+    super.init(opcode: .loadBox, type: value.type, category: .object)
     self.addOperands([ Operand(owner: self, value: value) ])
   }
 
@@ -379,7 +383,7 @@ public final class LoadBoxOp: PrimOp {
 
 public final class StoreBoxOp: PrimOp {
   public init(_ value: Value, to address: Value) {
-    super.init(opcode: .storeBox, category: .object)
+    super.init(opcode: .storeBox, type: value.type, category: .object)
     self.addOperands([
       Operand(owner: self, value: value),
       Operand(owner: self, value: address),
@@ -401,7 +405,7 @@ public final class StoreBoxOp: PrimOp {
 
 public final class DeallocBoxOp: PrimOp {
   public init(_ box: Value) {
-    super.init(opcode: .deallocBox, category: .object)
+    super.init(opcode: .deallocBox, type: BottomType.shared, category: .object)
     self.addOperands([ Operand(owner: self, value: box) ])
   }
 
