@@ -43,6 +43,7 @@ public final class TypeConverter {
       case meta(Meta)
       case nominal(String)
       case constructorPayload(String)
+      case loweredType(GIRType)
     }
     private let details: Details
 
@@ -56,6 +57,10 @@ public final class TypeConverter {
 
     init(payloadOf name: String) {
       self.details = .constructorPayload(name)
+    }
+
+    init(loweredType ty: GIRType) {
+      self.details = .loweredType(ty)
     }
 
     static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
@@ -94,6 +99,7 @@ public final class TypeConverter {
     let info = self.lower(type)
     self.loweringCache[key] = info
     self.loweringCache[resolvedKey] = info
+    self.loweringCache[CacheKey(loweredType: info.type)] = info
     return info
   }
 
@@ -102,8 +108,13 @@ public final class TypeConverter {
   /// This resolves outer boxed types to their underlying lowering.
   public func lowerType(_ type: GIRType) -> Lowering {
     guard let boxType = type as? BoxType else {
-      fatalError("FIXME: Only @box types respond to this query!")
+      let cacheKey = CacheKey(loweredType: type)
+      guard let existing = self.loweringCache[cacheKey] else {
+        fatalError("Lowering referencing uncached type? \(type)")
+      }
+      return existing
     }
+
     let cacheKey = CacheKey(name: boxType.payloadTypeName)
     guard let existing = self.loweringCache[cacheKey] else {
       fatalError("Formed box referencing uncached type? \(boxType)")
@@ -275,16 +286,19 @@ extension TypeConverter {
     if forceAddressOnly {
       let ty = TupleType(elements: eltTypes, category: .address)
       let lowering = AddressOnlyLowering(ty)
+      self.loweringCache[CacheKey(loweredType: ty)] = lowering
       self.loweringCache[CacheKey(payloadOf: name)] = lowering
       return (lowering, ty)
     } else if hasOnlyTrivialElements {
       let ty = TupleType(elements: eltTypes, category: .object)
       let lowering = TrivialLowering(ty)
+      self.loweringCache[CacheKey(loweredType: ty)] = lowering
       self.loweringCache[CacheKey(payloadOf: name)] = lowering
       return (lowering, ty)
     } else {
       let ty = TupleType(elements: eltTypes, category: .object)
       let lowering = NonTrivialLowering(ty)
+      self.loweringCache[CacheKey(loweredType: ty)] = lowering
       self.loweringCache[CacheKey(payloadOf: name)] = lowering
       return (lowering, ty)
     }
