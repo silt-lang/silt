@@ -117,16 +117,18 @@ final class GIRGenFunction {
   let tc: TypeChecker<CheckPhaseState>
   var varLocs: [Name: Value] = [:]
   let cleanupStack: CleanupStack = CleanupStack()
+  let genericEnvironment: GenericEnvironment
 
   init(_ GGM: GIRGenModule, _ f: Continuation,
        _ ty: Type<TT>, _ tel: Telescope<TT>) {
     self.f = f
     self.B = GIRBuilder(module: GGM.M)
     self.telescope = tel
-    let (ps, result) = GGM.tc.unrollPi(ty)
-    self.params = ps
-    self.returnTy = result
     self.tc = GGM.tc
+    let environment = unrollPiIntoEnvironment(tc, ty)
+    self.genericEnvironment = environment.genericEnvironment
+    self.params = environment.paramTelescope
+    self.returnTy = environment.returnType
   }
 
   func emitFunction(_ clauses: [Clause]) {
@@ -157,16 +159,37 @@ final class GIRGenFunction {
     }
   }
 
+  private func tryFormArchetype(_ ty: Type<TT>, _ idx: Int) -> ArchetypeType? {
+    guard case let .apply(.variable(v), elims) = ty, elims.isEmpty else {
+      return nil
+    }
+    let archIdx = UInt(idx) - (v.index + 1)
+    let key = GenericEnvironment.Key(depth: 0, index: archIdx)
+    return self.genericEnvironment.find(key)
+  }
+
   private func buildParameterList() -> ([ManagedValue], Value) {
     var params = [ManagedValue]()
-    for (_, paramTy) in self.params {
-      let ty = self.getLoweredType(self.tc.toNormalForm(paramTy))
-      let p = self.appendManagedParameter(type: ty)
-      params.append(p)
+    for (idx, t) in self.params.enumerated() {
+      let (_, paramTy) = t
+      if let arch = self.tryFormArchetype(paramTy, idx) {
+        let p = self.appendManagedParameter(type: arch)
+        params.append(p)
+      } else {
+        let ty = self.getLoweredType(paramTy)
+        let p = self.appendManagedParameter(type: ty)
+        params.append(p)
+      }
     }
-    let returnContTy = self.getLoweredType(self.tc.toNormalForm(self.returnTy))
-    let ret = self.f.setReturnParameter(type: returnContTy)
-    return (params, ret)
+    if let arch = self.tryFormArchetype(self.returnTy, self.params.count) {
+      self.f.appendIndirectReturnParameter(type: arch)
+      let ret = self.f.setReturnParameter(type: arch)
+      return (params, ret)
+    } else {
+      let returnContTy = self.getLoweredType(self.returnTy)
+      let ret = self.f.setReturnParameter(type: returnContTy)
+      return (params, ret)
+    }
   }
 
   @discardableResult
@@ -176,6 +199,38 @@ final class GIRGenFunction {
     let val = self.f.appendParameter(named: name, type: type)
     return self.pairValueWithCleanup(val)
   }
+}
+
+private struct FunctionEnvironment {
+  let paramTelescope: Telescope<Type<TT>>
+  let returnType: Type<TT>
+  let genericEnvironment: GenericEnvironment
+}
+
+private func unrollPiIntoEnvironment(
+  _ tc: TypeChecker<CheckPhaseState>,
+  _ t: Type<TT>
+) -> FunctionEnvironment {
+  let defaultName = Name(name: TokenSyntax(.identifier("_")))
+  var tel = Telescope<Type<TT>>()
+  var ty = t
+  var archIdx = 0
+  var archetypes = [ArchetypeType]()
+  while case let .pi(dm, cd) = tc.toNormalForm(ty) {
+    ty = cd
+    tel.append((defaultName, dm))
+    // FIXME: Lower more complex forms to archetypes.
+    if case .type = dm {
+      archetypes.append(ArchetypeType(index: archIdx))
+      archIdx += 1
+      continue
+    }
+  }
+  let signature = GenericSignature(archetypes: archetypes)
+  let environment = GenericEnvironment(signature: signature)
+  return FunctionEnvironment(paramTelescope: tel,
+                             returnType: ty,
+                             genericEnvironment: environment)
 }
 
 extension GIRGenFunction {
@@ -209,6 +264,6 @@ extension GIRGenFunction {
   func cleanupAddress(_ temp: Value) -> CleanupStack.Handle {
     assert(temp.type.category == .address,
            "alloca cleanup only applies to address types")
-    return cleanupStack.pushCleanup(DeallocaCleanup.self, temp)
+    return cleanupStack.pushCleanup(DestroyAddressCleanup.self, temp)
   }
 }

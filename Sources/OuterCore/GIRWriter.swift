@@ -341,10 +341,14 @@ extension GIRWriter: PrimOpVisitor {
     self.write(self.getID(of: op.value).description)
     self.write(" to ")
     self.write(self.getID(of: op.address).description)
+    self.write(" : ")
+    self.visitType(op.type)
   }
 
   public func visitDestroyAddressOp(_ op: DestroyAddressOp) {
     self.write(self.getID(of: op.value).description)
+    self.write(" : ")
+    self.visitType(op.value.type)
   }
 
   public func visitSwitchConstrOp(_ op: SwitchConstrOp) {
@@ -401,23 +405,45 @@ extension GIRWriter: PrimOpVisitor {
 }
 
 extension GIRWriter: TypeVisitor {
+  public func visitTypeCommon(_ type: GIRType) {
+    if type.category == .address {
+      self.write("*")
+    }
+  }
+
   public func visitGIRExprType(_ type: GIRExprType) {
+    self.visitTypeCommon(type)
     self.write(type.expr.diagnosticSourceText)
   }
-  public func visitTypeMetadataType(_ type: TypeMetadataType) {}
-  public func visitTypeType(_ type: TypeType) {}
-  public func visitArchetypeType(_ type: ArchetypeType) {}
-  public func visitParameterizedType(_ type: ParameterizedType) {}
+
+  public func visitTypeMetadataType(_ type: TypeMetadataType) {
+    self.visitTypeCommon(type)
+  }
+  public func visitTypeType(_ type: TypeType) {
+    self.visitTypeCommon(type)
+    self.write("Type")
+  }
+  public func visitArchetypeType(_ type: ArchetypeType) {
+    self.visitTypeCommon(type)
+    self.write(type.name)
+  }
+  public func visitParameterizedType(_ type: ParameterizedType) {
+    self.visitTypeCommon(type)
+  }
   public func visitDataType(_ type: DataType) {
+    self.visitTypeCommon(type)
     self.write(type.name)
   }
   public func visitBoxType(_ type: BoxType) {
+    self.visitTypeCommon(type)
     self.write(type.name)
   }
   public func visitRecordType(_ type: RecordType) {
+    self.visitTypeCommon(type)
     self.write(type.name)
   }
   public func visitFunctionType(_ type: FunctionType) {
+    self.visitTypeCommon(type)
     guard !type.arguments.isEmpty else {
       return self.visitType(type.returnType)
     }
@@ -429,14 +455,18 @@ extension GIRWriter: TypeVisitor {
     return self.visitType(type.returnType)
   }
   public func visitTupleType(_ type: TupleType) {
+    self.visitTypeCommon(type)
     self.write("(")
     self.interleave(type.elements,
                     { self.visitType($0) },
                     { self.write(" , ") })
     self.write(")")
   }
-  public func visitSubstitutedType(_ type: SubstitutedType) {}
+  public func visitSubstitutedType(_ type: SubstitutedType) {
+    self.visitTypeCommon(type)
+  }
   public func visitBottomType(_ type: BottomType) {
+    self.visitTypeCommon(type)
     self.write("_")
   }
 }
