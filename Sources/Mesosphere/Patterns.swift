@@ -306,32 +306,60 @@ extension GIRGenFunction {
                                    _ body: Term<TT>) {
     switch body {
     case .constructor(_, _):
-      let (newParent, bodyVal) = self.emitRValue(bb, body)
-      let conVal = bodyVal.forward(self)
-      self.cleanupStack.emitCleanups(self, in: bb)
-      _ = self.B.createApply(newParent, retParam, [conVal])
-    case let .apply(head, _):
+      let (bb, bodyVal) = self.emitRValue(bb, body)
+      self.emitFinalReturn(bb, bodyVal.forward(self), retParam)
+    case let .apply(head, args):
       switch head {
       case .definition(_):
         let (bb, bodyVal) = self.emitRValue(bb, body)
-        self.cleanupStack.emitCleanups(self, in: bb)
-        _ = self.B.createApply(bb, retParam, [bodyVal.forward(self)])
+        self.emitFinalReturn(bb, bodyVal.forward(self), retParam)
       case let .meta(mv):
         guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
           fatalError()
+        }
+        guard args.count == bind.arity else {
+          fatalError("Partially applied neutral term?")
         }
         self.emitFinalColumnBody(bb, retParam, self.tc.toNormalForm(bind.body))
       case let .variable(v):
         guard let varLoc = self.varLocs[v.name] else {
           fatalError()
         }
-        let varValue = ManagedValue.unmanaged(varLoc).copy(self).forward(self)
-        self.cleanupStack.emitCleanups(self, in: bb)
-        _ = self.B.createApply(bb, retParam, [varValue])
+
+        switch self.f.callingConvention {
+        case .indirectResult:
+          // Special case: If we're going out by indirect return we shouldn't
+          // copy.  The 'store' on the value will do that for us.
+          let varValue = ManagedValue.unmanaged(varLoc).forward(self)
+          self.emitFinalReturn(bb, varValue, retParam)
+        case .default:
+          let varValue = ManagedValue.unmanaged(varLoc).copy(self).forward(self)
+          self.emitFinalReturn(bb, varValue, retParam)
+        }
       }
     default:
       fatalError()
     }
+  }
+
+  private func emitFinalReturn(
+    _ bb: Continuation, _ value: Value, _ returnParameter: Value) {
+    guard let indirectRet = self.f.indirectReturnParameter else {
+      // Easy case: cleanup after ourselves and apply the return continuation.
+      self.cleanupStack.emitCleanups(self, in: bb)
+      _ = self.B.createApply(bb, returnParameter, [value])
+      return
+    }
+
+    // If we have an indirect buffer, we have to copy the RValue into it and
+    // apply that result buffer.
+    guard value.type == indirectRet.type else {
+      fatalError("FIXME: Store into the result buffer")
+    }
+
+    let copyAddr = self.B.createCopyAddress(value, to: indirectRet)
+    self.cleanupStack.emitCleanups(self, in: bb)
+    _ = self.B.createApply(bb, returnParameter, [copyAddr])
   }
 
   private struct Necessity {
