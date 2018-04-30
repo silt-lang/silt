@@ -7,7 +7,6 @@
 
 import Moho
 import Mantle
-import Foundation
 
 /// A `TypeConverter` is responsible for deciding the initial lowered
 /// representation of a TT term.
@@ -39,11 +38,16 @@ public final class TypeConverter {
   }
 
   private struct CacheKey: Hashable {
+    fileprivate enum Constant {
+      case star
+    }
+
     private enum Details: Hashable {
       case meta(Meta)
       case nominal(String)
       case constructorPayload(String)
       case loweredType(GIRType)
+      case constant(Constant)
     }
     private let details: Details
 
@@ -61,6 +65,10 @@ public final class TypeConverter {
 
     init(loweredType ty: GIRType) {
       self.details = .loweredType(ty)
+    }
+
+    init(constant: Constant) {
+      self.details = .constant(constant)
     }
 
     static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
@@ -81,6 +89,7 @@ public final class TypeConverter {
 
   public init(_ tc: TypeChecker<CheckPhaseState>) {
     self.tc = tc
+    self.prepopulateCache()
   }
 
   /// Retrieves the type lowering for a TT-type.
@@ -107,6 +116,10 @@ public final class TypeConverter {
   ///
   /// This resolves outer boxed types to their underlying lowering.
   public func lowerType(_ type: GIRType) -> Lowering {
+    if let arch = type as? ArchetypeType {
+      return AddressOnlyLowering(arch)
+    }
+
     guard let boxType = type as? BoxType else {
       let cacheKey = CacheKey(loweredType: type)
       guard let existing = self.loweringCache[cacheKey] else {
@@ -139,7 +152,8 @@ public final class TypeConverter {
   private func getTypeKey(_ type: Type<TT>) -> CacheKey {
     switch type {
     case .refl: fatalError()
-    case .type: fatalError()
+    case .type:
+      return CacheKey(constant: .star)
     case let .constructor(name, _):
       return CacheKey(name: name.key.string)
     case let .apply(head, _):
@@ -175,6 +189,12 @@ public final class TypeConverter {
     default:
       return t
     }
+  }
+
+  private func prepopulateCache() {
+    let starLowering = TrivialAddressOnlyLowering(TypeType.shared)
+    self.loweringCache[CacheKey(loweredType: TypeType.shared)] = starLowering
+    self.loweringCache[CacheKey(constant: .star)] = starLowering
   }
 }
 
@@ -345,6 +365,12 @@ private class TrivialLowering: TypeConverter.Lowering {
 private class NonTrivialLowering: TypeConverter.Lowering {
   init(_ type: GIRType) {
     super.init(type: type, isTrivial: false, isAddressOnly: false)
+  }
+}
+
+private class TrivialAddressOnlyLowering: TypeConverter.Lowering {
+  init(_ type: GIRType) {
+    super.init(type: type, isTrivial: true, isAddressOnly: true)
   }
 }
 

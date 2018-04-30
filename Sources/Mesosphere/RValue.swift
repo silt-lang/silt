@@ -33,6 +33,16 @@ extension GIRGenFunction {
           argVals.append(value.forward(self))
           lastParent = newParent
         }
+        // Account for the indirect return convention's buffer parameter.
+        if let indirect = callee.indirectReturnParameter {
+          // Alloca in our frame.
+          let alloca = B.createAlloca(indirect.type)
+          argVals.append(alloca)
+          // Dealloca on the return edge.
+          //
+          // FIXME: Can we do this with the cleanup stack somehow?
+          applyDest.appendCleanupOp(self.B.createDealloca(alloca))
+        }
         argVals.append(applyDestRef)
         _ = self.B.createApply(lastParent, calleeRef, argVals)
         return (applyDest, ManagedValue.unmanaged(param))

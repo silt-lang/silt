@@ -112,22 +112,20 @@ public final class TypeType: GIRType {
 }
 
 public final class ArchetypeType: GIRType {
-  public unowned let parent: ParameterizedType
   public let index: Int
 
-  init(parent: ParameterizedType, index: Int) {
-    self.parent = parent
+  public init(index: Int) {
     self.index = index
-    super.init(name: "", type: TypeType.shared, category: .address)
+    super.init(name: "τ_\(index)", type: TypeType.shared, category: .address)
   }
 
   public override func equals(_ other: Value) -> Bool {
     guard let other = other as? ArchetypeType else { return false }
-    return parent == other.parent && index == other.index
+    return index == other.index
   }
 
   public override var hashValue: Int {
-    return ObjectIdentifier(parent).hashValue ^ index.hashValue ^ 0x374b2947
+    return index.hashValue ^ 0x374b2947
   }
 }
 
@@ -152,7 +150,7 @@ public class ParameterizedType: GIRType {
   }
 
   public func addParameter(name: String, type: GIRType) {
-    let archetype = ArchetypeType(parent: self, index: parameters.count)
+    let archetype = ArchetypeType(index: parameters.count)
     let value = NameAndType(name: name, type: type)
     parameters.append(Parameter(archetype: archetype, value: value))
   }

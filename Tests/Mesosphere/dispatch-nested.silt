@@ -19,20 +19,20 @@ suc n + m = suc (n + m)
 -- CHECK-GIR:   %7 = function_ref @bb0
 -- CHECK-GIR:   %8 = load_box %6 : @box dispatch-nested.Nat
 -- CHECK-GIR:   %9 = function_ref @bb3
--- CHECK-GIR:   destroy_value %1
--- CHECK-GIR:   destroy_value %0
 -- CHECK-GIR:   apply %7(%8 ; %1 ; %9) : (dispatch-nested.Nat ; dispatch-nested.Nat) -> (dispatch-nested.Nat) -> _
 -- CHECK-GIR: bb2:
--- CHECK-GIR:   %13 = copy_value %1
+-- CHECK-GIR:   %11 = copy_value %1
 -- CHECK-GIR:   destroy_value %1
 -- CHECK-GIR:   destroy_value %0
--- CHECK-GIR:   apply %2(%13) : (dispatch-nested.Nat) -> _
--- CHECK-GIR: bb3(%17 : dispatch-nested.Nat):
--- CHECK-GIR:   %18 = copy_value %17
--- CHECK-GIR:   %19 = alloc_box dispatch-nested.Nat
--- CHECK-GIR:   %20 = store_box %18 to %19
--- CHECK-GIR:   %21 = data_init dispatch-nested.Nat ; dispatch-nested.Nat.suc ; %20
--- CHECK-GIR:   apply %2(%21) : (dispatch-nested.Nat) -> _
+-- CHECK-GIR:   apply %2(%11) : (dispatch-nested.Nat) -> _
+-- CHECK-GIR: bb3(%15 : dispatch-nested.Nat):
+-- CHECK-GIR:   %16 = copy_value %15
+-- CHECK-GIR:   %17 = alloc_box dispatch-nested.Nat
+-- CHECK-GIR:   %18 = store_box %16 to %17
+-- CHECK-GIR:   %19 = data_init dispatch-nested.Nat ; dispatch-nested.Nat.suc ; %18
+-- CHECK-GIR:   destroy_value %1
+-- CHECK-GIR:   destroy_value %0
+-- CHECK-GIR:   apply %2(%19) : (dispatch-nested.Nat) -> _
 -- CHECK-GIR: } -- end gir function dispatch-nested._+_
 
 data Bool : Type where

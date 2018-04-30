@@ -11,7 +11,23 @@ public struct ParameterSemantics {
 }
 
 public final class Continuation: Value, GraphNode {
+  public enum CallingConvention {
+    /// The default calling convention for Silt functions.
+    case `default`
+    /// The indirect calling convention for Silt functions.
+    ///
+    /// When calling the function, an extra indirect return parameter is
+    /// added before the return continuation parameter. The caller is required
+    /// to allocate a buffer of the appropriate size and pass it in that
+    /// position. The callee is then required to initialize that buffer by
+    /// storing into it before the return continuation is called with the
+    /// caller-provided buffer. Finally, the return continuation must be
+    /// caller-controlled and call the appropriate resource destruction primop
+    /// on the buffer it allocated.
+    case indirectResult
+  }
   public private(set) var parameters = [Parameter]()
+  public private(set) var indirectReturnParameter: Parameter?
   public private(set) var cleanups = [PrimOp]()
 
   weak var module: GIRModule?
@@ -38,6 +54,13 @@ public final class Continuation: Value, GraphNode {
     }
   }
 
+  public var callingConvention: CallingConvention {
+    if self.indirectReturnParameter != nil {
+      return .indirectResult
+    }
+    return .default
+  }
+
   public init(name: String) {
     self.predecessorList = Successor(nil)
     super.init(name: name, type: BottomType.shared /*to be overwritten*/,
@@ -46,7 +69,7 @@ public final class Continuation: Value, GraphNode {
 
   @discardableResult
   public func appendParameter(
-    named name: String = "", type: Value
+    named name: String = "", type: GIRType
   ) -> Parameter {
     let param = Parameter(name: name, parent: self, index: parameters.count,
                           type: type)
@@ -56,6 +79,17 @@ public final class Continuation: Value, GraphNode {
 
   public func appendCleanupOp(_ cleanup: PrimOp) {
     self.cleanups.append(cleanup)
+  }
+
+  @discardableResult
+  public func appendIndirectReturnParameter(type: GIRType) -> Parameter {
+    precondition(type.category == .address,
+                 "Can only add indirect return parameter with address type")
+    let param = Parameter(name: "", parent: self, index: parameters.count,
+                          type: type)
+    indirectReturnParameter = param
+    parameters.append(param)
+    return param
   }
 
   @discardableResult

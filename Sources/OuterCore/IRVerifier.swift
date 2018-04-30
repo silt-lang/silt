@@ -33,8 +33,8 @@ public final class IRVerifier {
       return module.metadataType === type
     case let type as TypeType:
       return module.typeType === type
-    case let type as ArchetypeType:
-      return valueIsKnown(type.parent)
+    case _ as ArchetypeType:
+      return false
     case let type as SubstitutedType:
       guard valueIsKnown(type.substitutee) else { return false }
       for (arch, subst) in type.substitutions {

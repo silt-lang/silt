@@ -38,6 +38,8 @@ public class PrimOp: Value {
     ///
     /// When the type of the source value is address-only, copies the address
     /// from the source value to the address at the destination value.
+    ///
+    /// Returns the destination's memory.
     case copyAddress = "copy_address"
 
     /// Destroys the value pointed to by the given address but does not

@@ -457,7 +457,7 @@ public struct Meta: Comparable, Hashable, CustomStringConvertible {
   /// A `Binding` represents the term associated with a particular metavariable.
   public struct Binding {
     /// The arity of the given binding.
-    let arity: Int
+    public let arity: Int
     public let body: TT
 
     init(arity: Int, body: TT) {
