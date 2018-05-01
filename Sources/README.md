@@ -69,12 +69,11 @@ Functionality at each layer can be broadly classified as such:
     - Type checking validates TT terms by producing and solving constraints
     - Well-scoped, well-typed TT terms are emitted to lower phases
 5. **Mesosphere** 
-    - Iterative simplification and lowering of TT terms
-    - Performs defunctionalization, simplifcation, and inlining
-    - Simplifies TT terms to an AST amenable to CPS translation
+    - Simplification and lowering of TT terms and types
+    - Lowers TT terms to a GraphIR similar to [Thorin GraphIR](https://github.com/AnyDSL/thorin)
+    - Decides early calling conventions and type layouts
 6. **Outer Core**
-    - Translates simplified TT terms to [Thorin
-      GraphIR](https://github.com/AnyDSL/thorin) terms
+    - Schedules and canonicalizes GraphIR 
     - Performs optimizations on the GraphIR structure
 7. **Inner Core**
     - Lowers GraphIR terms to LLVM IR

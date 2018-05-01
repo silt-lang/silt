@@ -6,8 +6,6 @@ qualified-name ::= <id> | <id> '.' <qualified-name>
 gir-value-id ::= '%' <id>
 gir-value-id-list ::= <gir-value-id> | <gir-value-id-list>
 
-int ::= [0-9]+
-
 # Declarations
 
 decl ::= <module-decl>
@@ -31,7 +29,7 @@ function-decl ::= '@' <qualified-name> ':' <gir-type> '{' <continuation>+ '}'
 
 ## Types
 
-operand ::= <gir-value-id> ':' <type>
+operand ::= <gir-value-id> ':' <gir-type>
 typed-parameter ::= '(' <operand> ')'
 
 gir-type ::= <typed-parameter> '->' <gir-type>
@@ -53,7 +51,7 @@ continuation ::= <id> ('(' <operand> (';' <operand>)* ')')? ':' <gir-primop-stmt
 
 ## Instructions
 
-gir-primop-stmt ::= (<gir-value-id> '=')? gir-primop
+gir-primop-stmt ::= (<gir-value-id> '=')? <gir-primop>
 
 ## Primops
 
@@ -65,7 +63,7 @@ gir-primop ::= 'copy_value' <operand>
 
 gir-primop ::= 'destroy_value' <operand>
 
-gir-primop ::= 'copy_addr' <operand> 'to' <operand> : <gir-type>
+gir-primop ::= 'copy_addr' <gir-value-id> 'to' <operand> : <gir-type>
 
 gir-primop ::= 'destroy_addr' <operand>
 
@@ -81,11 +79,12 @@ gir-primop ::= 'dealloc_box' <operand>
 
 gir-primop ::= 'load_box' <operand> : <gir-type>
 
-gir-primop ::= 'store_box' <operand> 'to' <operand> : <gir-type>
+gir-primop ::= 'store_box' <gir-value-id> 'to' <operand> : <gir-type>
 
 ## Terminators
 
 terminator ::= 'apply' <gir-value-id> '(' (<gir-value-id> (';' <gir-value-id>)*)? ')' ':' gir-type
 
-terminator ::= 'switch_constr' <operand> (';' case <qualified-name> ':' <gir-value-id>)*
+terminator ::= 'switch_constr' <operand> (';' <qualified-name> ':' <gir-value-id>)*
 
+terminator ::= 'unreachable'
