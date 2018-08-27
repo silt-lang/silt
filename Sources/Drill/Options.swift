@@ -73,5 +73,18 @@ public class Options {
   public var inputURLs: [URL] = []
   public var typeCheckerDebugOptions: TypeCheckerDebugOptions = []
 
-  public init() {}
+  // FIXME: There is duplication here between the layers.
+  public init(
+    mode: Mode = .compile,
+    colorsEnabled: Bool = false,
+    shouldPrintTiming: Bool = false,
+    inputURLs: [URL],
+    typeCheckerDebugOptions: TypeCheckerDebugOptions
+  ) {
+    self.mode = mode
+    self.colorsEnabled = colorsEnabled
+    self.shouldPrintTiming = shouldPrintTiming
+    self.inputURLs = inputURLs
+    self.typeCheckerDebugOptions = typeCheckerDebugOptions
+  }
 }

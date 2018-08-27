@@ -12,110 +12,11 @@ import Glibc
 #endif
 
 import Foundation
-import Drill
-import Seismography
-import Utility
-import Basic
-import InnerCore
+import Boring
 
-extension Mode.VerifyLayer: StringEnumArgument {
-  public static var completion: ShellCompletion {
-    return ShellCompletion.values([
-      ("parse", "Verify the result of parsing the input file(s)"),
-      ("scopes", "Verify the result of scope checking the input file(s)"),
-    ])
-  }
+let args = Array(CommandLine.arguments.dropFirst())
+let potentialSubtool = args.first ?? ""
+switch potentialSubtool {
+default:
+  SiltFrontendTool(args: args).run()
 }
-
-extension Mode.DumpLayer: StringEnumArgument {
-  public static var completion: ShellCompletion {
-    return ShellCompletion.values([
-      (Mode.DumpLayer.tokens.rawValue,
-          "Dump the result of tokenizing the input file(s)"),
-      (Mode.DumpLayer.parse.rawValue,
-          "Dump the result of parsing the input file(s)"),
-      (Mode.DumpLayer.file.rawValue,
-          "Dump the result of parsing and reconstructing the input file(s)"),
-      (Mode.DumpLayer.shined.rawValue,
-          "Dump the result of shining the input file(s)"),
-      (Mode.DumpLayer.scopes.rawValue,
-          "Dump the result of scope checking the input file(s)"),
-    ])
-  }
-}
-
-
-/// Parses the command-line options into an Options struct and a list of file
-/// paths.
-func parseOptions() -> Options {
-  let cli = ArgumentParser(commandName: "silt",
-                           usage: "[options] <input file(s)>",
-                           overview: "The Silt compiler frontend")
-  let binder = ArgumentBinder<Options>()
-
-  binder.bind(
-    option: cli.add(
-      option: "--dump",
-      kind: Mode.DumpLayer.self,
-      usage: "Dump the result of compiling up to a given layer"),
-    to: { opt, r in opt.mode = .dump(r) })
-  binder.bind(
-    option: cli.add(
-      option: "--verify",
-      kind: Mode.VerifyLayer.self,
-      usage: "Verify the result of compiling up to a given layer"),
-    to: { opt, r in opt.mode = .verify(r) })
-  binder.bind(
-    option: cli.add(option: "--color-diagnostics", kind: Bool.self),
-    to: { opt, r in opt.colorsEnabled = r })
-  binder.bind(
-    option: cli.add(option: "--debug-print-timing", kind: Bool.self),
-    to: { opt, r in opt.shouldPrintTiming = r })
-  binder.bind(
-    option: cli.add(option: "--debug-constraints", kind: Bool.self),
-    to: { opt, r in
-      if r {
-        opt.typeCheckerDebugOptions.insert(.debugConstraints)
-      }
-    })
-  binder.bind(
-    option: cli.add(option: "--debug-metas", kind: Bool.self),
-    to: { opt, r in
-      if r {
-        opt.typeCheckerDebugOptions.insert(.debugMetas)
-      }
-    })
-  binder.bind(
-    option: cli.add(option: "--debug-normalized-metas", kind: Bool.self),
-    to: { opt, r in
-      if r {
-        opt.typeCheckerDebugOptions.insert(.debugNormalizedMetas)
-      }
-  })
-  binder.bindArray(
-    positional: cli.add(
-      positional: "",
-      kind: [String].self,
-      usage: "One or more input file(s)",
-      completion: .filename),
-    to: { opt, fs in
-      let url = fs.map(URL.init(fileURLWithPath:))
-      return opt.inputURLs.append(contentsOf: url)
-  })
-
-  let args = Array(CommandLine.arguments.dropFirst())
-  guard let result = try? cli.parse(args) else {
-    cli.printUsage(on: Basic.stdoutStream)
-    exit(EXIT_FAILURE)
-  }
-  var options = Options()
-  binder.fill(result, into: &options)
-  return options
-}
-
-func main() -> Int32 {
-  let invocation = Invocation(options: parseOptions())
-  return invocation.run() ? -1 : 0
-}
-
-exit(main())

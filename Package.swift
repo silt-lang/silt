@@ -23,16 +23,16 @@ let package = Package(
       dependencies: ["Lithosphere"]),
     .target(
       name: "Boring",
-      dependencies: []),
+      dependencies: ["Drill", "Utility", "Mantle"]),
     .target(
       name: "Drill",
       dependencies: [
-        "Boring", "Lithosphere", "Crust", "Moho", "Mantle", "Seismography",
+        "Lithosphere", "Crust", "Moho", "Mantle", "Seismography",
         "Mesosphere", "OuterCore", "InnerCore", "Utility"
     ]),
     .target(
       name: "silt",
-      dependencies: ["Drill", "Utility", "Ferrite"]),
+      dependencies: ["Boring", "Utility"]),
     .target(
       name: "SyntaxGen",
       dependencies: ["Utility", "Lithosphere"]),
