@@ -73,7 +73,7 @@ extension TriviaPiece {
 /// A collection of leading or trailing trivia. This is the main data structure
 /// for thinking about trivia.
 public struct Trivia {
-  internal(set) var pieces: [TriviaPiece]
+  var pieces: [TriviaPiece]
 
   /// Creates Trivia with the provided underlying pieces.
   public init(pieces: [TriviaPiece]) {

@@ -7,8 +7,8 @@
 
 import SPMLibc
 import Basic
-import enum POSIX.SystemError
 import Utility
+import POSIX
 
 public class SiltToolOptions {
   let verbosity: Int = Verbosity.concise.rawValue
@@ -116,9 +116,9 @@ public class SiltTool<Options: SiltToolOptions> {
   private static func exit(with status: ExecutionStatus) -> Never {
     switch status {
     case .success:
-      Darwin.exit(0)
+      POSIX.exit(0)
     case .failure:
-      Darwin.exit(1)
+      POSIX.exit(1)
     }
   }
 

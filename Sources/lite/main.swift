@@ -63,10 +63,10 @@ func run() -> Int32 {
     return EXIT_FAILURE
   }
 
-  var substitutions = [("silt", "\"\(url.path)\"")]
+  var substitutions = [("silt", "\(url.path)")]
 
   if let filecheckURL = findFileCheckExecutable() {
-    substitutions.append(("FileCheck", "\"\(filecheckURL.path)\""))
+    substitutions.append(("FileCheck", "\(filecheckURL.path)"))
   }
 
   let isParallel = !(result.get(runSerial) ?? false)
