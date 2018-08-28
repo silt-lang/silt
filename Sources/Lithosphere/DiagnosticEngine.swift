@@ -25,7 +25,7 @@ public final class DiagnosticEngine {
   private var activeTransaction: Int?
 
   /// The set of consumers receiving diagnostic notifications from this engine.
-  private(set) private var consumers = [UUID: DiagnosticConsumer]()
+  private var consumers = [UUID: DiagnosticConsumer]()
 
   /// The next available (unique) transaction ID.
   private var transactionIDPool: Int = .min

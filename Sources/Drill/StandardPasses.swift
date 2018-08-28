@@ -17,9 +17,11 @@ import OuterCore
 import InnerCore
 
 private func processImportedFile(_ modPath: URL) -> LocalNames? {
-  let options = Options()
-  options.mode = .dump(.typecheck)
-  options.inputURLs = [modPath]
+  let options = Options(mode: .dump(.typecheck),
+                        colorsEnabled: false,
+                        shouldPrintTiming: false,
+                        inputURLs: [modPath],
+                        typeCheckerDebugOptions: [])
   let context = PassContext(options: options)
   let result = Passes.scopeCheckAsImport.run(modPath, in: context)
   guard let (declModule, locals) = result else {

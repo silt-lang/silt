@@ -11,7 +11,7 @@ let package = Package(
     .package(url: "https://github.com/llvm-swift/Symbolic.git", from: "0.0.1"),
     .package(url: "https://github.com/onevcat/Rainbow.git", from: "3.0.0"),
     .package(url: "https://github.com/llvm-swift/LLVMSwift.git", from: "0.3.0"),
-    .package(url: "https://github.com/llvm-swift/Lite.git", from: "0.0.11"),
+    .package(url: "https://github.com/llvm-swift/Lite.git", .branch("build-experiment2")),
     .package(url: "https://github.com/llvm-swift/PrettyStackTrace.git", from: "0.0.1"),
   ],
   targets: [
@@ -23,16 +23,16 @@ let package = Package(
       dependencies: ["Lithosphere"]),
     .target(
       name: "Boring",
-      dependencies: []),
+      dependencies: ["Drill", "Utility", "Mantle"]),
     .target(
       name: "Drill",
       dependencies: [
-        "Boring", "Lithosphere", "Crust", "Moho", "Mantle", "Seismography",
+        "Lithosphere", "Crust", "Moho", "Mantle", "Seismography",
         "Mesosphere", "OuterCore", "InnerCore", "Utility"
     ]),
     .target(
       name: "silt",
-      dependencies: ["Drill", "Utility", "Ferrite"]),
+      dependencies: ["Boring", "Utility"]),
     .target(
       name: "SyntaxGen",
       dependencies: ["Utility", "Lithosphere"]),

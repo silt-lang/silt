@@ -171,6 +171,7 @@ public final class TypeConverter {
       }
     case .equal(_, _, _): fatalError()
     case .lambda(_): fatalError()
+    case .pi(_, _): fatalError()
     }
   }
 
@@ -241,6 +242,8 @@ extension TypeConverter {
       fatalError("FIXME: Emit metadata here")
     case .lambda(_):
       fatalError("FIXME: Emit metadata here")
+    case .pi(_, _):
+      fatalError()
     }
   }
 
