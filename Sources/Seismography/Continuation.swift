@@ -71,12 +71,6 @@ public final class Continuation: NominalValue, GraphNode {
                category: .address)
   }
 
-  public override func equals(_ other: Value) -> Bool {
-    guard let other = other as? Continuation else { return false }
-    return self.name == other.name && self.bblikeSuffix == other.bblikeSuffix
-        && self.callingConvention == other.callingConvention
-  }
-
   @discardableResult
   public func appendParameter(type: GIRType) -> Parameter {
     let param = Parameter(parent: self, index: parameters.count, type: type)

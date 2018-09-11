@@ -11,13 +11,13 @@ data Bool : Type where
 _&&_ : Bool -> Bool -> Bool
 -- CHECK:   "_S4bool4_&&_4bool4BoolD4bool4BoolD_4bool4BoolDtfF":
 -- CHECK:   switch i1 %0, label %trap [
--- CHECK:       i1 true, label %"_S4bool9#col0row0ByfF"
--- CHECK:       i1 false, label %"_S4bool9#col0row1ByfF"
+-- CHECK:       i1 true, label %"_S4bool13_&&_#col0row0ByfF"
+-- CHECK:       i1 false, label %"_S4bool13_&&_#col0row1ByfF"
 -- CHECK:   ]
--- CHECK-DAG:   "_S4bool9#col0row1ByfF":
+-- CHECK-DAG:   "_S4bool13_&&_#col0row0ByfF":
 -- CHECK-DAG:     ret i1 %1
 true && x = x
--- CHECK-DAG:   "_S4bool9#col0row0ByfF":
+-- CHECK-DAG:   "_S4bool13_&&_#col0row1ByfF":
 -- CHECK-DAG:     ret i1 false
 false && _ = false
 -- CHECK:   trap:
@@ -29,13 +29,13 @@ _||_ : Bool -> Bool -> Bool
 
 -- CHECK: "_S4bool4_||_4bool4BoolD4bool4BoolD_4bool4BoolDtfF":
 -- CHECK:   switch i1 %0, label %trap [
--- CHECK:     i1 true, label %"_S4bool9#col0row0ByfF"
--- CHECK:     i1 false, label %"_S4bool9#col0row1ByfF"
+-- CHECK:     i1 true, label %"_S4bool13_||_#col0row0ByfF"
+-- CHECK:     i1 false, label %"_S4bool13_||_#col0row1ByfF"
 -- CHECK:   ]
--- CHECK-DAG: "_S4bool9#col0row1ByfF":
+-- CHECK-DAG: "_S4bool13_||_#col0row0ByfF":
 -- CHECK-DAG:   ret i1 true
 true || _ = true
--- CHECK-DAG: "_S4bool9#col0row0ByfF":
+-- CHECK-DAG: "_S4bool13_||_#col0row1ByfF":
 -- CHECK-DAG:   ret i1 %1
 false || x = x
 -- CHECK: trap:
@@ -46,13 +46,13 @@ false || x = x
 !_ : Bool -> Bool
 -- CHECK: "_S4bool2!_4bool4BoolD4bool4BoolDfF":
 -- CHECK:   switch i1 %0, label %trap [
--- CHECK:     i1 true, label %"_S4bool9#col0row0ByfF"
--- CHECK:     i1 false, label %"_S4bool9#col0row1ByfF"
+-- CHECK:     i1 true, label %"_S4bool11!_#col0row0ByfF"
+-- CHECK:     i1 false, label %"_S4bool11!_#col0row1ByfF"
 -- CHECK:   ]
--- CHECK-DAG: "_S4bool9#col0row0ByfF":
+-- CHECK-DAG: "_S4bool11!_#col0row0ByfF":
 -- CHECK-DAG:   ret i1 false
 ! true = false
--- CHECK-DAG: "_S4bool9#col0row1ByfF":
+-- CHECK-DAG: "_S4bool11!_#col0row1ByfF":
 -- CHECK-DAG:   ret i1 true
 ! false = true
 -- CHECK: trap:
@@ -63,13 +63,13 @@ false || x = x
 if_then_else_ : Bool -> Bool -> Bool -> Bool
 -- CHECK: _S4bool13if_then_else_4bool4BoolD4bool4BoolD_4bool4BoolD4bool4BoolDtfF:
 -- CHECK:   switch i1 %0, label %trap [
--- CHECK:     i1 true, label %"_S4bool9#col0row0ByfF"
--- CHECK:     i1 false, label %"_S4bool9#col0row1ByfF"
+-- CHECK:     i1 true, label %"_S4bool22if_then_else_#col0row0ByfF"
+-- CHECK:     i1 false, label %"_S4bool22if_then_else_#col0row1ByfF"
 -- CHECK:   ]
--- CHECK-DAG: "_S4bool9#col0row0ByfF":
+-- CHECK-DAG: "_S4bool22if_then_else_#col0row0ByfF": 
 -- CHECK-DAG:   ret i1 %1
 if true then x else _ = x
--- CHECK-DAG: "_S4bool9#col0row1ByfF":
+-- CHECK-DAG: "_S4bool22if_then_else_#col0row1ByfF":
 -- CHECK-DAG:   ret i1 %2
 if false then _ else x = x
 -- CHECK: trap:

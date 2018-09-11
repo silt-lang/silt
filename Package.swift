@@ -23,7 +23,7 @@ let package = Package(
       dependencies: ["Lithosphere"]),
     .target(
       name: "Boring",
-      dependencies: ["Drill", "Utility", "Mantle"]),
+      dependencies: ["Drill", "Utility", "Mantle", "Seismography"]),
     .target(
       name: "Drill",
       dependencies: [

@@ -237,9 +237,6 @@ extension GIRGenFunction {
         for (i, param) in dest.parameters.enumerated() {
           unspecialized.insert(parameters.count + i)
           parameters.append(ManagedValue.unmanaged(param))
-//          if !param.name.isEmpty {
-//            self.varLocs[Name(name: .implicit(.identifier(param.name)))] = param
-//          }
         }
       }
       // Recur and specialize on this constructor head.
