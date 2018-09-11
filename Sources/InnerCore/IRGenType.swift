@@ -56,7 +56,7 @@ struct IRGenType {
     guard let data = type as? DataType else {
       fatalError("only know how to emit data types")
     }
-    let name = igm.mangler.mangle(data, isTopLevel: true)
+    let name = igm.mangler.mangle(data)
 
     let largestValueNeeded = data.constructors.count - 1
     let numBitsRequired =
@@ -80,9 +80,11 @@ struct IRGenType {
       guard let payloadType = constructor.payload else {
         continue
       }
-
-      let typeName =
-        igm.mangler.mangle(constructor, isTopLevel: true) + ".payload"
+      // FIXME: Constructors oughta be a nominal type
+      igm.mangler.beginMangling()
+      constructor.name.mangle(into: &igm.mangler)
+      constructor.payload?.mangle(into: &igm.mangler)
+      let typeName = igm.mangler.finalize()
 
       // Turn the function constructors into a flattened list of members.
       let fields = payloadType.elements.map { type in

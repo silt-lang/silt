@@ -94,12 +94,8 @@ public final class Continuation: Value, GraphNode {
 
   @discardableResult
   public func setReturnParameter(type: Value) -> Parameter {
-    guard let module = module else { fatalError() }
-
-    let returnTy = module.functionType(arguments: [type],
-                                       returnType: module.bottomType)
     let param = Parameter(name: "", parent: self, index: parameters.count,
-                          type: returnTy)
+                          type: type)
     parameters.append(param)
     return param
   }
@@ -110,10 +106,7 @@ public final class Continuation: Value, GraphNode {
     guard let lastTy = parameters.last?.type else {
       return module.bottomType
     }
-    guard let funcTy = lastTy as? FunctionType else {
-      return module.bottomType
-    }
-    return funcTy.arguments[0]
+    return lastTy
   }
 
   public override var type: Value {
@@ -126,5 +119,22 @@ public final class Continuation: Value, GraphNode {
       return module.functionType(arguments: paramTys, returnType: returnTy)
     }
     set { /* do nothing */ }
+  }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    self.module?.mangle(into: &mangler)
+    Identifier(self.name).mangle(into: &mangler)
+    self.type.mangle(into: &mangler)
+    mangler.append("F")
+  }
+}
+
+extension Continuation: DeclarationContext {
+  public var contextKind: DeclarationContextKind {
+    return .continuation
+  }
+
+  public var parent: DeclarationContext? {
+    return self.module
   }
 }
