@@ -88,13 +88,13 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
 
     let scheduleName = schedule.blocks[0].parent.name
     self.write("@")
-    self.write(scheduleName)
+    self.write(scheduleName.string)
     self.write(" : ")
     self.visitType(schedule.blocks[0].parent.type)
     self.writeLine(" {")
     self.writeScheduleBlocks(schedule)
     self.write("} -- end gir function ")
-    self.write(scheduleName)
+    self.write(scheduleName.string)
     self.writeLine()
   }
 
@@ -374,15 +374,17 @@ extension GIRWriter: PrimOpVisitor {
   public func visitFunctionRefOp(_ op: FunctionRefOp) {
     self.write("@")
     guard let schedule = self.currentSchedule else {
-      self.write(op.function.name)
+      self.write(op.function.name.string)
       return
     }
     guard let entryBlock = schedule.blocks.first else {
-      self.write(op.function.name)
+      self.write(op.function.name.string)
       return
     }
-    guard op.function.name.starts(with: entryBlock.parent.name) else {
-      self.write(op.function.name)
+    guard
+      op.function.name.string.starts(with: entryBlock.parent.name.string)
+    else {
+      self.write(op.function.name.string)
       return
     }
     self.write(self.getID(for: op.function, in: schedule).description)
@@ -425,22 +427,27 @@ extension GIRWriter: TypeVisitor {
   }
   public func visitArchetypeType(_ type: ArchetypeType) {
     self.visitTypeCommon(type)
-    self.write(type.name)
+    self.write("τ_\(type.index)")
   }
   public func visitParameterizedType(_ type: ParameterizedType) {
     self.visitTypeCommon(type)
   }
   public func visitDataType(_ type: DataType) {
     self.visitTypeCommon(type)
-    self.write(type.name)
+    self.write(type.name.string)
   }
   public func visitBoxType(_ type: BoxType) {
     self.visitTypeCommon(type)
-    self.write(type.name)
+    self.write("@box ")
+    guard let underlyingType = type.underlyingType else {
+      self.write(type.unresolvedTypeName!.string)
+      return
+    }
+    self.visitType(underlyingType)
   }
   public func visitRecordType(_ type: RecordType) {
     self.visitTypeCommon(type)
-    self.write(type.name)
+    self.write(type.name.string)
   }
   public func visitFunctionType(_ type: FunctionType) {
     self.visitTypeCommon(type)

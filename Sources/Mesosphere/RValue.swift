@@ -21,8 +21,8 @@ extension GIRGenFunction {
         let constant = DeclRef(defName.key.string, .function)
         let callee = self.B.module.lookupContinuation(constant)!
         let calleeRef = self.B.createFunctionRef(callee)
-        let applyDest = self.B.buildContinuation(
-                          name: self.f.name + "apply#\(defName.key.string)")
+        let applyDest = self.B.buildBBLikeContinuation(
+          base: self.f.name, tag: "apply#\(defName.key.string)")
         let applyDestRef = self.B.createFunctionRef(applyDest)
         let param = applyDest.appendParameter(type: callee.returnValueType)
         var lastParent = parent

@@ -8,6 +8,7 @@
 import Lithosphere
 import Crust
 import Seismography
+import Moho
 import Mantle
 
 public final class GIRParser {
@@ -18,7 +19,7 @@ public final class GIRParser {
   var module: GIRModule
 
   private var _activeScope: ParserScope?
-  fileprivate var continuationsByName: [String: Continuation] = [:]
+  fileprivate var continuationsByName: [Name: Continuation] = [:]
   fileprivate var undefinedContinuation: [Continuation: TokenSyntax] = [:]
   fileprivate var localValues: [String: Value] = [:]
   fileprivate var forwardRefLocalValues: [String: TokenSyntax] = [:]
@@ -34,7 +35,7 @@ public final class GIRParser {
   public init(_ parser: Parser) {
     self.parser = parser
     self.tc = TypeChecker<CheckPhaseState>(CheckPhaseState(), parser.engine)
-    self.module = GIRModule(tc: TypeConverter(self.tc))
+    self.module = GIRModule(parent: nil, tc: TypeConverter(self.tc))
   }
 
   @discardableResult
@@ -54,15 +55,15 @@ public final class GIRParser {
     return try actions()
   }
 
-  func namedContinuation(_ B: GIRBuilder, _ name: String) -> Continuation {
+  func namedContinuation(_ B: GIRBuilder, _ name: Name) -> Continuation {
     // If there was no name specified for this block, just create a new one.
-    if name.isEmpty {
-      return B.buildContinuation(name: name)
+    if name.description.isEmpty {
+      return B.buildContinuation(name: QualifiedName(name: name))
     }
 
     // If the block has never been named yet, just create it.
     guard let cont = self.continuationsByName[name] else {
-      let cont = B.buildContinuation(name: name)
+      let cont = B.buildContinuation(name: QualifiedName(name: name))
       self.continuationsByName[name] = cont
       return cont
     }
@@ -79,12 +80,14 @@ public final class GIRParser {
   func getReferencedContinuation(
     _ B: GIRBuilder, _ syntax: TokenSyntax) -> Continuation {
     assert(syntax.render.starts(with: "@"))
-    let name = String(syntax.render.dropFirst())
+    let noAtNode = syntax.withTokenKind(
+      .identifier(String(syntax.render.dropFirst())))
+    let name = Name(name: noAtNode)
     // If the block has already been created, use it.
     guard let cont = self.continuationsByName[name] else {
       // Otherwise, create it and remember that this is a forward reference so
       // that we can diagnose use without definition problems.
-      let cont = B.buildContinuation(name: name)
+      let cont = B.buildContinuation(name: QualifiedName(name: name))
       self.continuationsByName[name] = cont
       self.undefinedContinuation[cont] = syntax
       return cont
@@ -133,7 +136,8 @@ extension GIRParser {
       _ = try self.parser.consume(.moduleKeyword)
       let moduleId = try self.parser.parseQualifiedName().render
       _ = try self.parser.consume(.whereKeyword)
-      let mod = GIRModule(name: moduleId, tc: TypeConverter(self.tc))
+      let mod = GIRModule(name: moduleId,
+                          parent: nil, tc: TypeConverter(self.tc))
       self.module = mod
       let builder = GIRBuilder(module: mod)
       try self.parseDecls(builder)
@@ -165,19 +169,18 @@ extension GIRParser {
         guard try self.parseGIRBasicBlock(B) else {
           return false
         }
-      } while (self.parser.peek() != .rightBrace && self.parser.peek() != .eof)
+      } while self.parser.peek() != .rightBrace && self.parser.peek() != .eof
       _ = try self.parser.consume(.rightBrace)
       return true
     }
   }
 
   func parseGIRBasicBlock(_ B: GIRBuilder) throws -> Bool {
-    let ident = try self.parser.parseIdentifierToken()
-    var blockName = ident.render
-    if blockName.hasSuffix(":") {
-      blockName = String(blockName.dropLast())
+    var ident = try self.parser.parseIdentifierToken()
+    if ident.render.hasSuffix(":") {
+      ident = ident.withTokenKind(.identifier(String(ident.render.dropLast())))
     }
-    let cont = self.namedContinuation(B, blockName)
+    let cont = self.namedContinuation(B, Name(name: ident))
 
     // If there is a basic block argument list, process it.
     if try self.parser.consumeIf(.leftParen) != nil {
@@ -193,10 +196,6 @@ extension GIRParser {
 
       _ = try self.parser.consume(.rightParen)
       _ = try self.parser.consume(.colon)
-    } else {
-      guard ident.render.hasSuffix(":") else {
-        return false
-      }
     }
 
     repeat {
@@ -234,7 +233,7 @@ extension GIRParser {
       return false
     }
 
-    var resultValue: Value? = nil
+    var resultValue: Value?
     switch opcode {
     case .noop:
       fatalError("noop cannot be spelled")

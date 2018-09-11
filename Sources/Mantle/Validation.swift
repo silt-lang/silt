@@ -32,11 +32,11 @@ extension Set: Monoid {
   }
 }
 
-enum Either<Fail, Succ> {
+public enum Either<Fail, Succ> {
   case left(Fail)
   case right(Succ)
 
-  func map<T>(_ f: (Succ) -> T) -> Either<Fail, T> {
+  public func map<T>(_ f: (Succ) -> T) -> Either<Fail, T> {
     switch self {
     case let .left(e): return .left(e)
     case let .right(s): return .right(f(s))

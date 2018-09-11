@@ -86,8 +86,10 @@ public class SiltTool<Options: SiltToolOptions> {
         kill(getpid(), SIGINT)
       }
       self.processSet = processSet
-
-    } catch {
+    } catch let error {
+      if let error = error as? ArgumentParserError {
+        SiltTool.exit(with: type(of: self).handleArgumentParserError(error))
+      }
       SiltTool.exit(with: .failure)
     }
   }
@@ -95,6 +97,12 @@ public class SiltTool<Options: SiltToolOptions> {
   class func defineArguments(parser: ArgumentParser,
                              binder: ArgumentBinder<Options>) {
     fatalError("Must be implemented by subclasses")
+  }
+
+  class func handleArgumentParserError(
+    _ error: ArgumentParserError
+  ) -> ExecutionStatus {
+    return .failure
   }
 
   /// Execute the tool.

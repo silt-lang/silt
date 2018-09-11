@@ -195,8 +195,8 @@ extension NameBinding {
   private func teaseNotation(_ not: Name) -> ([NotationSection], Set<String>) {
     var secs = [NotationSection]()
     var names = Set<String>()
-    var startIdx: String.Index? = nil
-    var endIdx: String.Index? = nil
+    var startIdx: String.Index?
+    var endIdx: String.Index?
     for i in not.string.indices {
       guard not.string[i] != "_" else {
         if let start = startIdx, let end = endIdx {

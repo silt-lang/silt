@@ -6,6 +6,7 @@
 /// available in the repository.
 
 import Foundation
+import Moho
 
 /// A primitive operation that has no CPS definition, yet affects the semantics
 /// of a continuation.
@@ -98,8 +99,7 @@ public class PrimOp: Value {
   /// - Parameter opcode: The opcode this PrimOp represents.
   init(opcode: Code, type: GIRType, category: Value.Category) {
     self.opcode = opcode
-    super.init(name: self.opcode.rawValue,
-               type: type, category: category)
+    super.init(type: type, category: category)
   }
 
   /// Adds the provided operands to this PrimOp's operand list.
@@ -339,8 +339,8 @@ public final class DataInitOp: PrimOp {
 }
 
 public final class AllocBoxOp: PrimOp {
-  public init(_ type: Value) {
-    super.init(opcode: .allocBox, type: BoxType(type.name), category: .object)
+  public init(_ type: GIRType) {
+    super.init(opcode: .allocBox, type: BoxType(type), category: .object)
     self.addOperands([Operand(owner: self, value: type)])
   }
 

@@ -1,0 +1,4 @@
+_S4bool ---> bool
+_S4bool4BoolD ---> bool.Bool
+_S006_$dJCs ---> 💎_
+_S4bool4_&&_4bool4BoolD4bool4BoolD_4bool4BoolDtfF ---> bool._&&_(bool.Bool, bool.Bool, (bool.Bool) -> _)

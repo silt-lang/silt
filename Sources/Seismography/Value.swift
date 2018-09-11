@@ -6,19 +6,18 @@
 /// available in the repository.
 
 import Foundation
+import Moho
 
-public class Value: Hashable {
+public class Value: Hashable, ManglingEntity {
   public enum Category {
     case object
     case address
   }
 
-  public let name: String
   public private(set) var type: Value
   public let category: Value.Category
 
-  init(name: String, type: Value, category: Value.Category) {
-    self.name = name
+  init(type: Value, category: Value.Category) {
     self.type = type
     self.category = category
   }
@@ -59,6 +58,22 @@ public class Value: Hashable {
       user.value = RHS
     }
   }
+
+  public func mangle<M: Mangler>(into mangler: inout M) {
+    fatalError("Generic Value may not be mangled; this must be overriden")
+  }
+}
+
+public class NominalValue: Value {
+  public let name: QualifiedName
+  public init(name: QualifiedName, type: Value, category: Value.Category) {
+    self.name = name
+    super.init(type: type, category: category)
+  }
+
+  public var baseName: String {
+    return self.name.name.description
+  }
 }
 
 public enum Ownership {
@@ -72,10 +87,14 @@ public class Parameter: Value {
   public let index: Int
   public let ownership: Ownership = .owned
 
-  init(name: String, parent: Continuation, index: Int, type: Value) {
+  init(parent: Continuation, index: Int, type: Value) {
     self.parent = parent
     self.index = index
-    super.init(name: name, type: type, category: type.category)
+    super.init(type: type, category: type.category)
+  }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    self.type.mangle(into: &mangler)
   }
 }
 

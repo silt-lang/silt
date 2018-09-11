@@ -88,16 +88,7 @@ final class IRGenFunction: PrimOpVisitor {
   }
 
   func returnType() -> GIRType {
-    guard let lastParam = scope.entry.parameters.last else {
-      fatalError("entry continuation with no parameters?")
-    }
-    guard let retCont = lastParam.type as? Seismography.FunctionType else {
-      fatalError("last parameter is not continuation?")
-    }
-    guard let retType = retCont.arguments.first else {
-      fatalError("return continuation has no parameters?")
-    }
-    return retType
+    return self.scope.entry.returnValueType
   }
 
   func visitApplyOp(_ op: ApplyOp) -> IRValue {

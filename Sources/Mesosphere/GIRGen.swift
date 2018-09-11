@@ -29,7 +29,8 @@ public final class GIRGenModule {
 
   public init(_ root: TopLevelModule) {
     self.module = root.rootModule
-    self.M = GIRModule(name: root.name.string, tc: TypeConverter(root.tc))
+    self.M = GIRModule(name: root.name.string,
+                       parent: nil, tc: TypeConverter(root.tc))
     self.environment = root.environment
     self.signature = root.signature
     self.tc = root.tc
@@ -43,7 +44,7 @@ public final class GIRGenModule {
       guard let def = self.signature.lookupDefinition(declKey) else {
         fatalError()
       }
-      self.emitContextualDefinition(declKey.string, def)
+      self.emitContextualDefinition(declKey, def)
     }
     return self.M
   }
@@ -54,7 +55,9 @@ public final class GIRGenModule {
 }
 
 extension GIRGenModule {
-  func emitContextualDefinition(_ name: String, _ def: ContextualDefinition) {
+  func emitContextualDefinition(
+    _ name: QualifiedName, _ def: ContextualDefinition
+  ) {
     precondition(def.telescope.isEmpty, "Cannot gen generics yet")
 
     switch def.inside {
@@ -69,7 +72,7 @@ extension GIRGenModule {
     }
   }
 
-  func emitContextualConstant(_ name: String, _ c: Definition.Constant,
+  func emitContextualConstant(_ name: QualifiedName, _ c: Definition.Constant,
                               _ ty: Type<TT>, _ tel: Telescope<TT>) {
     switch c {
     case let .function(inst):
@@ -83,15 +86,14 @@ extension GIRGenModule {
     }
   }
 
-  func emitFunction(_ name: String, _ inst: Instantiability,
+  func emitFunction(_ name: QualifiedName, _ inst: Instantiability,
                     _ ty: Type<TT>, _ tel: Telescope<TT>) {
     switch inst {
     case .open:
       return // Nothing to do for opaque functions.
     case let .invertible(body):
       let clauses = body.ignoreInvertibility
-      let constant = DeclRef(name, .function)
-      let f = Continuation(name: constant.name)
+      let f = Continuation(name: name)
       self.M.addContinuation(f)
       GIRGenFunction(self, f, ty, tel).emitFunction(clauses)
     }
@@ -193,10 +195,8 @@ final class GIRGenFunction {
   }
 
   @discardableResult
-  private func appendManagedParameter(
-    named name: String = "", type: GIRType
-  ) -> ManagedValue {
-    let val = self.f.appendParameter(named: name, type: type)
+  private func appendManagedParameter(type: GIRType) -> ManagedValue {
+    let val = self.f.appendParameter(type: type)
     return self.pairValueWithCleanup(val)
   }
 }

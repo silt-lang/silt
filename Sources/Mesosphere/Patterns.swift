@@ -147,7 +147,7 @@ extension GIRGenFunction {
     var destMap = [(String, Continuation)]()
     var headsUnderDefaultsMatrix = [Clause]()
     var defaultsMatrix = [Clause]()
-    var defaultInfo: (cont: Continuation, ref: Value)? = nil
+    var defaultInfo: (cont: Continuation, ref: Value)?
     for (idx, clause) in matrix.enumerated() {
       // Grab the pattern at the neessary column, substituting a wildcard if
       // necessary.
@@ -169,8 +169,8 @@ extension GIRGenFunction {
         let specKey = name.key.string
         if specializationTable[specKey] == nil {
           // Setup a unique BB-like continuation to jump to for this case.
-          let destBB = self.B.buildContinuation(
-                          name: root.name + "#col\(colIdx)row\(idx)")
+          let destBB = self.B.buildBBLikeContinuation(
+            base: root.name, tag: "#col\(colIdx)row\(idx)")
           let ref = self.B.createFunctionRef(destBB)
           // Register the continuation in the destination map and a
           // `function_ref` pointing at it in the switch nest.
@@ -179,8 +179,8 @@ extension GIRGenFunction {
           let pTys = self.getPayloadTypeOfConstructor(name)
           for (ty, argPat) in zip(pTys, args) {
             if case let .variable(vn) = argPat {
-              _ = destBB.appendParameter(named: vn.name.description,
-                                         type: ty)
+              let param = destBB.appendParameter(type: ty)
+              self.varLocs[vn.name] = param
             } else {
               _ = destBB.appendParameter(type: ty)
             }
@@ -204,8 +204,8 @@ extension GIRGenFunction {
       case .variable(_):
         if defaultInfo == nil {
           // Setup a unique BB-like continuation for the default block.
-          let defaultDestBB = self.B.buildContinuation(
-                                name: root.name + "#default")
+          let defaultDestBB = self.B.buildBBLikeContinuation(
+            base: root.name, tag: "#default")
           let defaultRef = self.B.createFunctionRef(defaultDestBB)
           defaultInfo = (cont: defaultDestBB, ref: defaultRef)
         }
@@ -237,9 +237,6 @@ extension GIRGenFunction {
         for (i, param) in dest.parameters.enumerated() {
           unspecialized.insert(parameters.count + i)
           parameters.append(ManagedValue.unmanaged(param))
-          if !param.name.isEmpty {
-            self.varLocs[Name(name: .implicit(.identifier(param.name)))] = param
-          }
         }
       }
       // Recur and specialize on this constructor head.
@@ -282,14 +279,13 @@ extension GIRGenFunction {
         self.varLocs[v.name] = nil
         return
       case let .constructor(name, pats):
-        let destBB = self.B.buildContinuation(
-                      name: parent.name + "#col\(colIdx)row\(idx)")
+        let destBB = self.B.buildBBLikeContinuation(
+          base: parent.name, tag: "#col\(colIdx)row\(idx)")
         let destRef = self.B.createFunctionRef(destBB)
         let pTys = self.getPayloadTypeOfConstructor(name)
         for (ty, argPat) in zip(pTys, pats) {
           if case let .variable(vn) = argPat {
-            let param = destBB.appendParameter(named: vn.name.description,
-                                               type: ty)
+            let param = destBB.appendParameter(type: ty)
             self.varLocs[vn.name] = param
           } else {
             _ = destBB.appendParameter(type: ty)

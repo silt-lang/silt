@@ -47,9 +47,9 @@ public final class IRVerifier {
   }
 
   func verifyType(_ type: Value) {
-    trace("verifying GIR type '\(type.name)'") {
+    trace("verifying GIR type") {
       guard valueIsKnown(type) else {
-        fatalError("unknown type '\(type.name)'")
+        fatalError("unknown type")
       }
       switch type {
       case let type as ParameterizedType:
