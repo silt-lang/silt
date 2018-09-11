@@ -143,7 +143,7 @@ public struct UnownedArray<
 }
 
 extension UnownedArray: ManglingEntity where Element: ManglingEntity {
-  public func mangle<M>(into mangler: inout M) where M : Mangler {
+  public func mangle<M: Mangler>(into mangler: inout M) {
     if self.isEmpty {
       mangler.append("y")
     } else if self.count == 1 {

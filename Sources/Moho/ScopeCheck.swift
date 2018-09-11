@@ -485,7 +485,7 @@ extension NameBinding {
 
       var preSigs = [DeclaredField]()
       var decls = [Decl]()
-      var constr: Name? = nil
+      var constr: Name?
       for re in self.reparseDecls(syntax.recordElementList) {
         if
           let field = re as? FieldDeclSyntax,

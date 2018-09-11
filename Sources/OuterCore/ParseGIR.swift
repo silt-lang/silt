@@ -233,7 +233,7 @@ extension GIRParser {
       return false
     }
 
-    var resultValue: Value? = nil
+    var resultValue: Value?
     switch opcode {
     case .noop:
       fatalError("noop cannot be spelled")

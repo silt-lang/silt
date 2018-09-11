@@ -147,7 +147,7 @@ extension GIRGenFunction {
     var destMap = [(String, Continuation)]()
     var headsUnderDefaultsMatrix = [Clause]()
     var defaultsMatrix = [Clause]()
-    var defaultInfo: (cont: Continuation, ref: Value)? = nil
+    var defaultInfo: (cont: Continuation, ref: Value)?
     for (idx, clause) in matrix.enumerated() {
       // Grab the pattern at the neessary column, substituting a wildcard if
       // necessary.

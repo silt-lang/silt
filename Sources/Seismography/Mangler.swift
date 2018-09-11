@@ -107,7 +107,12 @@ public struct GIRMangler: Mangler {
 }
 
 private func needsPunycodeEncoding(_ ident: Data) -> Bool {
-  return !ident.allSatisfy { $0.isValidSymbol }
+  for byte in ident {
+    guard byte.isValidSymbol else {
+      return true
+    }
+  }
+  return false
 }
 
 internal func mangleIdentifierImpl(
@@ -148,6 +153,18 @@ internal func mangleIdentifierImpl(
                               &buffer, &substitutionWordRanges)
 }
 
+// FIXME: Remove for 4.2
+private func firstIndexOfMatch(
+  _ arr: [Range<Data.Index>], _ pred: (Range<Data.Index>) -> Bool
+) -> Array<Range<Data.Index>>.Index? {
+  for i in arr.startIndex..<arr.endIndex {
+    if pred(arr[i]) {
+      return i
+    }
+  }
+  return nil
+}
+
 private func searchForSubstitutions(
   _ buf: Data, _ buffer: Data,
   _ substitutionWordRanges: inout [Range<Data.Index>]
@@ -163,7 +180,7 @@ private func searchForSubstitutions(
         let word = buf.subdata(in: startPos..<startPos + wordLen)
 
         // Is the word already present in the in-flight mangled string?
-        let existingIdx = substitutionWordRanges.firstIndex { range in
+        let existingIdx = firstIndexOfMatch(substitutionWordRanges) { range in
           return word == buffer[range]
         }
 
@@ -216,7 +233,7 @@ private func mangleApplyingSubstitutions(
         // the begin of the whole mangled Buffer.
         if lastSub < substitutionWordRanges.count {
           let oldSub = substitutionWordRanges[lastSub]
-          if oldSub.startIndex == lastPos {
+          if oldSub.lowerBound == lastPos {
             updateStartOfNewSubstitution(&substitutionWordRanges,
                                          &lastSub, buffer.count)
           }

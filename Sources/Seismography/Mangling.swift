@@ -7,7 +7,7 @@
 
 public let MANGLING_PREFIX = "_S"
 internal let MAXIMUM_WORDS_CAPACITY = 26
- 
+
 internal enum ManglingScalars {
   static let NUL = UInt8(ascii: "\0")
 

@@ -55,13 +55,13 @@ public struct Remangler: Mangler {
     if idx >= 26 {
       self.buffer.append(ManglingScalars.UPPERCASE_A)
       mangleIndex(idx - 26)
-      return node;
+      return node
     }
-    return node;
+    return node
   }
 
   mutating func mangleIndex(_ value: UInt) {
-    if (value == 0) {
+    if value == 0 {
       self.buffer.append(ManglingScalars.DOLLARSIGN)
     } else {
       self.buffer.append("\(value - 1)", count: "\(value - 1)".count)
@@ -101,7 +101,7 @@ extension Demangler.Node: ManglingEntity {
       mangler.append("F")
 
     case .argumentTuple:
-      let child = skipType(self.children[0]);
+      let child = skipType(self.children[0])
       if child.kind == .tuple && child.children.isEmpty {
         mangler.append("y")
         return
@@ -120,12 +120,12 @@ extension Demangler.Node: ManglingEntity {
       mangler.append("B")
 
     case .tuple:
-      var isFirstListItem = true;
+      var isFirstListItem = true
       for child in self.children {
         child.mangle(into: &mangler)
         if isFirstListItem {
           mangler.append("_")
-          isFirstListItem = false;
+          isFirstListItem = false
         }
       }
       if isFirstListItem {

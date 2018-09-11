@@ -131,7 +131,9 @@ public final class Continuation: NominalValue, GraphNode {
   public override func mangle<M: Mangler>(into mangler: inout M) {
     self.module?.mangle(into: &mangler)
     Identifier(self.baseName + (self.bblikeSuffix ?? "")).mangle(into: &mangler)
-    let contTy = self.type as! FunctionType
+    guard let contTy = self.type as? FunctionType else {
+      fatalError()
+    }
     self.returnValueType.mangle(into: &mangler)
     contTy.arguments.mangle(into: &mangler)
     mangler.append("F")
