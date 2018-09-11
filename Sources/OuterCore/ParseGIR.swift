@@ -87,7 +87,7 @@ public final class GIRParser {
     guard let cont = self.continuationsByName[name] else {
       // Otherwise, create it and remember that this is a forward reference so
       // that we can diagnose use without definition problems.
-      let cont = B.buildContinuation(name: QualifiedName.init(name: name))
+      let cont = B.buildContinuation(name: QualifiedName(name: name))
       self.continuationsByName[name] = cont
       self.undefinedContinuation[cont] = syntax
       return cont

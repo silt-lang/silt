@@ -22,9 +22,10 @@ public final class GIRBuilder {
     return continuation
   }
 
-  public func buildBBLikeContinuation(base: QualifiedName, tag: String) -> Continuation {
-    let name = Name(name: TokenSyntax.implicit(.identifier(tag)))
-    let continuation = Continuation(name: QualifiedName(cons: name, base))
+  public func buildBBLikeContinuation(
+    base: QualifiedName, tag: String
+  ) -> Continuation {
+    let continuation = Continuation(name: base, suffix: tag)
     module.addContinuation(continuation)
     return continuation
   }

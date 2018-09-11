@@ -32,7 +32,7 @@ public final class GIRModule {
 
   public func addContinuation(_ continuation: Continuation) {
     continuations.append(continuation)
-    continuationTable[DeclRef(continuation.name.string, .function)] = continuation
+    continuationTable[keyForContinuation(continuation)] = continuation
     continuation.module = self
   }
 
@@ -79,4 +79,9 @@ extension GIRModule: DeclarationContext {
   public var parent: DeclarationContext? {
     return self.parentModule
   }
+}
+
+private func keyForContinuation(_ cont: Continuation) -> DeclRef {
+  let fullName = cont.name.string + (cont.bblikeSuffix ?? "")
+  return DeclRef(fullName, .function)
 }

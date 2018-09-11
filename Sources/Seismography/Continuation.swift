@@ -31,6 +31,7 @@ public final class Continuation: NominalValue, GraphNode {
   public private(set) var parameters = [Parameter]()
   public private(set) var indirectReturnParameter: Parameter?
   public private(set) var cleanups = [PrimOp]()
+  public let bblikeSuffix: String?
 
   weak var module: GIRModule?
 
@@ -63,10 +64,17 @@ public final class Continuation: NominalValue, GraphNode {
     return .default
   }
 
-  public init(name: QualifiedName) {
+  public init(name: QualifiedName, suffix: String? = nil) {
     self.predecessorList = Successor(nil)
+    self.bblikeSuffix = suffix
     super.init(name: name, type: BottomType.shared /*to be overwritten*/,
                category: .address)
+  }
+
+  public override func equals(_ other: Value) -> Bool {
+    guard let other = other as? Continuation else { return false }
+    return self.name == other.name && self.bblikeSuffix == other.bblikeSuffix
+        && self.callingConvention == other.callingConvention
   }
 
   @discardableResult
@@ -128,7 +136,7 @@ public final class Continuation: NominalValue, GraphNode {
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
     self.module?.mangle(into: &mangler)
-    Identifier(self.baseName).mangle(into: &mangler)
+    Identifier(self.baseName + (self.bblikeSuffix ?? "")).mangle(into: &mangler)
     let contTy = self.type as! FunctionType
     self.returnValueType.mangle(into: &mangler)
     contTy.arguments.mangle(into: &mangler)

@@ -30,9 +30,9 @@ public final class Punycode {
   /// Creates a new, reusable Punycode encoder with the Silt's default
   /// delimiter ("_") and encoding alphabet (`[a-zA-J]`).
   public init() {
-    self.delimiter = "_"
-    guard let delimUnitRes = UTF32.encode("_") else {
-      fatalError("Unable to UTF32 encode delimiter: '_'")
+    self.delimiter = "$"
+    guard let delimUnitRes = UTF32.encode("$") else {
+      fatalError("Unable to UTF32 encode delimiter: '$'")
     }
     self.delimiterCodeUnit = delimUnitRes[0]
 
