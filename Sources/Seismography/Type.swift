@@ -85,6 +85,10 @@ public final class TypeMetadataType: GIRType {
   public override var hashValue: Int {
     return 0
   }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    fatalError("TODO: mangle me!")
+  }
 }
 
 public final class TypeType: GIRType {
@@ -109,6 +113,10 @@ public final class TypeType: GIRType {
   public override var hashValue: Int {
     return 0
   }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    fatalError("TODO: mangle me!")
+  }
 }
 
 public final class ArchetypeType: GIRType {
@@ -126,6 +134,10 @@ public final class ArchetypeType: GIRType {
 
   public override var hashValue: Int {
     return index.hashValue ^ 0x374b2947
+  }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    fatalError("TODO: mangle me!")
   }
 }
 
@@ -179,6 +191,10 @@ public class ParameterizedType: GIRType {
     ensureValidIndex(index)
     return parameters[index].value
   }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    fatalError("TODO: mangle me!")
+  }
 }
 
 public final class TupleType: ParameterizedType {
@@ -197,11 +213,22 @@ public final class TupleType: ParameterizedType {
   public override var hashValue: Int {
     return self.elements.reduce(0) { $0 ^ $1.hashValue }
   }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    fatalError("TODO: mangle me!")
+  }
 }
 
 public final class DataType: ParameterizedType {
   public typealias Constructor = (name: String, payload: TupleType?)
   public private(set) var constructors = [Constructor]()
+  public private(set) weak var module: GIRModule?
+
+  public init(name: String, module: GIRModule?,
+              indices: GIRType, category: Value.Category) {
+    self.module = module
+    super.init(name: name, indices: indices, category: category)
+  }
 
   public func addConstructors(_ array: [Constructor]) {
     constructors.append(contentsOf: array)
@@ -222,6 +249,12 @@ public final class DataType: ParameterizedType {
       h ^= constr.0.hashValue
     }
     return h
+  }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    self.module?.mangle(into: &mangler)
+    Identifier(self.name).mangle(into: &mangler)
+    mangler.append("D")
   }
 }
 
@@ -252,6 +285,10 @@ public final class RecordType: ParameterizedType {
     }
     return h
   }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    fatalError("TODO: mangle me!")
+  }
 }
 
 public final class FunctionType: GIRType {
@@ -271,6 +308,26 @@ public final class FunctionType: GIRType {
 
   public override var hashValue: Int {
     return returnType.hashValue ^ arguments.hashValue
+  }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    self.returnType.mangle(into: &mangler)
+    if self.arguments.isEmpty {
+      mangler.append("y")
+    } else if self.arguments.count == 1 {
+      self.arguments[0].mangle(into: &mangler)
+    } else {
+      var isFirst = true
+      for argument in self.arguments {
+        argument.mangle(into: &mangler)
+        if isFirst {
+          mangler.append("_")
+          isFirst = false
+        }
+      }
+      mangler.append("t")
+    }
+    mangler.append("f")
   }
 }
 
@@ -292,6 +349,10 @@ public final class SubstitutedType: GIRType {
 
   public override var hashValue: Int {
     return substitutee.hashValue ^ substitutions.hashValue
+  }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    fatalError("TODO: mangle me!")
   }
 }
 
@@ -317,6 +378,10 @@ public final class BoxType: ParameterizedType {
     }
     return h
   }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    fatalError("TODO: mangle me!")
+  }
 }
 
 public final class BottomType: GIRType {
@@ -337,5 +402,9 @@ public final class BottomType: GIRType {
 
   public override var hashValue: Int {
     return 0
+  }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    mangler.append("B")
   }
 }

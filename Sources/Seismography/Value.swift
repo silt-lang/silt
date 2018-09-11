@@ -7,7 +7,7 @@
 
 import Foundation
 
-public class Value: Hashable {
+public class Value: Hashable, ManglingEntity {
   public enum Category {
     case object
     case address
@@ -59,6 +59,10 @@ public class Value: Hashable {
       user.value = RHS
     }
   }
+
+  public func mangle<M: Mangler>(into mangler: inout M) {
+    fatalError("Generic Value may not be mangled; this must be overriden")
+  }
 }
 
 public enum Ownership {
@@ -76,6 +80,10 @@ public class Parameter: Value {
     self.parent = parent
     self.index = index
     super.init(name: name, type: type, category: type.category)
+  }
+
+  public override func mangle<M: Mangler>(into mangler: inout M) {
+    self.type.mangle(into: &mangler)
   }
 }
 

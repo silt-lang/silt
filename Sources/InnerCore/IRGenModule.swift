@@ -8,7 +8,8 @@ final class IRGenModule {
   let B: IRBuilder
   let girModule: GIRModule
   let module: Module
-  let mangler = GIRMangler()
+  var mangler = GIRMangler()
+
   private(set) var scopeMap = [OuterCore.Scope: IRGenFunction]()
   private(set) var dataTypeMap = [DataType: IRGenDataType]()
 
@@ -20,7 +21,7 @@ final class IRGenModule {
       exit(EXIT_FAILURE)
     }
     self.girModule = module
-    self.module = Module(name: mangler.mangle(girModule))
+    self.module = Module(name: girModule.name)
     self.B = IRBuilder(module: self.module)
   }
 
