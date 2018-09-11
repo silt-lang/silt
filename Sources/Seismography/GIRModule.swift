@@ -6,6 +6,7 @@
 /// available in the repository.
 
 import Foundation
+import Moho
 
 public final class GIRModule {
   public let name: String
@@ -20,9 +21,11 @@ public final class GIRModule {
   public let metadataType = TypeMetadataType()
   public let typeType = TypeType.shared
   public let typeConverter: TypeConverter
+  private weak var parentModule: GIRModule?
 
-  public init(name: String = "main", tc: TypeConverter) {
+  public init(name: String = "main", parent: GIRModule?, tc: TypeConverter) {
     self.name = name
+    self.parentModule = parent
     self.typeConverter = tc
     self.typeConverter.module = self
   }
@@ -47,10 +50,12 @@ public final class GIRModule {
     return knownFunctionTypes.getOrInsert(function)
   }
 
-  public func dataType(name: String,
+  public func dataType(name: QualifiedName,
+                       module: GIRModule? = nil,
                        indices: GIRType? = nil,
                        category: Value.Category) -> DataType {
-    let data = DataType(name: name,
+    let data = DataType(name: name.name.description,
+                        module: module,
                         indices: indices ?? TypeType.shared, category: category)
     return knownDataTypes.getOrInsert(data)
   }
@@ -63,5 +68,15 @@ extension Set {
     }
     insert(value)
     return value
+  }
+}
+
+extension GIRModule: DeclarationContext {
+  public var contextKind: DeclarationContextKind {
+    return .module
+  }
+
+  public var parent: DeclarationContext? {
+    return self.parentModule
   }
 }

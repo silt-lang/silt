@@ -34,7 +34,7 @@ public final class GIRParser {
   public init(_ parser: Parser) {
     self.parser = parser
     self.tc = TypeChecker<CheckPhaseState>(CheckPhaseState(), parser.engine)
-    self.module = GIRModule(tc: TypeConverter(self.tc))
+    self.module = GIRModule(parent: nil, tc: TypeConverter(self.tc))
   }
 
   @discardableResult
@@ -133,7 +133,8 @@ extension GIRParser {
       _ = try self.parser.consume(.moduleKeyword)
       let moduleId = try self.parser.parseQualifiedName().render
       _ = try self.parser.consume(.whereKeyword)
-      let mod = GIRModule(name: moduleId, tc: TypeConverter(self.tc))
+      let mod = GIRModule(name: moduleId,
+                          parent: nil, tc: TypeConverter(self.tc))
       self.module = mod
       let builder = GIRBuilder(module: mod)
       try self.parseDecls(builder)

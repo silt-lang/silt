@@ -83,7 +83,7 @@ public final class TypeConverter {
   /// Defines an area where types are registered as they are being lowered.
   /// This is necessary so recursive types can hit a base case and use their
   /// existing, incomplete GIR definition.
-  private var inProgressLowerings = Set<String>()
+  private var inProgressLowerings = Set<QualifiedName>()
   private var loweringCache = [CacheKey: Lowering]()
   private var nominalKeyCache = [QualifiedName: CacheKey]()
 
@@ -214,7 +214,7 @@ extension TypeConverter {
         case let .constant(origType, const):
           switch const {
           case let .data(cons):
-            return self.withCachedKey(dd.key.string) { dataTypeName in
+            return self.withCachedKey(dd.key) { dataTypeName in
               return self.visitDataType(dataTypeName, origType, type, cons)
             }
           case .function(_):
@@ -243,12 +243,12 @@ extension TypeConverter {
     case .lambda(_):
       fatalError("FIXME: Emit metadata here")
     case .pi(_, _):
-      fatalError()
+      fatalError("FIXME: Emit metadata here")
     }
   }
 
   private func visitDataType(
-    _ name: String,
+    _ name: QualifiedName,
     _ origType: Type<TT>, _ substType: Type<TT>,
     _ constructors: [Opened<QualifiedName, TT>]
   ) -> Lowering {
@@ -272,16 +272,19 @@ extension TypeConverter {
     }
     if forceAddressOnly {
       let loweredType = self.module!.dataType(name: name,
+                                              module: self.module,
                                               category: .address)
       loweredType.addConstructors(loweredConstructors)
       return AddressOnlyLowering(loweredType)
     } else if hasOnlyTrivialCons {
       let loweredType = self.module!.dataType(name: name,
+                                              module: self.module,
                                               category: .object)
       loweredType.addConstructors(loweredConstructors)
       return TrivialLowering(loweredType)
     } else {
       let loweredType = self.module!.dataType(name: name,
+                                              module: self.module,
                                               category: .object)
       loweredType.addConstructors(loweredConstructors)
       return NonTrivialLowering(loweredType)
@@ -340,7 +343,7 @@ extension TypeConverter {
   }
 
   private func withCachedKey(
-    _ key: String, _ f: (String) -> Lowering) -> Lowering {
+    _ key: QualifiedName, _ f: (QualifiedName) -> Lowering) -> Lowering {
     guard !self.inProgressLowerings.contains(key) else {
       return RecursiveLowering(key)
     }
@@ -353,8 +356,8 @@ extension TypeConverter {
 }
 
 private class RecursiveLowering: TypeConverter.Lowering {
-  init(_ name: String) {
-    super.init(type: BoxType(name),
+  init(_ name: QualifiedName) {
+    super.init(type: BoxType(name.name.description),
                isTrivial: false, isAddressOnly: false)
   }
 }
