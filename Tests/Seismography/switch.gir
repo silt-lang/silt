@@ -26,19 +26,19 @@ bb2(%6 : example.Nat):
   switch_constr %1 : example.Nat ; case example.Nat.z : %7 ; case example.Nat.s : %8
 
 bb3:
-  %9 = data_init_simple example.Bool.true : example.Bool
+  %9 = data_init example.Bool ; example.Bool.true
   destroy_value %0 : example.Nat
   destroy_value %1 : example.Nat
   apply %return(%9) : (example.Bool) -> _
 
 bb4(%10 : example.Nat):
-  %11 = data_init_simple example.Bool.false : example.Bool
+  %11 = data_init example.Bool ; example.Bool.false
   destroy_value %0 : example.Nat
   destroy_value %1 : example.Nat
   apply %return(%11) : (example.Bool) -> _
 
 bb5:
-  %12 = data_init_simple example.Bool.false : example.Bool
+  %12 = data_init example.Bool ; example.Bool.false
   destroy_value %0 : example.Nat
   destroy_value %1 : example.Nat
   apply %return(%12) : (example.Bool) -> _

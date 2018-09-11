@@ -128,7 +128,15 @@ public final class TypeConverter {
       return existing
     }
 
-    let cacheKey = CacheKey(name: boxType.payloadTypeName)
+    guard let recursiveTypeName = boxType.unresolvedTypeName else {
+      let cacheKey = CacheKey(loweredType: boxType)
+      guard let existing = self.loweringCache[cacheKey] else {
+        fatalError("Formed box referencing uncached type? \(boxType)")
+      }
+      return existing
+    }
+
+    let cacheKey = CacheKey(name: recursiveTypeName.string)
     guard let existing = self.loweringCache[cacheKey] else {
       fatalError("Formed box referencing uncached type? \(boxType)")
     }
@@ -357,7 +365,7 @@ extension TypeConverter {
 
 private class RecursiveLowering: TypeConverter.Lowering {
   init(_ name: QualifiedName) {
-    super.init(type: BoxType(name.name.description),
+    super.init(type: BoxType(name),
                isTrivial: false, isAddressOnly: false)
   }
 }

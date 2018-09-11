@@ -5,12 +5,14 @@
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 
+import Moho
+
 public struct ParameterSemantics {
   var parameter: Parameter
   var mustDestroy: Bool
 }
 
-public final class Continuation: Value, GraphNode {
+public final class Continuation: NominalValue, GraphNode {
   public enum CallingConvention {
     /// The default calling convention for Silt functions.
     case `default`
@@ -61,18 +63,15 @@ public final class Continuation: Value, GraphNode {
     return .default
   }
 
-  public init(name: String) {
+  public init(name: QualifiedName) {
     self.predecessorList = Successor(nil)
     super.init(name: name, type: BottomType.shared /*to be overwritten*/,
                category: .address)
   }
 
   @discardableResult
-  public func appendParameter(
-    named name: String = "", type: GIRType
-  ) -> Parameter {
-    let param = Parameter(name: name, parent: self, index: parameters.count,
-                          type: type)
+  public func appendParameter(type: GIRType) -> Parameter {
+    let param = Parameter(parent: self, index: parameters.count, type: type)
     parameters.append(param)
     return param
   }
@@ -85,8 +84,7 @@ public final class Continuation: Value, GraphNode {
   public func appendIndirectReturnParameter(type: GIRType) -> Parameter {
     precondition(type.category == .address,
                  "Can only add indirect return parameter with address type")
-    let param = Parameter(name: "", parent: self, index: parameters.count,
-                          type: type)
+    let param = Parameter(parent: self, index: parameters.count, type: type)
     indirectReturnParameter = param
     parameters.append(param)
     return param
@@ -94,8 +92,11 @@ public final class Continuation: Value, GraphNode {
 
   @discardableResult
   public func setReturnParameter(type: Value) -> Parameter {
-    let param = Parameter(name: "", parent: self, index: parameters.count,
-                          type: type)
+    guard let module = module else { fatalError() }
+    let returnTy = module.functionType(arguments: [type],
+                                       returnType: module.bottomType)
+    let param = Parameter(parent: self, index: parameters.count,
+                          type: returnTy)
     parameters.append(param)
     return param
   }
@@ -106,7 +107,11 @@ public final class Continuation: Value, GraphNode {
     guard let lastTy = parameters.last?.type else {
       return module.bottomType
     }
-    return lastTy
+
+    guard let funcTy = lastTy as? FunctionType else {
+      return module.bottomType
+    }
+    return funcTy.arguments[0]
   }
 
   public override var type: Value {
@@ -123,8 +128,10 @@ public final class Continuation: Value, GraphNode {
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
     self.module?.mangle(into: &mangler)
-    Identifier(self.name).mangle(into: &mangler)
-    self.type.mangle(into: &mangler)
+    Identifier(self.baseName).mangle(into: &mangler)
+    let contTy = self.type as! FunctionType
+    self.returnValueType.mangle(into: &mangler)
+    contTy.arguments.mangle(into: &mangler)
     mangler.append("F")
   }
 }

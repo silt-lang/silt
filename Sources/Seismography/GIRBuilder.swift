@@ -6,6 +6,8 @@
 /// available in the repository.
 
 import Foundation
+import Lithosphere
+import Moho
 
 public final class GIRBuilder {
   public let module: GIRModule
@@ -14,8 +16,15 @@ public final class GIRBuilder {
     self.module = module
   }
 
-  public func buildContinuation(name: String) -> Continuation {
+  public func buildContinuation(name: QualifiedName) -> Continuation {
     let continuation = Continuation(name: name)
+    module.addContinuation(continuation)
+    return continuation
+  }
+
+  public func buildBBLikeContinuation(base: QualifiedName, tag: String) -> Continuation {
+    let name = Name(name: TokenSyntax.implicit(.identifier(tag)))
+    let continuation = Continuation(name: QualifiedName(cons: name, base))
     module.addContinuation(continuation)
     return continuation
   }

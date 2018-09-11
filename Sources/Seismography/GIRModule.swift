@@ -32,7 +32,7 @@ public final class GIRModule {
 
   public func addContinuation(_ continuation: Continuation) {
     continuations.append(continuation)
-    continuationTable[DeclRef(continuation.name, .function)] = continuation
+    continuationTable[DeclRef(continuation.name.string, .function)] = continuation
     continuation.module = self
   }
 
@@ -54,7 +54,7 @@ public final class GIRModule {
                        module: GIRModule? = nil,
                        indices: GIRType? = nil,
                        category: Value.Category) -> DataType {
-    let data = DataType(name: name.name.description,
+    let data = DataType(name: name,
                         module: module,
                         indices: indices ?? TypeType.shared, category: category)
     return knownDataTypes.getOrInsert(data)

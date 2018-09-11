@@ -6,6 +6,7 @@
 /// available in the repository.
 
 import Foundation
+import Moho
 
 public class Value: Hashable, ManglingEntity {
   public enum Category {
@@ -13,12 +14,10 @@ public class Value: Hashable, ManglingEntity {
     case address
   }
 
-  public let name: String
   public private(set) var type: Value
   public let category: Value.Category
 
-  init(name: String, type: Value, category: Value.Category) {
-    self.name = name
+  init(type: Value, category: Value.Category) {
     self.type = type
     self.category = category
   }
@@ -65,6 +64,18 @@ public class Value: Hashable, ManglingEntity {
   }
 }
 
+public class NominalValue: Value {
+  public let name: QualifiedName
+  public init(name: QualifiedName, type: Value, category: Value.Category) {
+    self.name = name
+    super.init(type: type, category: category)
+  }
+
+  public var baseName: String {
+    return self.name.name.description
+  }
+}
+
 public enum Ownership {
   case trivial
   case unowned
@@ -76,10 +87,10 @@ public class Parameter: Value {
   public let index: Int
   public let ownership: Ownership = .owned
 
-  init(name: String, parent: Continuation, index: Int, type: Value) {
+  init(parent: Continuation, index: Int, type: Value) {
     self.parent = parent
     self.index = index
-    super.init(name: name, type: type, category: type.category)
+    super.init(type: type, category: type.category)
   }
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
