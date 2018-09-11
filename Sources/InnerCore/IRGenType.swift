@@ -111,7 +111,7 @@ struct IRGenType {
   }
 
   func emit(_ lowered: LoweredDataType) -> IRType {
-    return trace("emitting LLVM IR for GIR type \(type.name)") {
+    return trace("emitting LLVM IR for GIR type") {
       switch lowered {
       case let .tagged(_, type): return type
       case .void:

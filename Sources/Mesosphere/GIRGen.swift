@@ -93,8 +93,7 @@ extension GIRGenModule {
       return // Nothing to do for opaque functions.
     case let .invertible(body):
       let clauses = body.ignoreInvertibility
-      let constant = DeclRef(name.name.description, .function)
-      let f = Continuation(name: constant.name)
+      let f = Continuation(name: name)
       self.M.addContinuation(f)
       GIRGenFunction(self, f, ty, tel).emitFunction(clauses)
     }
@@ -196,10 +195,8 @@ final class GIRGenFunction {
   }
 
   @discardableResult
-  private func appendManagedParameter(
-    named name: String = "", type: GIRType
-  ) -> ManagedValue {
-    let val = self.f.appendParameter(named: name, type: type)
+  private func appendManagedParameter(type: GIRType) -> ManagedValue {
+    let val = self.f.appendParameter(type: type)
     return self.pairValueWithCleanup(val)
   }
 }
