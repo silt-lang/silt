@@ -1,10 +1,9 @@
 # silt [![Build Status](https://travis-ci.org/silt-lang/silt.svg?branch=master)](https://travis-ci.org/silt-lang/silt)
 
-Silt is an in-progress dependently typed functional programming language. Its
+Silt is an work-in-progress dependently typed functional programming language. Its
 syntax and type system are reminiscent of Idris and Agda, but it compiles
 directly to native code through LLVM. We aim for silt to be GC-free by
-leveraging stack allocation and lowering to a linearly-typed intermediate
-representation that tracks object lifetimes prior to backend code generation.
+lowering to an intermediate representation that tracks object lifetimes.
 
 # Building
 
