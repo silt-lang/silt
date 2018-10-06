@@ -120,6 +120,7 @@ final class GIRGenFunction {
   var varLocs: [Name: Value] = [:]
   let cleanupStack: CleanupStack = CleanupStack()
   let genericEnvironment: GenericEnvironment
+  let epilog: Continuation
 
   init(_ GGM: GIRGenModule, _ f: Continuation,
        _ ty: Type<TT>, _ tel: Telescope<TT>) {
@@ -131,11 +132,19 @@ final class GIRGenFunction {
     self.genericEnvironment = environment.genericEnvironment
     self.params = environment.paramTelescope
     self.returnTy = environment.returnType
+    self.epilog = Continuation(name: self.f.name, suffix: "_epilog")
   }
 
   func emitFunction(_ clauses: [Clause]) {
     let (paramVals, returnCont) = self.buildParameterList()
-    self.emitPatternMatrix(clauses, paramVals, returnCont)
+    self.prepareEpilog(returnCont)
+    self.emitPatternMatrix(clauses, paramVals)
+  }
+
+  func prepareEpilog(_ retCont: Value) {
+    self.epilog.appendParameter(type: self.getLoweredType(self.returnTy))
+    _ = self.B.createApply(self.epilog, retCont, self.epilog.parameters)
+    self.B.module.addContinuation(self.epilog)
   }
 
   public func lowerType(_ type: Type<TT>) -> TypeConverter.Lowering {

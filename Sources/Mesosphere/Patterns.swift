@@ -82,8 +82,7 @@ import Seismography
 /// Wildcards and constructor arguments introduce a number of caveats into this
 /// explanation.  See the specialization and scoring functions.
 extension GIRGenFunction {
-  func emitPatternMatrix(_ matrix: [Clause],
-                         _ params: [ManagedValue], _ returnCont: Value) {
+  func emitPatternMatrix(_ matrix: [Clause], _ params: [ManagedValue]) {
     guard let firstRow = matrix.first else {
       // If the pattern matrix is empty, emit `unreachable` and bail.
       _ = self.B.createUnreachable(self.f)
@@ -98,19 +97,19 @@ extension GIRGenFunction {
         return
       }
       let (newParent, RV) = self.emitRValue(self.f, body)
-      _ = self.B.createApply(newParent, returnCont, [RV.forward(self)])
+      self.emitFinalReturn(newParent, RV.forward(self))
       return
     }
 
     // We're in business, start specializing.
     var unspecialized = Set<Int>(0..<params.count)
-    self.stepSpecialization(self.f, matrix, params, returnCont, &unspecialized)
+    self.stepSpecialization(self.f, matrix, params, &unspecialized)
   }
 
   /// Specialize a pattern matrix into a particular continuation.
   private func stepSpecialization(
     _ root: Continuation, _ matrix: [Clause], _ params: [ManagedValue],
-    _ returnCont: Value, _ unspecialized: inout Set<Int>) {
+    _ unspecialized: inout Set<Int>) {
     // If the pattern matrix turns out to be a pattern row vector, we're done.
     if
       matrix.count == 1,
@@ -127,7 +126,7 @@ extension GIRGenFunction {
         _ = self.B.createUnreachable(self.f)
         return
       }
-      self.emitFinalColumnBody(root, returnCont, body)
+      self.emitFinalColumnBody(root, body)
       return
     }
 
@@ -138,8 +137,7 @@ extension GIRGenFunction {
     // If we're down to a singular unspecialized row vector then we can emit the
     // final column in-line.  Note that pattern matrices are never empty.
     if unspecialized.count == 1 {
-      return self.emitFinalColumn(root, colIdx, params[colIdx],
-                                  returnCont, matrix)
+      return self.emitFinalColumn(root, colIdx, params[colIdx], matrix)
     }
 
     var specializationTable = [String: [Clause]]()
@@ -170,7 +168,7 @@ extension GIRGenFunction {
         if specializationTable[specKey] == nil {
           // Setup a unique BB-like continuation to jump to for this case.
           let destBB = self.B.buildBBLikeContinuation(
-            base: root.name, tag: "#col\(colIdx)row\(idx)")
+            base: root.name, tag: "_col\(colIdx)row\(idx)")
           let ref = self.B.createFunctionRef(destBB)
           // Register the continuation in the destination map and a
           // `function_ref` pointing at it in the switch nest.
@@ -205,7 +203,7 @@ extension GIRGenFunction {
         if defaultInfo == nil {
           // Setup a unique BB-like continuation for the default block.
           let defaultDestBB = self.B.buildBBLikeContinuation(
-            base: root.name, tag: "#default")
+            base: root.name, tag: "_default")
           let defaultRef = self.B.createFunctionRef(defaultDestBB)
           defaultInfo = (cont: defaultDestBB, ref: defaultRef)
         }
@@ -242,7 +240,7 @@ extension GIRGenFunction {
       // Recur and specialize on this constructor head.
       unspecialized.remove(colIdx)
       self.stepSpecialization(dest, specializedMatrix, parameters,
-                              returnCont, &unspecialized)
+                              &unspecialized)
       unspecialized.insert(colIdx)
     }
 
@@ -251,14 +249,14 @@ extension GIRGenFunction {
       unspecialized.remove(colIdx)
       self.stepSpecialization(defaultDest,
                               headsUnderDefaultsMatrix + defaultsMatrix,
-                              params, returnCont, &unspecialized)
+                              params, &unspecialized)
       unspecialized.insert(colIdx)
     }
   }
 
   private func emitFinalColumn(
     _ parent: Continuation, _ colIdx: Int,
-    _ param: ManagedValue, _ retParam: Value, _ matrix: [Clause]
+    _ param: ManagedValue, _ matrix: [Clause]
   ) {
     var dests = [(String, Value)]()
     for (idx, clause) in matrix.enumerated() {
@@ -275,12 +273,12 @@ extension GIRGenFunction {
       case let .variable(v):
         assert(matrix.count == 1)
         self.varLocs[v.name] = param.value
-        self.emitFinalColumnBody(parent, retParam, body)
+        self.emitFinalColumnBody(parent, body)
         self.varLocs[v.name] = nil
         return
       case let .constructor(name, pats):
         let destBB = self.B.buildBBLikeContinuation(
-          base: parent.name, tag: "#col\(colIdx)row\(idx)")
+          base: parent.name, tag: "_col\(colIdx)row\(idx)")
         let destRef = self.B.createFunctionRef(destBB)
         let pTys = self.getPayloadTypeOfConstructor(name)
         for (ty, argPat) in zip(pTys, pats) {
@@ -291,24 +289,23 @@ extension GIRGenFunction {
             _ = destBB.appendParameter(type: ty)
           }
         }
-        self.emitFinalColumnBody(destBB, retParam, body)
+        self.emitFinalColumnBody(destBB, body)
         dests.append((name.key.string, destRef))
       }
     }
     _ = self.B.createSwitchConstr(parent, param.value, dests)
   }
 
-  private func emitFinalColumnBody(_ bb: Continuation, _ retParam: Value,
-                                   _ body: Term<TT>) {
+  private func emitFinalColumnBody(_ bb: Continuation, _ body: Term<TT>) {
     switch body {
     case .constructor(_, _):
       let (bb, bodyVal) = self.emitRValue(bb, body)
-      self.emitFinalReturn(bb, bodyVal.forward(self), retParam)
+      self.emitFinalReturn(bb, bodyVal.forward(self))
     case let .apply(head, args):
       switch head {
       case .definition(_):
         let (bb, bodyVal) = self.emitRValue(bb, body)
-        self.emitFinalReturn(bb, bodyVal.forward(self), retParam)
+        self.emitFinalReturn(bb, bodyVal.forward(self))
       case let .meta(mv):
         guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
           fatalError()
@@ -316,7 +313,7 @@ extension GIRGenFunction {
         guard args.count == bind.arity else {
           fatalError("Partially applied neutral term?")
         }
-        self.emitFinalColumnBody(bb, retParam, self.tc.toNormalForm(bind.body))
+        self.emitFinalColumnBody(bb, self.tc.toNormalForm(bind.body))
       case let .variable(v):
         guard let varLoc = self.varLocs[v.name] else {
           fatalError()
@@ -327,10 +324,10 @@ extension GIRGenFunction {
           // Special case: If we're going out by indirect return we shouldn't
           // copy.  The 'store' on the value will do that for us.
           let varValue = ManagedValue.unmanaged(varLoc).forward(self)
-          self.emitFinalReturn(bb, varValue, retParam)
+          self.emitFinalReturn(bb, varValue)
         case .default:
           let varValue = ManagedValue.unmanaged(varLoc).copy(self).forward(self)
-          self.emitFinalReturn(bb, varValue, retParam)
+          self.emitFinalReturn(bb, varValue)
         }
       }
     default:
@@ -338,12 +335,12 @@ extension GIRGenFunction {
     }
   }
 
-  private func emitFinalReturn(
-    _ bb: Continuation, _ value: Value, _ returnParameter: Value) {
+  private func emitFinalReturn(_ bb: Continuation, _ value: Value) {
+    let epilogRef = self.B.createFunctionRef(self.epilog)
     guard let indirectRet = self.f.indirectReturnParameter else {
       // Easy case: cleanup after ourselves and apply the return continuation.
       self.cleanupStack.emitCleanups(self, in: bb)
-      _ = self.B.createApply(bb, returnParameter, [value])
+      _ = self.B.createApply(bb, epilogRef, [value])
       return
     }
 
@@ -355,7 +352,7 @@ extension GIRGenFunction {
 
     let copyAddr = self.B.createCopyAddress(value, to: indirectRet)
     self.cleanupStack.emitCleanups(self, in: bb)
-    _ = self.B.createApply(bb, returnParameter, [copyAddr])
+    _ = self.B.createApply(bb, epilogRef, [copyAddr])
   }
 
   private struct Necessity {
