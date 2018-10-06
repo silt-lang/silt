@@ -12,27 +12,17 @@ zero  + m = m
 suc n + m = suc (n + m)
 -- CHECK-GIR: dispatch-nested._+_ : (dispatch-nested.Nat ; dispatch-nested.Nat) -> (dispatch-nested.Nat) -> _ {
 -- CHECK-GIR: bb0(%0 : dispatch-nested.Nat; %1 : dispatch-nested.Nat; %2 : (dispatch-nested.Nat) -> _):
--- CHECK-GIR:   %3 = function_ref @bb2
--- CHECK-GIR:   %4 = function_ref @bb1
--- CHECK-GIR:   switch_constr %0 : dispatch-nested.Nat ; dispatch-nested.Nat.zero : %3 ; dispatch-nested.Nat.suc : %4
--- CHECK-GIR: bb1(%6 : @box dispatch-nested.Nat):
--- CHECK-GIR:   %7 = function_ref @bb0
--- CHECK-GIR:   %8 = load_box %6 : @box dispatch-nested.Nat
--- CHECK-GIR:   %9 = function_ref @bb3
--- CHECK-GIR:   apply %7(%8 ; %1 ; %9) : (dispatch-nested.Nat ; dispatch-nested.Nat) -> (dispatch-nested.Nat) -> _
+-- CHECK-GIR:   %3 = function_ref @bb2                          -- user: %5
+-- CHECK-GIR:   %4 = function_ref @bb1                          -- user: %5
+-- CHECK-GIR:   switch_constr %0 : dispatch-nested.Nat ; dispatch-nested.Nat.zero : %3 ; dispatch-nested.Nat.suc : %4 -- id: %5
+-- CHECK-GIR: bb1(%6 : dispatch-nested.Nat):
+-- CHECK-GIR:   %7 = function_ref @bb0                          -- user: %8
+-- CHECK-GIR:   apply %7(%6 ; %1 ; %2) : (dispatch-nested.Nat ; dispatch-nested.Nat) -> (dispatch-nested.Nat) -> _ -- id: %8
 -- CHECK-GIR: bb2:
--- CHECK-GIR:   %11 = copy_value %1
--- CHECK-GIR:   destroy_value %1
--- CHECK-GIR:   destroy_value %0
--- CHECK-GIR:   apply %2(%11) : (dispatch-nested.Nat) -> _
--- CHECK-GIR: bb3(%15 : dispatch-nested.Nat):
--- CHECK-GIR:   %16 = copy_value %15
--- CHECK-GIR:   %17 = alloc_box dispatch-nested.Nat
--- CHECK-GIR:   %18 = store_box %16 to %17
--- CHECK-GIR:   %19 = data_init dispatch-nested.Nat ; dispatch-nested.Nat.suc ; %18
--- CHECK-GIR:   destroy_value %1
--- CHECK-GIR:   destroy_value %0
--- CHECK-GIR:   apply %2(%19) : (dispatch-nested.Nat) -> _
+-- CHECK-GIR:   %9 = function_ref @bb3                          -- user: %10
+-- CHECK-GIR:   apply %9(%1) : dispatch-nested.Nat              -- id: %10
+-- CHECK-GIR: bb3(%11 : dispatch-nested.Nat):
+-- CHECK-GIR:   apply %2(%11) : (dispatch-nested.Nat) -> _      -- id: %12
 -- CHECK-GIR: } -- end gir function dispatch-nested._+_
 
 data Bool : Type where
