@@ -7,7 +7,6 @@ matrix:
       language: objective-c
       osx_image: xcode10
       before_install:
-        - brew upgrade swiftlint
         - brew install llvm
         - git clone  -b '0.3.0' --single-branch https://github.com/llvm-swift/LLVMSwift.git
         - swift LLVMSwift/utils/make-pkgconfig.swift
