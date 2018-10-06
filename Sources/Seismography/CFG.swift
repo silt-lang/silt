@@ -64,3 +64,37 @@ public final class Successor {
     self.successor = succ
   }
 }
+
+/// Uses the `Successor` node of a continuation to iterate over the
+/// continuations that have terminators that branch to it.
+public final class PredecessorIterator: IteratorProtocol {
+  /// The current predecessor continuation at this iteration point, or nil if
+  /// the predecessor list has been exhausted.
+  public private(set) var continuation: Continuation?
+  private var succ: Successor?
+
+  init(_ succ: Successor) {
+    self.succ = succ
+    self.continuation = nil
+    self.computeCurrentContinuation()
+  }
+
+  /// Returns the next continuation in the sequence, if any.
+  public func next() -> Continuation? {
+    guard let c = self.succ else {
+      return nil
+    }
+    self.succ = c.next
+    computeCurrentContinuation()
+    return self.continuation
+  }
+
+  private func computeCurrentContinuation() {
+    guard let cur = self.succ, cur.parent != nil else{
+      self.continuation = nil
+      return
+    }
+    self.continuation = cur.parent
+    assert(self.continuation != nil)
+  }
+}
