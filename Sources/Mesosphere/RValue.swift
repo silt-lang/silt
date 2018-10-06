@@ -22,8 +22,14 @@ extension GIRGenFunction {
         let callee = self.B.module.lookupContinuation(constant)!
         let calleeRef = self.B.createFunctionRef(callee)
         let applyDest = self.B.buildBBLikeContinuation(
-          base: self.f.name, tag: "apply#\(defName.key.string)")
-        let applyDestRef = self.B.createFunctionRef(applyDest)
+                        base: self.f.name, tag: "_apply_\(defName.key.string)")
+        let applyDestRef: Value
+        // Special Case: Recursive calls have a known return point.
+        if self.f == callee {
+          applyDestRef = self.f.parameters.last!
+        } else {
+          applyDestRef = self.B.createFunctionRef(applyDest)
+        }
         let param = applyDest.appendParameter(type: callee.returnValueType)
         var lastParent = parent
         var argVals = [Value]()
@@ -45,6 +51,12 @@ extension GIRGenFunction {
         }
         argVals.append(applyDestRef)
         _ = self.B.createApply(lastParent, calleeRef, argVals)
+        // Special Case: Recursive calls have a known destination block, namely
+        // bb0.  We can just stop chuzzling and erase the block we would have
+        // continued with.
+        if self.f == callee {
+          self.B.module.removeContinuation(applyDest)
+        }
         return (applyDest, ManagedValue.unmanaged(param))
       case let .meta(mv):
         guard let bind = self.tc.signature.lookupMetaBinding(mv) else {

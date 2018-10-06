@@ -34,6 +34,10 @@ public final class GIRBuilder {
     module.addPrimOp(primOp)
     return primOp
   }
+
+  public func removeContinuation(_ continuation: Continuation) {
+    module.removeContinuation(continuation)
+  }
 }
 
 extension GIRBuilder {

@@ -39,12 +39,9 @@ public final class Continuation: NominalValue, GraphNode {
   public weak var terminalOp: TerminalOp?
 
   public var predecessors: AnySequence<Continuation> {
-    guard let first = self.predecessorList.parent else {
-      return AnySequence<Continuation>([])
+    return AnySequence { () in
+      return PredecessorIterator(self.predecessorList)
     }
-    return AnySequence<Continuation>(sequence(first: first) { pred in
-      return pred.predecessorList.parent
-    })
   }
 
   public var successors: [Continuation] {
@@ -114,6 +111,14 @@ public final class Continuation: NominalValue, GraphNode {
       return module.bottomType
     }
     return funcTy.arguments[0]
+  }
+
+  public var formalParameters: [Parameter] {
+    // FIXME: This is a bloody awful heuristic for this.
+    guard self.bblikeSuffix == nil else {
+      return self.parameters
+    }
+    return Array(self.parameters.dropLast())
   }
 
   public override var type: Value {

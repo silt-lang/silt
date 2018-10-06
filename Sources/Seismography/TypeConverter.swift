@@ -154,7 +154,7 @@ public final class TypeConverter {
     guard case .pi(_, _) = conType else {
       return TupleType(elements: [], category: .object)
     }
-    return self.lowerDataConstructorPayloadType(con.key.string, conType).1
+    return self.lowerDataConstructorPayloadType(con.key, conType).1
   }
 
   private func getTypeKey(_ type: Type<TT>) -> CacheKey {
@@ -219,11 +219,11 @@ extension TypeConverter {
       case let .definition(dd):
         let (_, openTypeDef) = self.tc.getOpenedDefinition(dd.key)
         switch openTypeDef {
-        case let .constant(origType, const):
+        case let .constant(_, const):
           switch const {
           case let .data(cons):
             return self.withCachedKey(dd.key) { dataTypeName in
-              return self.visitDataType(dataTypeName, origType, type, cons)
+              return self.visitDataType(dataTypeName, type, type, cons)
             }
           case .function(_):
             fatalError("FIXME: Lower function applies")
@@ -260,6 +260,10 @@ extension TypeConverter {
     _ origType: Type<TT>, _ substType: Type<TT>,
     _ constructors: [Opened<QualifiedName, TT>]
   ) -> Lowering {
+    if let asNat = dataTypeAsTrivialNat(name, origType, constructors) {
+      return asNat
+    }
+
     var hasOnlyTrivialCons = true
     var forceAddressOnly = false
     var loweredConstructors = [DataType.Constructor]()
@@ -270,7 +274,7 @@ extension TypeConverter {
       switch conType {
       case .pi(_, _):
         let (payloadLowering, loweredTy)
-          = self.lowerDataConstructorPayloadType(conName, conType)
+          = self.lowerDataConstructorPayloadType(constructor.key, conType)
         hasOnlyTrivialCons = hasOnlyTrivialCons && payloadLowering.trivial
         forceAddressOnly = forceAddressOnly || payloadLowering.addressOnly
         loweredConstructors.append((conName, loweredTy))
@@ -300,7 +304,7 @@ extension TypeConverter {
   }
 
   fileprivate func lowerDataConstructorPayloadType(
-    _ name: String,
+    _ name: QualifiedName,
     _ ty: Type<TT>
   ) -> (Lowering, TupleType) {
     guard case .pi(_, _) = ty else {
@@ -317,24 +321,63 @@ extension TypeConverter {
       forceAddressOnly = forceAddressOnly || eltLowering.addressOnly
       eltTypes.append(eltLowering.type)
     }
+    let payloadKey = name.string
     if forceAddressOnly {
       let ty = TupleType(elements: eltTypes, category: .address)
       let lowering = AddressOnlyLowering(ty)
       self.loweringCache[CacheKey(loweredType: ty)] = lowering
-      self.loweringCache[CacheKey(payloadOf: name)] = lowering
+      self.loweringCache[CacheKey(payloadOf: payloadKey)] = lowering
       return (lowering, ty)
     } else if hasOnlyTrivialElements {
       let ty = TupleType(elements: eltTypes, category: .object)
       let lowering = TrivialLowering(ty)
       self.loweringCache[CacheKey(loweredType: ty)] = lowering
-      self.loweringCache[CacheKey(payloadOf: name)] = lowering
+      self.loweringCache[CacheKey(payloadOf: payloadKey)] = lowering
       return (lowering, ty)
     } else {
       let ty = TupleType(elements: eltTypes, category: .object)
       let lowering = NonTrivialLowering(ty)
       self.loweringCache[CacheKey(loweredType: ty)] = lowering
-      self.loweringCache[CacheKey(payloadOf: name)] = lowering
+      self.loweringCache[CacheKey(payloadOf: payloadKey)] = lowering
       return (lowering, ty)
+    }
+  }
+
+  private func dataTypeAsTrivialNat(
+    _ name: QualifiedName, _ origType: Type<TT>,
+    _ constructors: [Opened<QualifiedName, TT>]
+    ) -> Lowering? {
+    guard constructors.count == 2 else {
+      return nil
+    }
+
+    let oneCon = constructors[0]
+    let oneConTy = self.getASTTypeOfConstructor(oneCon)
+    let twoCon = constructors[1]
+    let twoConTy = self.getASTTypeOfConstructor(twoCon)
+
+    let lowerNat = { (_ succ: String, _ zero: String) -> Lowering in
+      let loweredType = self.module!.dataType(name: name,
+                                              module: self.module,
+                                              category: .object)
+      let payloadTy = TupleType(elements: [ loweredType ], category: .object)
+      loweredType.addConstructors([
+        (name: zero, payload: nil),
+        (name: succ, payload: payloadTy),
+      ])
+      let lowering = TrivialLowering(loweredType)
+      self.loweringCache[CacheKey(loweredType: loweredType)] = lowering
+      self.loweringCache[CacheKey(payloadOf: succ)] = TrivialLowering(payloadTy)
+      return lowering
+    }
+
+    switch (oneConTy, twoConTy) {
+    case (.pi(origType, _), origType):
+      return lowerNat(oneCon.key.string, twoCon.key.string)
+    case (origType, .pi(origType, _)):
+      return lowerNat(twoCon.key.string, oneCon.key.string)
+    default:
+      return nil
     }
   }
 

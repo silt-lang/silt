@@ -93,7 +93,22 @@ extension TypeChecker {
 }
 
 extension TypeChecker where PhaseState == SolvePhaseState {
-  typealias InversionResult<T> = Validation<Collect<Var, Set<Meta>>, T>
+//  typealias InversionResult<T> = Validation<Collect<Var, Set<Meta>>, T>
+
+  private func isIdentity(_ ts: [(Var, Term<TT>)]) -> Bool {
+    for (v, u) in ts {
+      switch self.toWeakHeadNormalForm(u).ignoreBlocking {
+      case let .apply(.variable(v2), xs) where xs.isEmpty:
+        if v == v2 {
+          continue
+        }
+        return false
+      default:
+        return false
+      }
+    }
+    return true
+  }
 
   // Takes a meta inversion and applies it to a term. If substitution encounters
   // a free variable, this function will fail and return that variable.  If
@@ -101,22 +116,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
   // also fail and return the set of blocking metas.
   func applyInversion(
     _ inversion: Inversion, to term: Term<TT>, in ctx: Context
-  ) -> InversionResult<Meta.Binding> {
-    func isIdentity(_ ts: [(Var, Term<TT>)]) -> Bool {
-      for (v, u) in ts {
-        switch self.toWeakHeadNormalForm(u).ignoreBlocking {
-        case let .apply(.variable(v2), xs) where xs.isEmpty:
-          if v == v2 {
-            continue
-          }
-          return false
-        default:
-          return false
-        }
-      }
-      return true
-    }
-
+  ) -> Validation<Collect<Var, Set<Meta>>, Meta.Binding> {
     guard isIdentity(inversion.substitution) else {
       return self.applyInversionSubstitution(inversion.substitution, term).map {
         return Meta.Binding(arity: inversion.arity, body: $0)
@@ -140,7 +140,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
 
   private func applyInversionSubstitution(
     _ subst: [(Var, Term<TT>)], _ term: Term<TT>
-  ) -> InversionResult<Term<TT>> {
+  ) -> Validation<Collect<Var, Set<Meta>>, Term<TT>> {
     func invert(_ str: UInt, _ v0: Var) -> Either<Var, Term<TT>> {
       guard let v = v0.strengthen(0, by: str) else {
         return .right(TT.apply(.variable(v0), []))
@@ -195,7 +195,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
           return .failure(e)
         }
       case let .apply(h, elims):
-        let invElims = elims.mapM({ (e) -> InversionResult<Elim<TT>>  in
+        let invElims = elims.mapM({ (e) -> Validation<Collect<Var, Set<Meta>>, Elim<TT>> in
           switch e {
           case let .apply(t2):
             return applyInversion(after: idx, t2).map(Elim<TT>.apply)

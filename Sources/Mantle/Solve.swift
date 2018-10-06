@@ -361,7 +361,8 @@ extension TypeChecker where PhaseState == SolvePhaseState {
     }
 
     let prunedTerm = self.pruneTerm(Set(inv.substitution.map {$0.0}), term)
-    switch self.applyInversion(inv, to: prunedTerm, in: ctx) {
+    let inv0: Validation<Collect<Var, Set<Meta>>, Meta.Binding> = self.applyInversion(inv, to: prunedTerm, in: ctx)
+    switch inv0 {
     case let .success(mvb):
       guard !freeMetas(mvb.body).contains(meta) else {
         // FIXME: Make this a diagnostic.

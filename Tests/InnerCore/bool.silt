@@ -1,4 +1,4 @@
--- RUN: %silt --dump irgen %s 2>&1 | %FileCheck %s
+-- RUN-XFAIL: %silt --dump irgen %s 2>&1 | %FileCheck %s
 
 -- CHECK: ; ModuleID = 'bool'
 module bool where

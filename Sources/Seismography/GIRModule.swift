@@ -36,6 +36,12 @@ public final class GIRModule {
     continuation.module = self
   }
 
+  public func removeContinuation(_ continuation: Continuation) {
+    continuations.removeAll(where: { $0 == continuation })
+    continuationTable[keyForContinuation(continuation)] = nil
+    continuation.module = nil
+  }
+
   public func addPrimOp(_ primOp: PrimOp) {
     primops.append(primOp)
   }

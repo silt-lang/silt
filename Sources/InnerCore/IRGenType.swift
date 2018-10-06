@@ -120,7 +120,7 @@ struct IRGenType {
         if let type = igm.module.type(named: name) { return type }
         let layout = self.igm.module.dataLayout
         let fieldTys = union.payloadTypes.values.map(emit)
-        let maxPayloadSize = fieldTys.map(layout.abiSize).max()!
+        let maxPayloadSize: Int = fieldTys.map(layout.abiSize).max()!
         let byteVector = ArrayType(
           elementType: IntType.int8,
           count: maxPayloadSize
