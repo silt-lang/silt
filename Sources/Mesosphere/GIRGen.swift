@@ -139,12 +139,23 @@ final class GIRGenFunction {
     let (paramVals, returnCont) = self.buildParameterList()
     self.prepareEpilog(returnCont)
     self.emitPatternMatrix(clauses, paramVals)
+    self.emitEpilog(returnCont)
   }
 
-  func prepareEpilog(_ retCont: Value) {
-    self.epilog.appendParameter(type: self.getLoweredType(self.returnTy))
-    _ = self.B.createApply(self.epilog, retCont, self.epilog.parameters)
+  func prepareEpilog(_ retCont: Parameter) {
+    guard let retTy = retCont.type as? FunctionType else {
+      fatalError()
+    }
+    self.epilog.appendParameter(type: retTy.arguments[0])
     self.B.module.addContinuation(self.epilog)
+  }
+
+  func emitEpilog(_ retCont: Parameter) {
+    if self.epilog.predecessors.makeIterator().next() != nil {
+      _ = self.B.createApply(self.epilog, retCont, self.epilog.parameters)
+    } else {
+      self.B.module.removeContinuation(self.epilog)
+    }
   }
 
   public func lowerType(_ type: Type<TT>) -> TypeConverter.Lowering {
@@ -179,7 +190,7 @@ final class GIRGenFunction {
     return self.genericEnvironment.find(key)
   }
 
-  private func buildParameterList() -> ([ManagedValue], Value) {
+  private func buildParameterList() -> ([ManagedValue], Parameter) {
     var params = [ManagedValue]()
     for (idx, t) in self.params.enumerated() {
       let (_, paramTy) = t

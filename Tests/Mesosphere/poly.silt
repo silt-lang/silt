@@ -7,17 +7,23 @@ id : {A : Type} -> A -> A
 id x = x
 -- CHECK-GIR: @poly.id : (*Type ; *τ_0 ; *τ_0) -> (*τ_0) -> _ {
 -- CHECK-GIR: bb0(%0 : *Type; %1 : *τ_0; %2 : *τ_0; %3 : (*τ_0) -> _):
--- CHECK-GIR:   %4 = copy_address %1 to %2 : *τ_0
+-- CHECK-GIR:   %4 = function_ref @bb1
+-- CHECK-GIR:   %5 = copy_address %1 to %2 : *τ_0
 -- CHECK-GIR:   destroy_address %1 : *τ_0
--- CHECK-GIR:   apply %3(%4) : (*τ_0) -> _
+-- CHECK-GIR:   apply %4(%5) : *τ_0
+-- CHECK-GIR: bb1(%8 : *τ_0):
+-- CHECK-GIR:   apply %3(%8) : (*τ_0) -> _
 -- CHECK-GIR: } -- end gir function poly.id
 
 const : {A B : Type} -> A -> B -> A
 const x _ = x
 -- CHECK-GIR: @poly.const : (*Type ; *Type ; *τ_0 ; *τ_1 ; *τ_0) -> (*τ_0) -> _ {
 -- CHECK-GIR: bb0(%0 : *Type; %1 : *Type; %2 : *τ_0; %3 : *τ_1; %4 : *τ_0; %5 : (*τ_0) -> _)
--- CHECK-GIR:   %6 = copy_address %2 to %4 : *τ_0
+-- CHECK-GIR:   %6 = function_ref @bb1
+-- CHECK-GIR:   %7 = copy_address %2 to %4 : *τ_0
 -- CHECK-GIR:   destroy_address %3 : *τ_1
 -- CHECK-GIR:   destroy_address %2 : *τ_0
--- CHECK-GIR:   apply %5(%6) : (*τ_0) -> _
+-- CHECK-GIR:   apply %6(%7) : *τ_0
+-- CHECK-GIR: bb1(%11 : *τ_0):
+-- CHECK-GIR:   apply %5(%11) : (*τ_0) -> _
 -- CHECK-GIR: } -- end gir function poly.const

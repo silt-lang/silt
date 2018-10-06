@@ -72,6 +72,7 @@ public final class PredecessorIterator: IteratorProtocol {
   /// the predecessor list has been exhausted.
   public private(set) var continuation: Continuation?
   private var succ: Successor?
+  private var first: Bool = true
 
   init(_ succ: Successor) {
     self.succ = succ
@@ -81,6 +82,11 @@ public final class PredecessorIterator: IteratorProtocol {
 
   /// Returns the next continuation in the sequence, if any.
   public func next() -> Continuation? {
+    guard !self.first else {
+      self.first = false
+      return self.continuation
+    }
+    
     guard let c = self.succ else {
       return nil
     }

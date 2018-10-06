@@ -300,7 +300,7 @@ public final class FunctionType: GIRType {
   init(arguments: [GIRType], returnType: GIRType) {
     self.arguments = UnownedArray(values: arguments)
     self.returnType = returnType
-    super.init(type: TypeType.shared, category: returnType.category)
+    super.init(type: TypeType.shared, category: .object)
   }
 
   public override func equals(_ other: Value) -> Bool {

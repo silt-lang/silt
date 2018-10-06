@@ -45,17 +45,21 @@ doThing (ascii b) = b
 -- CHECK-GIR:   %3 = function_ref @bb1                          -- user: %4
 -- CHECK-GIR:   switch_constr %0 : dispatch-nested.Char ; dispatch-nested.Char.eof : %2 ; dispatch-nested.Char.ascii : %3
 -- CHECK-GIR: bb1(%5 : dispatch-nested.Byte):
--- CHECK-GIR:   apply %1(%5) : (dispatch-nested.Byte) -> _
+-- CHECK-GIR:   %6 = function_ref @bb3
+-- CHECK-GIR:   apply %6(%5) : dispatch-nested.Byte
 -- CHECK-GIR: bb2:
--- CHECK-GIR:   %7 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
--- CHECK-GIR:   %8 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
+-- CHECK-GIR:   %8 = function_ref @bb3
 -- CHECK-GIR:   %9 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
 -- CHECK-GIR:   %10 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
 -- CHECK-GIR:   %11 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
 -- CHECK-GIR:   %12 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
 -- CHECK-GIR:   %13 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
 -- CHECK-GIR:   %14 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
--- CHECK-GIR:   %15 = data_init dispatch-nested.Byte ; dispatch-nested.Byte.byte ; %7 ; %8 ; %9 ; %10 ; %11 ; %12 ; %13 ; %14
--- CHECK-GIR:   apply %1(%15) : (dispatch-nested.Byte) -> _
+-- CHECK-GIR:   %15 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
+-- CHECK-GIR:   %16 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
+-- CHECK-GIR:   %17 = data_init dispatch-nested.Byte ; dispatch-nested.Byte.byte ; %9 ; %10 ; %11 ; %12 ; %13 ; %14 ; %15 ; %16
+-- CHECK-GIR:   apply %8(%17) : dispatch-nested.Byte
+-- CHECK-GIR: bb3(%19 : dispatch-nested.Byte):
+-- CHECK-GIR:   apply %1(%19) : (dispatch-nested.Byte) -> _
 -- CHECK-GIR: } -- end gir function dispatch-nested.doThing
 

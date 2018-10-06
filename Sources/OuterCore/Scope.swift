@@ -77,6 +77,16 @@ public final class Scope: Hashable {
 
         queue.append(succ)
       }
+
+      for op in terminal.operands {
+        guard let funcRef = op.value as? FunctionRefOp else {
+          continue
+        }
+
+        if funcRef.function.bblikeSuffix != nil {
+          queue.append(funcRef.function)
+        }
+      }
     }
   }
 
