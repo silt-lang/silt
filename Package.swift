@@ -1,4 +1,4 @@
-// swift-tools-version:4.0
+// swift-tools-version:4.2
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -10,7 +10,7 @@ let package = Package(
     .package(url: "https://github.com/llvm-swift/FileCheck.git", from: "0.0.4"),
     .package(url: "https://github.com/llvm-swift/Symbolic.git", from: "0.0.1"),
     .package(url: "https://github.com/onevcat/Rainbow.git", from: "3.0.0"),
-    .package(url: "https://github.com/llvm-swift/LLVMSwift.git", from: "0.3.0"), 
+    .package(url: "https://github.com/llvm-swift/LLVMSwift.git", from: "0.3.0"),
     .package(url: "https://github.com/llvm-swift/Lite.git", .branch("build-experiment2")),
     .package(url: "https://github.com/llvm-swift/PrettyStackTrace.git", from: "0.0.1"),
   ],
@@ -63,6 +63,9 @@ let package = Package(
     .target(
       name: "Ferrite",
       dependencies: []),
+    .testTarget(
+      name: "InnerCoreSupportTests",
+      dependencies: ["InnerCore"]),
   ],
   cxxLanguageStandard: .cxx14
 )
