@@ -448,7 +448,7 @@ extension GIRGenFunction {
   }
 
   var wildcardToken: TokenSyntax {
-    return TokenSyntax.implicit(.underscore)
+    return SyntaxFactory.makeToken(.underscore, presence: .implicit)
   }
 
   var wildcardName: Name {

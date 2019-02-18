@@ -203,9 +203,9 @@ public enum DeclaredPattern: CustomStringConvertible {
   public var name: Name? {
     switch self {
     case .variable(let name): return name
-    case .wild: return Name(name: .implicit(.identifier("_")))
+    case .wild: return Name(name: SyntaxFactory.makeToken(.identifier("_"), presence: .implicit))
     case .constructor(_, _): return nil
-    case .absurd(_): return Name(name: .implicit(.identifier("()")))
+    case .absurd: return Name(name: SyntaxFactory.makeToken(.identifier("()"), presence: .implicit))
     }
   }
 

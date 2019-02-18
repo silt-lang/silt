@@ -46,5 +46,5 @@ let tokenNodes = [
   Token(name: "Infix", .keyword("infix")),
 
   Token(name: "Identifier", .associated("String")),
-  Token(name: "Unknown", .associated("Character"))
+  Token(name: "Unknown", .associated("String"))
 ]

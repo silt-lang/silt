@@ -61,6 +61,12 @@ public final class DiagnosticEngine {
     consumers = [:]
   }
 
+  /// Calls the given closure on each consumer registered with this diagnostic
+  /// engine.
+  public func forEachConsumer(_ action: (DiagnosticConsumer) -> Void) {
+    self.consumers.values.forEach(action)
+  }
+
   /// Determines if the engine has any `.error` diagnostics registered.
   public func hasErrors() -> Bool {
     return diagnostics.contains { $0.message.severity == .error }

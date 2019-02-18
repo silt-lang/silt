@@ -47,19 +47,6 @@ extension TriviaPiece {
 }
 
 extension Trivia {
-  /// Appends a piece of trivia to this trivia, combining the pieces if
-  /// necessary.
-  public mutating func append(_ piece: TriviaPiece) {
-    guard
-      let last = pieces.last,
-      let combined = last.combined(with: piece)
-    else {
-        pieces.append(piece)
-        return
-    }
-    pieces[pieces.count - 1] = combined
-  }
-
   /// The length, in characters, of this trivia piece.
   public var length: Int {
     return pieces.reduce(0) { $0 + $1.length }

@@ -22,7 +22,7 @@ extension Diagnostic.Message {
 
 extension Passes {
   // Create passes that perform the whole readFile->...->finalPass pipeline.
-  static let lexFile = Passes.readFile |> Passes.lex
+  static let lexFile = Passes.readFile |> Passes.lex |> Passes.attachEngine
   static let shineFile = lexFile |> Passes.shine
   static let parseFile = shineFile |> Passes.parse
   static let scopeCheckFile = parseFile |> Passes.scopeCheck
@@ -50,12 +50,13 @@ public struct Invocation {
   ///         return `true` if the verifier produced errors and `false`
   ///         otherwise. It is safe to force-unwrap.
   private func makeVerifyPass<PassTy: PassProtocol>(
-    url: URL, pass: PassTy, context: PassContext
+    url: URL, pass: PassTy, context: PassContext,
+    converter: SourceLocationConverter
   ) -> Pass<PassTy.Input, HadErrors> {
     return Pass(name: "Diagnostic Verification") { input, ctx in
       _ = pass.run(input, in: ctx)
       let verifier =
-        DiagnosticVerifier(url: url,
+        DiagnosticVerifier(url: url, converter: converter,
                            producedDiagnostics: ctx.engine.diagnostics)
       verifier.verify()
       return verifier.engine.hasErrors()
@@ -64,10 +65,6 @@ public struct Invocation {
 
   public func run() -> HadErrors {
     let context = PassContext(options: options)
-    let printingConsumer =
-      PrintingDiagnosticConsumer(stream: &stderrStreamHandle)
-    let printingConsumerToken = context.engine.register(printingConsumer)
-
     Rainbow.enabled = options.colorsEnabled
 
     // Force Rainbow to use ANSI colors even when not in a TTY.
@@ -87,10 +84,9 @@ public struct Invocation {
     }
 
     // Create passes that perform the whole readFile->...->finalPass pipeline.
-    let lexFile = Passes.readFile |> Passes.lex
-    let shineFile = lexFile |> Passes.shine
+    let shineFile = Passes.lexFile |> Passes.shine
     let parseFile = shineFile |> Passes.parse
-    let parseGIRFile = lexFile |> Passes.parseGIR
+    let parseGIRFile = Passes.lexFile |> Passes.parseGIR
     let scopeCheckFile = parseFile |> Passes.scopeCheck
     let typeCheckFile = scopeCheckFile |> Passes.typeCheck
     let girGenModule = typeCheckFile |> Passes.girGen
@@ -101,6 +97,12 @@ public struct Invocation {
         where PassTy.Input == URL {
         return pass.run(url, in: context)
       }
+
+      let converter = SourceLocationConverter(file: url.absoluteString,
+                                              tree: SourceFileSyntax(tokens: []))
+      let printingConsumer =
+        DelayedPrintingDiagnosticConsumer(stream: &stderrStreamHandle)
+      context.engine.register(printingConsumer)
 
       switch options.mode {
       case .compile:
@@ -148,17 +150,19 @@ public struct Invocation {
           module.dump()
         })
       case .verify(let verification):
-        context.engine.unregister(printingConsumerToken)
         switch verification {
         case .parse:
           return run(makeVerifyPass(url: url, pass: Passes.parseFile,
-                                    context: context))!
+                                    context: context,
+                                    converter: converter))!
         case .scopes:
           return run(makeVerifyPass(url: url, pass: Passes.scopeCheckFile,
-                                    context: context))!
+                                    context: context,
+                                    converter: converter))!
         case .typecheck:
           return run(makeVerifyPass(url: url, pass: typeCheckFile,
-                                    context: context))!
+                                    context: context,
+                                    converter: converter))!
         }
       }
     }

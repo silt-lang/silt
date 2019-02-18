@@ -42,7 +42,7 @@ public struct QualifiedName: Equatable, Hashable, CustomStringConvertible {
   public let module: [Name]
 
   public init() {
-    self.name = Name(name: TokenSyntax(.identifier("")))
+    self.name = Name(name: SyntaxFactory.makeIdentifier(""))
     self.module = []
   }
 

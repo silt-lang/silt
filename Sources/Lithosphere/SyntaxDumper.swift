@@ -22,6 +22,8 @@ public class SyntaxDumper<StreamType: TextOutputStream>: Writer<StreamType> {
   }
 
   public func dump(_ node: Syntax, root: Bool = true) {
+    fatalError()
+    /*
     write("(")
     switch node {
     case let node as TokenSyntax:
@@ -32,7 +34,8 @@ public class SyntaxDumper<StreamType: TextOutputStream>: Writer<StreamType> {
       default:
         write("\(node.tokenKind)".green.bold)
       }
-      writeLoc(node.startLoc)
+      fatalError()
+//      writeLoc(node.endLocation(converter: SourceLocationConverter))
     default:
       write("\(node.raw.kind)".magenta.bold)
       writeLoc(node.startLoc)
@@ -46,6 +49,6 @@ public class SyntaxDumper<StreamType: TextOutputStream>: Writer<StreamType> {
     write(")")
     if root {
       writeLine()
-    }
+    }*/
   }
 }

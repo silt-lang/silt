@@ -49,9 +49,23 @@ enum Passes {
   /// The Lex pass reads a URL from the file system and tokenizes it into a
   /// stream of TokenSyntax nodes.
   static let lex =
-    Pass<(String, URL), [TokenSyntax]>(name: "Lex") { file, _ in
+    Pass<(String, URL), (String, [TokenSyntax])>(name: "Lex") { file, _ in
       let lexer = Lexer(input: file.0, filePath: file.1.path)
-      return lexer.tokenize()
+      return (file.0, lexer.tokenize())
+    }
+
+  static let attachEngine =
+    Pass<(String, [TokenSyntax]), [TokenSyntax]>(name: "Attach Diagnostics") { t, ctx in
+      let (file, tokens) = t
+      let tree = SourceFileSyntax(tokens: tokens)
+      let converter = SourceLocationConverter(file: file,
+                                              tree: tree)
+      ctx.engine.forEachConsumer { consumer in
+        if let printingConsumer = consumer as? DelayedDiagnosticConsumer {
+          printingConsumer.attachAndDrain(converter)
+        }
+      }
+      return tokens
     }
 
   /// The Shine pass takes a token stream and adds additional implicit tokens

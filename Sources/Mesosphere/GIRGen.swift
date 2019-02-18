@@ -231,7 +231,7 @@ private func unrollPiIntoEnvironment(
   _ tc: TypeChecker<CheckPhaseState>,
   _ t: Type<TT>
 ) -> FunctionEnvironment {
-  let defaultName = Name(name: TokenSyntax(.identifier("_")))
+  let defaultName = Name(name: SyntaxFactory.makeIdentifier("_"))
   var tel = Telescope<Type<TT>>()
   var ty = t
   var archIdx = 0

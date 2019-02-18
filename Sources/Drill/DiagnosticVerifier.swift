@@ -95,18 +95,17 @@ public final class DiagnosticVerifier {
   /// The set of diagnostics that have been parsed.
   let producedDiagnostics: [(message: Diagnostic.Message, node: Syntax?)]
 
+  let converter: SourceLocationConverter
+
   /// The temporary diagnostic engine into which we'll be pushing diagnostics
   /// for verification errors.
-  public let engine: DiagnosticEngine = {
-    let e = DiagnosticEngine()
-    e.register(PrintingDiagnosticConsumer(stream: &stderrStreamHandle))
-    return e
-  }()
+  public let engine: DiagnosticEngine
 
   /// Creates a diagnostic verifier that uses the provided token stream and
   /// set of produced diagnostics to find and verify the set of expectations
   /// in the original file.
-  public init(url: URL, producedDiagnostics: [Diagnostic]) {
+  public init(url: URL, converter: SourceLocationConverter,
+              producedDiagnostics: [Diagnostic]) {
     // Combine both the diagnostics and their notes into one big set of
     // node/message pairs.
     self.producedDiagnostics =
@@ -115,6 +114,13 @@ public final class DiagnosticVerifier {
           ($0.message, $0.node)
         }
       }
+    self.converter = converter
+    self.engine = {
+      let e = DiagnosticEngine()
+      e.register(DelayedPrintingDiagnosticConsumer(stream: &stderrStreamHandle,
+                                                   converter: converter))
+      return e
+    }()
     self.expectations =
       DiagnosticVerifier.parseExpectations(url: url, engine: self.engine)
   }
@@ -123,7 +129,7 @@ public final class DiagnosticVerifier {
                        node: Syntax?,
                        expectation: Expectation) -> Bool {
     let expectedLine = expectation.line
-    if expectedLine != node?.startLoc?.line {
+    if expectedLine != node?.startLocation(converter: converter).line {
       return false
     }
     let nsString = NSString(string: message.text)
@@ -136,7 +142,7 @@ public final class DiagnosticVerifier {
   public func verify() {
     // There's nothing to verify if we've already registered an error in
     // our diagnostic engine.
-    if self.engine.hasErrors() { return }
+    guard !self.engine.hasErrors() else { return }
 
     // Keep a list of expectations we haven't matched yet.
     var unmatched = expectations
@@ -149,10 +155,12 @@ public final class DiagnosticVerifier {
     for (message, node) in producedDiagnostics {
 
       // Expectations require a line.
-      guard let node = node, let loc = node.startLoc else {
+      guard let node = node else {
         engine.diagnose(.diagnosticWithNoNode(message))
         continue
       }
+
+      let loc = node.startLocation(converter: converter)
 
       // If any of the as-of-yet unmatched expectations fit this diagnostic,
       // remove it.

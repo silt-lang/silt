@@ -73,7 +73,7 @@ extension TriviaPiece {
 /// A collection of leading or trailing trivia. This is the main data structure
 /// for thinking about trivia.
 public struct Trivia {
-  var pieces: [TriviaPiece]
+  let pieces: [TriviaPiece]
 
   /// Creates Trivia with the provided underlying pieces.
   public init(pieces: [TriviaPiece]) {
@@ -92,6 +92,15 @@ public struct Trivia {
     return Trivia(pieces: copy)
   }
 
+  public var sourceLength: SourceLength {
+    return pieces.map({ $0.sourceLength }).reduce(.zero, +)
+  }
+
+  /// Get the byteSize of this trivia
+  public var byteSize: Int {
+    return sourceLength.utf8Length
+  }
+  
   /// Return a piece of trivia for some number of space characters in a row.
   public static func spaces(_ count: Int) -> Trivia {
     return [.spaces(count)]
@@ -160,4 +169,25 @@ extension Trivia: ExpressibleByArrayLiteral {
 /// Concatenates two collections of `Trivia` into one collection.
 public func + (lhs: Trivia, rhs: Trivia) -> Trivia {
   return Trivia(pieces: lhs.pieces + rhs.pieces)
+}
+
+extension TriviaPiece {
+  public var sourceLength: SourceLength {
+    switch self {
+    case let .newlines(count):
+      return SourceLength(utf8Length: count * "\n".utf8.count)
+    case let .spaces(count):
+      return SourceLength(utf8Length: count)
+    case let .tabs(count):
+      return SourceLength(utf8Length: count)
+    case let .verticalTabs(count):
+      return SourceLength(utf8Length: count)
+    case let .formfeeds(count):
+      return SourceLength(utf8Length: count)
+    case let .carriageReturns(count):
+      return SourceLength(utf8Length: count)
+    case let .comment(text):
+      return SourceLength(of: text)
+    }
+  }
 }

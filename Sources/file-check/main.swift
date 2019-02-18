@@ -72,7 +72,12 @@ func run() -> Int {
   }
 
   var options = FileCheckOptions()
-  binder.fill(results, into: &options)
+  do {
+    try binder.fill(parseResult: results, into: &options)
+  } catch {
+    cli.printUsage(on: stderrStream)
+    return -1
+  }
   Rainbow.enabled = !options.contains(.disableColors)
 
   let fileHandle: FileHandle

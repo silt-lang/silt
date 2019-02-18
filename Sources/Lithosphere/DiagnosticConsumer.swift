@@ -1,24 +1,24 @@
-/// DiagnosticConsumer.swift
-///
-/// Copyright 2017-2018, The Silt Language Project.
-///
-/// This project is released under the MIT license, a copy of which is
-/// available in the repository.
-import Foundation
+//===---------- DiagnosticConsumer.swift - Diagnostic Consumer ------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2018 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+// This file provides the DiagnosticConsumer protocol.
+//===----------------------------------------------------------------------===//
 
-/// A DiagnosticConsumer receives updates as the DiagnosticEngine pushes
-/// diagnostics into its internal storage. It's responsible for converting
-/// the content of the diagnostics into a different form for serialization,
-/// textual output, and whatever else it wants.
+/// An object that intends to receive notifications when diagnostics are
+/// emitted.
 public protocol DiagnosticConsumer {
-  /// Called when the diagnostic engine pops any diagnostic. Use this as
-  /// the opportunity to update your internal storage or output the contents
-  /// of the diagnostic to a file.
-  ///
-  /// - Parameter diagnostic: The diagnostic that was just added to the engine.
+  /// Handle the provided diagnostic which has just been registered with the
+  /// DiagnosticEngine.
   func handle(_ diagnostic: Diagnostic)
 
-  /// Perform whatever cleanup is necessary to commit whatever your consumer
-  /// needs to make permanent. This usually means flushing and closing files.
+  /// Finalize the consumption of diagnostics, flushing to disk if necessary.
   func finalize()
 }

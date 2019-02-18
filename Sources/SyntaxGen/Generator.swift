@@ -72,6 +72,107 @@ extension SwiftGenerator {
     generateSyntaxKindEnum()
     generateStructs()
     generateTokenKindEnum()
+    generateSyntaxFactory()
+  }
+
+  func generateSyntaxFactory() {
+    startWriting(to: "SyntaxFactory.swift")
+    line( """
+          public enum SyntaxFactory {
+            public static func makeToken(_ kind: TokenKind, presence: SourcePresence,
+                                         leadingTrivia: Trivia = [],
+                                         trailingTrivia: Trivia = []) -> TokenSyntax {
+              let raw = RawSyntax.createAndCalcLength(kind: kind, leadingTrivia: leadingTrivia,
+                trailingTrivia: trailingTrivia, presence: presence)
+              let data = SyntaxData(raw: raw)
+              return TokenSyntax(root: data, data: data)
+            }
+
+            public static func makeUnknownSyntax(tokens: [TokenSyntax]) -> Syntax {
+              let raw = RawSyntax.createAndCalcLength(kind: .unknown,
+                layout: tokens.map { $0.data.raw }, presence: .present)
+              let data = SyntaxData(raw: raw)
+              return UnknownSyntax(root: data, data: data)
+            }
+          """)
+    for node in syntaxNodes {
+      switch node.kind {
+      case let .node(kind: _, children: children):
+        let childParams = children
+          .map {
+            let childKind = $0.isToken ? "Token" : $0.kind
+            let optional = $0.isOptional ? "?" : ""
+            return "\($0.name): \(childKind)Syntax\(optional)"
+        }
+          .joined(separator: ", ")
+        write("  public static func make\(node.typeName.uppercaseFirstLetter)(")
+        write(childParams)
+        line(") -> \(node.typeName)Syntax {")
+        line("    let layout: [RawSyntax?] = [")
+        for child in children {
+          line("      \(child.name)\(child.isOptional ? "?" : "").data.raw,")
+        }
+        line("    ]")
+        line("    let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.\(node.typeName.lowercaseFirstLetter),")
+        line("      layout: layout, presence: SourcePresence.present)")
+        line("    let data = SyntaxData(raw: raw)")
+        line("    return \(node.typeName)Syntax(root: data, data: data)")
+        line("  }")
+        line("  public static func makeBlank\(node.typeName.uppercaseFirstLetter)() -> \(node.typeName)Syntax {")
+        line("    let data = SyntaxData(raw: RawSyntax(kind: .\(node.typeName.lowercaseFirstLetter),")
+        line("                                         layout: [")
+        for child in children {
+          if child.isOptional {
+            line("      nil,")
+          } else {
+            write("      ")
+            line(makeMissing(child: child) + ",")
+          }
+        }
+        line("    ], length: .zero, presence: .present))")
+        line("    return \(node.typeName)Syntax(root: data, data: data)")
+        line("  }")
+      case let .collection(element: elementType):
+        let elemType = elementType.contains("Token") ? "Token" : elementType.uppercaseFirstLetter
+        line( """
+                public static func make\(node.typeName.uppercaseFirstLetter)Syntax(
+                  _ elements: [\(elemType)Syntax]) -> \(node.typeName)Syntax {
+                  let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.\(node.typeName.lowercaseFirstLetter),
+                    layout: elements.map { $0.data.raw }, presence: SourcePresence.present)
+                  let data = SyntaxData(raw: raw)
+                  return \(node.typeName)Syntax(root: data, data: data)
+                }
+              """)
+      }
+    }
+
+    for (_, token) in tokenMap {
+      switch token.kind {
+      case .keyword(_):
+        line("  public static func make\(token.name.uppercaseFirstLetter)Keyword(leadingTrivia: Trivia = [],")
+        line("    trailingTrivia: Trivia = [], presence: SourcePresence = .present) -> TokenSyntax {")
+        line("    return makeToken(.\(token.caseName), presence: presence,")
+        line("                     leadingTrivia: leadingTrivia,")
+        line("                     trailingTrivia: trailingTrivia)")
+        line("  }")
+      case .punctuation(_):
+        line("  public static func make\(token.name.uppercaseFirstLetter)(leadingTrivia: Trivia = [],")
+        line("    trailingTrivia: Trivia = [], presence: SourcePresence = .present) -> TokenSyntax {")
+        line("    return makeToken(.\(token.caseName), presence: presence,")
+        line("                     leadingTrivia: leadingTrivia,")
+        line("                     trailingTrivia: trailingTrivia)")
+        line("  }")
+      case .associated(_):
+        line("  public static func make\(token.name.uppercaseFirstLetter)(_ text: String,")
+        line("    trailingTrivia: Trivia = [], presence: SourcePresence = .present) -> TokenSyntax {")
+        line("    return makeToken(.\(token.caseName)(text), presence: presence,")
+        line("                     leadingTrivia: leadingTrivia,")
+        line("                     trailingTrivia: trailingTrivia)")
+        line("  }")
+      }
+    }
+
+    line("}")
   }
 
   func generateTokenKindEnum() {
@@ -112,6 +213,20 @@ extension SwiftGenerator {
     }
     line("    }")
     line("  }")
+    line("  var sourceLength: SourceLength {")
+    line("    switch self {")
+    line("    case .eof: return .zero")
+    for (_, token) in tokenMap {
+      write("    case .\(token.caseName)")
+      switch token.kind {
+      case .associated(_):
+        line("(let text): return SourceLength(of: text)")
+      case .keyword(let text), .punctuation(let text):
+        line(": return SourceLength(utf8Length: \(text.utf8.count))")
+      }
+    }
+    line("    }")
+    line("  }")
     line("  public static func == (lhs: TokenKind, rhs: TokenKind) -> Bool {")
     line("    switch (lhs, rhs) {")
     line("    case (.eof, .eof): return true")
@@ -134,6 +249,8 @@ extension SwiftGenerator {
     startWriting(to: "SyntaxKind.swift")
     line("public enum SyntaxKind {")
     line("  case token")
+    line("  case unknown")
+
     for node in syntaxNodes + baseNodes {
       line("  case \(node.typeName.asStandaloneIdentifier)")
     }
@@ -159,6 +276,7 @@ extension SwiftGenerator {
       let root = root ?? data
       switch data.raw.kind {
       case .token: return TokenSyntax(root: root, data: data)
+      case .unknown: return UnknownSyntax(root: root, data: data)
     """)
     for node in baseNodes {
       line("  case .\(node.typeName.lowercaseFirstLetter):")
@@ -176,6 +294,21 @@ extension SwiftGenerator {
 
   func generateStructs() {
     startWriting(to: "SyntaxNodes.swift")
+
+    line( """
+          /// A wrapper around a raw Syntax layout.
+          public struct UnknownSyntax: _SyntaxBase {
+            let _root: SyntaxData
+            unowned let _data: SyntaxData
+
+            /// Creates an `UnknownSyntax` node from the provided root and data.
+            internal init(root: SyntaxData, data: SyntaxData) {
+              self._root = root
+              self._data = data
+            }
+          }
+
+          """)
 
     for base in baseNodes {
       guard case let .node(kind, _) = base.kind else {
@@ -195,9 +328,14 @@ extension SwiftGenerator {
   func makeMissing(child: Child) -> String {
     if child.isToken {
       guard let token = tokenMap[child.kind] else {
-        fatalError("unknown token kind '\(child.kind)'")
+        return "RawSyntax.missingToken(.unknown(\"\"))"
       }
-      return "RawSyntax.missingToken(.\(token.caseName))"
+      switch token.kind {
+      case .keyword(_), .punctuation(_):
+        return "RawSyntax.missingToken(.\(token.caseName))"
+      case .associated(_):
+        return "RawSyntax.missingToken(.\(token.caseName)(\"\"))"
+      }
     } else {
       return "RawSyntax.missing(.\(child.kindCaseName))"
     }
@@ -219,14 +357,6 @@ extension SwiftGenerator {
                 self._data = data
               }
 
-              public init(elements: [\(elementTypeName)]) {
-                let list = elements.map { $0.raw }
-                let sd = SyntaxData(raw: .node(.\(node.typeName.lowercaseFirstLetter), list, .present))
-                self._root = sd
-                self._data = sd
-              }
-
-
               /// Creates a new \(node.typeName)Syntax by replacing the underlying layout with
               /// a different set of raw syntax nodes.
               ///
@@ -234,7 +364,7 @@ extension SwiftGenerator {
               ///                     collection.
               /// - Returns: A new SyntaxCollection with the new layout underlying it.
               internal func replacingLayout(
-                _ layout: [RawSyntax]) -> \(node.typeName)Syntax {
+                _ layout: [RawSyntax?]) -> \(node.typeName)Syntax {
                 let newRaw = data.raw.replacingLayout(layout)
                 let (newRoot, newData) = data.replacingSelf(newRaw)
                 return \(node.typeName)Syntax(root: newRoot, data: newData)
@@ -379,40 +509,23 @@ extension SwiftGenerator {
       line("    self._data = data")
       line("  }")
 
-      write("  public init(")
-      let childParams = children
-        .map {
-          let childKind = $0.isToken ? "Token" : $0.kind
-          let optional = $0.isOptional ? "?" : ""
-          return "\($0.name): \(childKind)Syntax\(optional)"
-        }
-        .joined(separator: ", ")
-      write(childParams)
-      line(") {")
-      line("    let raw = RawSyntax.node(.\(node.typeName.lowercaseFirstLetter), [")
-      for child in  children {
-        if child.isOptional {
-          line("      \(child.name)?.raw ?? \(makeMissing(child: child)),")
-        } else {
-          line("      \(child.name).raw,")
-        }
-      }
-      line("    ], .present)")
-      line("    let data = SyntaxData(raw: raw, indexInParent: 0, parent: nil)")
-      line("    self.init(root: data, data: data)")
-      line("  }")
-
       for child in  children {
         let childKind = child.kind.contains("Token") ? "Token" : child.kind
         let optional = child.isOptional ? "?" : ""
         let castKeyword = child.isOptional ? "as?" : "as!"
         line("""
             public var \(child.name): \(childKind)Syntax\(optional) {
-              return child(at: Cursor.\(child.name)) \(castKeyword) \(childKind)Syntax
+              let child = data.cachedChild(at: Cursor.\(child.name).rawValue)
+              \(child.isOptional ? "if child == nil { return nil }" : "")
+              return makeSyntax(root: _root, data: child!) \(castKeyword) \(childKind)Syntax
             }
-            public func with\(child.name.uppercaseFirstLetter)(_ syntax: \(childKind)Syntax) -> \(node.typeName)Syntax {
-              let (newRoot, newData) = data.replacingChild(syntax.raw, at: Cursor.\(child.name))
-              return \(node.typeName)Syntax(root: newRoot, data: newData)
+            public func with\(child.name.uppercaseFirstLetter)(_ newChild: \(childKind)Syntax\(optional)) -> \(node.typeName)Syntax {
+              \(child.isOptional
+                  ? "let raw = newChild?.raw ?? \(makeMissing(child: child))"
+                  : "let raw = newChild.raw")
+              let (root, newData) = data.replacingChild(raw,
+                                                        at: Cursor.\(child.name))
+              return \(node.typeName)Syntax(root: root, data: newData)
             }
 
           """)

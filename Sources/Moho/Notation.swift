@@ -153,8 +153,9 @@ public struct NewNotation: CustomStringConvertible {
 extension NewNotation {
   static var arrowNotation: NewNotation {
     // FIXME: Need to internally define arrows
-    let arrowNoteName = Name(name: TokenSyntax(.identifier("_->_")))
-    let arrowName = Name(name: TokenSyntax(.arrow))
+    let arrowNoteName = Name(name: SyntaxFactory.makeIdentifier("_->_"))
+    let arrowName = Name(name: SyntaxFactory.makeToken(.arrow,
+                                                       presence: .implicit))
     return NewNotation(
       name: arrowNoteName,
       names: [TokenKind.arrow.text],
@@ -201,7 +202,7 @@ extension NameBinding {
       guard not.string[i] != "_" else {
         if let start = startIdx, let end = endIdx {
           let section = String(not.string[start...end])
-          let partTok = TokenSyntax(.identifier(section))
+          let partTok = SyntaxFactory.makeIdentifier(section)
           let partName = Name(name: partTok)
           secs.append(.identifier(partName))
           names.insert(section)
@@ -223,7 +224,7 @@ extension NameBinding {
 
     if let end = endIdx, let start = startIdx, end != not.string.endIndex {
       let section = String(not.string[start..<not.string.endIndex])
-      let partTok = TokenSyntax(.identifier(section))
+      let partTok = SyntaxFactory.makeIdentifier(section)
       let partName = Name(name: partTok)
       secs.append(.identifier(partName))
       names.insert(section)
@@ -360,11 +361,11 @@ extension NameBinding {
 
 extension NonFixDeclSyntax {
   static func defaultFix(for name: TokenSyntax) -> NonFixDeclSyntax {
-    return  NonFixDeclSyntax(
-      infixToken: TokenSyntax(.infixKeyword),
-      precedence: TokenSyntax(.identifier("20")),
-      names: IdentifierListSyntax(elements: [ name ]),
-      trailingSemicolon: TokenSyntax(.semicolon)
+    return  SyntaxFactory.makeNonFixDecl(
+      infixToken: SyntaxFactory.makeInfixKeyword(),
+      precedence: SyntaxFactory.makeIdentifier("20"),
+      names: SyntaxFactory.makeIdentifierListSyntax([ name ]),
+      trailingSemicolon: SyntaxFactory.makeSemicolon()
     )
   }
 }

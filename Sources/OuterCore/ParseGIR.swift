@@ -80,7 +80,7 @@ public final class GIRParser {
   func getReferencedContinuation(
     _ B: GIRBuilder, _ syntax: TokenSyntax) -> Continuation {
     assert(syntax.render.starts(with: "@"))
-    let noAtNode = syntax.withTokenKind(
+    let noAtNode = syntax.withKind(
       .identifier(String(syntax.render.dropFirst())))
     let name = Name(name: noAtNode)
     // If the block has already been created, use it.
@@ -178,7 +178,7 @@ extension GIRParser {
   func parseGIRBasicBlock(_ B: GIRBuilder) throws -> Bool {
     var ident = try self.parser.parseIdentifierToken()
     if ident.render.hasSuffix(":") {
-      ident = ident.withTokenKind(.identifier(String(ident.render.dropLast())))
+      ident = ident.withKind(.identifier(String(ident.render.dropLast())))
     }
     let cont = self.namedContinuation(B, Name(name: ident))
 

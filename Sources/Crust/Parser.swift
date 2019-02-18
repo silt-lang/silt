@@ -210,10 +210,10 @@ extension Parser {
       let id = try parseIdentifierToken()
       if case .period = peek() {
         let period = try consume(.period)
-        pieces.append(QualifiedNamePieceSyntax(name: id,
+        pieces.append(SyntaxFactory.makeQualifiedNamePiece(name: id,
                                                trailingPeriod: period))
       } else {
-        pieces.append(QualifiedNamePieceSyntax(name: id,
+        pieces.append(SyntaxFactory.makeQualifiedNamePiece(name: id,
                                                trailingPeriod: nil))
         break
       }
@@ -224,7 +224,7 @@ extension Parser {
       throw expected("name")
     }
 
-    return QualifiedNameSyntax(elements: pieces)
+    return SyntaxFactory.makeQualifiedNameSyntax(pieces)
   }
 
   /// Ensures all of the QualifiedNameSyntax nodes passed in are basic names,
@@ -253,7 +253,7 @@ extension Parser {
       default: break loop
       }
     }
-    return IdentifierListSyntax(elements: ensureAllNamesSimple(names))
+    return SyntaxFactory.makeIdentifierListSyntax(ensureAllNamesSimple(names))
   }
 }
 
@@ -286,7 +286,7 @@ extension Parser {
       }
       pieces.append(decl)
     }
-    return DeclListSyntax(elements: pieces)
+    return SyntaxFactory.makeDeclListSyntax(pieces)
   }
 
   func parseDecl() throws -> DeclSyntax {
@@ -332,7 +332,7 @@ extension Parser {
     let declList = try parseDeclList()
     let rightBrace = try consume(.rightBrace)
     let semi = try consume(.semicolon)
-    return ModuleDeclSyntax(
+    return SyntaxFactory.makeModuleDecl(
       moduleToken: moduleKw,
       moduleIdentifier: moduleId,
       typedParameterList: paramList,
@@ -345,7 +345,7 @@ extension Parser {
   }
 
   func parseOpenImportDecl() throws -> OpenImportDeclSyntax {
-    return OpenImportDeclSyntax(
+    return SyntaxFactory.makeOpenImportDecl(
       openToken: try consume(.openKeyword),
       importToken: try consume(.importKeyword),
       importIdentifier: try parseQualifiedName(),
@@ -354,7 +354,7 @@ extension Parser {
   }
 
   func parseImportDecl() throws -> ImportDeclSyntax {
-    return ImportDeclSyntax(
+    return SyntaxFactory.makeImportDecl(
       importToken: try consume(.importKeyword),
       importIdentifier: try parseQualifiedName(),
       trailingSemicolon: try consume(.semicolon)
@@ -381,7 +381,7 @@ extension Parser {
     let prec = try parseIdentifierToken()
     let ids = try parseIdentifierList()
     let semi = try consume(.semicolon)
-    return NonFixDeclSyntax(
+    return SyntaxFactory.makeNonFixDecl(
       infixToken: tok,
       precedence: prec,
       names: ids,
@@ -394,7 +394,7 @@ extension Parser {
     let prec = try parseIdentifierToken()
     let ids = try parseIdentifierList()
     let semi = try consume(.semicolon)
-    return LeftFixDeclSyntax(
+    return SyntaxFactory.makeLeftFixDecl(
       infixlToken: tok,
       precedence: prec,
       names: ids,
@@ -407,7 +407,7 @@ extension Parser {
     let prec = try parseIdentifierToken()
     let ids = try parseIdentifierList()
     let semi = try consume(.semicolon)
-    return RightFixDeclSyntax(
+    return SyntaxFactory.makeRightFixDecl(
       infixrToken: tok,
       precedence: prec,
       names: ids,
@@ -427,7 +427,7 @@ extension Parser {
     let elemList = try parseRecordElementList()
     let rightTok = try consume(.rightBrace)
     let trailingSemi = try consume(.semicolon)
-    return RecordDeclSyntax(
+    return SyntaxFactory.makeRecordDecl(
       recordToken: recordTok,
       recordName: recName,
       parameterList: paramList,
@@ -454,7 +454,7 @@ extension Parser {
         break loop
       }
     }
-    return DeclListSyntax(elements: pieces)
+    return SyntaxFactory.makeDeclListSyntax(pieces)
   }
 
   func parseRecordElement() throws -> DeclSyntax {
@@ -474,7 +474,7 @@ extension Parser {
     let fieldTok = try consume(.fieldKeyword)
     let ascription = try parseAscription()
     let trailingSemi = try consume(.semicolon)
-    return FieldDeclSyntax(
+    return SyntaxFactory.makeFieldDecl(
       fieldToken: fieldTok,
       ascription: ascription,
       trailingSemicolon: trailingSemi
@@ -485,7 +485,7 @@ extension Parser {
     let constrTok = try consume(.constructorKeyword)
     let constrName = try parseIdentifierToken()
     let trailingSemi = try consume(.semicolon)
-    return RecordConstructorDeclSyntax(
+    return SyntaxFactory.makeRecordConstructorDecl(
       constructorToken: constrTok,
       constructorName: constrName,
       trailingSemicolon: trailingSemi
@@ -508,7 +508,7 @@ extension Parser {
     while isStartOfTypedParameter() {
       pieces.append(try parseTypedParameter())
     }
-    return TypedParameterListSyntax(elements: pieces)
+    return SyntaxFactory.makeTypedParameterListSyntax(pieces)
   }
 
   func parseTypedParameter() throws -> TypedParameterSyntax {
@@ -526,7 +526,7 @@ extension Parser {
     let leftParen = try consume(.leftParen)
     let ascription = try parseAscription()
     let rightParen = try consume(.rightParen)
-    return ExplicitTypedParameterSyntax(
+    return SyntaxFactory.makeExplicitTypedParameter(
       leftParenToken: leftParen,
       ascription: ascription,
       rightParenToken: rightParen)
@@ -536,7 +536,7 @@ extension Parser {
     let leftBrace = try consume(.leftBrace)
     let ascription = try parseAscription()
     let rightBrace = try consume(.rightBrace)
-    return ImplicitTypedParameterSyntax(
+    return SyntaxFactory.makeImplicitTypedParameter(
       leftBraceToken: leftBrace,
       ascription: ascription,
       rightBraceToken: rightBrace)
@@ -549,11 +549,12 @@ extension Parser {
     guard [.semicolon, .whereKeyword].contains(peek()) else {
       let colon = try consume(.colon)
       let expr = try parseExpr()
-      return TypeIndicesSyntax(colonToken: colon, indexExpr: expr)
+      return SyntaxFactory.makeTypeIndices(colonToken: colon, indexExpr: expr)
     }
 
-    let indices = TypeIndicesSyntax(colonToken: .implicit(.colon),
-                                    indexExpr: implicitNamedExpr(.typeKeyword))
+    let indices = SyntaxFactory.makeTypeIndices(
+      colonToken: SyntaxFactory.makeColon(),
+      indexExpr: implicitNamedExpr(.typeKeyword))
     engine.diagnose(.declRequiresIndices(parentName), node: parentName) {
       $0.highlight(parentName)
       $0.note(.addBasicTypeIndex, node: parentName)
@@ -565,7 +566,7 @@ extension Parser {
     let boundNames = try parseIdentifierList()
     let colonToken = try consume(.colon)
     let expr = try parseExpr()
-    return AscriptionSyntax(
+    return SyntaxFactory.makeAscription(
       boundNames: boundNames,
       colonToken: colonToken,
       typeExpr: expr)
@@ -574,9 +575,11 @@ extension Parser {
 
 extension Parser {
   func implicitNamedExpr(_ name: TokenKind) -> NamedBasicExprSyntax {
-    let tok = TokenSyntax.implicit(name)
-    let piece = QualifiedNamePieceSyntax(name: tok, trailingPeriod: nil)
-    return NamedBasicExprSyntax(name: QualifiedNameSyntax(elements: [piece]))
+    let tok = SyntaxFactory.makeToken(name, presence: .implicit)
+    let piece = SyntaxFactory.makeQualifiedNamePiece(name: tok,
+                                                     trailingPeriod: nil)
+    return SyntaxFactory.makeNamedBasicExpr(
+      name: SyntaxFactory.makeQualifiedNameSyntax([piece]))
   }
 
   func parseDataDecl() throws -> DeclSyntax {
@@ -589,7 +592,7 @@ extension Parser {
       let constrList = try parseConstructorList()
       let rightBrace = try consume(.rightBrace)
       let semi = try consume(.semicolon)
-      return DataDeclSyntax(
+      return SyntaxFactory.makeDataDecl(
         dataToken: dataTok,
         dataIdentifier: dataId,
         typedParameterList: paramList,
@@ -601,7 +604,7 @@ extension Parser {
         trailingSemicolon: semi)
     } else {
       let semi = try consume(.semicolon)
-      return EmptyDataDeclSyntax(
+      return SyntaxFactory.makeEmptyDataDecl(
         dataToken: dataTok,
         dataIdentifier: dataId,
         typedParameterList: paramList,
@@ -615,13 +618,13 @@ extension Parser {
     while peek() != .rightBrace {
       pieces.append(try parseConstructor())
     }
-    return ConstructorListSyntax(elements: pieces)
+    return SyntaxFactory.makeConstructorListSyntax(pieces)
   }
 
   func parseConstructor() throws -> ConstructorDeclSyntax {
     let ascription = try parseAscription()
     let semi = try consume(.semicolon)
-    return ConstructorDeclSyntax(
+    return SyntaxFactory.makeConstructorDecl(
       ascription: ascription,
       trailingSemicolon: semi)
   }
@@ -644,7 +647,7 @@ extension Parser {
   func finishParsingFunctionDecl(
         _ exprs: BasicExprListSyntax) throws -> FunctionDeclSyntax {
     let colonTok = try self.consume(.colon)
-    let boundNames = IdentifierListSyntax(elements: try exprs.map { expr in
+    let boundNames = SyntaxFactory.makeIdentifierListSyntax(try exprs.map { expr in
       guard let namedExpr = expr as? NamedBasicExprSyntax else {
         throw engine.diagnose(.expectedNameInFuncDecl, node: expr)
       }
@@ -656,12 +659,12 @@ extension Parser {
       return name.name
     })
     let typeExpr = try self.parseExpr()
-    let ascription = AscriptionSyntax(
+    let ascription = SyntaxFactory.makeAscription(
       boundNames: boundNames,
       colonToken: colonTok,
       typeExpr: typeExpr
     )
-    return FunctionDeclSyntax(
+    return SyntaxFactory.makeFunctionDecl(
       ascription: ascription,
       trailingSemicolon: try consume(.semicolon))
   }
@@ -669,7 +672,7 @@ extension Parser {
   func finishParsingFunctionClause(
         _ exprs: BasicExprListSyntax) throws -> FunctionClauseDeclSyntax {
     if case .withKeyword = peek() {
-      return WithRuleFunctionClauseDeclSyntax(
+      return SyntaxFactory.makeWithRuleFunctionClauseDecl(
         basicExprList: exprs,
         withToken: try consume(.withKeyword),
         withExpr: try parseExpr(),
@@ -680,7 +683,7 @@ extension Parser {
         trailingSemicolon: try consume(.semicolon))
     }
     assert(peek() == .equals)
-    return NormalFunctionClauseDeclSyntax(
+    return SyntaxFactory.makeNormalFunctionClauseDecl(
       basicExprList: exprs,
       equalsToken: try consume(.equals),
       rhsExpr: try parseExpr(),
@@ -690,7 +693,7 @@ extension Parser {
 
   func finishParsingAbsurdFunctionClause(
     _ exprs: BasicExprListSyntax) throws -> AbsurdFunctionClauseDeclSyntax {
-    return AbsurdFunctionClauseDeclSyntax(
+    return SyntaxFactory.makeAbsurdFunctionClauseDecl(
       basicExprList: exprs,
       trailingSemicolon: try consume(.semicolon)
     )
@@ -701,7 +704,7 @@ extension Parser {
       return nil
     }
 
-    return FunctionWhereClauseDeclSyntax(
+    return SyntaxFactory.makeFunctionWhereClauseDecl(
       whereToken: try consume(.whereKeyword),
       leftBraceToken: try consume(.leftBrace),
       declList: try parseDeclList(),
@@ -748,7 +751,7 @@ extension Parser {
     let leftParen = try consume(.leftParen)
     if case .rightParen = peek() {
       let rightParen = try consume(.rightParen)
-      return AbsurdExprSyntax(leftParenToken: leftParen,
+      return SyntaxFactory.makeAbsurdExpr(leftParenToken: leftParen,
                               rightParenToken: rightParen)
     }
 
@@ -757,7 +760,7 @@ extension Parser {
     guard case .identifier(_) = peek() else {
       let expr = try parseExpr()
       let rightParen = try consume(.rightParen)
-      return ParenthesizedExprSyntax(
+      return SyntaxFactory.makeParenthesizedExpr(
         leftParenToken: leftParen,
         expr: expr,
         rightParenToken: rightParen
@@ -783,7 +786,7 @@ extension Parser {
 
     // If there's only one named expression like '(a)', return it.
     guard exprs.count >= 1 else {
-      return ParenthesizedExprSyntax(
+      return SyntaxFactory.makeParenthesizedExpr(
         leftParenToken: leftParen,
         expr: exprs[0],
         rightParenToken: rightParen
@@ -791,9 +794,9 @@ extension Parser {
     }
 
     // Else form an application expression.
-    let app = ApplicationExprSyntax(exprs:
-                                    BasicExprListSyntax(elements: exprs))
-    return ParenthesizedExprSyntax(
+    let app = SyntaxFactory.makeApplicationExpr(exprs:
+                                    SyntaxFactory.makeBasicExprListSyntax(exprs))
+    return SyntaxFactory.makeParenthesizedExpr(
       leftParenToken: leftParen,
       expr: app,
       rightParenToken: rightParen
@@ -818,10 +821,11 @@ extension Parser {
         // If we see an arrow at the start, then consume it and move on.
         if case .arrow = peek() {
           let arrow = try consume(.arrow)
-          let name = QualifiedNameSyntax(elements: [
-            QualifiedNamePieceSyntax(name: arrow, trailingPeriod: nil),
+          let name = SyntaxFactory.makeQualifiedNameSyntax([
+            SyntaxFactory.makeQualifiedNamePiece(name: arrow,
+                                                 trailingPeriod: nil)
           ])
-          exprs.append(NamedBasicExprSyntax(name: name))
+          exprs.append(SyntaxFactory.makeNamedBasicExpr(name: name))
         } else {
           exprs.append(contentsOf: try parseBasicExprs())
         }
@@ -836,7 +840,8 @@ extension Parser {
       guard exprs.count > 1 else {
         return exprs[0]
       }
-      return ApplicationExprSyntax(exprs: BasicExprListSyntax(elements: exprs))
+      return SyntaxFactory.makeApplicationExpr(
+        exprs: SyntaxFactory.makeBasicExprListSyntax(exprs))
     }
   }
 
@@ -845,7 +850,7 @@ extension Parser {
     guard !parameters.isEmpty else {
       throw expected("type ascription")
     }
-    return TypedParameterGroupExprSyntax(
+    return SyntaxFactory.makeTypedParameterGroupExpr(
       parameters: parameters
     )
   }
@@ -866,20 +871,20 @@ extension Parser {
     }
 
     let tokens = ensureAllNamesSimple(names)
-    let identList = IdentifierListSyntax(elements: tokens)
+    let identList = SyntaxFactory.makeIdentifierListSyntax(tokens)
     let typeExpr = try self.parseExpr()
-    let ascription = AscriptionSyntax(boundNames: identList,
+    let ascription = SyntaxFactory.makeAscription(boundNames: identList,
                                       colonToken: colonTok,
                                       typeExpr: typeExpr)
     let rightParen = try consume(.rightParen)
-    let firstParam = ExplicitTypedParameterSyntax(leftParenToken: leftParen,
+    let firstParam = SyntaxFactory.makeExplicitTypedParameter(leftParenToken: leftParen,
                                                   ascription: ascription,
                                                   rightParenToken: rightParen)
     let parameters = try parseTypedParameterList().prepending(firstParam)
     guard !parameters.isEmpty else {
       throw expected("type ascription")
     }
-    return TypedParameterGroupExprSyntax(parameters: parameters)
+    return SyntaxFactory.makeTypedParameterGroupExpr(parameters: parameters)
   }
 
   func parseLambdaExpr() throws -> LambdaExprSyntax {
@@ -887,7 +892,7 @@ extension Parser {
     let bindingList = try parseBindingList()
     let arrowTok = try consume(.arrow)
     let bodyExpr = try parseExpr()
-    return LambdaExprSyntax(
+    return SyntaxFactory.makeLambdaExpr(
       slashToken: slashTok,
       bindingList: bindingList,
       arrowToken: arrowTok,
@@ -900,7 +905,7 @@ extension Parser {
     let bindingList = try parseTypedParameterList()
     let arrow = try consume(.arrow)
     let outputExpr = try parseExpr()
-    return QuantifiedExprSyntax(
+    return SyntaxFactory.makeQuantifiedExpr(
       forallToken: forallTok,
       bindingList: bindingList,
       arrowToken: arrow,
@@ -915,7 +920,7 @@ extension Parser {
     let rightBrace = try consume(.rightBrace)
     let inTok = try consume(.inKeyword)
     let outputExpr = try parseExpr()
-    return LetExprSyntax(
+    return SyntaxFactory.makeLetExpr(
       letToken: letTok,
       leftBraceToken: leftBrace,
       declList: declList,
@@ -942,7 +947,7 @@ extension Parser {
   }
 
   func parseBasicExprList() throws -> BasicExprListSyntax {
-    return BasicExprListSyntax(elements:
+    return SyntaxFactory.makeBasicExprListSyntax(
       try parseBasicExprs(diagType: "list of expressions"))
   }
 
@@ -971,7 +976,7 @@ extension Parser {
     let leftBrace = try consume(.leftBrace)
     let fieldAssigns = try parseRecordFieldAssignmentList()
     let rightBrace = try consume(.rightBrace)
-    return RecordExprSyntax(
+    return SyntaxFactory.makeRecordExpr(
       recordToken: recordTok,
       parameterExpr: parameterExpr,
       leftBraceToken: leftBrace,
@@ -986,7 +991,7 @@ extension Parser {
       while case .identifier(_) = peek() {
         pieces.append(try parseRecordFieldAssignment())
       }
-      return RecordFieldAssignmentListSyntax(elements: pieces)
+      return SyntaxFactory.makeRecordFieldAssignmentListSyntax(pieces)
   }
 
   func parseRecordFieldAssignment() throws -> RecordFieldAssignmentSyntax {
@@ -994,7 +999,7 @@ extension Parser {
     let equalsTok = try consume(.equals)
     let fieldInit = try parseExpr()
     let trailingSemi = try consume(.semicolon)
-    return RecordFieldAssignmentSyntax(
+    return SyntaxFactory.makeRecordFieldAssignment(
       fieldName: fieldName,
       equalsToken: equalsTok,
       fieldInitExpr: fieldInit,
@@ -1004,17 +1009,17 @@ extension Parser {
 
   func parseNamedBasicExpr() throws -> NamedBasicExprSyntax {
     let name = try parseQualifiedName()
-    return NamedBasicExprSyntax(name: name)
+    return SyntaxFactory.makeNamedBasicExpr(name: name)
   }
 
   func parseUnderscoreExpr() throws -> UnderscoreExprSyntax {
     let underscore = try consume(.underscore)
-    return UnderscoreExprSyntax(underscoreToken: underscore)
+    return SyntaxFactory.makeUnderscoreExpr(underscoreToken: underscore)
   }
 
   func parseTypeBasicExpr() throws -> TypeBasicExprSyntax {
     let typeTok = try consume(.typeKeyword)
-    return TypeBasicExprSyntax(typeToken: typeTok)
+    return SyntaxFactory.makeTypeBasicExpr(typeToken: typeTok)
   }
 
   func parseBindingList() throws -> BindingListSyntax {
@@ -1035,22 +1040,22 @@ extension Parser {
       throw expected("binding list")
     }
 
-    return BindingListSyntax(elements: pieces)
+    return SyntaxFactory.makeBindingListSyntax(pieces)
   }
 
   func parseNamedBinding() throws -> NamedBindingSyntax {
     let name = try parseQualifiedName()
-    return NamedBindingSyntax(name: name)
+    return SyntaxFactory.makeNamedBinding(name: name)
   }
 
   func parseTypedBinding() throws -> TypedBindingSyntax {
     let parameter = try parseTypedParameter()
-    return TypedBindingSyntax(parameter: parameter)
+    return SyntaxFactory.makeTypedBinding(parameter: parameter)
   }
 
   func parseAnonymousBinding() throws -> AnonymousBindingSyntax {
     let underscore = try consume(.underscore)
-    return AnonymousBindingSyntax(underscoreToken: underscore)
+    return SyntaxFactory.makeAnonymousBinding(underscoreToken: underscore)
   }
 }
 
@@ -1068,7 +1073,7 @@ extension Parser {
     while isStartOfGIRTypedParameter() {
       pieces.append(try parseGIRTypedParameter())
     }
-    return TypedParameterListSyntax(elements: pieces)
+    return SyntaxFactory.makeTypedParameterListSyntax(pieces)
   }
 
   func parseGIRTypedParameter() throws -> TypedParameterSyntax {
@@ -1085,7 +1090,7 @@ extension Parser {
     let bindingList = try parseGIRTypedParameterList()
     let arrow = try consume(.arrow)
     let outputExpr = try parseExpr()
-    return QuantifiedExprSyntax(
+    return SyntaxFactory.makeQuantifiedExpr(
       forallToken: forallTok,
       bindingList: bindingList,
       arrowToken: arrow,
@@ -1109,10 +1114,11 @@ extension Parser {
         // If we see an arrow at the start, then consume it and move on.
         if case .arrow = peek() {
           let arrow = try consume(.arrow)
-          let name = QualifiedNameSyntax(elements: [
-            QualifiedNamePieceSyntax(name: arrow, trailingPeriod: nil),
+          let name = SyntaxFactory.makeQualifiedNameSyntax([
+            SyntaxFactory.makeQualifiedNamePiece(name: arrow,
+                                                 trailingPeriod: nil),
           ])
-          exprs.append(NamedBasicExprSyntax(name: name))
+          exprs.append(SyntaxFactory.makeNamedBasicExpr(name: name))
         } else {
           exprs.append(contentsOf: try parseBasicExprs(parseGIR: true))
         }
@@ -1127,7 +1133,9 @@ extension Parser {
       guard exprs.count > 1 else {
         return exprs[0]
       }
-      return ApplicationExprSyntax(exprs: BasicExprListSyntax(elements: exprs))
+      
+      return SyntaxFactory.makeApplicationExpr(
+        exprs: SyntaxFactory.makeBasicExprListSyntax(exprs))
     }
   }
 }
