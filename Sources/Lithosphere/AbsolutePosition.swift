@@ -9,6 +9,12 @@
 // See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
+//
+// This file contains modifications from the Silt Langauge project. These
+// modifications are released under the MIT license, a copy of which is
+// available in the repository.
+//
+//===----------------------------------------------------------------------===//
 
 /// An absolute position in a source file as text - the absolute utf8Offset from
 /// the start of the file.

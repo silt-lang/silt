@@ -107,7 +107,8 @@ public struct Invocation {
         fatalError("only Parse is implemented")
       case .dump(.tokens):
         run(Passes.lexFile |> Pass(name: "Describe Tokens") { tokens, _ in
-          TokenDescriber.describe(tokens, to: &stdoutStreamHandle)
+          TokenDescriber.describe(tokens, to: &stdoutStreamHandle,
+                                  converter: printingConsumer.converter!)
         })
       case .dump(.file):
         run(Passes.lexFile |> Pass(name: "Reprint File") { tokens, _ -> Void in
@@ -125,7 +126,8 @@ public struct Invocation {
         })
       case .dump(.parse):
         run(Passes.parseFile |> Pass(name: "Dump Parsed") { module, _ in
-          SyntaxDumper(stream: &stderrStreamHandle).dump(module)
+          SyntaxDumper(stream: &stderrStreamHandle,
+                       converter: printingConsumer.converter!).dump(module)
         })
       case .dump(.scopes):
         run(Passes.scopeCheckFile |> Pass(name: "Dump Scopes") { module, _ in

@@ -9,6 +9,12 @@
 // See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
+//
+// This file contains modifications from the Silt Langauge project. These
+// modifications are released under the MIT license, a copy of which is
+// available in the repository.
+//
+//===----------------------------------------------------------------------===//
 
 /// A Syntax node represents a tree of nodes with tokens at the leaves.
 /// Each node has accessors for its known children, and allows efficient
@@ -270,8 +276,7 @@ extension Syntax {
 
   /// The root of the tree in which this node resides.
   public var root: Syntax {
-    fatalError()
-//    return makeSyntax(root: _root,  data: _root)
+    return makeSyntax(root: _root,  data: _root)
   }
 
   /// The sequence of indices that correspond to child nodes that are not
@@ -289,10 +294,9 @@ extension Syntax {
   /// - Returns: A Syntax node for the provided child, or `nil` if there
   ///            is not a child at that index in the node.
   public func child(at index: Int) -> Syntax? {
-//    guard raw.layout.indices.contains(index) else { return nil }
-//    guard let childData = data.cachedChild(at: index) else { return nil }
-//    return makeSyntax(root: _root, data: childData)
-    fatalError()
+    guard raw.layout.indices.contains(index) else { return nil }
+    guard let childData = data.cachedChild(at: index) else { return nil }
+    return makeSyntax(root: _root, data: childData)
   }
 
   /// Passes to a closure every present token node that is part of this node.

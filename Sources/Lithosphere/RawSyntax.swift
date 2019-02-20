@@ -9,6 +9,12 @@
 // See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
+//
+// This file contains modifications from the Silt Langauge project. These
+// modifications are released under the MIT license, a copy of which is
+// available in the repository.
+//
+//===----------------------------------------------------------------------===//
 
 /// Box a value type into a reference type
 class Box<T> {
@@ -52,11 +58,10 @@ final class RawSyntax {
 
   /// The syntax kind of this raw syntax.
   var kind: SyntaxKind {
-    fatalError()
-//    switch data {
-//    case .node(let kind, _): return kind
-//    case .token(_, _, _): return .token
-//    }
+    switch data {
+    case .node(let kind, _): return kind
+    case .token(_, _, _): return .token
+    }
   }
 
   var tokenKind: TokenKind? {
@@ -164,23 +169,22 @@ extension RawSyntax: TextOutputStreamable {
   /// - Parameter stream: The stream on which to output this node.
   func write<Target>(to target: inout Target)
     where Target: TextOutputStream {
-//    switch data {
-//    case .node(_, let layout):
-//      for child in layout {
-//        guard let child = child else { continue }
-//        child.write(to: &target)
-//      }
-//    case let .token(kind, leadingTrivia, trailingTrivia):
-//      guard isPresent else { return }
-//      for piece in leadingTrivia {
-//        piece.write(to: &target)
-//      }
-//      target.write(kind.text)
-//      for piece in trailingTrivia {
-//        piece.write(to: &target)
-//      }
-//    }
-      fatalError()
+    switch data {
+    case .node(_, let layout):
+      for child in layout {
+        guard let child = child else { continue }
+        child.write(to: &target)
+      }
+    case let .token(kind, leadingTrivia, trailingTrivia):
+      guard isPresent else { return }
+      for piece in leadingTrivia {
+        piece.writeSourceText(to: &target)
+      }
+      target.write(kind.text)
+      for piece in trailingTrivia {
+        piece.writeSourceText(to: &target)
+      }
+    }
   }
 }
 
@@ -263,9 +267,8 @@ extension RawSyntax {
     if case .missing = presence {
       length = SourceLength.zero
     } else {
-      fatalError()
-      // length = kind.sourceLength + leadingTrivia.sourceLength +
-        // trailingTrivia.sourceLength
+      length = kind.sourceLength + leadingTrivia.sourceLength +
+                trailingTrivia.sourceLength
     }
     return .init(kind: kind, leadingTrivia: leadingTrivia,
       trailingTrivia: trailingTrivia, length: length, presence: presence)

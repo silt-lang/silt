@@ -13,23 +13,23 @@ public enum TokenDescriber {
   /// Prints a description of each token in the token stream and
   public static
   func describe<Target: TextOutputStream>(_ tokens: [TokenSyntax],
-                                          to stream: inout Target) {
-    fatalError()
-//    for token in tokens {
-//      stream.write("Token: \(token.tokenKind)")
-//      if let loc = token.sourceRange?.start {
-//        let baseName = URL(fileURLWithPath: loc.file).lastPathComponent
-//        stream.write(" <\(baseName):\(loc.line):\(loc.column)>")
-//      }
-//      stream.write("\n")
-//      stream.write("  Leading Trivia:\n")
-//      for piece in token.leadingTrivia.pieces {
-//        stream.write("    \(piece)\n")
-//      }
-//      stream.write("  Trailing Trivia:\n")
-//      for piece in token.trailingTrivia.pieces {
-//        stream.write("    \(piece)\n")
-//      }
-//    }
+                                          to stream: inout Target,
+                                          converter: SourceLocationConverter) {
+    for token in tokens {
+      stream.write("Token: \(token.tokenKind)")
+      let loc = token.sourceRange(converter: converter).start
+      let baseName = URL(fileURLWithPath: loc.file).lastPathComponent
+      stream.write(" <\(baseName):\(loc.line):\(loc.column)>")
+
+      stream.write("\n")
+      stream.write("  Leading Trivia:\n")
+      for piece in token.leadingTrivia.pieces {
+        stream.write("    \(piece)\n")
+      }
+      stream.write("  Trailing Trivia:\n")
+      for piece in token.trailingTrivia.pieces {
+        stream.write("    \(piece)\n")
+      }
+    }
   }
 }

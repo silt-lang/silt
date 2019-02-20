@@ -9,6 +9,17 @@ import Foundation
 import Rainbow
 
 public class SyntaxDumper<StreamType: TextOutputStream>: Writer<StreamType> {
+  let converter: SourceLocationConverter
+
+  public init(
+    stream: inout StreamType,
+    converter: SourceLocationConverter,
+    indentationWidth: Int = 2
+  ) {
+    self.converter = converter
+    super.init(stream: &stream, indentationWidth: indentationWidth)
+  }
+
   public func writeLoc(_ loc: SourceLocation?) {
     if let loc = loc {
       let url = URL(fileURLWithPath: loc.file)
@@ -22,8 +33,6 @@ public class SyntaxDumper<StreamType: TextOutputStream>: Writer<StreamType> {
   }
 
   public func dump(_ node: Syntax, root: Bool = true) {
-    fatalError()
-    /*
     write("(")
     switch node {
     case let node as TokenSyntax:
@@ -34,11 +43,10 @@ public class SyntaxDumper<StreamType: TextOutputStream>: Writer<StreamType> {
       default:
         write("\(node.tokenKind)".green.bold)
       }
-      fatalError()
-//      writeLoc(node.endLocation(converter: SourceLocationConverter))
+      writeLoc(node.endLocation(converter: self.converter))
     default:
       write("\(node.raw.kind)".magenta.bold)
-      writeLoc(node.startLoc)
+      writeLoc(node.startLocation(converter: self.converter))
       withIndent {
         for child in node.children {
           writeLine()
@@ -49,6 +57,6 @@ public class SyntaxDumper<StreamType: TextOutputStream>: Writer<StreamType> {
     write(")")
     if root {
       writeLine()
-    }*/
+    }
   }
 }

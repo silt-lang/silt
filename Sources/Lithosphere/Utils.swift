@@ -71,8 +71,7 @@ public struct SourceEdit {
 
 extension String {
   var isNativeUTF8: Bool {
-    fatalError()
-//    return utf8.withContiguousStorageIfAvailable { _ in 0 } != nil
+    return utf8.withContiguousStorageIfAvailable { _ in 0 } != nil
   }
 
   mutating func makeNativeUTF8IfNeeded() {
