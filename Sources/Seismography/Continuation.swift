@@ -122,15 +122,12 @@ public final class Continuation: NominalValue, GraphNode {
   }
 
   public override var type: Value {
-    get {
-      guard let module = module else {
-        fatalError("cannot get type of Continuation without module")
-      }
-      let returnTy = parameters.last?.type ?? module.bottomType
-      let paramTys = parameters.dropLast().map { $0.type }
-      return module.functionType(arguments: paramTys, returnType: returnTy)
+    guard let module = module else {
+      fatalError("cannot get type of Continuation without module")
     }
-    set { /* do nothing */ }
+    let returnTy = parameters.last?.type ?? module.bottomType
+    let paramTys = parameters.dropLast().map { $0.type }
+    return module.functionType(arguments: paramTys, returnType: returnTy)
   }
 
   public override func mangle<M: Mangler>(into mangler: inout M) {

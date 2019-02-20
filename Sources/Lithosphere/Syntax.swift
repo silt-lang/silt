@@ -449,7 +449,7 @@ public struct TokenSyntax: _SyntaxBase, Hashable {
     return lhs._data === rhs._data
   }
 
-  public var hashValue: Int {
-    return ObjectIdentifier(_data).hashValue
+  public func hash(into hasher: inout Hasher) {
+    ObjectIdentifier(_data).hash(into: &hasher)
   }
 }

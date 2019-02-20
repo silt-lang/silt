@@ -74,13 +74,12 @@ public struct Fixity {
       }
     }
 
-    public var hashValue: Int {
+    public func hash(into hasher: inout Hasher) {
       switch self {
-      // FIXME: Hash like an Optional<Int> when Optional<Int> can hash at all
       case .unrelated:
-        return Int.max.hashValue
+        return Int?.none.hash(into: &hasher)
       case let .related(l):
-        return l.hashValue
+        return Int?.some(l).hash(into: &hasher)
       }
     }
 

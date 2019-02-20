@@ -5,6 +5,10 @@
 ///
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
+// swiftlint:disable line_length
+// swiftlint:disable function_parameter_count
+// swiftlint:disable trailing_whitespace
+
 /// A wrapper around a raw Syntax layout.
 public struct UnknownSyntax: _SyntaxBase {
   let _root: SyntaxData
@@ -320,7 +324,7 @@ public struct QualifiedNamePieceSyntax: Syntax, _SyntaxBase {
   }
   public var name: TokenSyntax {
     let child = data.cachedChild(at: Cursor.name.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withName(_ newChild: TokenSyntax) -> QualifiedNamePieceSyntax {
@@ -364,7 +368,7 @@ public struct ModuleDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public var moduleToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.moduleToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withModuleToken(_ newChild: TokenSyntax) -> ModuleDeclSyntax {
@@ -376,7 +380,7 @@ public struct ModuleDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var moduleIdentifier: QualifiedNameSyntax {
     let child = data.cachedChild(at: Cursor.moduleIdentifier.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! QualifiedNameSyntax
   }
   public func withModuleIdentifier(_ newChild: QualifiedNameSyntax) -> ModuleDeclSyntax {
@@ -388,7 +392,7 @@ public struct ModuleDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var typedParameterList: TypedParameterListSyntax {
     let child = data.cachedChild(at: Cursor.typedParameterList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TypedParameterListSyntax
   }
   public func withTypedParameterList(_ newChild: TypedParameterListSyntax) -> ModuleDeclSyntax {
@@ -400,7 +404,7 @@ public struct ModuleDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var whereToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.whereToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withWhereToken(_ newChild: TokenSyntax) -> ModuleDeclSyntax {
@@ -412,7 +416,7 @@ public struct ModuleDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var leftBraceToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.leftBraceToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withLeftBraceToken(_ newChild: TokenSyntax) -> ModuleDeclSyntax {
@@ -424,7 +428,7 @@ public struct ModuleDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var declList: DeclListSyntax {
     let child = data.cachedChild(at: Cursor.declList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! DeclListSyntax
   }
   public func withDeclList(_ newChild: DeclListSyntax) -> ModuleDeclSyntax {
@@ -436,7 +440,7 @@ public struct ModuleDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var rightBraceToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.rightBraceToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRightBraceToken(_ newChild: TokenSyntax) -> ModuleDeclSyntax {
@@ -448,7 +452,7 @@ public struct ModuleDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> ModuleDeclSyntax {
@@ -629,7 +633,7 @@ public struct OpenImportDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var importToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.importToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withImportToken(_ newChild: TokenSyntax) -> OpenImportDeclSyntax {
@@ -641,7 +645,7 @@ public struct OpenImportDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var importIdentifier: QualifiedNameSyntax {
     let child = data.cachedChild(at: Cursor.importIdentifier.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! QualifiedNameSyntax
   }
   public func withImportIdentifier(_ newChild: QualifiedNameSyntax) -> OpenImportDeclSyntax {
@@ -653,7 +657,7 @@ public struct OpenImportDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> OpenImportDeclSyntax {
@@ -680,7 +684,7 @@ public struct ImportDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public var importToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.importToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withImportToken(_ newChild: TokenSyntax) -> ImportDeclSyntax {
@@ -692,7 +696,7 @@ public struct ImportDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var importIdentifier: QualifiedNameSyntax {
     let child = data.cachedChild(at: Cursor.importIdentifier.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! QualifiedNameSyntax
   }
   public func withImportIdentifier(_ newChild: QualifiedNameSyntax) -> ImportDeclSyntax {
@@ -704,7 +708,7 @@ public struct ImportDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> ImportDeclSyntax {
@@ -737,7 +741,7 @@ public struct DataDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public var dataToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.dataToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withDataToken(_ newChild: TokenSyntax) -> DataDeclSyntax {
@@ -749,7 +753,7 @@ public struct DataDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var dataIdentifier: TokenSyntax {
     let child = data.cachedChild(at: Cursor.dataIdentifier.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withDataIdentifier(_ newChild: TokenSyntax) -> DataDeclSyntax {
@@ -761,7 +765,7 @@ public struct DataDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var typedParameterList: TypedParameterListSyntax {
     let child = data.cachedChild(at: Cursor.typedParameterList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TypedParameterListSyntax
   }
   public func withTypedParameterList(_ newChild: TypedParameterListSyntax) -> DataDeclSyntax {
@@ -773,7 +777,7 @@ public struct DataDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var typeIndices: TypeIndicesSyntax {
     let child = data.cachedChild(at: Cursor.typeIndices.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TypeIndicesSyntax
   }
   public func withTypeIndices(_ newChild: TypeIndicesSyntax) -> DataDeclSyntax {
@@ -785,7 +789,7 @@ public struct DataDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var whereToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.whereToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withWhereToken(_ newChild: TokenSyntax) -> DataDeclSyntax {
@@ -797,7 +801,7 @@ public struct DataDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var leftBraceToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.leftBraceToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withLeftBraceToken(_ newChild: TokenSyntax) -> DataDeclSyntax {
@@ -809,7 +813,7 @@ public struct DataDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var constructorList: ConstructorListSyntax {
     let child = data.cachedChild(at: Cursor.constructorList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! ConstructorListSyntax
   }
   public func withConstructorList(_ newChild: ConstructorListSyntax) -> DataDeclSyntax {
@@ -821,7 +825,7 @@ public struct DataDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var rightBraceToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.rightBraceToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRightBraceToken(_ newChild: TokenSyntax) -> DataDeclSyntax {
@@ -833,7 +837,7 @@ public struct DataDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> DataDeclSyntax {
@@ -862,7 +866,7 @@ public struct EmptyDataDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public var dataToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.dataToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withDataToken(_ newChild: TokenSyntax) -> EmptyDataDeclSyntax {
@@ -874,7 +878,7 @@ public struct EmptyDataDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var dataIdentifier: TokenSyntax {
     let child = data.cachedChild(at: Cursor.dataIdentifier.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withDataIdentifier(_ newChild: TokenSyntax) -> EmptyDataDeclSyntax {
@@ -886,7 +890,7 @@ public struct EmptyDataDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var typedParameterList: TypedParameterListSyntax {
     let child = data.cachedChild(at: Cursor.typedParameterList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TypedParameterListSyntax
   }
   public func withTypedParameterList(_ newChild: TypedParameterListSyntax) -> EmptyDataDeclSyntax {
@@ -898,7 +902,7 @@ public struct EmptyDataDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var typeIndices: TypeIndicesSyntax {
     let child = data.cachedChild(at: Cursor.typeIndices.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TypeIndicesSyntax
   }
   public func withTypeIndices(_ newChild: TypeIndicesSyntax) -> EmptyDataDeclSyntax {
@@ -910,7 +914,7 @@ public struct EmptyDataDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> EmptyDataDeclSyntax {
@@ -936,7 +940,7 @@ public struct TypeIndicesSyntax: Syntax, _SyntaxBase {
   }
   public var colonToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.colonToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withColonToken(_ newChild: TokenSyntax) -> TypeIndicesSyntax {
@@ -948,7 +952,7 @@ public struct TypeIndicesSyntax: Syntax, _SyntaxBase {
 
   public var indexExpr: ExprSyntax {
     let child = data.cachedChild(at: Cursor.indexExpr.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! ExprSyntax
   }
   public func withIndexExpr(_ newChild: ExprSyntax) -> TypeIndicesSyntax {
@@ -1116,7 +1120,7 @@ public struct AscriptionSyntax: Syntax, _SyntaxBase {
   }
   public var boundNames: IdentifierListSyntax {
     let child = data.cachedChild(at: Cursor.boundNames.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! IdentifierListSyntax
   }
   public func withBoundNames(_ newChild: IdentifierListSyntax) -> AscriptionSyntax {
@@ -1128,7 +1132,7 @@ public struct AscriptionSyntax: Syntax, _SyntaxBase {
 
   public var colonToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.colonToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withColonToken(_ newChild: TokenSyntax) -> AscriptionSyntax {
@@ -1140,7 +1144,7 @@ public struct AscriptionSyntax: Syntax, _SyntaxBase {
 
   public var typeExpr: ExprSyntax {
     let child = data.cachedChild(at: Cursor.typeExpr.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! ExprSyntax
   }
   public func withTypeExpr(_ newChild: ExprSyntax) -> AscriptionSyntax {
@@ -1167,7 +1171,7 @@ public struct ExplicitTypedParameterSyntax: TypedParameterSyntax, _SyntaxBase {
   }
   public var leftParenToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.leftParenToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withLeftParenToken(_ newChild: TokenSyntax) -> ExplicitTypedParameterSyntax {
@@ -1179,7 +1183,7 @@ public struct ExplicitTypedParameterSyntax: TypedParameterSyntax, _SyntaxBase {
 
   public var ascription: AscriptionSyntax {
     let child = data.cachedChild(at: Cursor.ascription.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! AscriptionSyntax
   }
   public func withAscription(_ newChild: AscriptionSyntax) -> ExplicitTypedParameterSyntax {
@@ -1191,7 +1195,7 @@ public struct ExplicitTypedParameterSyntax: TypedParameterSyntax, _SyntaxBase {
 
   public var rightParenToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.rightParenToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRightParenToken(_ newChild: TokenSyntax) -> ExplicitTypedParameterSyntax {
@@ -1218,7 +1222,7 @@ public struct ImplicitTypedParameterSyntax: TypedParameterSyntax, _SyntaxBase {
   }
   public var leftBraceToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.leftBraceToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withLeftBraceToken(_ newChild: TokenSyntax) -> ImplicitTypedParameterSyntax {
@@ -1230,7 +1234,7 @@ public struct ImplicitTypedParameterSyntax: TypedParameterSyntax, _SyntaxBase {
 
   public var ascription: AscriptionSyntax {
     let child = data.cachedChild(at: Cursor.ascription.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! AscriptionSyntax
   }
   public func withAscription(_ newChild: AscriptionSyntax) -> ImplicitTypedParameterSyntax {
@@ -1242,7 +1246,7 @@ public struct ImplicitTypedParameterSyntax: TypedParameterSyntax, _SyntaxBase {
 
   public var rightBraceToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.rightBraceToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRightBraceToken(_ newChild: TokenSyntax) -> ImplicitTypedParameterSyntax {
@@ -1409,7 +1413,7 @@ public struct ConstructorDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public var ascription: AscriptionSyntax {
     let child = data.cachedChild(at: Cursor.ascription.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! AscriptionSyntax
   }
   public func withAscription(_ newChild: AscriptionSyntax) -> ConstructorDeclSyntax {
@@ -1421,7 +1425,7 @@ public struct ConstructorDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> ConstructorDeclSyntax {
@@ -1454,7 +1458,7 @@ public struct RecordDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public var recordToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.recordToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRecordToken(_ newChild: TokenSyntax) -> RecordDeclSyntax {
@@ -1466,7 +1470,7 @@ public struct RecordDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var recordName: TokenSyntax {
     let child = data.cachedChild(at: Cursor.recordName.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRecordName(_ newChild: TokenSyntax) -> RecordDeclSyntax {
@@ -1478,7 +1482,7 @@ public struct RecordDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var parameterList: TypedParameterListSyntax {
     let child = data.cachedChild(at: Cursor.parameterList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TypedParameterListSyntax
   }
   public func withParameterList(_ newChild: TypedParameterListSyntax) -> RecordDeclSyntax {
@@ -1490,7 +1494,7 @@ public struct RecordDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var typeIndices: TypeIndicesSyntax {
     let child = data.cachedChild(at: Cursor.typeIndices.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TypeIndicesSyntax
   }
   public func withTypeIndices(_ newChild: TypeIndicesSyntax) -> RecordDeclSyntax {
@@ -1502,7 +1506,7 @@ public struct RecordDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var whereToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.whereToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withWhereToken(_ newChild: TokenSyntax) -> RecordDeclSyntax {
@@ -1514,7 +1518,7 @@ public struct RecordDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var leftParenToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.leftParenToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withLeftParenToken(_ newChild: TokenSyntax) -> RecordDeclSyntax {
@@ -1526,7 +1530,7 @@ public struct RecordDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var recordElementList: DeclListSyntax {
     let child = data.cachedChild(at: Cursor.recordElementList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! DeclListSyntax
   }
   public func withRecordElementList(_ newChild: DeclListSyntax) -> RecordDeclSyntax {
@@ -1538,7 +1542,7 @@ public struct RecordDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var rightParenToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.rightParenToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRightParenToken(_ newChild: TokenSyntax) -> RecordDeclSyntax {
@@ -1550,7 +1554,7 @@ public struct RecordDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> RecordDeclSyntax {
@@ -1577,7 +1581,7 @@ public struct FieldDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public var fieldToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.fieldToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withFieldToken(_ newChild: TokenSyntax) -> FieldDeclSyntax {
@@ -1589,7 +1593,7 @@ public struct FieldDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var ascription: AscriptionSyntax {
     let child = data.cachedChild(at: Cursor.ascription.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! AscriptionSyntax
   }
   public func withAscription(_ newChild: AscriptionSyntax) -> FieldDeclSyntax {
@@ -1601,7 +1605,7 @@ public struct FieldDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> FieldDeclSyntax {
@@ -1628,7 +1632,7 @@ public struct RecordConstructorDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public var constructorToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.constructorToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withConstructorToken(_ newChild: TokenSyntax) -> RecordConstructorDeclSyntax {
@@ -1640,7 +1644,7 @@ public struct RecordConstructorDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var constructorName: TokenSyntax {
     let child = data.cachedChild(at: Cursor.constructorName.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withConstructorName(_ newChild: TokenSyntax) -> RecordConstructorDeclSyntax {
@@ -1652,7 +1656,7 @@ public struct RecordConstructorDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> RecordConstructorDeclSyntax {
@@ -1821,7 +1825,7 @@ public struct RecordFieldAssignmentSyntax: Syntax, _SyntaxBase {
   }
   public var fieldName: TokenSyntax {
     let child = data.cachedChild(at: Cursor.fieldName.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withFieldName(_ newChild: TokenSyntax) -> RecordFieldAssignmentSyntax {
@@ -1833,7 +1837,7 @@ public struct RecordFieldAssignmentSyntax: Syntax, _SyntaxBase {
 
   public var equalsToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.equalsToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withEqualsToken(_ newChild: TokenSyntax) -> RecordFieldAssignmentSyntax {
@@ -1845,7 +1849,7 @@ public struct RecordFieldAssignmentSyntax: Syntax, _SyntaxBase {
 
   public var fieldInitExpr: ExprSyntax {
     let child = data.cachedChild(at: Cursor.fieldInitExpr.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! ExprSyntax
   }
   public func withFieldInitExpr(_ newChild: ExprSyntax) -> RecordFieldAssignmentSyntax {
@@ -1883,7 +1887,7 @@ public struct FunctionDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public var ascription: AscriptionSyntax {
     let child = data.cachedChild(at: Cursor.ascription.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! AscriptionSyntax
   }
   public func withAscription(_ newChild: AscriptionSyntax) -> FunctionDeclSyntax {
@@ -1895,7 +1899,7 @@ public struct FunctionDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> FunctionDeclSyntax {
@@ -1927,7 +1931,7 @@ public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _Synta
   }
   public var basicExprList: BasicExprListSyntax {
     let child = data.cachedChild(at: Cursor.basicExprList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! BasicExprListSyntax
   }
   public func withBasicExprList(_ newChild: BasicExprListSyntax) -> WithRuleFunctionClauseDeclSyntax {
@@ -1939,7 +1943,7 @@ public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _Synta
 
   public var withToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.withToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withWithToken(_ newChild: TokenSyntax) -> WithRuleFunctionClauseDeclSyntax {
@@ -1951,7 +1955,7 @@ public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _Synta
 
   public var withExpr: ExprSyntax {
     let child = data.cachedChild(at: Cursor.withExpr.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! ExprSyntax
   }
   public func withWithExpr(_ newChild: ExprSyntax) -> WithRuleFunctionClauseDeclSyntax {
@@ -1975,7 +1979,7 @@ public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _Synta
 
   public var equalsToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.equalsToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withEqualsToken(_ newChild: TokenSyntax) -> WithRuleFunctionClauseDeclSyntax {
@@ -1987,7 +1991,7 @@ public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _Synta
 
   public var rhsExpr: ExprSyntax {
     let child = data.cachedChild(at: Cursor.rhsExpr.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! ExprSyntax
   }
   public func withRhsExpr(_ newChild: ExprSyntax) -> WithRuleFunctionClauseDeclSyntax {
@@ -2011,7 +2015,7 @@ public struct WithRuleFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _Synta
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> WithRuleFunctionClauseDeclSyntax {
@@ -2040,7 +2044,7 @@ public struct NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxB
   }
   public var basicExprList: BasicExprListSyntax {
     let child = data.cachedChild(at: Cursor.basicExprList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! BasicExprListSyntax
   }
   public func withBasicExprList(_ newChild: BasicExprListSyntax) -> NormalFunctionClauseDeclSyntax {
@@ -2052,7 +2056,7 @@ public struct NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxB
 
   public var equalsToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.equalsToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withEqualsToken(_ newChild: TokenSyntax) -> NormalFunctionClauseDeclSyntax {
@@ -2064,7 +2068,7 @@ public struct NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxB
 
   public var rhsExpr: ExprSyntax {
     let child = data.cachedChild(at: Cursor.rhsExpr.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! ExprSyntax
   }
   public func withRhsExpr(_ newChild: ExprSyntax) -> NormalFunctionClauseDeclSyntax {
@@ -2088,7 +2092,7 @@ public struct NormalFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxB
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> NormalFunctionClauseDeclSyntax {
@@ -2114,7 +2118,7 @@ public struct AbsurdFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxB
   }
   public var basicExprList: BasicExprListSyntax {
     let child = data.cachedChild(at: Cursor.basicExprList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! BasicExprListSyntax
   }
   public func withBasicExprList(_ newChild: BasicExprListSyntax) -> AbsurdFunctionClauseDeclSyntax {
@@ -2126,7 +2130,7 @@ public struct AbsurdFunctionClauseDeclSyntax: FunctionClauseDeclSyntax, _SyntaxB
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> AbsurdFunctionClauseDeclSyntax {
@@ -2154,7 +2158,7 @@ public struct FunctionWhereClauseDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public var whereToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.whereToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withWhereToken(_ newChild: TokenSyntax) -> FunctionWhereClauseDeclSyntax {
@@ -2166,7 +2170,7 @@ public struct FunctionWhereClauseDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var leftBraceToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.leftBraceToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withLeftBraceToken(_ newChild: TokenSyntax) -> FunctionWhereClauseDeclSyntax {
@@ -2178,7 +2182,7 @@ public struct FunctionWhereClauseDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var declList: DeclListSyntax {
     let child = data.cachedChild(at: Cursor.declList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! DeclListSyntax
   }
   public func withDeclList(_ newChild: DeclListSyntax) -> FunctionWhereClauseDeclSyntax {
@@ -2190,7 +2194,7 @@ public struct FunctionWhereClauseDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var rightBraceToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.rightBraceToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRightBraceToken(_ newChild: TokenSyntax) -> FunctionWhereClauseDeclSyntax {
@@ -2219,7 +2223,7 @@ public struct LetBindingDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public var head: NamedBasicExprSyntax {
     let child = data.cachedChild(at: Cursor.head.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! NamedBasicExprSyntax
   }
   public func withHead(_ newChild: NamedBasicExprSyntax) -> LetBindingDeclSyntax {
@@ -2231,7 +2235,7 @@ public struct LetBindingDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var basicExprList: BasicExprListSyntax {
     let child = data.cachedChild(at: Cursor.basicExprList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! BasicExprListSyntax
   }
   public func withBasicExprList(_ newChild: BasicExprListSyntax) -> LetBindingDeclSyntax {
@@ -2243,7 +2247,7 @@ public struct LetBindingDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var equalsToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.equalsToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withEqualsToken(_ newChild: TokenSyntax) -> LetBindingDeclSyntax {
@@ -2255,7 +2259,7 @@ public struct LetBindingDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var boundExpr: ExprSyntax {
     let child = data.cachedChild(at: Cursor.boundExpr.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! ExprSyntax
   }
   public func withBoundExpr(_ newChild: ExprSyntax) -> LetBindingDeclSyntax {
@@ -2267,7 +2271,7 @@ public struct LetBindingDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> LetBindingDeclSyntax {
@@ -2295,7 +2299,7 @@ public struct NonFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
   }
   public var infixToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.infixToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withInfixToken(_ newChild: TokenSyntax) -> NonFixDeclSyntax {
@@ -2307,7 +2311,7 @@ public struct NonFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
 
   public var precedence: TokenSyntax {
     let child = data.cachedChild(at: Cursor.precedence.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withPrecedence(_ newChild: TokenSyntax) -> NonFixDeclSyntax {
@@ -2319,7 +2323,7 @@ public struct NonFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
 
   public var names: IdentifierListSyntax {
     let child = data.cachedChild(at: Cursor.names.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! IdentifierListSyntax
   }
   public func withNames(_ newChild: IdentifierListSyntax) -> NonFixDeclSyntax {
@@ -2331,7 +2335,7 @@ public struct NonFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> NonFixDeclSyntax {
@@ -2359,7 +2363,7 @@ public struct LeftFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
   }
   public var infixlToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.infixlToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withInfixlToken(_ newChild: TokenSyntax) -> LeftFixDeclSyntax {
@@ -2371,7 +2375,7 @@ public struct LeftFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
 
   public var precedence: TokenSyntax {
     let child = data.cachedChild(at: Cursor.precedence.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withPrecedence(_ newChild: TokenSyntax) -> LeftFixDeclSyntax {
@@ -2383,7 +2387,7 @@ public struct LeftFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
 
   public var names: IdentifierListSyntax {
     let child = data.cachedChild(at: Cursor.names.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! IdentifierListSyntax
   }
   public func withNames(_ newChild: IdentifierListSyntax) -> LeftFixDeclSyntax {
@@ -2395,7 +2399,7 @@ public struct LeftFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> LeftFixDeclSyntax {
@@ -2423,7 +2427,7 @@ public struct RightFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
   }
   public var infixrToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.infixrToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withInfixrToken(_ newChild: TokenSyntax) -> RightFixDeclSyntax {
@@ -2435,7 +2439,7 @@ public struct RightFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
 
   public var precedence: TokenSyntax {
     let child = data.cachedChild(at: Cursor.precedence.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withPrecedence(_ newChild: TokenSyntax) -> RightFixDeclSyntax {
@@ -2447,7 +2451,7 @@ public struct RightFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
 
   public var names: IdentifierListSyntax {
     let child = data.cachedChild(at: Cursor.names.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! IdentifierListSyntax
   }
   public func withNames(_ newChild: IdentifierListSyntax) -> RightFixDeclSyntax {
@@ -2459,7 +2463,7 @@ public struct RightFixDeclSyntax: FixityDeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> RightFixDeclSyntax {
@@ -2628,7 +2632,7 @@ public struct LambdaExprSyntax: ExprSyntax, _SyntaxBase {
   }
   public var slashToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.slashToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withSlashToken(_ newChild: TokenSyntax) -> LambdaExprSyntax {
@@ -2640,7 +2644,7 @@ public struct LambdaExprSyntax: ExprSyntax, _SyntaxBase {
 
   public var bindingList: BindingListSyntax {
     let child = data.cachedChild(at: Cursor.bindingList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! BindingListSyntax
   }
   public func withBindingList(_ newChild: BindingListSyntax) -> LambdaExprSyntax {
@@ -2652,7 +2656,7 @@ public struct LambdaExprSyntax: ExprSyntax, _SyntaxBase {
 
   public var arrowToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.arrowToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withArrowToken(_ newChild: TokenSyntax) -> LambdaExprSyntax {
@@ -2664,7 +2668,7 @@ public struct LambdaExprSyntax: ExprSyntax, _SyntaxBase {
 
   public var bodyExpr: ExprSyntax {
     let child = data.cachedChild(at: Cursor.bodyExpr.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! ExprSyntax
   }
   public func withBodyExpr(_ newChild: ExprSyntax) -> LambdaExprSyntax {
@@ -2692,7 +2696,7 @@ public struct QuantifiedExprSyntax: ExprSyntax, _SyntaxBase {
   }
   public var forallToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.forallToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withForallToken(_ newChild: TokenSyntax) -> QuantifiedExprSyntax {
@@ -2704,7 +2708,7 @@ public struct QuantifiedExprSyntax: ExprSyntax, _SyntaxBase {
 
   public var bindingList: TypedParameterListSyntax {
     let child = data.cachedChild(at: Cursor.bindingList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TypedParameterListSyntax
   }
   public func withBindingList(_ newChild: TypedParameterListSyntax) -> QuantifiedExprSyntax {
@@ -2716,7 +2720,7 @@ public struct QuantifiedExprSyntax: ExprSyntax, _SyntaxBase {
 
   public var arrowToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.arrowToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withArrowToken(_ newChild: TokenSyntax) -> QuantifiedExprSyntax {
@@ -2728,7 +2732,7 @@ public struct QuantifiedExprSyntax: ExprSyntax, _SyntaxBase {
 
   public var outputExpr: ExprSyntax {
     let child = data.cachedChild(at: Cursor.outputExpr.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! ExprSyntax
   }
   public func withOutputExpr(_ newChild: ExprSyntax) -> QuantifiedExprSyntax {
@@ -2758,7 +2762,7 @@ public struct LetExprSyntax: ExprSyntax, _SyntaxBase {
   }
   public var letToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.letToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withLetToken(_ newChild: TokenSyntax) -> LetExprSyntax {
@@ -2770,7 +2774,7 @@ public struct LetExprSyntax: ExprSyntax, _SyntaxBase {
 
   public var leftBraceToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.leftBraceToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withLeftBraceToken(_ newChild: TokenSyntax) -> LetExprSyntax {
@@ -2782,7 +2786,7 @@ public struct LetExprSyntax: ExprSyntax, _SyntaxBase {
 
   public var declList: DeclListSyntax {
     let child = data.cachedChild(at: Cursor.declList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! DeclListSyntax
   }
   public func withDeclList(_ newChild: DeclListSyntax) -> LetExprSyntax {
@@ -2794,7 +2798,7 @@ public struct LetExprSyntax: ExprSyntax, _SyntaxBase {
 
   public var rightBraceToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.rightBraceToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRightBraceToken(_ newChild: TokenSyntax) -> LetExprSyntax {
@@ -2806,7 +2810,7 @@ public struct LetExprSyntax: ExprSyntax, _SyntaxBase {
 
   public var inToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.inToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withInToken(_ newChild: TokenSyntax) -> LetExprSyntax {
@@ -2818,7 +2822,7 @@ public struct LetExprSyntax: ExprSyntax, _SyntaxBase {
 
   public var outputExpr: ExprSyntax {
     let child = data.cachedChild(at: Cursor.outputExpr.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! ExprSyntax
   }
   public func withOutputExpr(_ newChild: ExprSyntax) -> LetExprSyntax {
@@ -2843,7 +2847,7 @@ public struct ApplicationExprSyntax: ExprSyntax, _SyntaxBase {
   }
   public var exprs: BasicExprListSyntax {
     let child = data.cachedChild(at: Cursor.exprs.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! BasicExprListSyntax
   }
   public func withExprs(_ newChild: BasicExprListSyntax) -> ApplicationExprSyntax {
@@ -3009,7 +3013,7 @@ public struct NamedBindingSyntax: BindingSyntax, _SyntaxBase {
   }
   public var name: QualifiedNameSyntax {
     let child = data.cachedChild(at: Cursor.name.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! QualifiedNameSyntax
   }
   public func withName(_ newChild: QualifiedNameSyntax) -> NamedBindingSyntax {
@@ -3034,7 +3038,7 @@ public struct TypedBindingSyntax: BindingSyntax, _SyntaxBase {
   }
   public var parameter: TypedParameterSyntax {
     let child = data.cachedChild(at: Cursor.parameter.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TypedParameterSyntax
   }
   public func withParameter(_ newChild: TypedParameterSyntax) -> TypedBindingSyntax {
@@ -3059,7 +3063,7 @@ public struct AnonymousBindingSyntax: BindingSyntax, _SyntaxBase {
   }
   public var underscoreToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.underscoreToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withUnderscoreToken(_ newChild: TokenSyntax) -> AnonymousBindingSyntax {
@@ -3225,7 +3229,7 @@ public struct NamedBasicExprSyntax: BasicExprSyntax, _SyntaxBase {
   }
   public var name: QualifiedNameSyntax {
     let child = data.cachedChild(at: Cursor.name.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! QualifiedNameSyntax
   }
   public func withName(_ newChild: QualifiedNameSyntax) -> NamedBasicExprSyntax {
@@ -3250,7 +3254,7 @@ public struct UnderscoreExprSyntax: BasicExprSyntax, _SyntaxBase {
   }
   public var underscoreToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.underscoreToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withUnderscoreToken(_ newChild: TokenSyntax) -> UnderscoreExprSyntax {
@@ -3276,7 +3280,7 @@ public struct AbsurdExprSyntax: BasicExprSyntax, _SyntaxBase {
   }
   public var leftParenToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.leftParenToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withLeftParenToken(_ newChild: TokenSyntax) -> AbsurdExprSyntax {
@@ -3288,7 +3292,7 @@ public struct AbsurdExprSyntax: BasicExprSyntax, _SyntaxBase {
 
   public var rightParenToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.rightParenToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRightParenToken(_ newChild: TokenSyntax) -> AbsurdExprSyntax {
@@ -3313,7 +3317,7 @@ public struct TypeBasicExprSyntax: BasicExprSyntax, _SyntaxBase {
   }
   public var typeToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.typeToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTypeToken(_ newChild: TokenSyntax) -> TypeBasicExprSyntax {
@@ -3340,7 +3344,7 @@ public struct ParenthesizedExprSyntax: BasicExprSyntax, _SyntaxBase {
   }
   public var leftParenToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.leftParenToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withLeftParenToken(_ newChild: TokenSyntax) -> ParenthesizedExprSyntax {
@@ -3352,7 +3356,7 @@ public struct ParenthesizedExprSyntax: BasicExprSyntax, _SyntaxBase {
 
   public var expr: ExprSyntax {
     let child = data.cachedChild(at: Cursor.expr.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! ExprSyntax
   }
   public func withExpr(_ newChild: ExprSyntax) -> ParenthesizedExprSyntax {
@@ -3364,7 +3368,7 @@ public struct ParenthesizedExprSyntax: BasicExprSyntax, _SyntaxBase {
 
   public var rightParenToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.rightParenToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRightParenToken(_ newChild: TokenSyntax) -> ParenthesizedExprSyntax {
@@ -3389,7 +3393,7 @@ public struct TypedParameterGroupExprSyntax: BasicExprSyntax, _SyntaxBase {
   }
   public var parameters: TypedParameterListSyntax {
     let child = data.cachedChild(at: Cursor.parameters.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TypedParameterListSyntax
   }
   public func withParameters(_ newChild: TypedParameterListSyntax) -> TypedParameterGroupExprSyntax {
@@ -3418,7 +3422,7 @@ public struct RecordExprSyntax: BasicExprSyntax, _SyntaxBase {
   }
   public var recordToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.recordToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRecordToken(_ newChild: TokenSyntax) -> RecordExprSyntax {
@@ -3442,7 +3446,7 @@ public struct RecordExprSyntax: BasicExprSyntax, _SyntaxBase {
 
   public var leftBraceToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.leftBraceToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withLeftBraceToken(_ newChild: TokenSyntax) -> RecordExprSyntax {
@@ -3454,7 +3458,7 @@ public struct RecordExprSyntax: BasicExprSyntax, _SyntaxBase {
 
   public var fieldAssignments: RecordFieldAssignmentListSyntax {
     let child = data.cachedChild(at: Cursor.fieldAssignments.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! RecordFieldAssignmentListSyntax
   }
   public func withFieldAssignments(_ newChild: RecordFieldAssignmentListSyntax) -> RecordExprSyntax {
@@ -3466,7 +3470,7 @@ public struct RecordExprSyntax: BasicExprSyntax, _SyntaxBase {
 
   public var rightBraceToken: TokenSyntax {
     let child = data.cachedChild(at: Cursor.rightBraceToken.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withRightBraceToken(_ newChild: TokenSyntax) -> RecordExprSyntax {
@@ -3634,7 +3638,7 @@ public struct ReparsedFunctionDeclSyntax: DeclSyntax, _SyntaxBase {
   }
   public var ascription: AscriptionSyntax {
     let child = data.cachedChild(at: Cursor.ascription.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! AscriptionSyntax
   }
   public func withAscription(_ newChild: AscriptionSyntax) -> ReparsedFunctionDeclSyntax {
@@ -3646,7 +3650,7 @@ public struct ReparsedFunctionDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var trailingSemicolon: TokenSyntax {
     let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! TokenSyntax
   }
   public func withTrailingSemicolon(_ newChild: TokenSyntax) -> ReparsedFunctionDeclSyntax {
@@ -3658,7 +3662,7 @@ public struct ReparsedFunctionDeclSyntax: DeclSyntax, _SyntaxBase {
 
   public var clauseList: FunctionClauseListSyntax {
     let child = data.cachedChild(at: Cursor.clauseList.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! FunctionClauseListSyntax
   }
   public func withClauseList(_ newChild: FunctionClauseListSyntax) -> ReparsedFunctionDeclSyntax {
@@ -3684,7 +3688,7 @@ public struct ReparsedApplicationExprSyntax: BasicExprSyntax, _SyntaxBase {
   }
   public var head: NamedBasicExprSyntax {
     let child = data.cachedChild(at: Cursor.head.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! NamedBasicExprSyntax
   }
   public func withHead(_ newChild: NamedBasicExprSyntax) -> ReparsedApplicationExprSyntax {
@@ -3696,7 +3700,7 @@ public struct ReparsedApplicationExprSyntax: BasicExprSyntax, _SyntaxBase {
 
   public var exprs: BasicExprListSyntax {
     let child = data.cachedChild(at: Cursor.exprs.rawValue)
-    
+
     return makeSyntax(root: _root, data: child!) as! BasicExprListSyntax
   }
   public func withExprs(_ newChild: BasicExprListSyntax) -> ReparsedApplicationExprSyntax {

@@ -31,6 +31,7 @@ class LazyNonThreadSafeCache<Value: AnyObject> {
     if _cachedValue == nil {
       _cachedValue = create()
     }
+    // swiftlint:disable force_cast
     return _cachedValue as! Value
   }
 

@@ -100,7 +100,7 @@ public struct Trivia {
   public var byteSize: Int {
     return sourceLength.utf8Length
   }
-  
+
   /// Return a piece of trivia for some number of space characters in a row.
   public static func spaces(_ count: Int) -> Trivia {
     return [.spaces(count)]

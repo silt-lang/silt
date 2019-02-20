@@ -82,11 +82,17 @@ extension SwiftGenerator {
   func generateSyntaxFactory() {
     startWriting(to: "SyntaxFactory.swift")
     line( """
+          // swiftlint:disable line_length
+          // swiftlint:disable function_parameter_count
+          // swiftlint:disable type_body_length
+
           public enum SyntaxFactory {
             public static func makeToken(_ kind: TokenKind, presence: SourcePresence,
                                          leadingTrivia: Trivia = [],
                                          trailingTrivia: Trivia = []) -> TokenSyntax {
-              let raw = RawSyntax.createAndCalcLength(kind: kind, leadingTrivia: leadingTrivia,
+              let raw = RawSyntax.createAndCalcLength(
+                kind: kind,
+                leadingTrivia: leadingTrivia,
                 trailingTrivia: trailingTrivia, presence: presence)
               let data = SyntaxData(raw: raw)
               return TokenSyntax(root: data, data: data)
@@ -108,10 +114,11 @@ extension SwiftGenerator {
             let optional = $0.isOptional ? "?" : ""
             return "\($0.name): \(childKind)Syntax\(optional)"
         }
-          .joined(separator: ", ")
-        write("  public static func make\(node.typeName.uppercaseFirstLetter)(")
-        write(childParams)
-        line(") -> \(node.typeName)Syntax {")
+          .joined(separator: ",\n    ")
+        line("  public static func make\(node.typeName.uppercaseFirstLetter)(")
+        write("    ")
+        line(childParams)
+        line("  ) -> \(node.typeName)Syntax {")
         line("    let layout: [RawSyntax?] = [")
         for child in children {
           line("      \(child.name)\(child.isOptional ? "?" : "").data.raw,")
@@ -153,7 +160,8 @@ extension SwiftGenerator {
     for token in self.allTokens {
       switch token.kind {
       case .keyword(_):
-        line("  public static func make\(token.name.uppercaseFirstLetter)Keyword(leadingTrivia: Trivia = [],")
+        line("  public static func make\(token.name.uppercaseFirstLetter)Keyword(")
+        line("    leadingTrivia: Trivia = [],")
         line("    trailingTrivia: Trivia = [],")
         line("    presence: SourcePresence = .present) -> TokenSyntax {")
         line("    return makeToken(.\(token.caseName), presence: presence,")
@@ -161,7 +169,8 @@ extension SwiftGenerator {
         line("                     trailingTrivia: trailingTrivia)")
         line("  }")
       case .punctuation(_):
-        line("  public static func make\(token.name.uppercaseFirstLetter)(leadingTrivia: Trivia = [],")
+        line("  public static func make\(token.name.uppercaseFirstLetter)(")
+        line("    leadingTrivia: Trivia = [],")
         line("    trailingTrivia: Trivia = [],")
         line("    presence: SourcePresence = .present) -> TokenSyntax {")
         line("    return makeToken(.\(token.caseName), presence: presence,")
@@ -169,7 +178,8 @@ extension SwiftGenerator {
         line("                     trailingTrivia: trailingTrivia)")
         line("  }")
       case .associated(_):
-        line("  public static func make\(token.name.uppercaseFirstLetter)(_ text: String,")
+        line("  public static func make\(token.name.uppercaseFirstLetter)(")
+        line("    _ text: String,")
         line("    leadingTrivia: Trivia = [], trailingTrivia: Trivia = [],")
         line("    presence: SourcePresence = .present) -> TokenSyntax {")
         line("    return makeToken(.\(token.caseName)(text), presence: presence,")
@@ -279,6 +289,7 @@ extension SwiftGenerator {
     /// - Parameters:
     ///   - root: The root of this tree, or `nil` if the new node is the root.
     ///   - data: The data for this new node.
+    // swiftlint:disable function_body_length
     func makeSyntax(root: SyntaxData?, data: SyntaxData) -> Syntax {
       let root = root ?? data
       switch data.raw.kind {
@@ -303,6 +314,10 @@ extension SwiftGenerator {
     startWriting(to: "SyntaxNodes.swift")
 
     line( """
+          // swiftlint:disable line_length
+          // swiftlint:disable function_parameter_count
+          // swiftlint:disable trailing_whitespace
+
           /// A wrapper around a raw Syntax layout.
           public struct UnknownSyntax: _SyntaxBase {
             let _root: SyntaxData
@@ -523,7 +538,7 @@ extension SwiftGenerator {
         line("""
             public var \(child.name): \(childKind)Syntax\(optional) {
               let child = data.cachedChild(at: Cursor.\(child.name).rawValue)
-              \(child.isOptional ? "if child == nil { return nil }" : "")
+          \(child.isOptional ? "    if child == nil { return nil }" : "")
               return makeSyntax(root: _root, data: child!) \(castKeyword) \(childKind)Syntax
             }
             public func with\(child.name.uppercaseFirstLetter)(_ newChild: \(childKind)Syntax\(optional)) -> \(node.typeName)Syntax {

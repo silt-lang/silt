@@ -5,11 +5,17 @@
 ///
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
+// swiftlint:disable line_length
+// swiftlint:disable function_parameter_count
+// swiftlint:disable type_body_length
+
 public enum SyntaxFactory {
   public static func makeToken(_ kind: TokenKind, presence: SourcePresence,
                                leadingTrivia: Trivia = [],
                                trailingTrivia: Trivia = []) -> TokenSyntax {
-    let raw = RawSyntax.createAndCalcLength(kind: kind, leadingTrivia: leadingTrivia,
+    let raw = RawSyntax.createAndCalcLength(
+      kind: kind,
+      leadingTrivia: leadingTrivia,
       trailingTrivia: trailingTrivia, presence: presence)
     let data = SyntaxData(raw: raw)
     return TokenSyntax(root: data, data: data)
@@ -35,7 +41,10 @@ public enum SyntaxFactory {
     let data = SyntaxData(raw: raw)
     return QualifiedNameSyntax(root: data, data: data)
   }
-  public static func makeQualifiedNamePiece(name: TokenSyntax, trailingPeriod: TokenSyntax?) -> QualifiedNamePieceSyntax {
+  public static func makeQualifiedNamePiece(
+    name: TokenSyntax,
+    trailingPeriod: TokenSyntax?
+  ) -> QualifiedNamePieceSyntax {
     let layout: [RawSyntax?] = [
       name.data.raw,
       trailingPeriod?.data.raw,
@@ -53,7 +62,16 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return QualifiedNamePieceSyntax(root: data, data: data)
   }
-  public static func makeModuleDecl(moduleToken: TokenSyntax, moduleIdentifier: QualifiedNameSyntax, typedParameterList: TypedParameterListSyntax, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) -> ModuleDeclSyntax {
+  public static func makeModuleDecl(
+    moduleToken: TokenSyntax,
+    moduleIdentifier: QualifiedNameSyntax,
+    typedParameterList: TypedParameterListSyntax,
+    whereToken: TokenSyntax,
+    leftBraceToken: TokenSyntax,
+    declList: DeclListSyntax,
+    rightBraceToken: TokenSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> ModuleDeclSyntax {
     let layout: [RawSyntax?] = [
       moduleToken.data.raw,
       moduleIdentifier.data.raw,
@@ -90,7 +108,12 @@ public enum SyntaxFactory {
     let data = SyntaxData(raw: raw)
     return DeclListSyntax(root: data, data: data)
   }
-  public static func makeOpenImportDecl(openToken: TokenSyntax?, importToken: TokenSyntax, importIdentifier: QualifiedNameSyntax, trailingSemicolon: TokenSyntax) -> OpenImportDeclSyntax {
+  public static func makeOpenImportDecl(
+    openToken: TokenSyntax?,
+    importToken: TokenSyntax,
+    importIdentifier: QualifiedNameSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> OpenImportDeclSyntax {
     let layout: [RawSyntax?] = [
       openToken?.data.raw,
       importToken.data.raw,
@@ -112,7 +135,11 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return OpenImportDeclSyntax(root: data, data: data)
   }
-  public static func makeImportDecl(importToken: TokenSyntax, importIdentifier: QualifiedNameSyntax, trailingSemicolon: TokenSyntax) -> ImportDeclSyntax {
+  public static func makeImportDecl(
+    importToken: TokenSyntax,
+    importIdentifier: QualifiedNameSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> ImportDeclSyntax {
     let layout: [RawSyntax?] = [
       importToken.data.raw,
       importIdentifier.data.raw,
@@ -132,7 +159,17 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return ImportDeclSyntax(root: data, data: data)
   }
-  public static func makeDataDecl(dataToken: TokenSyntax, dataIdentifier: TokenSyntax, typedParameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax, whereToken: TokenSyntax, leftBraceToken: TokenSyntax, constructorList: ConstructorListSyntax, rightBraceToken: TokenSyntax, trailingSemicolon: TokenSyntax) -> DataDeclSyntax {
+  public static func makeDataDecl(
+    dataToken: TokenSyntax,
+    dataIdentifier: TokenSyntax,
+    typedParameterList: TypedParameterListSyntax,
+    typeIndices: TypeIndicesSyntax,
+    whereToken: TokenSyntax,
+    leftBraceToken: TokenSyntax,
+    constructorList: ConstructorListSyntax,
+    rightBraceToken: TokenSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> DataDeclSyntax {
     let layout: [RawSyntax?] = [
       dataToken.data.raw,
       dataIdentifier.data.raw,
@@ -164,7 +201,13 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return DataDeclSyntax(root: data, data: data)
   }
-  public static func makeEmptyDataDecl(dataToken: TokenSyntax, dataIdentifier: TokenSyntax, typedParameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax, trailingSemicolon: TokenSyntax) -> EmptyDataDeclSyntax {
+  public static func makeEmptyDataDecl(
+    dataToken: TokenSyntax,
+    dataIdentifier: TokenSyntax,
+    typedParameterList: TypedParameterListSyntax,
+    typeIndices: TypeIndicesSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> EmptyDataDeclSyntax {
     let layout: [RawSyntax?] = [
       dataToken.data.raw,
       dataIdentifier.data.raw,
@@ -188,7 +231,10 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return EmptyDataDeclSyntax(root: data, data: data)
   }
-  public static func makeTypeIndices(colonToken: TokenSyntax, indexExpr: ExprSyntax) -> TypeIndicesSyntax {
+  public static func makeTypeIndices(
+    colonToken: TokenSyntax,
+    indexExpr: ExprSyntax
+  ) -> TypeIndicesSyntax {
     let layout: [RawSyntax?] = [
       colonToken.data.raw,
       indexExpr.data.raw,
@@ -213,7 +259,11 @@ public enum SyntaxFactory {
     let data = SyntaxData(raw: raw)
     return TypedParameterListSyntax(root: data, data: data)
   }
-  public static func makeAscription(boundNames: IdentifierListSyntax, colonToken: TokenSyntax, typeExpr: ExprSyntax) -> AscriptionSyntax {
+  public static func makeAscription(
+    boundNames: IdentifierListSyntax,
+    colonToken: TokenSyntax,
+    typeExpr: ExprSyntax
+  ) -> AscriptionSyntax {
     let layout: [RawSyntax?] = [
       boundNames.data.raw,
       colonToken.data.raw,
@@ -233,7 +283,11 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return AscriptionSyntax(root: data, data: data)
   }
-  public static func makeExplicitTypedParameter(leftParenToken: TokenSyntax, ascription: AscriptionSyntax, rightParenToken: TokenSyntax) -> ExplicitTypedParameterSyntax {
+  public static func makeExplicitTypedParameter(
+    leftParenToken: TokenSyntax,
+    ascription: AscriptionSyntax,
+    rightParenToken: TokenSyntax
+  ) -> ExplicitTypedParameterSyntax {
     let layout: [RawSyntax?] = [
       leftParenToken.data.raw,
       ascription.data.raw,
@@ -253,7 +307,11 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return ExplicitTypedParameterSyntax(root: data, data: data)
   }
-  public static func makeImplicitTypedParameter(leftBraceToken: TokenSyntax, ascription: AscriptionSyntax, rightBraceToken: TokenSyntax) -> ImplicitTypedParameterSyntax {
+  public static func makeImplicitTypedParameter(
+    leftBraceToken: TokenSyntax,
+    ascription: AscriptionSyntax,
+    rightBraceToken: TokenSyntax
+  ) -> ImplicitTypedParameterSyntax {
     let layout: [RawSyntax?] = [
       leftBraceToken.data.raw,
       ascription.data.raw,
@@ -280,7 +338,10 @@ public enum SyntaxFactory {
     let data = SyntaxData(raw: raw)
     return ConstructorListSyntax(root: data, data: data)
   }
-  public static func makeConstructorDecl(ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) -> ConstructorDeclSyntax {
+  public static func makeConstructorDecl(
+    ascription: AscriptionSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> ConstructorDeclSyntax {
     let layout: [RawSyntax?] = [
       ascription.data.raw,
       trailingSemicolon.data.raw,
@@ -298,7 +359,17 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return ConstructorDeclSyntax(root: data, data: data)
   }
-  public static func makeRecordDecl(recordToken: TokenSyntax, recordName: TokenSyntax, parameterList: TypedParameterListSyntax, typeIndices: TypeIndicesSyntax, whereToken: TokenSyntax, leftParenToken: TokenSyntax, recordElementList: DeclListSyntax, rightParenToken: TokenSyntax, trailingSemicolon: TokenSyntax) -> RecordDeclSyntax {
+  public static func makeRecordDecl(
+    recordToken: TokenSyntax,
+    recordName: TokenSyntax,
+    parameterList: TypedParameterListSyntax,
+    typeIndices: TypeIndicesSyntax,
+    whereToken: TokenSyntax,
+    leftParenToken: TokenSyntax,
+    recordElementList: DeclListSyntax,
+    rightParenToken: TokenSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> RecordDeclSyntax {
     let layout: [RawSyntax?] = [
       recordToken.data.raw,
       recordName.data.raw,
@@ -330,7 +401,11 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return RecordDeclSyntax(root: data, data: data)
   }
-  public static func makeFieldDecl(fieldToken: TokenSyntax, ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) -> FieldDeclSyntax {
+  public static func makeFieldDecl(
+    fieldToken: TokenSyntax,
+    ascription: AscriptionSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> FieldDeclSyntax {
     let layout: [RawSyntax?] = [
       fieldToken.data.raw,
       ascription.data.raw,
@@ -350,7 +425,11 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return FieldDeclSyntax(root: data, data: data)
   }
-  public static func makeRecordConstructorDecl(constructorToken: TokenSyntax, constructorName: TokenSyntax, trailingSemicolon: TokenSyntax) -> RecordConstructorDeclSyntax {
+  public static func makeRecordConstructorDecl(
+    constructorToken: TokenSyntax,
+    constructorName: TokenSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> RecordConstructorDeclSyntax {
     let layout: [RawSyntax?] = [
       constructorToken.data.raw,
       constructorName.data.raw,
@@ -377,7 +456,12 @@ public enum SyntaxFactory {
     let data = SyntaxData(raw: raw)
     return RecordFieldAssignmentListSyntax(root: data, data: data)
   }
-  public static func makeRecordFieldAssignment(fieldName: TokenSyntax, equalsToken: TokenSyntax, fieldInitExpr: ExprSyntax, trailingSemicolon: TokenSyntax?) -> RecordFieldAssignmentSyntax {
+  public static func makeRecordFieldAssignment(
+    fieldName: TokenSyntax,
+    equalsToken: TokenSyntax,
+    fieldInitExpr: ExprSyntax,
+    trailingSemicolon: TokenSyntax?
+  ) -> RecordFieldAssignmentSyntax {
     let layout: [RawSyntax?] = [
       fieldName.data.raw,
       equalsToken.data.raw,
@@ -399,7 +483,10 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return RecordFieldAssignmentSyntax(root: data, data: data)
   }
-  public static func makeFunctionDecl(ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax) -> FunctionDeclSyntax {
+  public static func makeFunctionDecl(
+    ascription: AscriptionSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> FunctionDeclSyntax {
     let layout: [RawSyntax?] = [
       ascription.data.raw,
       trailingSemicolon.data.raw,
@@ -417,7 +504,16 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return FunctionDeclSyntax(root: data, data: data)
   }
-  public static func makeWithRuleFunctionClauseDecl(basicExprList: BasicExprListSyntax, withToken: TokenSyntax, withExpr: ExprSyntax, withPatternClause: BasicExprListSyntax?, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, whereClause: FunctionWhereClauseDeclSyntax?, trailingSemicolon: TokenSyntax) -> WithRuleFunctionClauseDeclSyntax {
+  public static func makeWithRuleFunctionClauseDecl(
+    basicExprList: BasicExprListSyntax,
+    withToken: TokenSyntax,
+    withExpr: ExprSyntax,
+    withPatternClause: BasicExprListSyntax?,
+    equalsToken: TokenSyntax,
+    rhsExpr: ExprSyntax,
+    whereClause: FunctionWhereClauseDeclSyntax?,
+    trailingSemicolon: TokenSyntax
+  ) -> WithRuleFunctionClauseDeclSyntax {
     let layout: [RawSyntax?] = [
       basicExprList.data.raw,
       withToken.data.raw,
@@ -447,7 +543,13 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return WithRuleFunctionClauseDeclSyntax(root: data, data: data)
   }
-  public static func makeNormalFunctionClauseDecl(basicExprList: BasicExprListSyntax, equalsToken: TokenSyntax, rhsExpr: ExprSyntax, whereClause: FunctionWhereClauseDeclSyntax?, trailingSemicolon: TokenSyntax) -> NormalFunctionClauseDeclSyntax {
+  public static func makeNormalFunctionClauseDecl(
+    basicExprList: BasicExprListSyntax,
+    equalsToken: TokenSyntax,
+    rhsExpr: ExprSyntax,
+    whereClause: FunctionWhereClauseDeclSyntax?,
+    trailingSemicolon: TokenSyntax
+  ) -> NormalFunctionClauseDeclSyntax {
     let layout: [RawSyntax?] = [
       basicExprList.data.raw,
       equalsToken.data.raw,
@@ -471,7 +573,10 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return NormalFunctionClauseDeclSyntax(root: data, data: data)
   }
-  public static func makeAbsurdFunctionClauseDecl(basicExprList: BasicExprListSyntax, trailingSemicolon: TokenSyntax) -> AbsurdFunctionClauseDeclSyntax {
+  public static func makeAbsurdFunctionClauseDecl(
+    basicExprList: BasicExprListSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> AbsurdFunctionClauseDeclSyntax {
     let layout: [RawSyntax?] = [
       basicExprList.data.raw,
       trailingSemicolon.data.raw,
@@ -489,7 +594,12 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return AbsurdFunctionClauseDeclSyntax(root: data, data: data)
   }
-  public static func makeFunctionWhereClauseDecl(whereToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax) -> FunctionWhereClauseDeclSyntax {
+  public static func makeFunctionWhereClauseDecl(
+    whereToken: TokenSyntax,
+    leftBraceToken: TokenSyntax,
+    declList: DeclListSyntax,
+    rightBraceToken: TokenSyntax
+  ) -> FunctionWhereClauseDeclSyntax {
     let layout: [RawSyntax?] = [
       whereToken.data.raw,
       leftBraceToken.data.raw,
@@ -511,7 +621,13 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return FunctionWhereClauseDeclSyntax(root: data, data: data)
   }
-  public static func makeLetBindingDecl(head: NamedBasicExprSyntax, basicExprList: BasicExprListSyntax, equalsToken: TokenSyntax, boundExpr: ExprSyntax, trailingSemicolon: TokenSyntax) -> LetBindingDeclSyntax {
+  public static func makeLetBindingDecl(
+    head: NamedBasicExprSyntax,
+    basicExprList: BasicExprListSyntax,
+    equalsToken: TokenSyntax,
+    boundExpr: ExprSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> LetBindingDeclSyntax {
     let layout: [RawSyntax?] = [
       head.data.raw,
       basicExprList.data.raw,
@@ -535,7 +651,12 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return LetBindingDeclSyntax(root: data, data: data)
   }
-  public static func makeNonFixDecl(infixToken: TokenSyntax, precedence: TokenSyntax, names: IdentifierListSyntax, trailingSemicolon: TokenSyntax) -> NonFixDeclSyntax {
+  public static func makeNonFixDecl(
+    infixToken: TokenSyntax,
+    precedence: TokenSyntax,
+    names: IdentifierListSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> NonFixDeclSyntax {
     let layout: [RawSyntax?] = [
       infixToken.data.raw,
       precedence.data.raw,
@@ -557,7 +678,12 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return NonFixDeclSyntax(root: data, data: data)
   }
-  public static func makeLeftFixDecl(infixlToken: TokenSyntax, precedence: TokenSyntax, names: IdentifierListSyntax, trailingSemicolon: TokenSyntax) -> LeftFixDeclSyntax {
+  public static func makeLeftFixDecl(
+    infixlToken: TokenSyntax,
+    precedence: TokenSyntax,
+    names: IdentifierListSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> LeftFixDeclSyntax {
     let layout: [RawSyntax?] = [
       infixlToken.data.raw,
       precedence.data.raw,
@@ -579,7 +705,12 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return LeftFixDeclSyntax(root: data, data: data)
   }
-  public static func makeRightFixDecl(infixrToken: TokenSyntax, precedence: TokenSyntax, names: IdentifierListSyntax, trailingSemicolon: TokenSyntax) -> RightFixDeclSyntax {
+  public static func makeRightFixDecl(
+    infixrToken: TokenSyntax,
+    precedence: TokenSyntax,
+    names: IdentifierListSyntax,
+    trailingSemicolon: TokenSyntax
+  ) -> RightFixDeclSyntax {
     let layout: [RawSyntax?] = [
       infixrToken.data.raw,
       precedence.data.raw,
@@ -608,7 +739,12 @@ public enum SyntaxFactory {
     let data = SyntaxData(raw: raw)
     return PatternClauseListSyntax(root: data, data: data)
   }
-  public static func makeLambdaExpr(slashToken: TokenSyntax, bindingList: BindingListSyntax, arrowToken: TokenSyntax, bodyExpr: ExprSyntax) -> LambdaExprSyntax {
+  public static func makeLambdaExpr(
+    slashToken: TokenSyntax,
+    bindingList: BindingListSyntax,
+    arrowToken: TokenSyntax,
+    bodyExpr: ExprSyntax
+  ) -> LambdaExprSyntax {
     let layout: [RawSyntax?] = [
       slashToken.data.raw,
       bindingList.data.raw,
@@ -630,7 +766,12 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return LambdaExprSyntax(root: data, data: data)
   }
-  public static func makeQuantifiedExpr(forallToken: TokenSyntax, bindingList: TypedParameterListSyntax, arrowToken: TokenSyntax, outputExpr: ExprSyntax) -> QuantifiedExprSyntax {
+  public static func makeQuantifiedExpr(
+    forallToken: TokenSyntax,
+    bindingList: TypedParameterListSyntax,
+    arrowToken: TokenSyntax,
+    outputExpr: ExprSyntax
+  ) -> QuantifiedExprSyntax {
     let layout: [RawSyntax?] = [
       forallToken.data.raw,
       bindingList.data.raw,
@@ -652,7 +793,14 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return QuantifiedExprSyntax(root: data, data: data)
   }
-  public static func makeLetExpr(letToken: TokenSyntax, leftBraceToken: TokenSyntax, declList: DeclListSyntax, rightBraceToken: TokenSyntax, inToken: TokenSyntax, outputExpr: ExprSyntax) -> LetExprSyntax {
+  public static func makeLetExpr(
+    letToken: TokenSyntax,
+    leftBraceToken: TokenSyntax,
+    declList: DeclListSyntax,
+    rightBraceToken: TokenSyntax,
+    inToken: TokenSyntax,
+    outputExpr: ExprSyntax
+  ) -> LetExprSyntax {
     let layout: [RawSyntax?] = [
       letToken.data.raw,
       leftBraceToken.data.raw,
@@ -678,7 +826,9 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return LetExprSyntax(root: data, data: data)
   }
-  public static func makeApplicationExpr(exprs: BasicExprListSyntax) -> ApplicationExprSyntax {
+  public static func makeApplicationExpr(
+    exprs: BasicExprListSyntax
+  ) -> ApplicationExprSyntax {
     let layout: [RawSyntax?] = [
       exprs.data.raw,
     ]
@@ -701,7 +851,9 @@ public enum SyntaxFactory {
     let data = SyntaxData(raw: raw)
     return BindingListSyntax(root: data, data: data)
   }
-  public static func makeNamedBinding(name: QualifiedNameSyntax) -> NamedBindingSyntax {
+  public static func makeNamedBinding(
+    name: QualifiedNameSyntax
+  ) -> NamedBindingSyntax {
     let layout: [RawSyntax?] = [
       name.data.raw,
     ]
@@ -717,7 +869,9 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return NamedBindingSyntax(root: data, data: data)
   }
-  public static func makeTypedBinding(parameter: TypedParameterSyntax) -> TypedBindingSyntax {
+  public static func makeTypedBinding(
+    parameter: TypedParameterSyntax
+  ) -> TypedBindingSyntax {
     let layout: [RawSyntax?] = [
       parameter.data.raw,
     ]
@@ -733,7 +887,9 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return TypedBindingSyntax(root: data, data: data)
   }
-  public static func makeAnonymousBinding(underscoreToken: TokenSyntax) -> AnonymousBindingSyntax {
+  public static func makeAnonymousBinding(
+    underscoreToken: TokenSyntax
+  ) -> AnonymousBindingSyntax {
     let layout: [RawSyntax?] = [
       underscoreToken.data.raw,
     ]
@@ -756,7 +912,9 @@ public enum SyntaxFactory {
     let data = SyntaxData(raw: raw)
     return BasicExprListSyntax(root: data, data: data)
   }
-  public static func makeNamedBasicExpr(name: QualifiedNameSyntax) -> NamedBasicExprSyntax {
+  public static func makeNamedBasicExpr(
+    name: QualifiedNameSyntax
+  ) -> NamedBasicExprSyntax {
     let layout: [RawSyntax?] = [
       name.data.raw,
     ]
@@ -772,7 +930,9 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return NamedBasicExprSyntax(root: data, data: data)
   }
-  public static func makeUnderscoreExpr(underscoreToken: TokenSyntax) -> UnderscoreExprSyntax {
+  public static func makeUnderscoreExpr(
+    underscoreToken: TokenSyntax
+  ) -> UnderscoreExprSyntax {
     let layout: [RawSyntax?] = [
       underscoreToken.data.raw,
     ]
@@ -788,7 +948,10 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return UnderscoreExprSyntax(root: data, data: data)
   }
-  public static func makeAbsurdExpr(leftParenToken: TokenSyntax, rightParenToken: TokenSyntax) -> AbsurdExprSyntax {
+  public static func makeAbsurdExpr(
+    leftParenToken: TokenSyntax,
+    rightParenToken: TokenSyntax
+  ) -> AbsurdExprSyntax {
     let layout: [RawSyntax?] = [
       leftParenToken.data.raw,
       rightParenToken.data.raw,
@@ -806,7 +969,9 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return AbsurdExprSyntax(root: data, data: data)
   }
-  public static func makeTypeBasicExpr(typeToken: TokenSyntax) -> TypeBasicExprSyntax {
+  public static func makeTypeBasicExpr(
+    typeToken: TokenSyntax
+  ) -> TypeBasicExprSyntax {
     let layout: [RawSyntax?] = [
       typeToken.data.raw,
     ]
@@ -822,7 +987,11 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return TypeBasicExprSyntax(root: data, data: data)
   }
-  public static func makeParenthesizedExpr(leftParenToken: TokenSyntax, expr: ExprSyntax, rightParenToken: TokenSyntax) -> ParenthesizedExprSyntax {
+  public static func makeParenthesizedExpr(
+    leftParenToken: TokenSyntax,
+    expr: ExprSyntax,
+    rightParenToken: TokenSyntax
+  ) -> ParenthesizedExprSyntax {
     let layout: [RawSyntax?] = [
       leftParenToken.data.raw,
       expr.data.raw,
@@ -842,7 +1011,9 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return ParenthesizedExprSyntax(root: data, data: data)
   }
-  public static func makeTypedParameterGroupExpr(parameters: TypedParameterListSyntax) -> TypedParameterGroupExprSyntax {
+  public static func makeTypedParameterGroupExpr(
+    parameters: TypedParameterListSyntax
+  ) -> TypedParameterGroupExprSyntax {
     let layout: [RawSyntax?] = [
       parameters.data.raw,
     ]
@@ -858,7 +1029,13 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return TypedParameterGroupExprSyntax(root: data, data: data)
   }
-  public static func makeRecordExpr(recordToken: TokenSyntax, parameterExpr: BasicExprSyntax?, leftBraceToken: TokenSyntax, fieldAssignments: RecordFieldAssignmentListSyntax, rightBraceToken: TokenSyntax) -> RecordExprSyntax {
+  public static func makeRecordExpr(
+    recordToken: TokenSyntax,
+    parameterExpr: BasicExprSyntax?,
+    leftBraceToken: TokenSyntax,
+    fieldAssignments: RecordFieldAssignmentListSyntax,
+    rightBraceToken: TokenSyntax
+  ) -> RecordExprSyntax {
     let layout: [RawSyntax?] = [
       recordToken.data.raw,
       parameterExpr?.data.raw,
@@ -889,7 +1066,11 @@ public enum SyntaxFactory {
     let data = SyntaxData(raw: raw)
     return FunctionClauseListSyntax(root: data, data: data)
   }
-  public static func makeReparsedFunctionDecl(ascription: AscriptionSyntax, trailingSemicolon: TokenSyntax, clauseList: FunctionClauseListSyntax) -> ReparsedFunctionDeclSyntax {
+  public static func makeReparsedFunctionDecl(
+    ascription: AscriptionSyntax,
+    trailingSemicolon: TokenSyntax,
+    clauseList: FunctionClauseListSyntax
+  ) -> ReparsedFunctionDeclSyntax {
     let layout: [RawSyntax?] = [
       ascription.data.raw,
       trailingSemicolon.data.raw,
@@ -909,7 +1090,10 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return ReparsedFunctionDeclSyntax(root: data, data: data)
   }
-  public static func makeReparsedApplicationExpr(head: NamedBasicExprSyntax, exprs: BasicExprListSyntax) -> ReparsedApplicationExprSyntax {
+  public static func makeReparsedApplicationExpr(
+    head: NamedBasicExprSyntax,
+    exprs: BasicExprListSyntax
+  ) -> ReparsedApplicationExprSyntax {
     let layout: [RawSyntax?] = [
       head.data.raw,
       exprs.data.raw,
@@ -927,217 +1111,248 @@ public enum SyntaxFactory {
     ], length: .zero, presence: .present))
     return ReparsedApplicationExprSyntax(root: data, data: data)
   }
-  public static func makeEquals(leadingTrivia: Trivia = [],
+  public static func makeEquals(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.equals, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeLeftParen(leadingTrivia: Trivia = [],
+  public static func makeLeftParen(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.leftParen, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeRightParen(leadingTrivia: Trivia = [],
+  public static func makeRightParen(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.rightParen, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeBackSlash(leadingTrivia: Trivia = [],
+  public static func makeBackSlash(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.backSlash, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeLeftBrace(leadingTrivia: Trivia = [],
+  public static func makeLeftBrace(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.leftBrace, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeRightBrace(leadingTrivia: Trivia = [],
+  public static func makeRightBrace(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.rightBrace, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeSemicolon(leadingTrivia: Trivia = [],
+  public static func makeSemicolon(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.semicolon, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeColon(leadingTrivia: Trivia = [],
+  public static func makeColon(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.colon, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makePeriod(leadingTrivia: Trivia = [],
+  public static func makePeriod(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.period, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makePipe(leadingTrivia: Trivia = [],
+  public static func makePipe(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.pipe, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeUnderscore(leadingTrivia: Trivia = [],
+  public static func makeUnderscore(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.underscore, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeForallSymbol(leadingTrivia: Trivia = [],
+  public static func makeForallSymbol(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.forallSymbol, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeArrowSymbol(leadingTrivia: Trivia = [],
+  public static func makeArrowSymbol(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.arrowSymbol, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeConstructorKeyword(leadingTrivia: Trivia = [],
+  public static func makeConstructorKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.constructorKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeModuleKeyword(leadingTrivia: Trivia = [],
+  public static func makeModuleKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.moduleKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeOpenKeyword(leadingTrivia: Trivia = [],
+  public static func makeOpenKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.openKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeImportKeyword(leadingTrivia: Trivia = [],
+  public static func makeImportKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.importKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeWhereKeyword(leadingTrivia: Trivia = [],
+  public static func makeWhereKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.whereKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeWithKeyword(leadingTrivia: Trivia = [],
+  public static func makeWithKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.withKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeLetKeyword(leadingTrivia: Trivia = [],
+  public static func makeLetKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.letKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeInKeyword(leadingTrivia: Trivia = [],
+  public static func makeInKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.inKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeTypeKeyword(leadingTrivia: Trivia = [],
+  public static func makeTypeKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.typeKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeDataKeyword(leadingTrivia: Trivia = [],
+  public static func makeDataKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.dataKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeRecordKeyword(leadingTrivia: Trivia = [],
+  public static func makeRecordKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.recordKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeFieldKeyword(leadingTrivia: Trivia = [],
+  public static func makeFieldKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.fieldKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeForallKeyword(leadingTrivia: Trivia = [],
+  public static func makeForallKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.forallKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeInfixlKeyword(leadingTrivia: Trivia = [],
+  public static func makeInfixlKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.infixlKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeInfixrKeyword(leadingTrivia: Trivia = [],
+  public static func makeInfixrKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.infixrKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeInfixKeyword(leadingTrivia: Trivia = [],
+  public static func makeInfixKeyword(
+    leadingTrivia: Trivia = [],
     trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.infixKeyword, presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeIdentifier(_ text: String,
+  public static func makeIdentifier(
+    _ text: String,
     leadingTrivia: Trivia = [], trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.identifier(text), presence: presence,
                      leadingTrivia: leadingTrivia,
                      trailingTrivia: trailingTrivia)
   }
-  public static func makeUnknown(_ text: String,
+  public static func makeUnknown(
+    _ text: String,
     leadingTrivia: Trivia = [], trailingTrivia: Trivia = [],
     presence: SourcePresence = .present) -> TokenSyntax {
     return makeToken(.unknown(text), presence: presence,

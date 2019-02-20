@@ -266,8 +266,9 @@ extension NameBinding {
       case let binding as TypedBindingSyntax:
         bs.append(self.scopeCheckParameter(binding.parameter))
       case _ as AnonymousBindingSyntax:
-        bs.append(DeclaredParameter([Name(name: SyntaxFactory.makeUnderscore())],
-                                    .meta, .explicit))
+        bs.append(DeclaredParameter([
+          Name(name: SyntaxFactory.makeUnderscore())
+        ], .meta, .explicit))
       default:
         fatalError()
       }
@@ -769,10 +770,9 @@ extension NameBinding {
         let reparsedDecl = funcDecl.withBasicExprList(lhs)
         if clauseMap[name] == nil {
           if allowOmittingSignatures {
+
             let bindingDecl = SyntaxFactory.makeLetBindingDecl(
-                head: SyntaxFactory.makeNamedBasicExpr(name: SyntaxFactory.makeQualifiedNameSyntax([
-                  SyntaxFactory.makeQualifiedNamePiece(name: name.syntax, trailingPeriod: nil)
-                ])),
+                head: SyntaxFactory.makeNamedBasicExpr(identifier: name.syntax),
                 basicExprList: lhs,
                 equalsToken: funcDecl.equalsToken,
                 boundExpr: funcDecl.rhsExpr,
@@ -796,7 +796,7 @@ extension NameBinding {
       case let fieldDecl as FieldDeclSyntax:
         for synName in fieldDecl.ascription.boundNames {
           let singleAscript = fieldDecl.ascription
-                .withBoundNames(SyntaxFactory.makeIdentifierListSyntax([synName]))
+              .withBoundNames(SyntaxFactory.makeIdentifierListSyntax([synName]))
           let newField = SyntaxFactory.makeFieldDecl(
             fieldToken: fieldDecl.fieldToken,
             ascription: singleAscript,

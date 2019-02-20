@@ -111,7 +111,7 @@ public class Lexer {
     }
 
     let trailingTrivia = collectTrivia(includeNewlines: false)
-    
+
     return SyntaxFactory.makeToken(tokenKind, presence: .present,
                                    leadingTrivia: leadingTrivia,
                                    trailingTrivia: trailingTrivia)

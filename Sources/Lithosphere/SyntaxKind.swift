@@ -82,6 +82,7 @@ func makeSyntax(_ raw: RawSyntax) -> Syntax {
 /// - Parameters:
 ///   - root: The root of this tree, or `nil` if the new node is the root.
 ///   - data: The data for this new node.
+// swiftlint:disable function_body_length
 func makeSyntax(root: SyntaxData?, data: SyntaxData) -> Syntax {
   let root = root ?? data
   switch data.raw.kind {

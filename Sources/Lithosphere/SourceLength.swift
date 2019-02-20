@@ -9,6 +9,7 @@
 // See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
+// swiftlint:disable shorthand_operator
 
 /// The length a syntax node spans in the source code. From any AbsolutePosition
 /// you reach a node's end location by adding its UTF-8 length.
@@ -25,29 +26,29 @@ public struct SourceLength: Comparable {
   }
 
   /// A zero-length source length
-  public static let zero: SourceLength = 
+  public static let zero: SourceLength =
       SourceLength(utf8Length: 0)
 
-  public static func <(lhs: SourceLength, rhs: SourceLength) -> Bool {
+  public static func < (lhs: SourceLength, rhs: SourceLength) -> Bool {
     return lhs.utf8Length < rhs.utf8Length
   }
 
   /// Combine the length of two source length.
-  public static func +(lhs: SourceLength, rhs: SourceLength) -> SourceLength {
+  public static func + (lhs: SourceLength, rhs: SourceLength) -> SourceLength {
     let utf8Length = lhs.utf8Length + rhs.utf8Length
     return SourceLength(utf8Length: utf8Length)
   }
 
-  public static func +=(lhs: inout SourceLength, rhs: SourceLength) {
+  public static func += (lhs: inout SourceLength, rhs: SourceLength) {
     lhs = lhs + rhs
   }
 
-  public static func -(lhs: SourceLength, rhs: SourceLength) -> SourceLength {
+  public static func - (lhs: SourceLength, rhs: SourceLength) -> SourceLength {
     let utf8Length = lhs.utf8Length - rhs.utf8Length
     return SourceLength(utf8Length: utf8Length)
   }
 
-  public static func -=(lhs: inout SourceLength, rhs: SourceLength) {
+  public static func -= (lhs: inout SourceLength, rhs: SourceLength) {
     lhs = lhs - rhs
   }
 }
@@ -55,13 +56,13 @@ public struct SourceLength: Comparable {
 extension AbsolutePosition {
   /// Determine the AbsolutePosition by advancing the `lhs` by the given source
   /// length.
-  public static func +(lhs: AbsolutePosition, rhs: SourceLength) 
+  public static func + (lhs: AbsolutePosition, rhs: SourceLength)
       -> AbsolutePosition {
     let utf8Offset = lhs.utf8Offset + rhs.utf8Length
     return AbsolutePosition(utf8Offset: utf8Offset)
   }
 
-  public static func +=(lhs: inout AbsolutePosition, rhs: SourceLength) {
+  public static func += (lhs: inout AbsolutePosition, rhs: SourceLength) {
     lhs = lhs + rhs
   }
 }

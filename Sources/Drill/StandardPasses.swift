@@ -55,7 +55,8 @@ enum Passes {
     }
 
   static let attachEngine =
-    Pass<(String, [TokenSyntax]), [TokenSyntax]>(name: "Attach Diagnostics") { t, ctx in
+    Pass<(String, [TokenSyntax]), [TokenSyntax]>(
+      name: "Attach Diagnostics") { t, ctx in
       let (file, tokens) = t
       let tree = SourceFileSyntax(tokens: tokens)
       let converter = SourceLocationConverter(file: file,

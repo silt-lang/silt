@@ -205,15 +205,17 @@ extension Syntax {
     afterLeadingTrivia: Bool = true,
     afterTrailingTrivia: Bool = false
   ) -> SourceRange {
-    let start = startLocation(converter: converter, afterLeadingTrivia: afterLeadingTrivia)
-    let end = endLocation(converter: converter, afterTrailingTrivia: afterTrailingTrivia)
+    let start = startLocation(converter: converter,
+                              afterLeadingTrivia: afterLeadingTrivia)
+    let end = endLocation(converter: converter,
+                          afterTrailingTrivia: afterTrailingTrivia)
     return SourceRange(start: start, end: end)
   }
 }
 
 /// Returns array of lines with the position at the start of the line and
 /// the end-of-file position.
-fileprivate func computeLines(
+private func computeLines(
   tree: SourceFileSyntax
 ) -> ([AbsolutePosition], AbsolutePosition) {
   var lines: [AbsolutePosition] = []
@@ -237,14 +239,14 @@ fileprivate extension String {
   /// with the newline character included.
   /// - Returns: The leftover `SourceLength` at the end of the walk.
   func forEachLineLength(
-    prefix: SourceLength = .zero, body: (SourceLength) -> ()
+    prefix: SourceLength = .zero, body: (SourceLength) -> Void
   ) -> SourceLength {
     let utf8 = self.utf8
     let startIndex = utf8.startIndex
     let endIndex = utf8.endIndex
     var curIdx = startIndex
     var lineLength = prefix
-    let advanceLengthByOne = { ()->() in
+    let advanceLengthByOne = { () -> Void in
       lineLength += SourceLength(utf8Length: 1)
       curIdx = utf8.index(after: curIdx)
     }
@@ -253,6 +255,7 @@ fileprivate extension String {
       let char = utf8[curIdx]
       advanceLengthByOne()
 
+      // swiftlint:disable line_length
       /// From https://docs.swift.org/swift-book/ReferenceManual/LexicalStructure.html#grammar_line-break
       /// * line-break → U+000A
       /// * line-break → U+000D
@@ -265,6 +268,7 @@ fileprivate extension String {
         }
         return false
       }
+      // swiftlint:enable line_length
 
       if isNewline() {
         body(lineLength)
@@ -284,7 +288,7 @@ fileprivate extension TriviaPiece {
   /// with the newline character included.
   /// - Returns: The leftover `SourceLength` at the end of the walk.
   func forEachLineLength(
-    prefix: SourceLength = .zero, body: (SourceLength) -> ()
+    prefix: SourceLength = .zero, body: (SourceLength) -> Void
   ) -> SourceLength {
     var lineLength = prefix
     switch self {
@@ -310,7 +314,8 @@ fileprivate extension TriviaPiece {
 //      lineLength = .zero
     case let .comment(text):
       // Line comments are not supposed to contain newlines.
-      assert(!text.containsSwiftNewline(), "line comment created that contained a new-line character")
+      assert(!text.containsSwiftNewline(),
+             "line comment created that contained a new-line character")
       lineLength += SourceLength(utf8Length: text.utf8.count)
     }
     return lineLength
@@ -322,7 +327,7 @@ fileprivate extension Trivia {
   /// with the newline character included.
   /// - Returns: The leftover `SourceLength` at the end of the walk.
   func forEachLineLength(
-    prefix: SourceLength = .zero, body: (SourceLength) -> ()
+    prefix: SourceLength = .zero, body: (SourceLength) -> Void
   ) -> SourceLength {
     var curPrefix = prefix
     for piece in self {
@@ -337,7 +342,7 @@ fileprivate extension TokenKind {
   /// with the newline character included.
   /// - Returns: The leftover `SourceLength` at the end of the walk.
   func forEachLineLength(
-    prefix: SourceLength = .zero, body: (SourceLength) -> ()
+    prefix: SourceLength = .zero, body: (SourceLength) -> Void
   ) -> SourceLength {
     switch self {
     case let .unknown(text):
@@ -353,12 +358,15 @@ fileprivate extension TokenSyntax {
   /// with the newline character included.
   /// - Returns: The leftover `SourceLength` at the end of the walk.
   func forEachLineLength(
-    prefix: SourceLength = .zero, body: (SourceLength) -> ()
+    prefix: SourceLength = .zero, body: (SourceLength) -> Void
   ) -> SourceLength {
     var curPrefix = prefix
-    curPrefix = self.leadingTrivia.forEachLineLength(prefix: curPrefix, body: body)
-    curPrefix = self.tokenKind.forEachLineLength(prefix: curPrefix, body: body)
-    curPrefix = self.trailingTrivia.forEachLineLength(prefix: curPrefix, body: body)
+    curPrefix = self.leadingTrivia.forEachLineLength(prefix: curPrefix,
+                                                     body: body)
+    curPrefix = self.tokenKind.forEachLineLength(prefix: curPrefix, body:
+      body)
+    curPrefix = self.trailingTrivia.forEachLineLength(prefix: curPrefix,
+                                                      body: body)
     return curPrefix
   }
 }

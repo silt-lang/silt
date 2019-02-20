@@ -197,7 +197,8 @@ public func layout(_ ts: [TokenSyntax]) -> [TokenSyntax] {
                                            leadingTrivia: block.asTrivia(true)))
         }
       }
-      stainlessToks.append(SyntaxFactory.makeToken(.semicolon, presence: .implicit))
+      stainlessToks.append(SyntaxFactory.makeToken(.semicolon,
+                                                   presence: .implicit))
       stainlessToks.append(SyntaxFactory.makeToken(.rightBrace,
                                                    presence: .implicit,
                                        leadingTrivia: .spaces(1)))

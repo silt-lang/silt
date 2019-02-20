@@ -98,8 +98,6 @@ public struct Invocation {
         return pass.run(url, in: context)
       }
 
-      let converter = SourceLocationConverter(file: url.absoluteString,
-                                              tree: SourceFileSyntax(tokens: []))
       let printingConsumer =
         DelayedPrintingDiagnosticConsumer(stream: &stderrStreamHandle)
       context.engine.register(printingConsumer)
@@ -154,15 +152,15 @@ public struct Invocation {
         case .parse:
           return run(makeVerifyPass(url: url, pass: Passes.parseFile,
                                     context: context,
-                                    converter: converter))!
+                                    converter: printingConsumer.converter!))!
         case .scopes:
           return run(makeVerifyPass(url: url, pass: Passes.scopeCheckFile,
                                     context: context,
-                                    converter: converter))!
+                                    converter: printingConsumer.converter!))!
         case .typecheck:
           return run(makeVerifyPass(url: url, pass: typeCheckFile,
                                     context: context,
-                                    converter: converter))!
+                                    converter: printingConsumer.converter!))!
         }
       }
     }

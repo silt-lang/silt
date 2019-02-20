@@ -82,10 +82,10 @@ public final class DiagnosticVerifier {
              lhs.line == rhs.line
     }
 
-    var hashValue: Int {
-      return messageText.hashValue ^
-             severity.rawValue.hashValue ^
-             line.hashValue
+    func hash(into hasher: inout Hasher) {
+      messageText.hash(into: &hasher)
+      severity.rawValue.hash(into: &hasher)
+      line.hash(into: &hasher)
     }
   }
 

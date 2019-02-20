@@ -647,7 +647,8 @@ extension Parser {
   func finishParsingFunctionDecl(
         _ exprs: BasicExprListSyntax) throws -> FunctionDeclSyntax {
     let colonTok = try self.consume(.colon)
-    let boundNames = SyntaxFactory.makeIdentifierListSyntax(try exprs.map { expr in
+    let boundNames = SyntaxFactory
+      .makeIdentifierListSyntax(try exprs.map { expr in
       guard let namedExpr = expr as? NamedBasicExprSyntax else {
         throw engine.diagnose(.expectedNameInFuncDecl, node: expr)
       }
@@ -794,8 +795,8 @@ extension Parser {
     }
 
     // Else form an application expression.
-    let app = SyntaxFactory.makeApplicationExpr(exprs:
-                                    SyntaxFactory.makeBasicExprListSyntax(exprs))
+    let appExprs = SyntaxFactory.makeBasicExprListSyntax(exprs)
+    let app = SyntaxFactory.makeApplicationExpr(exprs: appExprs)
     return SyntaxFactory.makeParenthesizedExpr(
       leftParenToken: leftParen,
       expr: app,
@@ -877,9 +878,10 @@ extension Parser {
                                       colonToken: colonTok,
                                       typeExpr: typeExpr)
     let rightParen = try consume(.rightParen)
-    let firstParam = SyntaxFactory.makeExplicitTypedParameter(leftParenToken: leftParen,
-                                                  ascription: ascription,
-                                                  rightParenToken: rightParen)
+    let firstParam = SyntaxFactory.makeExplicitTypedParameter(
+      leftParenToken: leftParen,
+      ascription: ascription,
+      rightParenToken: rightParen)
     let parameters = try parseTypedParameterList().prepending(firstParam)
     guard !parameters.isEmpty else {
       throw expected("type ascription")
@@ -1133,7 +1135,7 @@ extension Parser {
       guard exprs.count > 1 else {
         return exprs[0]
       }
-      
+
       return SyntaxFactory.makeApplicationExpr(
         exprs: SyntaxFactory.makeBasicExprListSyntax(exprs))
     }

@@ -10,7 +10,7 @@ import Lithosphere
 
 public struct TypeCheckerDebugOptions: OptionSet {
   public typealias RawValue = UInt32
-  
+
   public let rawValue: UInt32
   public init(rawValue: RawValue) {
     self.rawValue = rawValue

@@ -52,10 +52,10 @@ public protocol DelayedDiagnosticConsumer: DiagnosticConsumer {
   func attachAndDrain(_ converter: SourceLocationConverter)
 }
 
-public final
-class DelayedPrintingDiagnosticConsumer<Target: TextOutputStream>: DelayedDiagnosticConsumer {
+public final class DelayedPrintingDiagnosticConsumer<Target: TextOutputStream>
+  : DelayedDiagnosticConsumer {
   private var output: Target
-  private var converter: SourceLocationConverter? = nil
+  public private(set) var converter: SourceLocationConverter?
   private var delayedDiagnostics = [Diagnostic]()
 
   public init(stream: inout Target, converter: SourceLocationConverter? = nil) {

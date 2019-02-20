@@ -26,8 +26,8 @@ public struct Name: Equatable, Comparable, Hashable, CustomStringConvertible {
     return l.string < r.string
   }
 
-  public var hashValue: Int {
-    return self.string.hashValue
+  public func hash(into hasher: inout Hasher) {
+    self.string.hash(into: &hasher)
   }
 
   public var description: String {
@@ -82,9 +82,10 @@ public struct QualifiedName: Equatable, Hashable, CustomStringConvertible {
     return self.name.syntax
   }
 
-  public var hashValue: Int {
-    return self.module.reduce(self.name.hashValue) { (acc, x) in
-      return acc ^ x.hashValue
+  public func hash(into hasher: inout Hasher) {
+    self.name.hash(into: &hasher)
+    for segment in self.module {
+      segment.hash(into: &hasher)
     }
   }
 
