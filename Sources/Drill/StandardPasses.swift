@@ -58,7 +58,7 @@ enum Passes {
     Pass<(String, [TokenSyntax]), [TokenSyntax]>(
       name: "Attach Diagnostics") { t, ctx in
       let (file, tokens) = t
-      let tree = SourceFileSyntax(tokens: tokens)
+      let tree = SyntaxFactory.makeSourceFileSyntax(tokens)
       let converter = SourceLocationConverter(file: file,
                                               tree: tree)
       ctx.engine.forEachConsumer { consumer in

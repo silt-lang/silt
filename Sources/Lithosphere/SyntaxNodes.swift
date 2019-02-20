@@ -28,6 +28,147 @@ public protocol FunctionClauseDeclSyntax: DeclSyntax {}
 public protocol FixityDeclSyntax: DeclSyntax {}
 public protocol BindingSyntax: Syntax {}
 public protocol BasicExprSyntax: ExprSyntax {}
+public struct SourceFileSyntax: _SyntaxBase {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData
+
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
+  }
+
+  /// Creates a new SourceFileSyntax by replacing the underlying layout with
+  /// a different set of raw syntax nodes.
+  ///
+  /// - Parameter layout: The new list of raw syntax nodes underlying this
+  ///                     collection.
+  /// - Returns: A new SyntaxCollection with the new layout underlying it.
+  internal func replacingLayout(
+    _ layout: [RawSyntax?]) -> SourceFileSyntax {
+    let newRaw = data.raw.replacingLayout(layout)
+    let (newRoot, newData) = data.replacingSelf(newRaw)
+    return SourceFileSyntax(root: newRoot, data: newData)
+  }
+
+  /// Creates a new SourceFileSyntax by appending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to append.
+  /// - Returns: A new SyntaxCollection with that element appended to the end.
+  public func appending(
+    _ syntax: TokenSyntax) -> SourceFileSyntax {
+    var newLayout = data.raw.layout
+    newLayout.append(syntax.raw)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new SourceFileSyntax by prepending the provided syntax element
+  /// to the children.
+  ///
+  /// - Parameter syntax: The element to prepend.
+  /// - Returns: A new SyntaxCollection with that element prepended to the
+  ///            beginning.
+  public func prepending(
+    _ syntax: TokenSyntax) -> SourceFileSyntax {
+    return inserting(syntax, at: 0)
+  }
+
+  /// Creates a new SourceFileSyntax by inserting the provided syntax element
+  /// at the provided index in the children.
+  ///
+  /// - Parameters:
+  ///   - syntax: The element to insert.
+  ///   - index: The index at which to insert the element in the collection.
+  ///
+  /// - Returns: A new SourceFileSyntax with that element appended to the end.
+  public func inserting(_ syntax: TokenSyntax,
+                        at index: Int) -> SourceFileSyntax {
+    var newLayout = data.raw.layout
+    /// Make sure the index is a valid insertion index (0 to 1 past the end)
+    precondition((newLayout.startIndex...newLayout.endIndex).contains(index),
+                 "inserting node at invalid index \(index)")
+    newLayout.insert(syntax.raw, at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new SourceFileSyntax by removing the syntax element at the
+  /// provided index.
+  ///
+  /// - Parameter index: The index of the element to remove from the collection.
+  /// - Returns: A new SourceFileSyntax with the element at the provided index
+  ///            removed.
+  public func removing(childAt index: Int) -> SourceFileSyntax {
+    var newLayout = data.raw.layout
+    newLayout.remove(at: index)
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new SourceFileSyntax by removing the first element.
+  ///
+  /// - Returns: A new SourceFileSyntax with the first element removed.
+  public func removingFirst() -> SourceFileSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeFirst()
+    return replacingLayout(newLayout)
+  }
+
+  /// Creates a new SourceFileSyntax by removing the last element.
+  ///
+  /// - Returns: A new SourceFileSyntax with the last element removed.
+  public func removingLast() -> SourceFileSyntax {
+    var newLayout = data.raw.layout
+    newLayout.removeLast()
+    return replacingLayout(newLayout)
+  }
+
+  /// Returns an iterator over the elements of this syntax collection.
+  public func makeIterator() -> SourceFileSyntaxIterator {
+    return SourceFileSyntaxIterator(collection: self)
+  }
+}
+
+/// Conformance for SourceFileSyntax to the Collection protocol.
+extension SourceFileSyntax: Collection {
+  public var startIndex: Int {
+    return data.childCaches.startIndex
+  }
+
+  public var endIndex: Int {
+    return data.childCaches.endIndex
+  }
+
+  public func index(after i: Int) -> Int {
+    return data.childCaches.index(after: i)
+  }
+
+  public subscript(_ index: Int) -> TokenSyntax {
+    // swiftlint:disable force_cast
+    return child(at: index)! as! TokenSyntax
+  }
+}
+
+/// A type that iterates over a syntax collection using its indices.
+public struct SourceFileSyntaxIterator: IteratorProtocol {
+  private let collection: SourceFileSyntax
+  private var index: SourceFileSyntax.Index
+
+  fileprivate init(collection: SourceFileSyntax) {
+    self.collection = collection
+    self.index = collection.startIndex
+  }
+
+  public mutating func next() -> TokenSyntax? {
+    guard
+      !(self.collection.isEmpty || self.index == self.collection.endIndex)
+    else {
+      return nil
+    }
+
+    let result = collection[index]
+    collection.formIndex(after: &index)
+    return result
+  }
+}
 public struct IdentifierListSyntax: _SyntaxBase {
   let _root: SyntaxData
   unowned let _data: SyntaxData

@@ -29,6 +29,9 @@ let baseNodes = [
 ]
 
 let syntaxNodes = [
+  // MARK: Source
+  Node("SourceFile", element: "Token"),
+
   // MARK: Identifiers
 
   Node("IdentifierList", element: "IdentifierToken"),

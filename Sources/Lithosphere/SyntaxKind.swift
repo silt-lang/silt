@@ -8,6 +8,7 @@
 public enum SyntaxKind {
   case token
   case unknown
+  case sourceFile
   case identifierList
   case qualifiedName
   case qualifiedNamePiece
@@ -102,6 +103,8 @@ func makeSyntax(root: SyntaxData?, data: SyntaxData) -> Syntax {
     fatalError("cannot construct BindingSyntax directly")
   case .basicExpr:
     fatalError("cannot construct BasicExprSyntax directly")
+  case .sourceFile:
+    return SourceFileSyntax(root: root, data: data)
   case .identifierList:
     return IdentifierListSyntax(root: root, data: data)
   case .qualifiedName:

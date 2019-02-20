@@ -27,6 +27,13 @@ public enum SyntaxFactory {
     let data = SyntaxData(raw: raw)
     return UnknownSyntax(root: data, data: data)
   }
+  public static func makeSourceFileSyntax(
+    _ elements: [TokenSyntax]) -> SourceFileSyntax {
+    let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.sourceFile,
+      layout: elements.map { $0.data.raw }, presence: SourcePresence.present)
+    let data = SyntaxData(raw: raw)
+    return SourceFileSyntax(root: data, data: data)
+  }
   public static func makeIdentifierListSyntax(
     _ elements: [TokenSyntax]) -> IdentifierListSyntax {
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.identifierList,

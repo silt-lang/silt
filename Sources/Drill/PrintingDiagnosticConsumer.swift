@@ -16,8 +16,8 @@ class PrintingDiagnosticConsumer<Target: TextOutputStream>: DiagnosticConsumer {
 
   public init(stream: inout Target) {
     self.output = stream
-    self.converter = SourceLocationConverter(file: "",
-                                             tree: SourceFileSyntax(tokens: []))
+    let emptyTree = SyntaxFactory.makeSourceFileSyntax([])
+    self.converter = SourceLocationConverter(file: "", tree: emptyTree)
   }
 
   public func handle(_ diagnostic: Diagnostic) {
