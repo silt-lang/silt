@@ -64,7 +64,7 @@ public final class TypeChecker<PhaseState> {
 
   /// FIXME: Try harder, maybe
   public var wildcardToken: TokenSyntax {
-    return SyntaxFactory.makeUnderscore()
+    return SyntaxFactory.makeUnderscore(presence: .implicit)
   }
 
   /// FIXME: Try harder, maybe

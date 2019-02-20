@@ -15,15 +15,19 @@ import Lithosphere
 final class SwiftGenerator {
   let outputDir: URL
   private var file: FileHandle?
-  let tokenMap: [String: Token]
+  private let tokenMap: [String: Token]
+  private let allTokens: [Token]
   var indentWidth = 0
 
   init(outputDir: String) throws {
     self.outputDir = URL(fileURLWithPath: outputDir)
     var tokenMap = [String: Token]()
+    var tokens = [Token]()
     for token in tokenNodes {
       tokenMap[token.name + "Token"] = token
+      tokens.append(token)
     }
+    self.allTokens = tokens
     self.tokenMap = tokenMap
   }
 
@@ -146,25 +150,28 @@ extension SwiftGenerator {
       }
     }
 
-    for (_, token) in tokenMap {
+    for token in self.allTokens {
       switch token.kind {
       case .keyword(_):
         line("  public static func make\(token.name.uppercaseFirstLetter)Keyword(leadingTrivia: Trivia = [],")
-        line("    trailingTrivia: Trivia = [], presence: SourcePresence = .present) -> TokenSyntax {")
+        line("    trailingTrivia: Trivia = [],")
+        line("    presence: SourcePresence = .present) -> TokenSyntax {")
         line("    return makeToken(.\(token.caseName), presence: presence,")
         line("                     leadingTrivia: leadingTrivia,")
         line("                     trailingTrivia: trailingTrivia)")
         line("  }")
       case .punctuation(_):
         line("  public static func make\(token.name.uppercaseFirstLetter)(leadingTrivia: Trivia = [],")
-        line("    trailingTrivia: Trivia = [], presence: SourcePresence = .present) -> TokenSyntax {")
+        line("    trailingTrivia: Trivia = [],")
+        line("    presence: SourcePresence = .present) -> TokenSyntax {")
         line("    return makeToken(.\(token.caseName), presence: presence,")
         line("                     leadingTrivia: leadingTrivia,")
         line("                     trailingTrivia: trailingTrivia)")
         line("  }")
       case .associated(_):
         line("  public static func make\(token.name.uppercaseFirstLetter)(_ text: String,")
-        line("    trailingTrivia: Trivia = [], presence: SourcePresence = .present) -> TokenSyntax {")
+        line("    leadingTrivia: Trivia = [], trailingTrivia: Trivia = [],")
+        line("    presence: SourcePresence = .present) -> TokenSyntax {")
         line("    return makeToken(.\(token.caseName)(text), presence: presence,")
         line("                     leadingTrivia: leadingTrivia,")
         line("                     trailingTrivia: trailingTrivia)")
@@ -179,7 +186,7 @@ extension SwiftGenerator {
     startWriting(to: "TokenKind.swift")
     line("public enum TokenKind: Equatable {")
     line("  case eof")
-    for (_, token) in tokenMap {
+    for token in self.allTokens {
       write("  case \(token.caseName.asStandaloneIdentifier)")
       if case .associated(let type) = token.kind {
         write("(\(type))")
@@ -189,7 +196,7 @@ extension SwiftGenerator {
     line()
     line("  public init(text: String) {")
     line("    switch text {")
-    for (_, token) in tokenMap {
+    for token in self.allTokens {
       switch token.kind {
       case .keyword(let text), .punctuation(let text):
         line("    case \"\(text)\": self = .\(token.caseName)")
@@ -202,7 +209,7 @@ extension SwiftGenerator {
     line("  public var text: String {")
     line("    switch self {")
     line("    case .eof: return \"\"")
-    for (_, token) in tokenMap {
+    for token in self.allTokens {
       write("    case .\(token.caseName)")
       switch token.kind {
       case .associated(_):
@@ -216,7 +223,7 @@ extension SwiftGenerator {
     line("  var sourceLength: SourceLength {")
     line("    switch self {")
     line("    case .eof: return .zero")
-    for (_, token) in tokenMap {
+    for token in self.allTokens {
       write("    case .\(token.caseName)")
       switch token.kind {
       case .associated(_):
@@ -230,7 +237,7 @@ extension SwiftGenerator {
     line("  public static func == (lhs: TokenKind, rhs: TokenKind) -> Bool {")
     line("    switch (lhs, rhs) {")
     line("    case (.eof, .eof): return true")
-    for (_, token) in tokenMap {
+    for token in self.allTokens {
       switch token.kind {
       case .associated(_):
         line("    case (.\(token.caseName)(let l),")
