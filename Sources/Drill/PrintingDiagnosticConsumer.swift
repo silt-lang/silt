@@ -21,12 +21,12 @@ class PrintingDiagnosticConsumer<Target: TextOutputStream>: DiagnosticConsumer {
   }
 
   public func handle(_ diagnostic: Diagnostic) {
-    if let loc = diagnostic.node?.startLocation(converter: converter) {
+    if let loc = diagnostic.sourceLocation(converter: converter) {
       printLoc(loc)
     }
     printMessage(diagnostic.message)
     for note in diagnostic.notes {
-      if let loc = note.node?.startLocation(converter: converter) {
+      if let loc = note.sourceLocation(converter: converter) {
         printLoc(loc)
       }
       printMessage(note.message)
@@ -74,12 +74,12 @@ public final class DelayedPrintingDiagnosticConsumer<Target: TextOutputStream>
   public func attachAndDrain(_ converter: SourceLocationConverter) {
     self.converter = converter
     for diagnostic in self.delayedDiagnostics {
-      if let loc = diagnostic.node?.startLocation(converter: converter) {
+      if let loc = diagnostic.sourceLocation(converter: converter) {
         printLoc(loc)
       }
       printMessage(diagnostic.message)
       for note in diagnostic.notes {
-        if let loc = note.node?.startLocation(converter: converter) {
+        if let loc = note.sourceLocation(converter: converter) {
           printLoc(loc)
         }
         printMessage(note.message)

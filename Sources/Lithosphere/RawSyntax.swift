@@ -242,9 +242,10 @@ extension RawSyntax {
   static func createAndCalcLength(kind: SyntaxKind, layout: [RawSyntax?],
       presence: SourcePresence) -> RawSyntax {
     let length: SourceLength
-    if case .missing = presence {
+    switch presence {
+    case .missing, .implicit:
       length = SourceLength.zero
-    } else {
+    case .present:
       var totalen = SourceLength.zero
       for child in layout {
         totalen += child?.totalLength ?? .zero
@@ -264,9 +265,10 @@ extension RawSyntax {
   static func createAndCalcLength(kind: TokenKind, leadingTrivia: Trivia,
       trailingTrivia: Trivia, presence: SourcePresence) -> RawSyntax {
     let length: SourceLength
-    if case .missing = presence {
+    switch presence {
+    case .missing, .implicit:
       length = SourceLength.zero
-    } else {
+    case .present:
       length = kind.sourceLength + leadingTrivia.sourceLength +
                 trailingTrivia.sourceLength
     }

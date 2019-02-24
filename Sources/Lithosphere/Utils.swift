@@ -70,16 +70,6 @@ public struct SourceEdit {
 }
 
 extension String {
-  var isNativeUTF8: Bool {
-    return utf8.withContiguousStorageIfAvailable { _ in 0 } != nil
-  }
-
-  mutating func makeNativeUTF8IfNeeded() {
-    if !isNativeUTF8 {
-      self += ""
-    }
-  }
-
   func utf8Slice(offset: Int, length: Int) -> Substring {
     if length == 0 {
       return Substring()

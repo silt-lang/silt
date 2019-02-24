@@ -113,10 +113,10 @@ public final class DiagnosticEngine {
   ///              notes to a Syntax node.
   @discardableResult
   public func diagnose(
-    _ message: Diagnostic.Message, node: Syntax? = nil,
+    _ message: Diagnostic.Message, location: Diagnostic.Location = .unknown,
     actions: Diagnostic.BuildActions? = nil) -> Diagnostic.Message {
     let diagnostic = Diagnostic(message: message,
-                                node: node,
+                                location: location,
                                 actions: actions)
 
     if let activeID = self.activeTransaction {
@@ -129,5 +129,22 @@ public final class DiagnosticEngine {
       consumer.handle(diagnostic)
     }
     return message
+  }
+
+  /// Emits a diagnostic message into the engine.
+  ///
+  /// - Parameters:
+  ///   - message: The message for the given diagnostic. This should include
+  ///              details about what specific invariant is being violated
+  ///              by the code.
+  ///   - node: The node the diagnostic is attached to, or `nil` if the
+  ///           diagnostic is meant to apply to the entire compilation.
+  ///   - actions: A closure to execute to incrementally add highlights and
+  ///              notes to a Syntax node.
+  @discardableResult
+  public func diagnose(
+    _ message: Diagnostic.Message, node: Syntax,
+    actions: Diagnostic.BuildActions? = nil) -> Diagnostic.Message {
+    return self.diagnose(message, location: .node(node), actions: actions)
   }
 }

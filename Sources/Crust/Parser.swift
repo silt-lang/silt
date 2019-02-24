@@ -90,10 +90,14 @@ public class Parser {
   public let engine: DiagnosticEngine
   let tokens: [TokenSyntax]
   public var index = 0
+  var offset: Int = 0
+  let converter: SourceLocationConverter
 
-  public init(diagnosticEngine: DiagnosticEngine, tokens: [TokenSyntax]) {
+  public init(diagnosticEngine: DiagnosticEngine, tokens: [TokenSyntax],
+              converter: SourceLocationConverter) {
     self.engine = diagnosticEngine
     self.tokens = tokens
+    self.converter = converter
   }
 
   public var currentToken: TokenSyntax? {
@@ -114,7 +118,8 @@ public class Parser {
 
   func expected(_ name: String) -> Diagnostic.Message {
     let highlightedToken = previousNonImplicitToken()
-    return engine.diagnose(.expected(name), node: highlightedToken) {
+    return engine.diagnose(.expected(name),
+                           location: .location(self.currentLocation)) {
       if let tok = highlightedToken {
         $0.highlight(tok)
       }
@@ -128,10 +133,11 @@ public class Parser {
     // begun or ended the scope/line.
     let highlightedToken = previousNonImplicitToken()
     guard let token = currentToken else {
-      return engine.diagnose(.unexpectedEOF, node: highlightedToken)
+      return engine.diagnose(.unexpectedEOF,
+                             location: .location(self.currentLocation))
     }
     let msg = Diagnostic.Message.unexpectedToken(token, expected: expected)
-    return engine.diagnose(msg, node: highlightedToken) {
+    return engine.diagnose(msg, location: .location(self.currentLocation)) {
       if let tok = highlightedToken {
         $0.highlight(tok)
       }
@@ -173,7 +179,29 @@ public class Parser {
   }
 
   public func advance(_ n: Int = 1) {
+    for i in 0..<n {
+      guard let tok = peekToken(ahead: i), tok.isPresent else {
+        break
+      }
+      offset += tok.byteSize
+    }
     index += n
+  }
+
+  public var currentLocation: SourceLocation {
+    return self.converter.location(for:
+      AbsolutePosition(utf8Offset: self.offset))
+  }
+
+  public func peekLocation(ahead n: Int = 0) -> SourceLocation {
+    var off = self.offset
+    for i in 0..<n {
+      guard let tok = peekToken(ahead: i), tok.isPresent else {
+        break
+      }
+      off += tok.byteSize
+    }
+    return self.converter.location(for: AbsolutePosition(utf8Offset: off))
   }
 }
 
@@ -181,7 +209,8 @@ extension Parser {
   public func parseTopLevelModule() -> ModuleDeclSyntax? {
     do {
       guard peek() == .moduleKeyword else {
-        throw engine.diagnose(.expectedTopLevelModule, node: currentToken)
+        throw engine.diagnose(.expectedTopLevelModule,
+                              location: .location(self.peekLocation(ahead: 1)))
       }
       let module = try parseModule()
       _ = try consume(.eof)
@@ -229,13 +258,16 @@ extension Parser {
 
   /// Ensures all of the QualifiedNameSyntax nodes passed in are basic names,
   /// not actually fully qualified names.
-  func ensureAllNamesSimple(_ names: [QualifiedNameSyntax]) -> [TokenSyntax] {
-    return names.map { qn -> TokenSyntax in
+  func ensureAllNamesSimple(
+    _ names: [QualifiedNameSyntax], _ locs: [SourceLocation]
+  ) -> [TokenSyntax] {
+    return zip(names, locs).map { (qn, loc) -> TokenSyntax in
       let name = qn.first!
       if name.trailingPeriod != nil || qn.count != 1 {
         // Diagnose the qualified name and recover by using just the
         // first piece.
-        engine.diagnose(.unexpectedQualifiedName(qn), node: qn) {
+        engine.diagnose(.unexpectedQualifiedName(qn),
+                        location: .location(loc)) {
           $0.highlight(qn)
         }
       }
@@ -245,15 +277,18 @@ extension Parser {
 
   func parseIdentifierList() throws -> IdentifierListSyntax {
     var names = [QualifiedNameSyntax]()
+    var locs = [SourceLocation]()
     loop: while true {
       switch peek() {
       case .identifier(_), .underscore:
         // Parse qualified names, then verify they are all identifiers.
+        locs.append(self.currentLocation)
         names.append(try parseQualifiedName())
       default: break loop
       }
     }
-    return SyntaxFactory.makeIdentifierListSyntax(ensureAllNamesSimple(names))
+    return SyntaxFactory.makeIdentifierListSyntax(ensureAllNamesSimple(names,
+                                                                       locs))
   }
 }
 
@@ -265,8 +300,10 @@ extension Parser {
         throw engine.diagnose(.unexpectedEOF)
       }
 
+
       // Recover from invalid declarations by ignoring them and parsing to the
       // next semicolon.
+      let declLoc = self.peekLocation(ahead: 1)
       guard let decl = try? parseDecl() else {
         consumeUntil(.semicolon)
         _ = try consume(.semicolon)
@@ -279,9 +316,9 @@ extension Parser {
       if decl is FunctionDeclSyntax,
          let lastData = pieces.last as? DataDeclSyntax,
          lastData.constructorList.isEmpty {
-        engine.diagnose(.unexpectedConstructor, node: decl) {
+        engine.diagnose(.unexpectedConstructor, location: .location(declLoc)) {
           $0.highlight(decl)
-          $0.note(.indentToMakeConstructor, node: decl)
+          $0.note(.indentToMakeConstructor, location: .location(declLoc))
         }
       }
       pieces.append(decl)
@@ -294,15 +331,16 @@ extension Parser {
     case .moduleKeyword:
       return try self.parseModule()
     case .dataKeyword:
+      let declLoc = self.peekLocation(ahead: 1)
       let decl = try self.parseDataDecl()
 
       // If there's a regular data decl and an empty constructor list,
       // throw an error.
       if let dataDecl = decl as? DataDeclSyntax,
         dataDecl.constructorList.isEmpty {
-        engine.diagnose(.emptyDataDeclWithWhere, node: decl) {
+        engine.diagnose(.emptyDataDeclWithWhere, location: .location(declLoc)) {
           $0.highlight(decl)
-          $0.note(.removeWhereClause, node: dataDecl.whereToken,
+          $0.note(.removeWhereClause, location: .location(declLoc),
                   highlights: [dataDecl.whereToken])
         }
       }
@@ -421,7 +459,7 @@ extension Parser {
     let recordTok = try consume(.recordKeyword)
     let recName = try parseIdentifierToken()
     let paramList = try parseTypedParameterList()
-    let indices = try parseTypeIndices(recName)
+    let indices = try parseTypeIndices(recName, self.currentLocation)
     let whereTok = try consume(.whereKeyword)
     let leftTok = try consume(.leftBrace)
     let elemList = try parseRecordElementList()
@@ -542,7 +580,9 @@ extension Parser {
       rightBraceToken: rightBrace)
   }
 
-  func parseTypeIndices(_ parentName: TokenSyntax) throws -> TypeIndicesSyntax {
+  func parseTypeIndices(
+    _ parentName: TokenSyntax, _ loc: SourceLocation
+  ) throws -> TypeIndicesSyntax {
     // If we see a semicolon or 'where' after the identifier, the
     // user likely forgot to provide indices for this data type.
     // Recover by inserting `: Type`.
@@ -555,9 +595,10 @@ extension Parser {
     let indices = SyntaxFactory.makeTypeIndices(
       colonToken: SyntaxFactory.makeColon(),
       indexExpr: implicitNamedExpr(.typeKeyword))
-    engine.diagnose(.declRequiresIndices(parentName), node: parentName) {
+    engine.diagnose(.declRequiresIndices(parentName),
+                    location: .location(loc)) {
       $0.highlight(parentName)
-      $0.note(.addBasicTypeIndex, node: parentName)
+      $0.note(.addBasicTypeIndex, location: .location(loc))
     }
     return indices
   }
@@ -586,7 +627,7 @@ extension Parser {
     let dataTok = try consume(.dataKeyword)
     let dataId = try parseIdentifierToken()
     let paramList = try parseTypedParameterList()
-    let indices = try parseTypeIndices(dataId)
+    let indices = try parseTypeIndices(dataId, self.currentLocation)
     if let whereTok = try consumeIf(.whereKeyword) {
       let leftBrace = try consume(.leftBrace)
       let constrList = try parseConstructorList()
@@ -633,10 +674,10 @@ extension Parser {
 extension Parser {
   func parseFunctionDeclOrClause() throws -> DeclSyntax {
 
-    let exprs = try parseBasicExprList()
+    let (exprs, exprLocs) = try parseBasicExprList()
     switch peek() {
     case .colon:
-      return try self.finishParsingFunctionDecl(exprs)
+      return try self.finishParsingFunctionDecl(exprs, exprLocs)
     case .equals, .withKeyword:
       return try self.finishParsingFunctionClause(exprs)
     default:
@@ -645,17 +686,18 @@ extension Parser {
   }
 
   func finishParsingFunctionDecl(
-        _ exprs: BasicExprListSyntax) throws -> FunctionDeclSyntax {
+    _ exprs: BasicExprListSyntax, _ locs: [SourceLocation]
+  ) throws -> FunctionDeclSyntax {
     let colonTok = try self.consume(.colon)
     let boundNames = SyntaxFactory
-      .makeIdentifierListSyntax(try exprs.map { expr in
+      .makeIdentifierListSyntax(try zip(exprs, locs).map { (expr, loc) in
       guard let namedExpr = expr as? NamedBasicExprSyntax else {
-        throw engine.diagnose(.expectedNameInFuncDecl, node: expr)
+        throw engine.diagnose(.expectedNameInFuncDecl, location: .location(loc))
       }
 
       guard let name = namedExpr.name.first, namedExpr.name.count == 1 else {
         throw engine.diagnose(.unexpectedQualifiedName(namedExpr.name),
-                              node: namedExpr)
+                              location: .location(loc))
       }
       return name.name
     })
@@ -677,7 +719,7 @@ extension Parser {
         basicExprList: exprs,
         withToken: try consume(.withKeyword),
         withExpr: try parseExpr(),
-        withPatternClause: try parseBasicExprList(),
+        withPatternClause: try parseBasicExprList().0,
         equalsToken: try consume(.equals),
         rhsExpr: try parseExpr(),
         whereClause: try maybeParseWhereClause(),
@@ -770,7 +812,9 @@ extension Parser {
 
     // Gather all the subexpressions.
     var exprs = [BasicExprSyntax]()
+    var exprLocs = [SourceLocation]()
     while isStartOfBasicExpr() {
+      exprLocs.append(self.currentLocation)
       exprs.append(try parseBasicExpr())
     }
 
@@ -779,7 +823,8 @@ extension Parser {
     //
     // (a b c ... : <expr>) {d e f ... : <expr>} ...
     if case .colon = peek() {
-      return try self.finishParsingTypedParameterGroupExpr(leftParen, exprs)
+      return try self.finishParsingTypedParameterGroupExpr(leftParen,
+                                                           exprs, exprLocs)
     }
 
     // Else consume the closing paren.
@@ -828,7 +873,7 @@ extension Parser {
           ])
           exprs.append(SyntaxFactory.makeNamedBasicExpr(name: name))
         } else {
-          exprs.append(contentsOf: try parseBasicExprs())
+          exprs.append(contentsOf: try parseBasicExprs().0)
         }
       }
 
@@ -857,21 +902,22 @@ extension Parser {
   }
 
   func finishParsingTypedParameterGroupExpr(
-    _ leftParen: TokenSyntax, _ exprs: [ExprSyntax]
+    _ leftParen: TokenSyntax, _ exprs: [ExprSyntax], _ locs: [SourceLocation]
   ) throws -> TypedParameterGroupExprSyntax {
     let colonTok = try consume(.colon)
 
     // Ensure all expressions are simple names
-    let names = try exprs.map { expr -> QualifiedNameSyntax in
+    let names = try zip(exprs, locs).map { (expr, loc) -> QualifiedNameSyntax in
       guard let namedExpr = expr as? NamedBasicExprSyntax else {
-        throw engine.diagnose(.expected("identifier"), node: expr) {
+        throw engine.diagnose(.expected("identifier"),
+                              location: .location(loc)) {
           $0.highlight(expr)
         }
       }
       return namedExpr.name
     }
 
-    let tokens = ensureAllNamesSimple(names)
+    let tokens = ensureAllNamesSimple(names, locs)
     let identList = SyntaxFactory.makeIdentifierListSyntax(tokens)
     let typeExpr = try self.parseExpr()
     let ascription = SyntaxFactory.makeAscription(boundNames: identList,
@@ -933,24 +979,26 @@ extension Parser {
 
   func parseBasicExprs(
     diagType: String = "expression",
-    parseGIR: Bool = false) throws -> [BasicExprSyntax] {
+    parseGIR: Bool = false) throws -> ([BasicExprSyntax], [SourceLocation]) {
     var pieces = [BasicExprSyntax]()
+    var locs = [SourceLocation]()
     while isStartOfBasicExpr(parseGIR: parseGIR) {
       if parseGIR && peekToken()!.leadingTrivia.containsNewline {
-        return pieces
+        return (pieces, locs)
       }
+      locs.append(self.currentLocation)
       pieces.append(try parseBasicExpr(parseGIR: parseGIR))
     }
 
     guard !pieces.isEmpty else {
       throw expected(diagType)
     }
-    return pieces
+    return (pieces, locs)
   }
 
-  func parseBasicExprList() throws -> BasicExprListSyntax {
-    return SyntaxFactory.makeBasicExprListSyntax(
-      try parseBasicExprs(diagType: "list of expressions"))
+  func parseBasicExprList() throws -> (BasicExprListSyntax, [SourceLocation]) {
+    let (exprs, locs) = try parseBasicExprs(diagType: "list of expressions")
+    return (SyntaxFactory.makeBasicExprListSyntax(exprs), locs)
   }
 
   public func parseBasicExpr(parseGIR: Bool = false) throws -> BasicExprSyntax {
@@ -1122,7 +1170,7 @@ extension Parser {
           ])
           exprs.append(SyntaxFactory.makeNamedBasicExpr(name: name))
         } else {
-          exprs.append(contentsOf: try parseBasicExprs(parseGIR: true))
+          exprs.append(contentsOf: try parseBasicExprs(parseGIR: true).0)
         }
       }
 

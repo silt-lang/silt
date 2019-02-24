@@ -389,12 +389,6 @@ let syntaxNodes = [
 
   Node("FunctionClauseList", element: "FunctionClauseDecl"),
 
-  Node("ReparsedFunctionDecl", kind: "Decl", children: [
-    Child("ascription", kind: "Ascription"),
-    Child("trailingSemicolon", kind: "SemicolonToken"),
-    Child("clauseList", kind: "FunctionClauseList")
-  ]),
-
   Node("ReparsedApplicationExpr", kind: "BasicExpr", children: [
     Child("head", kind: "NamedBasicExpr"),
     Child("exprs", kind: "BasicExprList"),

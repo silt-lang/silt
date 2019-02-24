@@ -52,12 +52,13 @@ public class NameBinding {
   var notationMap: [Scope.ScopeID: [NewNotation]] = [:]
 
   public init(topLevel: ModuleDeclSyntax, engine: DiagnosticEngine,
+              converter: SourceLocationConverter,
               fileURL: URL,
               processImportedFile: @escaping (URL) -> LocalNames?) {
     let moduleName = QualifiedName(ast: topLevel.moduleIdentifier)
     self.activeScope = Scope(rooted: moduleName)
     self.engine = engine
-    self.reparser = Reparser(engine: engine)
+    self.reparser = Reparser(engine: engine, converter: converter)
     self.fileURL = fileURL
     self.processImportedFile = processImportedFile
   }

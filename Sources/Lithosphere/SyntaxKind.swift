@@ -57,7 +57,6 @@ public enum SyntaxKind {
   case typedParameterGroupExpr
   case recordExpr
   case functionClauseList
-  case reparsedFunctionDecl
   case reparsedApplicationExpr
   case decl
   case expr
@@ -201,8 +200,6 @@ func makeSyntax(root: SyntaxData?, data: SyntaxData) -> Syntax {
     return RecordExprSyntax(root: root, data: data)
   case .functionClauseList:
     return FunctionClauseListSyntax(root: root, data: data)
-  case .reparsedFunctionDecl:
-    return ReparsedFunctionDeclSyntax(root: root, data: data)
   case .reparsedApplicationExpr:
     return ReparsedApplicationExprSyntax(root: root, data: data)
   }

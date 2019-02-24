@@ -3764,57 +3764,6 @@ public struct FunctionClauseListSyntaxIterator: IteratorProtocol {
     return result
   }
 }
-public struct ReparsedFunctionDeclSyntax: DeclSyntax, _SyntaxBase {
-  let _root: SyntaxData
-  unowned let _data: SyntaxData
-  public enum Cursor: Int {
-    case ascription
-    case trailingSemicolon
-    case clauseList
-  }
-
-  internal init(root: SyntaxData, data: SyntaxData) {
-    self._root = root
-    self._data = data
-  }
-  public var ascription: AscriptionSyntax {
-    let child = data.cachedChild(at: Cursor.ascription.rawValue)
-
-    return makeSyntax(root: _root, data: child!) as! AscriptionSyntax
-  }
-  public func withAscription(_ newChild: AscriptionSyntax) -> ReparsedFunctionDeclSyntax {
-    let raw = newChild.raw
-    let (root, newData) = data.replacingChild(raw,
-                                              at: Cursor.ascription)
-    return ReparsedFunctionDeclSyntax(root: root, data: newData)
-  }
-
-  public var trailingSemicolon: TokenSyntax {
-    let child = data.cachedChild(at: Cursor.trailingSemicolon.rawValue)
-
-    return makeSyntax(root: _root, data: child!) as! TokenSyntax
-  }
-  public func withTrailingSemicolon(_ newChild: TokenSyntax) -> ReparsedFunctionDeclSyntax {
-    let raw = newChild.raw
-    let (root, newData) = data.replacingChild(raw,
-                                              at: Cursor.trailingSemicolon)
-    return ReparsedFunctionDeclSyntax(root: root, data: newData)
-  }
-
-  public var clauseList: FunctionClauseListSyntax {
-    let child = data.cachedChild(at: Cursor.clauseList.rawValue)
-
-    return makeSyntax(root: _root, data: child!) as! FunctionClauseListSyntax
-  }
-  public func withClauseList(_ newChild: FunctionClauseListSyntax) -> ReparsedFunctionDeclSyntax {
-    let raw = newChild.raw
-    let (root, newData) = data.replacingChild(raw,
-                                              at: Cursor.clauseList)
-    return ReparsedFunctionDeclSyntax(root: root, data: newData)
-  }
-
-}
-
 public struct ReparsedApplicationExprSyntax: BasicExprSyntax, _SyntaxBase {
   let _root: SyntaxData
   unowned let _data: SyntaxData

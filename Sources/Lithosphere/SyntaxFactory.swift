@@ -50,14 +50,15 @@ public enum SyntaxFactory {
   }
   public static func makeQualifiedNamePiece(
     name: TokenSyntax,
-    trailingPeriod: TokenSyntax?
+    trailingPeriod: TokenSyntax?,
+    presence: SourcePresence = .present
   ) -> QualifiedNamePieceSyntax {
     let layout: [RawSyntax?] = [
       name.data.raw,
       trailingPeriod?.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.qualifiedNamePiece,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return QualifiedNamePieceSyntax(root: data, data: data)
   }
@@ -77,7 +78,8 @@ public enum SyntaxFactory {
     leftBraceToken: TokenSyntax,
     declList: DeclListSyntax,
     rightBraceToken: TokenSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> ModuleDeclSyntax {
     let layout: [RawSyntax?] = [
       moduleToken.data.raw,
@@ -90,7 +92,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.moduleDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return ModuleDeclSyntax(root: data, data: data)
   }
@@ -119,7 +121,8 @@ public enum SyntaxFactory {
     openToken: TokenSyntax?,
     importToken: TokenSyntax,
     importIdentifier: QualifiedNameSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> OpenImportDeclSyntax {
     let layout: [RawSyntax?] = [
       openToken?.data.raw,
@@ -128,7 +131,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.openImportDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return OpenImportDeclSyntax(root: data, data: data)
   }
@@ -145,7 +148,8 @@ public enum SyntaxFactory {
   public static func makeImportDecl(
     importToken: TokenSyntax,
     importIdentifier: QualifiedNameSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> ImportDeclSyntax {
     let layout: [RawSyntax?] = [
       importToken.data.raw,
@@ -153,7 +157,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.importDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return ImportDeclSyntax(root: data, data: data)
   }
@@ -175,7 +179,8 @@ public enum SyntaxFactory {
     leftBraceToken: TokenSyntax,
     constructorList: ConstructorListSyntax,
     rightBraceToken: TokenSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> DataDeclSyntax {
     let layout: [RawSyntax?] = [
       dataToken.data.raw,
@@ -189,7 +194,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.dataDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return DataDeclSyntax(root: data, data: data)
   }
@@ -213,7 +218,8 @@ public enum SyntaxFactory {
     dataIdentifier: TokenSyntax,
     typedParameterList: TypedParameterListSyntax,
     typeIndices: TypeIndicesSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> EmptyDataDeclSyntax {
     let layout: [RawSyntax?] = [
       dataToken.data.raw,
@@ -223,7 +229,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.emptyDataDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return EmptyDataDeclSyntax(root: data, data: data)
   }
@@ -240,14 +246,15 @@ public enum SyntaxFactory {
   }
   public static func makeTypeIndices(
     colonToken: TokenSyntax,
-    indexExpr: ExprSyntax
+    indexExpr: ExprSyntax,
+    presence: SourcePresence = .present
   ) -> TypeIndicesSyntax {
     let layout: [RawSyntax?] = [
       colonToken.data.raw,
       indexExpr.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.typeIndices,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return TypeIndicesSyntax(root: data, data: data)
   }
@@ -269,7 +276,8 @@ public enum SyntaxFactory {
   public static func makeAscription(
     boundNames: IdentifierListSyntax,
     colonToken: TokenSyntax,
-    typeExpr: ExprSyntax
+    typeExpr: ExprSyntax,
+    presence: SourcePresence = .present
   ) -> AscriptionSyntax {
     let layout: [RawSyntax?] = [
       boundNames.data.raw,
@@ -277,7 +285,7 @@ public enum SyntaxFactory {
       typeExpr.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.ascription,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return AscriptionSyntax(root: data, data: data)
   }
@@ -293,7 +301,8 @@ public enum SyntaxFactory {
   public static func makeExplicitTypedParameter(
     leftParenToken: TokenSyntax,
     ascription: AscriptionSyntax,
-    rightParenToken: TokenSyntax
+    rightParenToken: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> ExplicitTypedParameterSyntax {
     let layout: [RawSyntax?] = [
       leftParenToken.data.raw,
@@ -301,7 +310,7 @@ public enum SyntaxFactory {
       rightParenToken.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.explicitTypedParameter,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return ExplicitTypedParameterSyntax(root: data, data: data)
   }
@@ -317,7 +326,8 @@ public enum SyntaxFactory {
   public static func makeImplicitTypedParameter(
     leftBraceToken: TokenSyntax,
     ascription: AscriptionSyntax,
-    rightBraceToken: TokenSyntax
+    rightBraceToken: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> ImplicitTypedParameterSyntax {
     let layout: [RawSyntax?] = [
       leftBraceToken.data.raw,
@@ -325,7 +335,7 @@ public enum SyntaxFactory {
       rightBraceToken.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.implicitTypedParameter,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return ImplicitTypedParameterSyntax(root: data, data: data)
   }
@@ -347,14 +357,15 @@ public enum SyntaxFactory {
   }
   public static func makeConstructorDecl(
     ascription: AscriptionSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> ConstructorDeclSyntax {
     let layout: [RawSyntax?] = [
       ascription.data.raw,
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.constructorDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return ConstructorDeclSyntax(root: data, data: data)
   }
@@ -375,7 +386,8 @@ public enum SyntaxFactory {
     leftParenToken: TokenSyntax,
     recordElementList: DeclListSyntax,
     rightParenToken: TokenSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> RecordDeclSyntax {
     let layout: [RawSyntax?] = [
       recordToken.data.raw,
@@ -389,7 +401,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.recordDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return RecordDeclSyntax(root: data, data: data)
   }
@@ -411,7 +423,8 @@ public enum SyntaxFactory {
   public static func makeFieldDecl(
     fieldToken: TokenSyntax,
     ascription: AscriptionSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> FieldDeclSyntax {
     let layout: [RawSyntax?] = [
       fieldToken.data.raw,
@@ -419,7 +432,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.fieldDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return FieldDeclSyntax(root: data, data: data)
   }
@@ -435,7 +448,8 @@ public enum SyntaxFactory {
   public static func makeRecordConstructorDecl(
     constructorToken: TokenSyntax,
     constructorName: TokenSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> RecordConstructorDeclSyntax {
     let layout: [RawSyntax?] = [
       constructorToken.data.raw,
@@ -443,7 +457,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.recordConstructorDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return RecordConstructorDeclSyntax(root: data, data: data)
   }
@@ -467,7 +481,8 @@ public enum SyntaxFactory {
     fieldName: TokenSyntax,
     equalsToken: TokenSyntax,
     fieldInitExpr: ExprSyntax,
-    trailingSemicolon: TokenSyntax?
+    trailingSemicolon: TokenSyntax?,
+    presence: SourcePresence = .present
   ) -> RecordFieldAssignmentSyntax {
     let layout: [RawSyntax?] = [
       fieldName.data.raw,
@@ -476,7 +491,7 @@ public enum SyntaxFactory {
       trailingSemicolon?.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.recordFieldAssignment,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return RecordFieldAssignmentSyntax(root: data, data: data)
   }
@@ -492,14 +507,15 @@ public enum SyntaxFactory {
   }
   public static func makeFunctionDecl(
     ascription: AscriptionSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> FunctionDeclSyntax {
     let layout: [RawSyntax?] = [
       ascription.data.raw,
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.functionDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return FunctionDeclSyntax(root: data, data: data)
   }
@@ -519,7 +535,8 @@ public enum SyntaxFactory {
     equalsToken: TokenSyntax,
     rhsExpr: ExprSyntax,
     whereClause: FunctionWhereClauseDeclSyntax?,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> WithRuleFunctionClauseDeclSyntax {
     let layout: [RawSyntax?] = [
       basicExprList.data.raw,
@@ -532,7 +549,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.withRuleFunctionClauseDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return WithRuleFunctionClauseDeclSyntax(root: data, data: data)
   }
@@ -555,7 +572,8 @@ public enum SyntaxFactory {
     equalsToken: TokenSyntax,
     rhsExpr: ExprSyntax,
     whereClause: FunctionWhereClauseDeclSyntax?,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> NormalFunctionClauseDeclSyntax {
     let layout: [RawSyntax?] = [
       basicExprList.data.raw,
@@ -565,7 +583,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.normalFunctionClauseDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return NormalFunctionClauseDeclSyntax(root: data, data: data)
   }
@@ -582,14 +600,15 @@ public enum SyntaxFactory {
   }
   public static func makeAbsurdFunctionClauseDecl(
     basicExprList: BasicExprListSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> AbsurdFunctionClauseDeclSyntax {
     let layout: [RawSyntax?] = [
       basicExprList.data.raw,
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.absurdFunctionClauseDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return AbsurdFunctionClauseDeclSyntax(root: data, data: data)
   }
@@ -605,7 +624,8 @@ public enum SyntaxFactory {
     whereToken: TokenSyntax,
     leftBraceToken: TokenSyntax,
     declList: DeclListSyntax,
-    rightBraceToken: TokenSyntax
+    rightBraceToken: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> FunctionWhereClauseDeclSyntax {
     let layout: [RawSyntax?] = [
       whereToken.data.raw,
@@ -614,7 +634,7 @@ public enum SyntaxFactory {
       rightBraceToken.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.functionWhereClauseDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return FunctionWhereClauseDeclSyntax(root: data, data: data)
   }
@@ -633,7 +653,8 @@ public enum SyntaxFactory {
     basicExprList: BasicExprListSyntax,
     equalsToken: TokenSyntax,
     boundExpr: ExprSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> LetBindingDeclSyntax {
     let layout: [RawSyntax?] = [
       head.data.raw,
@@ -643,7 +664,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.letBindingDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return LetBindingDeclSyntax(root: data, data: data)
   }
@@ -662,7 +683,8 @@ public enum SyntaxFactory {
     infixToken: TokenSyntax,
     precedence: TokenSyntax,
     names: IdentifierListSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> NonFixDeclSyntax {
     let layout: [RawSyntax?] = [
       infixToken.data.raw,
@@ -671,7 +693,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.nonFixDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return NonFixDeclSyntax(root: data, data: data)
   }
@@ -689,7 +711,8 @@ public enum SyntaxFactory {
     infixlToken: TokenSyntax,
     precedence: TokenSyntax,
     names: IdentifierListSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> LeftFixDeclSyntax {
     let layout: [RawSyntax?] = [
       infixlToken.data.raw,
@@ -698,7 +721,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.leftFixDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return LeftFixDeclSyntax(root: data, data: data)
   }
@@ -716,7 +739,8 @@ public enum SyntaxFactory {
     infixrToken: TokenSyntax,
     precedence: TokenSyntax,
     names: IdentifierListSyntax,
-    trailingSemicolon: TokenSyntax
+    trailingSemicolon: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> RightFixDeclSyntax {
     let layout: [RawSyntax?] = [
       infixrToken.data.raw,
@@ -725,7 +749,7 @@ public enum SyntaxFactory {
       trailingSemicolon.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.rightFixDecl,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return RightFixDeclSyntax(root: data, data: data)
   }
@@ -750,7 +774,8 @@ public enum SyntaxFactory {
     slashToken: TokenSyntax,
     bindingList: BindingListSyntax,
     arrowToken: TokenSyntax,
-    bodyExpr: ExprSyntax
+    bodyExpr: ExprSyntax,
+    presence: SourcePresence = .present
   ) -> LambdaExprSyntax {
     let layout: [RawSyntax?] = [
       slashToken.data.raw,
@@ -759,7 +784,7 @@ public enum SyntaxFactory {
       bodyExpr.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.lambdaExpr,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return LambdaExprSyntax(root: data, data: data)
   }
@@ -777,7 +802,8 @@ public enum SyntaxFactory {
     forallToken: TokenSyntax,
     bindingList: TypedParameterListSyntax,
     arrowToken: TokenSyntax,
-    outputExpr: ExprSyntax
+    outputExpr: ExprSyntax,
+    presence: SourcePresence = .present
   ) -> QuantifiedExprSyntax {
     let layout: [RawSyntax?] = [
       forallToken.data.raw,
@@ -786,7 +812,7 @@ public enum SyntaxFactory {
       outputExpr.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.quantifiedExpr,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return QuantifiedExprSyntax(root: data, data: data)
   }
@@ -806,7 +832,8 @@ public enum SyntaxFactory {
     declList: DeclListSyntax,
     rightBraceToken: TokenSyntax,
     inToken: TokenSyntax,
-    outputExpr: ExprSyntax
+    outputExpr: ExprSyntax,
+    presence: SourcePresence = .present
   ) -> LetExprSyntax {
     let layout: [RawSyntax?] = [
       letToken.data.raw,
@@ -817,7 +844,7 @@ public enum SyntaxFactory {
       outputExpr.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.letExpr,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return LetExprSyntax(root: data, data: data)
   }
@@ -834,13 +861,14 @@ public enum SyntaxFactory {
     return LetExprSyntax(root: data, data: data)
   }
   public static func makeApplicationExpr(
-    exprs: BasicExprListSyntax
+    exprs: BasicExprListSyntax,
+    presence: SourcePresence = .present
   ) -> ApplicationExprSyntax {
     let layout: [RawSyntax?] = [
       exprs.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.applicationExpr,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return ApplicationExprSyntax(root: data, data: data)
   }
@@ -859,13 +887,14 @@ public enum SyntaxFactory {
     return BindingListSyntax(root: data, data: data)
   }
   public static func makeNamedBinding(
-    name: QualifiedNameSyntax
+    name: QualifiedNameSyntax,
+    presence: SourcePresence = .present
   ) -> NamedBindingSyntax {
     let layout: [RawSyntax?] = [
       name.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.namedBinding,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return NamedBindingSyntax(root: data, data: data)
   }
@@ -877,13 +906,14 @@ public enum SyntaxFactory {
     return NamedBindingSyntax(root: data, data: data)
   }
   public static func makeTypedBinding(
-    parameter: TypedParameterSyntax
+    parameter: TypedParameterSyntax,
+    presence: SourcePresence = .present
   ) -> TypedBindingSyntax {
     let layout: [RawSyntax?] = [
       parameter.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.typedBinding,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return TypedBindingSyntax(root: data, data: data)
   }
@@ -895,13 +925,14 @@ public enum SyntaxFactory {
     return TypedBindingSyntax(root: data, data: data)
   }
   public static func makeAnonymousBinding(
-    underscoreToken: TokenSyntax
+    underscoreToken: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> AnonymousBindingSyntax {
     let layout: [RawSyntax?] = [
       underscoreToken.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.anonymousBinding,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return AnonymousBindingSyntax(root: data, data: data)
   }
@@ -920,13 +951,14 @@ public enum SyntaxFactory {
     return BasicExprListSyntax(root: data, data: data)
   }
   public static func makeNamedBasicExpr(
-    name: QualifiedNameSyntax
+    name: QualifiedNameSyntax,
+    presence: SourcePresence = .present
   ) -> NamedBasicExprSyntax {
     let layout: [RawSyntax?] = [
       name.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.namedBasicExpr,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return NamedBasicExprSyntax(root: data, data: data)
   }
@@ -938,13 +970,14 @@ public enum SyntaxFactory {
     return NamedBasicExprSyntax(root: data, data: data)
   }
   public static func makeUnderscoreExpr(
-    underscoreToken: TokenSyntax
+    underscoreToken: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> UnderscoreExprSyntax {
     let layout: [RawSyntax?] = [
       underscoreToken.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.underscoreExpr,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return UnderscoreExprSyntax(root: data, data: data)
   }
@@ -957,14 +990,15 @@ public enum SyntaxFactory {
   }
   public static func makeAbsurdExpr(
     leftParenToken: TokenSyntax,
-    rightParenToken: TokenSyntax
+    rightParenToken: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> AbsurdExprSyntax {
     let layout: [RawSyntax?] = [
       leftParenToken.data.raw,
       rightParenToken.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.absurdExpr,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return AbsurdExprSyntax(root: data, data: data)
   }
@@ -977,13 +1011,14 @@ public enum SyntaxFactory {
     return AbsurdExprSyntax(root: data, data: data)
   }
   public static func makeTypeBasicExpr(
-    typeToken: TokenSyntax
+    typeToken: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> TypeBasicExprSyntax {
     let layout: [RawSyntax?] = [
       typeToken.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.typeBasicExpr,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return TypeBasicExprSyntax(root: data, data: data)
   }
@@ -997,7 +1032,8 @@ public enum SyntaxFactory {
   public static func makeParenthesizedExpr(
     leftParenToken: TokenSyntax,
     expr: ExprSyntax,
-    rightParenToken: TokenSyntax
+    rightParenToken: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> ParenthesizedExprSyntax {
     let layout: [RawSyntax?] = [
       leftParenToken.data.raw,
@@ -1005,7 +1041,7 @@ public enum SyntaxFactory {
       rightParenToken.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.parenthesizedExpr,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return ParenthesizedExprSyntax(root: data, data: data)
   }
@@ -1019,13 +1055,14 @@ public enum SyntaxFactory {
     return ParenthesizedExprSyntax(root: data, data: data)
   }
   public static func makeTypedParameterGroupExpr(
-    parameters: TypedParameterListSyntax
+    parameters: TypedParameterListSyntax,
+    presence: SourcePresence = .present
   ) -> TypedParameterGroupExprSyntax {
     let layout: [RawSyntax?] = [
       parameters.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.typedParameterGroupExpr,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return TypedParameterGroupExprSyntax(root: data, data: data)
   }
@@ -1041,7 +1078,8 @@ public enum SyntaxFactory {
     parameterExpr: BasicExprSyntax?,
     leftBraceToken: TokenSyntax,
     fieldAssignments: RecordFieldAssignmentListSyntax,
-    rightBraceToken: TokenSyntax
+    rightBraceToken: TokenSyntax,
+    presence: SourcePresence = .present
   ) -> RecordExprSyntax {
     let layout: [RawSyntax?] = [
       recordToken.data.raw,
@@ -1051,7 +1089,7 @@ public enum SyntaxFactory {
       rightBraceToken.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.recordExpr,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return RecordExprSyntax(root: data, data: data)
   }
@@ -1073,40 +1111,17 @@ public enum SyntaxFactory {
     let data = SyntaxData(raw: raw)
     return FunctionClauseListSyntax(root: data, data: data)
   }
-  public static func makeReparsedFunctionDecl(
-    ascription: AscriptionSyntax,
-    trailingSemicolon: TokenSyntax,
-    clauseList: FunctionClauseListSyntax
-  ) -> ReparsedFunctionDeclSyntax {
-    let layout: [RawSyntax?] = [
-      ascription.data.raw,
-      trailingSemicolon.data.raw,
-      clauseList.data.raw,
-    ]
-    let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.reparsedFunctionDecl,
-      layout: layout, presence: SourcePresence.present)
-    let data = SyntaxData(raw: raw)
-    return ReparsedFunctionDeclSyntax(root: data, data: data)
-  }
-  public static func makeBlankReparsedFunctionDecl() -> ReparsedFunctionDeclSyntax {
-    let data = SyntaxData(raw: RawSyntax(kind: .reparsedFunctionDecl,
-                                         layout: [
-      RawSyntax.missing(.ascription),
-      RawSyntax.missingToken(.semicolon),
-      RawSyntax.missing(.functionClauseList),
-    ], length: .zero, presence: .present))
-    return ReparsedFunctionDeclSyntax(root: data, data: data)
-  }
   public static func makeReparsedApplicationExpr(
     head: NamedBasicExprSyntax,
-    exprs: BasicExprListSyntax
+    exprs: BasicExprListSyntax,
+    presence: SourcePresence = .present
   ) -> ReparsedApplicationExprSyntax {
     let layout: [RawSyntax?] = [
       head.data.raw,
       exprs.data.raw,
     ]
     let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.reparsedApplicationExpr,
-      layout: layout, presence: SourcePresence.present)
+      layout: layout, presence: presence)
     let data = SyntaxData(raw: raw)
     return ReparsedApplicationExprSyntax(root: data, data: data)
   }

@@ -8,6 +8,7 @@
 // Disabling line length for this specific file because it has a lot of long
 // strings that go past the length boundary.
 // swiftlint:disable line_length
+// swiftlint:disable function_body_length
 
 import Foundation
 import Lithosphere
@@ -117,7 +118,8 @@ extension SwiftGenerator {
           .joined(separator: ",\n    ")
         line("  public static func make\(node.typeName.uppercaseFirstLetter)(")
         write("    ")
-        line(childParams)
+        line(childParams + (!childParams.isEmpty ? "," : ""))
+        line("    presence: SourcePresence = .present")
         line("  ) -> \(node.typeName)Syntax {")
         line("    let layout: [RawSyntax?] = [")
         for child in children {
@@ -125,7 +127,7 @@ extension SwiftGenerator {
         }
         line("    ]")
         line("    let raw = RawSyntax.createAndCalcLength(kind: SyntaxKind.\(node.typeName.lowercaseFirstLetter),")
-        line("      layout: layout, presence: SourcePresence.present)")
+        line("      layout: layout, presence: presence)")
         line("    let data = SyntaxData(raw: raw)")
         line("    return \(node.typeName)Syntax(root: data, data: data)")
         line("  }")

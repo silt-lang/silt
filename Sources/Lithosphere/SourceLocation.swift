@@ -233,8 +233,8 @@ private func computeLines(
     lines.append(position)
   }
   var curPrefix: SourceLength = .zero
-  tree.forEachToken {
-    curPrefix = $0.forEachLineLength(prefix: curPrefix, body: addLine)
+  for token in tree {
+    curPrefix = token.forEachLineLength(prefix: curPrefix, body: addLine)
   }
   position += curPrefix
   return (lines, position)
@@ -289,7 +289,7 @@ fileprivate extension String {
   }
 }
 
-fileprivate extension TriviaPiece {
+public extension TriviaPiece {
   /// Walks and passes to `body` the `SourceLength` for every detected line,
   /// with the newline character included.
   /// - Returns: The leftover `SourceLength` at the end of the walk.
@@ -367,6 +367,9 @@ fileprivate extension TokenSyntax {
     prefix: SourceLength = .zero, body: (SourceLength) -> Void
   ) -> SourceLength {
     var curPrefix = prefix
+    guard self.isPresent else {
+      return curPrefix
+    }
     curPrefix = self.leadingTrivia.forEachLineLength(prefix: curPrefix,
                                                      body: body)
     curPrefix = self.tokenKind.forEachLineLength(prefix: curPrefix, body:

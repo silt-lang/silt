@@ -2,10 +2,10 @@
 
 module operators where
 
-infix flurp if_then_else_ -- expected-error {{operator precedence 'flurp' is invalid; precedence must be a positive integer}}
+infix flurp if_then_else_ -- expected-warning {{operator precedence 'flurp' is invalid; precedence must be a positive integer}}
 -- expected-note@-1 {{assuming default precedence of 20}}
-infixl flurp if_then_else_ -- expected-error {{operator precedence 'flurp' is invalid; precedence must be a positive integer}}
+infixl flurp if_then_else_ -- expected-warning {{operator precedence 'flurp' is invalid; precedence must be a positive integer}}
 -- expected-note@-1 {{assuming default precedence of 20}}
-infixr flurp if_then_else_ -- expected-error {{operator precedence 'flurp' is invalid; precedence must be a positive integer}}
+infixr flurp if_then_else_ -- expected-warning {{operator precedence 'flurp' is invalid; precedence must be a positive integer}}
 -- expected-note@-1 {{assuming default precedence of 20}}
 
