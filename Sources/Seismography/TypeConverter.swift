@@ -75,8 +75,8 @@ public final class TypeConverter {
       return lhs.details == rhs.details
     }
 
-    var hashValue: Int {
-      return self.details.hashValue
+    func hash(into hasher: inout Hasher) {
+      self.details.hash(into: &hasher)
     }
   }
 

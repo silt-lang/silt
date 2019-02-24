@@ -9,6 +9,13 @@ import Foundation
 /// Represents a diagnostic that expresses a failure or warning condition found
 /// during compilation.
 public struct Diagnostic {
+  /// Represents location information associated with diagnostics.
+  public enum Location {
+    case unknown
+    case location(SourceLocation)
+    case node(Syntax)
+  }
+
   /// A Note is a piece of extra information attached to a diagnostic. Notes are
   /// useful for suggestions when the fix for an issue is not immediately
   /// obvious. By convention, silt will attach one or more notes to a diagnostic
@@ -17,13 +24,25 @@ public struct Diagnostic {
     /// The message attached to the Note.
     public let message: Message
 
-    /// The Syntax node to which the note is attached. This will directly
-    /// reference source code.
-    public let node: Syntax?
-
     /// A set of nodes that will be 'highlighted', that may provide more context
     /// to a particular note.
     public let highlights: [Syntax]
+
+    /// The location associated with this diagnostic note.
+    public let location: Location
+
+    public func sourceLocation(
+      converter: SourceLocationConverter
+    ) -> SourceLocation? {
+      switch self.location {
+      case .unknown:
+        return nil
+      case let .location(loc):
+        return loc
+      case let .node(node):
+        return node.startLocation(converter: converter)
+      }
+    }
   }
 
   /// Represents a diagnostic message. Clients should extend this struct with
@@ -60,9 +79,8 @@ public struct Diagnostic {
   /// The textual message that the diagnostic intends to print.
   public let message: Message
 
-  /// The Syntax node to which the diagnostic is attached. This will directly
-  /// reference source code.
-  public let node: Syntax?
+  /// The location this diagnostic is associated with.
+  public let location: Location
 
   /// A set of nodes that will be 'highlighted', that may provide more context
   /// to a particular diagnostic.
@@ -70,6 +88,19 @@ public struct Diagnostic {
 
   /// A set of notes on this diagnostic.
   public let notes: [Note]
+
+  public func sourceLocation(
+    converter: SourceLocationConverter
+  ) -> SourceLocation? {
+    switch self.location {
+    case .unknown:
+      return nil
+    case let .location(loc):
+      return loc
+    case let .node(node):
+      return node.startLocation(converter: converter)
+    }
+  }
 
   /// A diagnostic builder is an object that lets you incrementally add
   /// highlights and notes to a diagnostic. It's only accessible through
@@ -108,11 +139,24 @@ public struct Diagnostic {
     ///   - node: The node to attach the new note to.
     ///   - highlights: The nodes to highlight for this node.
     public mutating func note(_ message: Message,
-                              node: Syntax? = nil,
+                              location: Location = .unknown,
                               highlights: [Syntax] = []) {
       precondition(message.severity == .note,
                    "cannot create a note with severity \(message.severity)")
-      note(Note(message: message, node: node, highlights: highlights))
+      note(Note(message: message, highlights: highlights, location: location))
+    }
+
+    /// Constructs a note from the constituent parts and adds it to this
+    /// builder.
+    ///
+    /// - Parameters:
+    ///   - message: The message in the note.
+    ///   - node: The node to attach the new note to.
+    ///   - highlights: The nodes to highlight for this node.
+    public mutating func note(_ message: Message,
+                              node: Syntax,
+                              highlights: [Syntax] = []) {
+      self.note(message, location: .node(node), highlights: highlights)
     }
 
     /// Builds a Diagnostic from the current set of values in the builder.
@@ -123,9 +167,12 @@ public struct Diagnostic {
     ///   - severity: The severity of the resulting diagnostic.
     /// - returns: The diagnostic made by combining the parameters with the
     ///            current internal state of the builder.
-    internal func build(message: Message, node: Syntax?) -> Diagnostic {
+    internal func build(
+      message: Message,
+      location: Location = .unknown
+    ) -> Diagnostic {
       return Diagnostic(message: message,
-                        node: node,
+                        location: location,
                         highlights: highlights,
                         notes: notes)
     }
@@ -143,11 +190,11 @@ public struct Diagnostic {
   ///   - notes: The set of notes applied to this diagnostic.
   /// - Returns: A Diagnostic that contains the provided fields.
   public init(message: Message,
-              node: Syntax?, highlights: [Syntax], notes: [Note]) {
+              location: Location, highlights: [Syntax], notes: [Note]) {
     precondition(message.severity != .note,
                  "cannot create a diagnostic with note severity")
     self.message = message
-    self.node = node
+    self.location = location
     self.highlights = highlights
     self.notes = notes
   }
@@ -167,10 +214,10 @@ public struct Diagnostic {
   ///   - actions: A closure that will attach highlights and notes to a
   ///              diagnostic builder.
   /// - Returns: A Diagnostic that contains the provided fields.
-  internal init(message: Message, node: Syntax?, actions: BuildActions?) {
+  internal init(message: Message, location: Location, actions: BuildActions?) {
     var builder = Builder()
     actions?(&builder)
-    self = builder.build(message: message, node: node)
+    self = builder.build(message: message, location: location)
   }
 }
 

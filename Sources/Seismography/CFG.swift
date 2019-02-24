@@ -86,7 +86,7 @@ public final class PredecessorIterator: IteratorProtocol {
       self.first = false
       return self.continuation
     }
-    
+
     guard let c = self.succ else {
       return nil
     }
@@ -96,7 +96,7 @@ public final class PredecessorIterator: IteratorProtocol {
   }
 
   private func computeCurrentContinuation() {
-    guard let cur = self.succ, cur.parent != nil else{
+    guard let cur = self.succ, cur.parent != nil else {
       self.continuation = nil
       return
     }

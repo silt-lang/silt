@@ -195,7 +195,8 @@ extension TypeChecker where PhaseState == SolvePhaseState {
           return .failure(e)
         }
       case let .apply(h, elims):
-        let invElims = elims.mapM({ (e) -> Validation<Collect<Var, Set<Meta>>, Elim<TT>> in
+        typealias InvElim = Validation<Collect<Var, Set<Meta>>, Elim<TT>>
+        let invElims = elims.mapM({ (e) -> InvElim in
           switch e {
           case let .apply(t2):
             return applyInversion(after: idx, t2).map(Elim<TT>.apply)

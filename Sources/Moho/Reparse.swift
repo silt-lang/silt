@@ -49,11 +49,12 @@ public final class Reparser {
   var tokens: [TokenSyntax] = []
   var dag: NotationDAG = NotationDAG()
   var closedNames: Set<String> = []
-  var originalNode: Syntax?
   var side: ParseSide = .none
+  let converter: SourceLocationConverter
 
-  init(engine: DiagnosticEngine) {
+  init(engine: DiagnosticEngine, converter: SourceLocationConverter) {
     self.engine = engine
+    self.converter = converter
   }
 
   func peek(ahead n: Int = 0) -> TokenKind {
@@ -95,12 +96,11 @@ extension Reparser {
     precondition(!dag.isEmpty, "Why are you reparsing with no notation?")
 
     self.index = 0
-    self.originalNode = original
     self.tokens = tokens
     self.dag = dag
     self.closedNames = closed
     self.side = .rhs
-    return self.performRHSReparse()
+    return self.performRHSReparse(original)
   }
 
   /// Reparses an arbitrary expression appearing on the left-hand side of
@@ -111,26 +111,22 @@ extension Reparser {
   func reparseLHS(
     _ original: Syntax, _ tokens: [TokenSyntax],
     notation dag: NotationDAG, closed: Set<String>
-  ) -> (Name, BasicExprListSyntax) {
+  ) -> ReparsedBasicExprList {
     precondition(!dag.isEmpty, "Why are you reparsing with no notation?")
 
     self.index = 0
-    self.originalNode = original
     self.tokens = tokens
     self.dag = dag
     self.closedNames = closed
     self.side = .lhs
-    return self.performLHSReparse()
+    return self.performLHSReparse(original)
   }
 
-  private func performRHSReparse() -> ExprSyntax {
+  private func performRHSReparse(_ original: Syntax) -> ExprSyntax {
     // Enter the reparser thru the top-level <expr> production.
     let expr = self.parseExpression(at: .unrelated)
     if peek() != .eof {
-      self.engine.diagnose(.reparseRHSFailed, node: self.originalNode) {
-        guard let original = self.originalNode else {
-          return
-        }
+      self.engine.diagnose(.reparseRHSFailed, node: original) {
         $0.highlight(original)
 
         if let expr = expr {
@@ -157,14 +153,11 @@ extension Reparser {
     return expr!
   }
 
-  private func performLHSReparse() -> (Name, BasicExprListSyntax) {
+  private func performLHSReparse(_ original: Syntax) -> ReparsedBasicExprList {
     // Enter the reparser thru the top-level <expr> production.
     let expr = self.parseExpression(at: .unrelated)
     if peek() != .eof {
-      self.engine.diagnose(.reparseLHSFailed, node: self.originalNode) {
-        guard let original = self.originalNode else {
-          return
-        }
+      self.engine.diagnose(.reparseLHSFailed, node: original) {
         $0.highlight(original)
 
         if let expr = expr {
@@ -180,7 +173,7 @@ extension Reparser {
       fatalError("\(type(of: expr))")
     }
     let headName = QualifiedName(ast: reparsedApp.head.name).name
-    return (headName, reparsedApp.exprs)
+    return ReparsedBasicExprList(name: headName, exprs: reparsedApp.exprs)
   }
 
   /// Attempts parsing of all operators in the precedence DAG with precedence
@@ -290,9 +283,10 @@ extension Reparser {
     }
 
     let headName = notation.name.syntax.withTrailingTrivia(.spaces(1))
-    let headSyntax = NamedBasicExprSyntax(identifier: headName)
-    let exprList = BasicExprListSyntax(elements: exprs)
-    return ReparsedApplicationExprSyntax(head: headSyntax, exprs: exprList)
+    let headSyntax = SyntaxFactory.makeNamedBasicExpr(identifier: headName)
+    let exprList = SyntaxFactory.makeBasicExprListSyntax(exprs)
+    return SyntaxFactory.makeReparsedApplicationExpr(head: headSyntax,
+                                                     exprs: exprList)
   }
 
   /// Attempts to parse a left-associative operator.
@@ -338,14 +332,16 @@ extension Reparser {
     }
 
     let headName = notation.name.syntax.withTrailingTrivia(.spaces(1))
-    let headSyntax = NamedBasicExprSyntax(identifier: headName)
+    let headSyntax = SyntaxFactory.makeNamedBasicExpr(identifier: headName)
 
-    let exprList = BasicExprListSyntax(elements: exprs)
-    let left = ReparsedApplicationExprSyntax(head: headSyntax, exprs: exprList)
+    let exprList = SyntaxFactory.makeBasicExprListSyntax(exprs)
+    let left = SyntaxFactory.makeReparsedApplicationExpr(head: headSyntax,
+                                                         exprs: exprList)
 
     guard let recur = goLeft(notation, left) else {
-      let exprList = BasicExprListSyntax(elements: exprs)
-      return ReparsedApplicationExprSyntax(head: headSyntax, exprs: exprList)
+      let exprList = SyntaxFactory.makeBasicExprListSyntax(exprs)
+      return SyntaxFactory.makeReparsedApplicationExpr(head: headSyntax,
+                                                       exprs: exprList)
     }
 
     return recur
@@ -382,7 +378,7 @@ extension Reparser {
     }
 
     let headName = notation.name.syntax.withTrailingTrivia(.spaces(1))
-    let headSyntax = NamedBasicExprSyntax(identifier: headName)
+    let headSyntax = SyntaxFactory.makeNamedBasicExpr(identifier: headName)
 
     guard let recur = tryParseRightfix(notation) else {
       guard let expr = self.parseExpression(at: notation.fixity.level) else {
@@ -390,13 +386,15 @@ extension Reparser {
         return nil
       }
       exprs.append(expr)
-      let exprList = BasicExprListSyntax(elements: exprs)
-      return ReparsedApplicationExprSyntax(head: headSyntax, exprs: exprList)
+      let exprList = SyntaxFactory.makeBasicExprListSyntax(exprs)
+      return SyntaxFactory.makeReparsedApplicationExpr(head: headSyntax,
+                                                       exprs: exprList)
     }
 
     exprs.append(recur)
-    let exprList = BasicExprListSyntax(elements: exprs)
-    return ReparsedApplicationExprSyntax(head: headSyntax, exprs: exprList)
+    let exprList = SyntaxFactory.makeBasicExprListSyntax(exprs)
+    return SyntaxFactory.makeReparsedApplicationExpr(head: headSyntax,
+                                                     exprs: exprList)
   }
 
   /// Closed operators bind strictly tighter than all other user-defined
@@ -406,16 +404,16 @@ extension Reparser {
       switch peek() {
       case let .identifier(s) where self.closedNames.contains(s):
         let syntax = consume(peek())!
-        return NamedBasicExprSyntax(identifier: syntax)
+        return SyntaxFactory.makeNamedBasicExpr(identifier: syntax)
       case .identifier(_):
         return nil
       case .arrow where self.closedNames.contains(TokenKind.arrow.text):
         let syntax = consume(peek())!
-        return NamedBasicExprSyntax(identifier: syntax)
+        return SyntaxFactory.makeNamedBasicExpr(identifier: syntax)
       case .typeKeyword
         where self.closedNames.contains(TokenKind.typeKeyword.text):
         let syntax = consume(peek())!
-        return TypeBasicExprSyntax(typeToken: syntax)
+        return SyntaxFactory.makeTypeBasicExpr(typeToken: syntax)
       case .rightParen:
         return nil
       case .eof:
@@ -430,7 +428,8 @@ extension Reparser {
         }
 
         return self.engine.transact { () -> (Bool, BasicExprSyntax?) in
-          let parse = Parser(diagnosticEngine: self.engine, tokens: self.tokens)
+          let parse = Parser(diagnosticEngine: self.engine, tokens: self.tokens,
+                             converter: self.converter)
           parse.advance(self.index)
 
           guard let parsedExpr = try? parse.parseBasicExpr() else {
@@ -453,9 +452,9 @@ extension Reparser {
     while let basicExpr = pumpParse() {
       exprs.append(basicExpr)
     }
-    let syntaxList = BasicExprListSyntax(elements: exprs)
-    return ReparsedApplicationExprSyntax(head: headExpr,
-                                         exprs: syntaxList)
+    let syntaxList = SyntaxFactory.makeBasicExprListSyntax(exprs)
+    return SyntaxFactory.makeReparsedApplicationExpr(head: headExpr,
+                                                     exprs: syntaxList)
   }
 
   /// Parses a parenthesized expression.
@@ -481,9 +480,9 @@ extension Reparser {
       return nil
     }
 
-    return ParenthesizedExprSyntax(leftParenToken: leftParen,
-                                   expr: expr,
-                                   rightParenToken: rightParen)
+    return SyntaxFactory.makeParenthesizedExpr(leftParenToken: leftParen,
+                                               expr: expr,
+                                               rightParenToken: rightParen)
   }
 }
 
@@ -524,7 +523,7 @@ extension NameBinding {
   /// function into a head-explicit form that mimics explicit parentheticals
   /// and normal function applications.
   func reparseLHS(
-    _ syntax: BasicExprListSyntax) -> (Name, BasicExprListSyntax) {
+    _ syntax: BasicExprListSyntax) -> ReparsedBasicExprList {
     let (toks, activeNotes, closedNames) = retokenize(syntax)
     // If the node does not use any notation, we can split it at the function
     // name and return it.
@@ -536,7 +535,8 @@ extension NameBinding {
         fatalError()
       }
       let name = QualifiedName(ast: namedSyntax.name)
-      return (name.name, syntax.removingFirst())
+      return ReparsedBasicExprList(name: name.name,
+                                         exprs: syntax.removingFirst())
     }
 
     let dag = NotationDAG()
@@ -578,15 +578,31 @@ extension NameBinding {
       }
       sink.append(node)
     case let node as LambdaExprSyntax:
-      sink.append(TokenSyntax(.leftParen, presence: .implicit))
+      sink.append(SyntaxFactory.makeToken(.leftParen, presence: .implicit))
       for child in node.children {
         retokenizeRec(child, &sink, &idents)
       }
-      sink.append(TokenSyntax(.rightParen, presence: .implicit))
+      sink.append(SyntaxFactory.makeToken(.rightParen, presence: .implicit))
     default:
       for child in node.children {
         retokenizeRec(child, &sink, &idents)
       }
     }
   }
+}
+
+extension SyntaxFactory {
+  public static func makeNamedBasicExpr(
+    identifier: TokenSyntax) -> NamedBasicExprSyntax {
+    return SyntaxFactory.makeNamedBasicExpr(
+      name: SyntaxFactory.makeQualifiedNameSyntax([
+      SyntaxFactory.makeQualifiedNamePiece(name: identifier,
+                                           trailingPeriod: nil)
+    ]))
+  }
+}
+
+struct ReparsedBasicExprList {
+  let name: Name
+  let exprs: BasicExprListSyntax
 }

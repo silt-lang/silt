@@ -65,7 +65,6 @@ private let diagRegex = try! NSRegularExpression(pattern:
 ///
 /// Expectation comments are written as standard silt comments, i.e.
 public final class DiagnosticVerifier {
-
   /// Represents a parsed expectation containing a severity, a textual message,
   /// and the original token to which the comment was attached (for use in the
   /// final diagnostic to point near this comment).
@@ -82,10 +81,10 @@ public final class DiagnosticVerifier {
              lhs.line == rhs.line
     }
 
-    var hashValue: Int {
-      return messageText.hashValue ^
-             severity.rawValue.hashValue ^
-             line.hashValue
+    func hash(into hasher: inout Hasher) {
+      messageText.hash(into: &hasher)
+      severity.rawValue.hash(into: &hasher)
+      line.hash(into: &hasher)
     }
   }
 
@@ -93,37 +92,42 @@ public final class DiagnosticVerifier {
   let expectations: [Expectation]
 
   /// The set of diagnostics that have been parsed.
-  let producedDiagnostics: [(message: Diagnostic.Message, node: Syntax?)]
+  let producedDiagnostics: [(message: Diagnostic.Message,
+                             location: Diagnostic.Location)]
+
+  let converter: SourceLocationConverter
 
   /// The temporary diagnostic engine into which we'll be pushing diagnostics
   /// for verification errors.
-  public let engine: DiagnosticEngine = {
-    let e = DiagnosticEngine()
-    e.register(PrintingDiagnosticConsumer(stream: &stderrStreamHandle))
-    return e
-  }()
+  public let engine: DiagnosticEngine
 
   /// Creates a diagnostic verifier that uses the provided token stream and
   /// set of produced diagnostics to find and verify the set of expectations
   /// in the original file.
-  public init(url: URL, producedDiagnostics: [Diagnostic]) {
+  public init(url: URL, converter: SourceLocationConverter,
+              producedDiagnostics: [Diagnostic]) {
     // Combine both the diagnostics and their notes into one big set of
     // node/message pairs.
     self.producedDiagnostics =
       producedDiagnostics.flatMap {
-        [($0.message, $0.node)] + $0.notes.map {
-          ($0.message, $0.node)
-        }
+        [($0.message, $0.location)] + $0.notes.map { ($0.message, $0.location) }
       }
+    self.converter = converter
+    self.engine = {
+      let e = DiagnosticEngine()
+      e.register(DelayedPrintingDiagnosticConsumer(stream: &stderrStreamHandle,
+                                                   converter: converter))
+      return e
+    }()
     self.expectations =
       DiagnosticVerifier.parseExpectations(url: url, engine: self.engine)
   }
 
   private func matches(message: Diagnostic.Message,
-                       node: Syntax?,
+                       location: SourceLocation,
                        expectation: Expectation) -> Bool {
     let expectedLine = expectation.line
-    if expectedLine != node?.startLoc?.line {
+    if expectedLine != location.line {
       return false
     }
     let nsString = NSString(string: message.text)
@@ -136,32 +140,37 @@ public final class DiagnosticVerifier {
   public func verify() {
     // There's nothing to verify if we've already registered an error in
     // our diagnostic engine.
-    if self.engine.hasErrors() { return }
+    guard !self.engine.hasErrors() else { return }
 
     // Keep a list of expectations we haven't matched yet.
     var unmatched = expectations
 
     // Maintain a list of unexpected diagnostics and the line they
     // occurred on.
-    var unexpected = [Int: [(Diagnostic.Message, Syntax?)]]()
+    var unexpected = [Int: [(Diagnostic.Message, SourceLocation)]]()
 
     // Go through each diagnostic we've produced.
-    for (message, node) in producedDiagnostics {
-
-      // Expectations require a line.
-      guard let node = node, let loc = node.startLoc else {
+    for (message, location) in producedDiagnostics {
+      let loc: SourceLocation
+      switch location {
+      case .unknown:
+        // Expectations require a line.
         engine.diagnose(.diagnosticWithNoNode(message))
         continue
+      case let .location(location):
+        loc = location
+      case let .node(node):
+        loc = node.startLocation(converter: converter)
       }
 
       // If any of the as-of-yet unmatched expectations fit this diagnostic,
       // remove it.
       if let idx = unmatched.index(where: { exp in
-        return matches(message: message, node: node, expectation: exp)
+        return matches(message: message, location: loc, expectation: exp)
       }) {
         unmatched.remove(at: idx)
       } else {
-        unexpected[loc.line, default: []].append((message, node))
+        unexpected[loc.line, default: []].append((message, loc))
       }
     }
 
@@ -170,10 +179,10 @@ public final class DiagnosticVerifier {
     let remaining = unmatched.sorted { $0.line < $1.line }
     for expectation in remaining {
       if let diags = unexpected[expectation.line] {
-        for (message, node) in diags {
+        for (message, loc) in diags {
           engine.diagnose(.incorrectDiagnostic(got: message),
-                          node: node) {
-            $0.note(.expected(expectation), node: node)
+                          location: .location(loc)) {
+            $0.note(.expected(expectation), location: .location(loc))
           }
         }
         unexpected.removeValue(forKey: expectation.line)
@@ -181,9 +190,9 @@ public final class DiagnosticVerifier {
         engine.diagnose(.diagnosticNotRaised(expectation))
       }
     }
-    for (message, node) in unexpected.values.flatMap({ $0 }) {
+    for (message, loc) in unexpected.values.flatMap({ $0 }) {
       engine.diagnose(.unexpectedDiagnostic(message),
-                      node: node)
+                      location: .location(loc))
     }
   }
 

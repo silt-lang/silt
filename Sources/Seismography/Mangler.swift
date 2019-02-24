@@ -154,6 +154,7 @@ internal func mangleIdentifierImpl(
 }
 
 // FIXME: Remove for 4.2
+// swiftlint:disable syntactic_sugar
 private func firstIndexOfMatch(
   _ arr: [Range<Data.Index>], _ pred: (Range<Data.Index>) -> Bool
 ) -> Array<Range<Data.Index>>.Index? {
@@ -164,6 +165,7 @@ private func firstIndexOfMatch(
   }
   return nil
 }
+// swiftlint:enable syntactic_sugar
 
 private func searchForSubstitutions(
   _ buf: Data, _ buffer: Data,

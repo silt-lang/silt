@@ -32,8 +32,8 @@ public final class Schedule {
       return lhs === rhs
     }
 
-    public var hashValue: Int {
-      return "\(ObjectIdentifier(self).hashValue)".hashValue
+    public func hash(into hasher: inout Hasher) {
+      return "\(ObjectIdentifier(self).hashValue)".hash(into: &hasher)
     }
   }
 

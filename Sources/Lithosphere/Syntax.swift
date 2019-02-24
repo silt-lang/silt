@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2018 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://swift.org/LICENSE.txt for license information
@@ -16,18 +16,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Foundation
-
 /// A Syntax node represents a tree of nodes with tokens at the leaves.
 /// Each node has accessors for its known children, and allows efficient
 /// iteration over the children through its `children` property.
-public protocol Syntax {}
+public protocol Syntax: 
+  CustomStringConvertible, TextOutputStreamable {}
 
 internal protocol _SyntaxBase: Syntax {
   /// The type of sequence containing the indices of present children.
   typealias PresentChildIndicesSequence =
-    LazyFilterSequence<CountableRange<Int>>
-
+    LazyFilterSequence<Range<Int>>
+    
   /// The root of the tree this node is currently in.
   var _root: SyntaxData { get } // Must be of type SyntaxData
 
@@ -37,6 +36,11 @@ internal protocol _SyntaxBase: Syntax {
   ///         property must be a descendent of the root. This relationship must
   ///         be preserved in all circumstances where Syntax nodes are created.
   var _data: SyntaxData { get }
+}
+extension _SyntaxBase {
+  public func validate() {
+    // This is for implementers to override to perform structural validation.
+  }
 }
 
 extension Syntax {
@@ -64,20 +68,56 @@ extension Syntax {
     return SyntaxChildren(node: self)
   }
 
-  /// Whether or not this node it marked as `present`.
+  /// The number of children, `present` or `missing`, in this node.
+  /// This value can be used safely with `child(at:)`.
+  public var numberOfChildren: Int {
+    return data.childCaches.count
+  }
+
+  /// Whether or not this node is marked as `present`.
   public var isPresent: Bool {
-    return raw.presence == .present
+    return raw.isPresent
   }
 
-  /// Whether or not this node it marked as `missing`.
+  /// Whether or not this node is marked as `missing`.
   public var isMissing: Bool {
-    return raw.presence == .missing
+    return raw.isMissing
   }
 
-  /// Whether or not this node it marked as `implicit`.
-  public var isImplicit: Bool {
-    return raw.presence == .implicit
+  /// Whether or not this node is a token one.
+  public var isToken: Bool {
+    return raw.isToken
   }
+
+//  /// Whether or not this node represents an Expression.
+//  public var isExpr: Bool {
+//    return raw.kind.isExpr
+//  }
+//
+//  /// Whether or not this node represents a Declaration.
+//  public var isDecl: Bool {
+//    return raw.kind.isDecl
+//  }
+//
+//  /// Whether or not this node represents a Statement.
+//  public var isStmt: Bool {
+//    return raw.kind.isStmt
+//  }
+//
+//  /// Whether or not this node represents a Type.
+//  public var isType: Bool {
+//    return raw.kind.isType
+//  }
+//
+//  /// Whether or not this node represents a Pattern.
+//  public var isPattern: Bool {
+//    return raw.kind.isPattern
+//  }
+//
+//  /// Whether or not this node represents an unknown node.
+//  public var isUnknown: Bool {
+//    return raw.kind.isUnknown
+//  }
 
   /// The parent of this syntax node, or `nil` if this node is the root.
   public var parent: Syntax? {
@@ -90,25 +130,153 @@ extension Syntax {
     return data.indexInParent
   }
 
+  /// Whether or not this node has a parent.
+  public var hasParent: Bool {
+    return parent != nil
+  }
+
+  /// Recursively walks through the tree to find the token semantically before
+  /// this node.
+  public var previousToken: TokenSyntax? {
+    guard let parent = self.parent else {
+      return nil
+    }
+    for i in (0..<indexInParent).reversed() {
+      guard let C = parent.child(at: i) else {
+        continue
+      }
+      if let token = C.lastToken {
+        return token
+      }
+    }
+    return parent.previousToken
+  }
+
+  /// Recursively walks through the tree to find the next token semantically
+  /// after this node.
+  public var nextToken: TokenSyntax? {
+    guard let parent = self.parent else {
+      return nil
+    }
+    for i in indexInParent+1 ..< parent.numberOfChildren {
+      guard let C = parent.child(at: i) else {
+        continue
+      }
+      if let token = C.firstToken {
+        return token
+      }
+    }
+    return parent.nextToken
+  }
+
+  /// Returns the first token node that is part of this syntax node.
+  public var firstToken: TokenSyntax? {
+    if isMissing { return nil }
+    if isToken {
+      return (self as! TokenSyntax)
+    }
+
+    for child in children {
+      if let token = child.firstToken {
+        return token
+      }
+    }
+    return nil
+  }
+
+  /// Returns the last token node that is part of this syntax node.
+  public var lastToken: TokenSyntax? {
+    if isMissing { return nil }
+    if isToken {
+      return (self as! TokenSyntax)
+    }
+
+    for child in children.reversed() {
+      if let tok = child.lastToken {
+        return tok
+      }
+    }
+    return nil
+  }
+
+  /// The absolute position of the starting point of this node. If the first token
+  /// is with leading trivia, the position points to the start of the leading
+  /// trivia.
+  public var position: AbsolutePosition {
+    return data.position
+  }
+
+  /// The absolute position of the starting point of this node, skipping any
+  /// leading trivia attached to the first token syntax.
+  public var positionAfterSkippingLeadingTrivia: AbsolutePosition {
+    return data.positionAfterSkippingLeadingTrivia
+  }
+
+  /// The absolute position where this node (excluding its trailing trivia)
+  /// ends.
+  public var endPosition: AbsolutePosition {
+    return data.endPosition
+  }
+
+  /// The absolute position where this node's trailing trivia ends
+  public var endPositionAfterTrailingTrivia: AbsolutePosition {
+    return data.endPositionAfterTrailingTrivia
+  }
+
+  /// The textual byte length of this node including leading and trailing trivia.
+  public var byteSize: Int {
+    return totalLength.utf8Length
+  }
+
+  /// The length this node takes up spelled out in the source, excluding its
+  /// leading or trailing trivia.
+  public var contentLength: SourceLength {
+    return raw.contentLength
+  }
+
+  /// The leading trivia of this syntax node. Leading trivia is attached to
+  /// the first token syntax contained by this node. Without such token, this
+  /// property will return nil.
+  public var leadingTrivia: Trivia? {
+    return raw.leadingTrivia
+  }
+
+  /// The trailing trivia of this syntax node. Trailing trivia is attached to
+  /// the last token syntax contained by this node. Without such token, this
+  /// property will return nil.
+  public var trailingTrivia: Trivia? {
+    return raw.trailingTrivia
+  }
+
+  /// The length this node's leading trivia takes up spelled out in source.
+  public var leadingTriviaLength: SourceLength {
+    return raw.leadingTriviaLength
+  }
+
+  /// The length this node's trailing trivia takes up spelled out in source.
+  public var trailingTriviaLength: SourceLength {
+    return raw.trailingTriviaLength
+  }
+
+  /// The length of this node including all of its trivia.
+  public var totalLength: SourceLength {
+    return raw.totalLength
+  }
+
+  /// When isImplicit is true, the syntax node doesn't include any
+  /// underlying tokens, e.g. an empty CodeBlockItemList.
+  public var isImplicit: Bool {
+    return leadingTrivia == nil
+  }
+
+  /// The textual byte length of this node exluding leading and trailing trivia.
+  public var byteSizeAfterTrimmingTrivia: Int {
+    return contentLength.utf8Length
+  }
+
   /// The root of the tree in which this node resides.
   public var root: Syntax {
     return makeSyntax(root: _root,  data: _root)
-  }
-  
-  public var startLoc: SourceLocation? {
-    if case .token(_, _, _, _, let range) = raw {
-      return range?.start
-    }
-    guard let firstChild = child(at: 0) else { return nil }
-    return firstChild.startLoc
-  }
-
-  public var endLoc: SourceLocation? {
-    if case .token(_, _, _, _, let range) = raw {
-      return range?.end
-    }
-    guard let lastChild = child(at: data.childCaches.count - 1) else { return nil }
-    return lastChild.endLoc
   }
 
   /// The sequence of indices that correspond to child nodes that are not
@@ -116,7 +284,9 @@ extension Syntax {
   ///
   /// This property is an implementation detail of `SyntaxChildren`.
   internal var presentChildIndices: _SyntaxBase.PresentChildIndicesSequence {
-    return raw.layout.indices.lazy.filter { self.raw.layout[$0].isPresent }
+    return raw.layout.indices.lazy.filter {
+      self.raw.layout[$0]?.isPresent == true
+    }
   }
 
   /// Gets the child at the provided index in this node's children.
@@ -125,56 +295,165 @@ extension Syntax {
   ///            is not a child at that index in the node.
   public func child(at index: Int) -> Syntax? {
     guard raw.layout.indices.contains(index) else { return nil }
-    if raw.layout[index].isMissing { return nil }
-    return makeSyntax(root: _root, data: data.cachedChild(at: index))
+    guard let childData = data.cachedChild(at: index) else { return nil }
+    return makeSyntax(root: _root, data: childData)
   }
 
-  public func child<Cursor: RawRepresentable>(at cursor: Cursor) -> Syntax?
-    where Cursor.RawValue == Int {
-      return child(at: cursor.rawValue)
+  /// Passes to a closure every present token node that is part of this node.
+  public func forEachToken(_ receiver: (TokenSyntax)->()) {
+    if isMissing { return }
+    if isToken {
+      receiver(self as! TokenSyntax)
+      return
+    }
+    for child in children {
+      child.forEachToken(receiver)
+    }
   }
 
   /// A source-accurate description of this node.
-  public var sourceText: String {
+  public var description: String {
     var s = ""
-    self.writeSourceText(to: &s, includeImplicit: false)
+    self.write(to: &s)
     return s
   }
-
-  /// A description of this node including implicitly-synthesized tokens.
-  public var shinedSourceText: String {
-    var s = ""
-    self.writeSourceText(to: &s, includeImplicit: true)
-    return s
-  }
-
-  public var triviaFreeSourceText: String {
-    var s = ""
-    self.writeSourceText(to: &s, includeImplicit: false, includeTrivia: false)
-    return s
-  }
-
-  public var diagnosticSourceText: String {
-    var s = ""
-    self.formatSourceText(to: &s)
-    return s
+  
+  /// Prints the raw value of this node to the provided stream.
+  /// - Parameter stream: The stream to which to print the raw tree.
+  public func write<Target>(to target: inout Target)
+    where Target: TextOutputStream {
+    data.raw.write(to: &target)
   }
 }
 
-extension Syntax {
-  /// Prints the raw value of this node to the provided stream.
-  /// - Parameter stream: The stream to which to print the raw tree.
-  public func writeSourceText<Target: TextOutputStream>(
-    to target: inout Target, includeImplicit: Bool,
-    includeTrivia: Bool = true) {
-    data.raw.writeSourceText(to: &target, includeImplicit: includeImplicit,
-                             includeTrivia: includeTrivia)
+/// Determines if two nodes are equal to each other.
+public func ==(lhs: Syntax, rhs: Syntax) -> Bool {
+  return lhs.data === rhs.data
+}
+
+/// MARK: - Nodes
+
+/// A Syntax node representing a single token.
+public struct TokenSyntax: _SyntaxBase, Hashable {
+  let _root: SyntaxData
+  unowned let _data: SyntaxData 
+
+  /// Creates a Syntax node from the provided root and data.
+  internal init(root: SyntaxData, data: SyntaxData) {
+    self._root = root
+    self._data = data
   }
 
-  /// Prints the raw value of this node to the provided stream.
-  /// - Parameter stream: The stream to which to print the raw tree.
-  public func formatSourceText<Target: TextOutputStream>(
-    to target: inout Target) {
-    data.raw.formatSourceText(to: &target)
+  /// The text of the token as written in the source code.
+  public var text: String {
+    return tokenKind.text
+  }
+  
+  /// Returns a new TokenSyntax with its kind replaced
+  /// by the provided token kind.
+  public func withKind(_ tokenKind: TokenKind) -> TokenSyntax {
+    guard raw.kind == .token else {
+      fatalError("TokenSyntax must have token as its raw")
+    }
+    let newRaw = RawSyntax.createAndCalcLength(kind: tokenKind,
+      leadingTrivia: raw.leadingTrivia!, trailingTrivia: raw.trailingTrivia!,
+      presence: raw.presence)
+    let (root, newData) = data.replacingSelf(newRaw)
+    return TokenSyntax(root: root, data: newData)
+  }
+
+  /// Returns a new TokenSyntax with its leading trivia replaced
+  /// by the provided trivia.
+  public func withLeadingTrivia(_ leadingTrivia: Trivia) -> TokenSyntax {
+    guard raw.kind == .token else {
+      fatalError("TokenSyntax must have token as its raw")
+    }
+    let newRaw = RawSyntax.createAndCalcLength(kind: raw.tokenKind!,
+      leadingTrivia: leadingTrivia, trailingTrivia: raw.trailingTrivia!,
+      presence: raw.presence)
+    let (root, newData) = data.replacingSelf(newRaw)
+    return TokenSyntax(root: root, data: newData)
+  }
+
+  /// Returns a new TokenSyntax with its trailing trivia replaced
+  /// by the provided trivia.
+  public func withTrailingTrivia(_ trailingTrivia: Trivia) -> TokenSyntax {
+    guard raw.kind == .token else {
+      fatalError("TokenSyntax must have token as its raw")
+    }
+    let newRaw = RawSyntax.createAndCalcLength(kind: raw.tokenKind!,
+                           leadingTrivia: raw.leadingTrivia!,
+                           trailingTrivia: trailingTrivia,
+                           presence: raw.presence)
+    let (root, newData) = data.replacingSelf(newRaw)
+    return TokenSyntax(root: root, data: newData)
+  }
+
+  /// Returns a new TokenSyntax with its leading trivia removed.
+  public func withoutLeadingTrivia() -> TokenSyntax {
+    return withLeadingTrivia([])
+  }
+
+  /// Returns a new TokenSyntax with its trailing trivia removed.
+  public func withoutTrailingTrivia() -> TokenSyntax {
+    return withTrailingTrivia([])
+  }
+
+  /// Returns a new TokenSyntax with all trivia removed.
+  public func withoutTrivia() -> TokenSyntax {
+    return withoutLeadingTrivia().withoutTrailingTrivia()
+  }
+
+  /// The leading trivia (spaces, newlines, etc.) associated with this token.
+  public var leadingTrivia: Trivia {
+    guard raw.kind == .token else {
+      fatalError("TokenSyntax must have token as its raw")
+    }
+    return raw.leadingTrivia!
+  }
+
+  /// The trailing trivia (spaces, newlines, etc.) associated with this token.
+  public var trailingTrivia: Trivia {
+    guard raw.kind == .token else {
+      fatalError("TokenSyntax must have token as its raw")
+    }
+    return raw.trailingTrivia!
+  }
+
+  /// The kind of token this node represents.
+  public var tokenKind: TokenKind {
+    guard raw.kind == .token else {
+      fatalError("TokenSyntax must have token as its raw")
+    }
+    return raw.tokenKind!
+  }
+
+  /// The length this node takes up spelled out in the source, excluding its
+  /// leading or trailing trivia.
+  public var contentLength: SourceLength {
+    return raw.contentLength
+  }
+  
+  /// The length this node's leading trivia takes up spelled out in source.
+  public var leadingTriviaLength: SourceLength {
+    return raw.leadingTriviaLength
+  }
+
+  /// The length this node's trailing trivia takes up spelled out in source.
+  public var trailingTriviaLength: SourceLength {
+    return raw.trailingTriviaLength
+  }
+
+  /// The length of this node including all of its trivia.
+  public var totalLength: SourceLength {
+    return raw.totalLength
+  }
+
+  public static func ==(lhs: TokenSyntax, rhs: TokenSyntax) -> Bool {
+    return lhs._data === rhs._data
+  }
+
+  public func hash(into hasher: inout Hasher) {
+    ObjectIdentifier(_data).hash(into: &hasher)
   }
 }

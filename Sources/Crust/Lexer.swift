@@ -15,26 +15,13 @@ extension Character {
 public class Lexer {
   let input: String
   var index: String.Index
-  var sourceLoc: SourceLocation
 
   public init(input: String, filePath: String) {
     self.input = input
     self.index = input.startIndex
-    self.sourceLoc = SourceLocation(line: 1, column: 1,
-                                    file: filePath,
-                                    offset: 0)
   }
 
   func advance() {
-    if let char = peek() {
-      if char == "\n" {
-        sourceLoc.line += 1
-        sourceLoc.column = 0
-      } else {
-        sourceLoc.column += 1
-      }
-      sourceLoc.offset += 1
-    }
     if index < input.endIndex {
       input.formIndex(after: &index)
     }
@@ -62,7 +49,7 @@ public class Lexer {
 
   // Collects all trivia ahead of the current
   func collectTrivia(includeNewlines: Bool) -> Trivia {
-    var trivia: Trivia = []
+    var trivia = [TriviaPiece]()
     while let char = peek() {
       switch char {
       case " ":
@@ -81,17 +68,13 @@ public class Lexer {
         if peek(ahead: 1) == "-" {
           trivia.append(.comment(collectLineComment()))
         } else {
-          return trivia
+          return Trivia(pieces: trivia)
         }
       default:
-        return trivia
+        return Trivia(pieces: trivia)
       }
     }
-    return trivia
-  }
-
-  func range(start: SourceLocation) -> SourceRange {
-    return SourceRange(start: start, end: sourceLoc)
+    return Trivia(pieces: trivia)
   }
 
   func collectWhile(_ shouldCollect: (Character) -> Bool) -> String {
@@ -105,12 +88,11 @@ public class Lexer {
 
   func nextToken() -> TokenSyntax {
     let leadingTrivia = collectTrivia(includeNewlines: true)
-    let startLoc = sourceLoc
 
     let tokenKind: TokenKind
     guard let char = peek() else {
-      return TokenSyntax(.eof, leadingTrivia: leadingTrivia,
-                         sourceRange: range(start: startLoc))
+      return SyntaxFactory.makeToken(.eof, presence: .implicit,
+                                     leadingTrivia: leadingTrivia)
     }
 
     let singleTokMap: [Character: TokenKind] = [
@@ -130,9 +112,9 @@ public class Lexer {
 
     let trailingTrivia = collectTrivia(includeNewlines: false)
 
-    return TokenSyntax(tokenKind, leadingTrivia: leadingTrivia,
-                       trailingTrivia: trailingTrivia,
-                       sourceRange: range(start: startLoc))
+    return SyntaxFactory.makeToken(tokenKind, presence: .present,
+                                   leadingTrivia: leadingTrivia,
+                                   trailingTrivia: trailingTrivia)
   }
 
   public func tokenize() -> [TokenSyntax] {

@@ -9,6 +9,8 @@ import Moho
 import Lithosphere
 
 public struct TypeCheckerDebugOptions: OptionSet {
+  public typealias RawValue = UInt32
+
   public let rawValue: UInt32
   public init(rawValue: RawValue) {
     self.rawValue = rawValue
@@ -62,7 +64,7 @@ public final class TypeChecker<PhaseState> {
 
   /// FIXME: Try harder, maybe
   public var wildcardToken: TokenSyntax {
-    return TokenSyntax.implicit(.underscore)
+    return SyntaxFactory.makeUnderscore(presence: .implicit)
   }
 
   /// FIXME: Try harder, maybe
@@ -144,7 +146,7 @@ extension TypeChecker {
   public func unrollPi(
     _ t: Type<TT>, _ ns: [Name]? = nil) -> (Telescope<Type<TT>>, Type<TT>) {
     // FIXME: Try harder, maybe
-    let defaultName = Name(name: TokenSyntax(.identifier("_")))
+    let defaultName = Name(name: SyntaxFactory.makeIdentifier("_"))
     var tel = Telescope<Type<TT>>()
     var ty = t
     var idx = 0

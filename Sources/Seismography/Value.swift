@@ -33,8 +33,8 @@ public class Value: Hashable, ManglingEntity {
     return self === other
   }
 
-  public var hashValue: Int {
-    return "\(ObjectIdentifier(self).hashValue)".hashValue
+  public func hash(into hasher: inout Hasher) {
+    "\(ObjectIdentifier(self).hashValue)".hash(into: &hasher)
   }
 
   fileprivate var firstUse: Operand?
@@ -141,8 +141,8 @@ public final class Operand: Hashable {
     return lhs.value == rhs.value
   }
 
-  public var hashValue: Int {
-    return self.value.hashValue
+  public func hash(into hasher: inout Hasher) {
+    self.value.hash(into: &hasher)
   }
 
   /// The value used as this operand.

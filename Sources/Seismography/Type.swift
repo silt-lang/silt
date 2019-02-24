@@ -17,8 +17,9 @@ public struct NameAndType: Hashable {
     return lhs.name == rhs.name && lhs.type === rhs.type
   }
 
-  public var hashValue: Int {
-    return name.hashValue ^ ObjectIdentifier(type).hashValue
+  public func hash(into hasher: inout Hasher) {
+    self.name.hash(into: &hasher)
+    ObjectIdentifier(type).hash(into: &hasher)
   }
 }
 
@@ -84,9 +85,8 @@ public final class TypeMetadataType: GIRType {
   public override func equals(_ other: Value) -> Bool {
     return other is TypeMetadataType
   }
-  public override var hashValue: Int {
-    return 0
-  }
+
+  public override func hash(into hasher: inout Hasher) {}
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
     fatalError("TODO: mangle me!")
@@ -104,17 +104,14 @@ public final class TypeType: GIRType {
   }
 
   public override var type: Value {
-    get { return self }
-    set { /* do nothing */ }
+    return self
   }
 
   public override func equals(_ other: Value) -> Bool {
     return other is TypeType
   }
 
-  public override var hashValue: Int {
-    return 0
-  }
+  public override func hash(into hasher: inout Hasher) {}
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
     fatalError("TODO: mangle me!")
@@ -134,8 +131,8 @@ public final class ArchetypeType: Value {
     return index == other.index
   }
 
-  public override var hashValue: Int {
-    return index.hashValue ^ 0x374b2947
+  public override func hash(into hasher: inout Hasher) {
+    index.hash(into: &hasher)
   }
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
@@ -152,8 +149,9 @@ public class ParameterizedType: NominalValue {
       return lhs.archetype == rhs.archetype && lhs.value == rhs.value
     }
 
-    public var hashValue: Int {
-      return archetype.hashValue ^ value.hashValue ^ 0x432fba397
+    public func hash(into hasher: inout Hasher) {
+      self.archetype.hash(into: &hasher)
+      self.value.hash(into: &hasher)
     }
   }
   public private(set) var parameters = [Parameter]()
@@ -212,8 +210,10 @@ public final class TupleType: Value {
     return elements == other.elements
   }
 
-  public override var hashValue: Int {
-    return self.elements.reduce(0) { $0 ^ $1.hashValue }
+  public override func hash(into hasher: inout Hasher) {
+    for element in self.elements {
+      element.hash(into: &hasher)
+    }
   }
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
@@ -242,16 +242,16 @@ public final class DataType: ParameterizedType {
            parameters == other.parameters
   }
 
-  public override var hashValue: Int {
-    var h = name.hashValue
+  public override func hash(into hasher: inout Hasher) {
+    name.hash(into: &hasher)
     for param in parameters {
-      h ^= param.hashValue
+      param.hash(into: &hasher)
     }
     for constr in constructors {
-      h ^= constr.0.hashValue
+      constr.0.hash(into: &hasher)
     }
-    return h
   }
+
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
     self.module?.mangle(into: &mangler)
@@ -277,15 +277,14 @@ public final class RecordType: ParameterizedType {
            parameters == other.parameters
   }
 
-  public override var hashValue: Int {
-    var h = name.hashValue
+  public override func hash(into hasher: inout Hasher) {
+    name.hash(into: &hasher)
     for field in fields {
-      h ^= field.hashValue
+      field.hash(into: &hasher)
     }
     for param in parameters {
-      h ^= param.hashValue
+      param.hash(into: &hasher)
     }
-    return h
   }
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
@@ -308,8 +307,9 @@ public final class FunctionType: GIRType {
     return returnType === other.returnType && arguments == other.arguments
   }
 
-  public override var hashValue: Int {
-    return returnType.hashValue ^ arguments.hashValue
+  public override func hash(into hasher: inout Hasher) {
+    returnType.hash(into: &hasher)
+    arguments.hash(into: &hasher)
   }
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
@@ -334,8 +334,9 @@ public final class SubstitutedType: GIRType {
            substitutions == other.substitutions
   }
 
-  public override var hashValue: Int {
-    return substitutee.hashValue ^ substitutions.hashValue
+  public override func hash(into hasher: inout Hasher) {
+    substitutee.hash(into: &hasher)
+    substitutions.hash(into: &hasher)
   }
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
@@ -386,12 +387,12 @@ public final class BoxType: GIRType {
     }
   }
 
-  public override var hashValue: Int {
+  public override func hash(into hasher: inout Hasher) {
     switch self.payload {
     case let .left(name):
-      return name.hashValue
+      return name.hash(into: &hasher)
     case let .right(type):
-      return type.hashValue
+      return type.hash(into: &hasher)
     }
   }
 
@@ -408,17 +409,14 @@ public final class BottomType: GIRType {
   }
 
   public override var type: Value {
-    get { return self }
-    set { /* do nothing */ }
+    return self
   }
 
   public override func equals(_ other: Value) -> Bool {
     return other is BottomType
   }
 
-  public override var hashValue: Int {
-    return 0
-  }
+  public override func hash(into hasher: inout Hasher) {}
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
     mangler.append("B")

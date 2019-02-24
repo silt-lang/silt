@@ -28,6 +28,9 @@ extension Passes {
   static let scopeCheckFile = parseFile |> Passes.scopeCheck
   static let scopeCheckAsImport = parseFile |> Passes.scopeCheckImport
   static let typeCheckFile = scopeCheckFile |> Passes.typeCheck
+  static let parseGIRFile = Passes.lexFile |> Passes.parseGIR
+  static let girGenModule = typeCheckFile |> Passes.girGen
+  static let irGenModule = girGenModule |> Passes.irGen
 }
 
 public struct Invocation {
@@ -50,12 +53,13 @@ public struct Invocation {
   ///         return `true` if the verifier produced errors and `false`
   ///         otherwise. It is safe to force-unwrap.
   private func makeVerifyPass<PassTy: PassProtocol>(
-    url: URL, pass: PassTy, context: PassContext
+    url: URL, pass: PassTy, context: PassContext,
+    converter: @escaping () -> SourceLocationConverter
   ) -> Pass<PassTy.Input, HadErrors> {
     return Pass(name: "Diagnostic Verification") { input, ctx in
       _ = pass.run(input, in: ctx)
       let verifier =
-        DiagnosticVerifier(url: url,
+        DiagnosticVerifier(url: url, converter: converter(),
                            producedDiagnostics: ctx.engine.diagnostics)
       verifier.verify()
       return verifier.engine.hasErrors()
@@ -64,10 +68,6 @@ public struct Invocation {
 
   public func run() -> HadErrors {
     let context = PassContext(options: options)
-    let printingConsumer =
-      PrintingDiagnosticConsumer(stream: &stderrStreamHandle)
-    let printingConsumerToken = context.engine.register(printingConsumer)
-
     Rainbow.enabled = options.colorsEnabled
 
     // Force Rainbow to use ANSI colors even when not in a TTY.
@@ -86,28 +86,23 @@ public struct Invocation {
       }
     }
 
-    // Create passes that perform the whole readFile->...->finalPass pipeline.
-    let lexFile = Passes.readFile |> Passes.lex
-    let shineFile = lexFile |> Passes.shine
-    let parseFile = shineFile |> Passes.parse
-    let parseGIRFile = lexFile |> Passes.parseGIR
-    let scopeCheckFile = parseFile |> Passes.scopeCheck
-    let typeCheckFile = scopeCheckFile |> Passes.typeCheck
-    let girGenModule = typeCheckFile |> Passes.girGen
-    let irGenModule = girGenModule |> Passes.irGen
-
     for url in options.inputURLs {
       func run<PassTy: PassProtocol>(_ pass: PassTy) -> PassTy.Output?
         where PassTy.Input == URL {
         return pass.run(url, in: context)
       }
 
+      let consumer =
+        DelayedPrintingDiagnosticConsumer(stream: &stderrStreamHandle)
+      context.engine.register(consumer)
+
       switch options.mode {
       case .compile:
         fatalError("only Parse is implemented")
       case .dump(.tokens):
         run(Passes.lexFile |> Pass(name: "Describe Tokens") { tokens, _ in
-          TokenDescriber.describe(tokens, to: &stdoutStreamHandle)
+          TokenDescriber.describe(tokens, to: &stdoutStreamHandle,
+                                  converter: consumer.converter!)
         })
       case .dump(.file):
         run(Passes.lexFile |> Pass(name: "Reprint File") { tokens, _ -> Void in
@@ -125,7 +120,8 @@ public struct Invocation {
         })
       case .dump(.parse):
         run(Passes.parseFile |> Pass(name: "Dump Parsed") { module, _ in
-          SyntaxDumper(stream: &stderrStreamHandle).dump(module)
+          SyntaxDumper(stream: &stderrStreamHandle,
+                       converter: consumer.converter!).dump(module)
         })
       case .dump(.scopes):
         run(Passes.scopeCheckFile |> Pass(name: "Dump Scopes") { module, _ in
@@ -136,29 +132,31 @@ public struct Invocation {
           print(module)
         })
       case .dump(.girGen):
-        run(girGenModule |> Pass(name: "Dump Generated GIR") { module, _ in
-          module.dump()
+        run(Passes.girGenModule |> Pass(name: "Dump Generated GIR") { mod, _ in
+          mod.dump()
         })
       case .dump(.parseGIR):
-        run(parseGIRFile |> Pass(name: "Dump Parsed GIR") { module, _ in
+        run(Passes.parseGIRFile |> Pass(name: "Dump Parsed GIR") { module, _ in
           module.dump()
         })
       case .dump(.irGen):
-        run(irGenModule |> Pass(name: "Dump LLVM IR") { module, _ in
+        run(Passes.irGenModule |> Pass(name: "Dump LLVM IR") { module, _ in
           module.dump()
         })
       case .verify(let verification):
-        context.engine.unregister(printingConsumerToken)
         switch verification {
         case .parse:
           return run(makeVerifyPass(url: url, pass: Passes.parseFile,
-                                    context: context))!
+                                    context: context,
+                                    converter: { consumer.converter! }))!
         case .scopes:
           return run(makeVerifyPass(url: url, pass: Passes.scopeCheckFile,
-                                    context: context))!
+                                    context: context,
+                                    converter: { consumer.converter! }))!
         case .typecheck:
-          return run(makeVerifyPass(url: url, pass: typeCheckFile,
-                                    context: context))!
+          return run(makeVerifyPass(url: url, pass: Passes.typeCheckFile,
+                                    context: context,
+                                    converter: { consumer.converter! }))!
         }
       }
     }

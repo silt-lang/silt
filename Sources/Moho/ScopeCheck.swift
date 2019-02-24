@@ -33,12 +33,11 @@ extension NameBinding {
     let noteScope = walkNotations(module, qmodName)
 
     let moduleCheck: (Scope) -> DeclaredModule = { _ in
-      let filteredDecls = self.reparseDecls(module.declList)
       return DeclaredModule(
         moduleName: self.activeScope.nameSpace.module,
         params: params,
         namespace: self.activeScope.nameSpace,
-        decls: filteredDecls.flatMap(self.scopeCheckDecl))
+        decls: self.reparseDecls(module.declList))
     }
 
     if topLevel {
@@ -58,14 +57,16 @@ extension NameBinding {
       return self.scopeCheckLetBinding(syntax)
     case let syntax as ModuleDeclSyntax:
       return [.module(self.scopeCheckModule(syntax))]
-    case let syntax as ReparsedFunctionDeclSyntax:
-      return self.scopeCheckFunctionDecl(syntax)
     case let syntax as DataDeclSyntax:
       return self.scopeCheckDataDecl(syntax)
     case let syntax as EmptyDataDeclSyntax:
       return self.scopeCheckEmptyDataDecl(syntax)
     case let syntax as RecordDeclSyntax:
       return self.scopeCheckRecordDecl(syntax)
+    case let syntax as RecordConstructorDeclSyntax:
+      return self.scopeCheckRecordConstructorDecl(syntax)
+    case let syntax as FieldDeclSyntax:
+      return self.scopeCheckFieldDecl(syntax)
     case let syntax as FixityDeclSyntax:
       return self.scopeCheckFixityDecl(syntax)
     case let syntax as ImportDeclSyntax:
@@ -205,9 +206,8 @@ extension NameBinding {
       return self.underScope { _ in
         let reparsedDecls = self.reparseDecls(syntax.declList,
                                               allowOmittingSignatures: true)
-        let decls = reparsedDecls.flatMap(self.scopeCheckDecl)
         let output = self.scopeCheckExpr(syntax.outputExpr)
-        return Expr.let(decls, output)
+        return Expr.let(reparsedDecls, output)
       }
     default:
       fatalError("scope checking for \(type(of: syntax)) is unimplemented")
@@ -266,13 +266,43 @@ extension NameBinding {
       case let binding as TypedBindingSyntax:
         bs.append(self.scopeCheckParameter(binding.parameter))
       case _ as AnonymousBindingSyntax:
-        bs.append(DeclaredParameter([Name(name: TokenSyntax(.underscore))],
-                                    .meta, .explicit))
+        bs.append(DeclaredParameter([
+          Name(name: SyntaxFactory.makeUnderscore())
+        ], .meta, .explicit))
       default:
         fatalError()
       }
     }
     return bs
+  }
+
+  private func scopeCheckReparsedFunctionClauseDecl(
+    _ syntax: ReparsedFunctionClause,
+    _ boundExpr: ExprSyntax
+  ) -> [Decl] {
+    typealias ScopeCheckType =
+      (QualifiedName, Expr, [ArgumentPlicity], [DeclaredPattern])
+    let (qualName, body, plicity, patterns) =
+      self.underScope { _ -> ScopeCheckType in
+        let plicity = Array(repeating: ArgumentPlicity.explicit,
+                            count: syntax.lhs.exprs.count)
+        let patterns = self.scopeCheckPattern(syntax.lhs.name.syntax,
+                                              syntax.lhs.exprs, plicity)
+        let reparsedRHS = self.reparseExpr(boundExpr)
+        let body = self.scopeCheckExpr(reparsedRHS)
+        let qualName = QualifiedName(name: syntax.lhs.name)
+        return (qualName, body, plicity, patterns)
+    }
+
+    guard let name = self.bindDefinition(named: qualName.name, plicity) else {
+      engine.diagnose(.nameShadows(qualName.name),
+                      node: syntax.lhs.name.syntax) {
+        $0.highlight(syntax.lhs.name.syntax)
+      }
+      return []
+    }
+    let clause = DeclaredClause(patterns: patterns, body: .body(body, []))
+    return [Decl.letBinding(name, clause)]
   }
 
   private func scopeCheckLetBinding(_ syntax: LetBindingDeclSyntax) -> [Decl] {
@@ -282,7 +312,8 @@ extension NameBinding {
       self.underScope { _ -> ScopeCheckType in
       let plicity = Array(repeating: ArgumentPlicity.explicit,
                           count: syntax.basicExprList.count)
-      let patterns = self.scopeCheckPattern(syntax.basicExprList, plicity)
+      let patterns = self.scopeCheckPattern(syntax, syntax.basicExprList,
+                                            plicity)
       let reparsedRHS = self.reparseExpr(syntax.boundExpr)
       let body = self.scopeCheckExpr(reparsedRHS)
       let qualName = QualifiedName(ast: syntax.head.name)
@@ -358,14 +389,15 @@ extension NameBinding {
     guard let syntax = syntax else {
       return []
     }
-    let reparsedDecls = self.reparseDecls(syntax.declList)
-    return reparsedDecls.flatMap(self.scopeCheckDecl)
+    return self.reparseDecls(syntax.declList)
   }
 
-  private func scopeCheckPattern(
-    _ syntax: BasicExprListSyntax, _ plicity: [ArgumentPlicity],
+  private func scopeCheckPattern<Patterns: Collection>(
+    _ parent: Syntax, _ syntax: Patterns, _ plicity: [ArgumentPlicity],
     expectAbsurd: Bool = false
-  ) -> [DeclaredPattern] {
+  ) -> [DeclaredPattern]
+    where Patterns.Element == BasicExprSyntax,
+          Patterns.Index == Int {
     let (pats, maybeError) = self.consumeArguments(syntax, plicity,
                                                    DeclaredPattern.wild,
                                                    self.exprToDeclPattern)
@@ -374,7 +406,7 @@ extension NameBinding {
       case let .extraneousArguments(expected, have, implicit, leftoverStart):
         let diag: Diagnostic.Message =
           .tooManyPatternsInLHS(expected, have, implicit)
-        self.engine.diagnose(diag, node: syntax) {
+        self.engine.diagnose(diag, node: parent) {
           for i in leftoverStart..<syntax.count {
             $0.note(.ignoringExcessPattern, node: syntax[i])
           }
@@ -467,6 +499,16 @@ extension NameBinding {
     }
   }
 
+  private func scopeCheckRecordConstructorDecl(
+    _ syntax: RecordConstructorDeclSyntax) -> [Decl] {
+    let recName = QualifiedName(name: Name(name: syntax.constructorName))
+    // Just return a bogus record signature.  We'll fill this in later.
+    return [
+      Decl.recordSignature(TypeSignature(name: recName,
+                                         type: .meta, plicity: []), recName)
+    ]
+  }
+
   private func scopeCheckRecordDecl(_ syntax: RecordDeclSyntax) -> [Decl] {
     let recName = Name(name: syntax.recordName)
     // FIXME: Compute plicity
@@ -487,22 +529,15 @@ extension NameBinding {
       var decls = [Decl]()
       var constr: Name?
       for re in self.reparseDecls(syntax.recordElementList) {
-        if
-          let field = re as? FieldDeclSyntax,
-          let checkedField = self.scopeCheckFieldDecl(field)
-        {
-          preSigs.append(checkedField)
-          continue
-        }
-
-        if let funcField = re as? ReparsedFunctionDeclSyntax {
-          decls.append(contentsOf: self.scopeCheckDecl(funcField))
-          continue
-        }
-
-        if let recConstr = re as? RecordConstructorDeclSyntax {
-          constr = Name(name: recConstr.constructorName)
-          continue
+        switch re {
+        case let .ascription(sig):
+          preSigs.append(DeclaredField(signature: sig))
+        case .function(_, _):
+          decls.append(re)
+        case let .recordSignature(_, name):
+          constr = name.name
+        default:
+          fatalError("\(re)")
         }
       }
       guard let recConstr = constr else {
@@ -526,15 +561,16 @@ extension NameBinding {
     // Open the record projections into the current scope.
     var sigs = [TypeSignature]()
     for declField in declFields {
-      guard let bindName = self.bindProjection(named: declField.name) else {
+      let fieldBaseName = declField.signature.name.name
+      guard let bindName = self.bindProjection(named: fieldBaseName) else {
         // If this declaration does not have a unique name, diagnose it and
         // recover by ignoring it.
-        self.engine.diagnose(.nameShadows(declField.name),
-                             node: declField.syntax)
+        self.engine.diagnose(.nameShadows(fieldBaseName),
+                             node: fieldBaseName.syntax)
         continue
       }
-      sigs.append(TypeSignature(name: bindName, type: declField.type,
-                                plicity: declField.plicity))
+      sigs.append(TypeSignature(name: bindName, type: declField.signature.type,
+                                plicity: declField.signature.plicity))
     }
 
     let fqn = self.activeScope.qualify(name: recConstr)
@@ -551,7 +587,7 @@ extension NameBinding {
   }
 
   private func scopeCheckFieldDecl(
-    _ syntax: FieldDeclSyntax) -> DeclaredField? {
+    _ syntax: FieldDeclSyntax) -> [Decl] {
     assert(syntax.ascription.boundNames.count == 1)
     let (ascExpr, plicity) = self.underScope { _ -> (Expr, [ArgumentPlicity]) in
       let rebindExpr = self.reparseExpr(syntax.ascription.typeExpr)
@@ -564,10 +600,12 @@ extension NameBinding {
       // If this declaration does not have a unique name, diagnose it and
       // recover by ignoring it.
       self.engine.diagnose(.nameShadows(name), node: syntax.ascription)
-      return nil
+      return []
     }
-    return DeclaredField(syntax: syntax, name: name,
-                         type: ascExpr, plicity: plicity)
+    return [
+      .ascription(TypeSignature(name: QualifiedName(name: name),
+                                type: ascExpr, plicity: plicity))
+    ]
   }
 
   private func scopeCheckConstructor(
@@ -596,22 +634,20 @@ extension NameBinding {
   }
 
   private func scopeCheckFunctionDecl(
-    _ syntax: ReparsedFunctionDeclSyntax) -> [Decl] {
-    precondition(syntax.ascription.boundNames.count == 1)
-
+    _ syntax: ReparsedFunctionDecl) -> [Decl] {
     let rebindExpr = self.reparseExpr(syntax.ascription.typeExpr)
     let ascExpr = self.underScope { _ in
       return self.scopeCheckExpr(rebindExpr)
     }
     let plicity = self.computePlicity(rebindExpr)
-    let name = Name(name: syntax.ascription.boundNames[0])
+    let name = Name(name: syntax.name)
     guard let functionName = self.bindDefinition(named: name, plicity) else {
       fatalError("Should have unique function names by now")
     }
     let ascription = TypeSignature(name: functionName,
                                    type: ascExpr, plicity: plicity)
-    let clauses = syntax.clauseList.map({ clause in
-      return self.scopeCheckFunctionClause(clause, plicity)
+    let clauses = syntax.clauseList.map({ (clause, reparse) in
+      return self.scopeCheckFunctionClause(clause, reparse, plicity)
     })
     let fn = Decl.function(functionName, clauses)
     return [Decl.ascription(ascription), fn]
@@ -658,12 +694,16 @@ extension NameBinding {
   }
 
   private func scopeCheckFunctionClause(
-    _ syntax: FunctionClauseDeclSyntax, _ plicity: [ArgumentPlicity]
+    _ syntax: FunctionClauseDeclSyntax,
+    _ reparse: ReparsedFunctionClause,
+    _ plicity: [ArgumentPlicity]
   ) -> DeclaredClause {
     switch syntax {
     case let syntax as NormalFunctionClauseDeclSyntax:
       return self.underScope { _ in
-        let pattern = self.scopeCheckPattern(syntax.basicExprList, plicity)
+        let pattern = self.scopeCheckPattern(syntax,
+                                             reparse.lhs.exprs,
+                                             plicity)
         return self.underScope { _ in
           let wheres = self.scopeCheckWhereClause(syntax.whereClause)
           let reparsedRHS = self.reparseExpr(syntax.rhsExpr)
@@ -673,7 +713,9 @@ extension NameBinding {
       }
     case let syntax as WithRuleFunctionClauseDeclSyntax:
       return self.underScope { _ in
-        let pattern = self.scopeCheckPattern(syntax.basicExprList, plicity)
+        let pattern = self.scopeCheckPattern(syntax,
+                                             reparse.lhs.exprs,
+                                             plicity)
         return self.underScope { _ in
           let wheres = self.scopeCheckWhereClause(syntax.whereClause)
           let body = self.scopeCheckExpr(syntax.rhsExpr)
@@ -683,7 +725,9 @@ extension NameBinding {
       }
     case let syntax as AbsurdFunctionClauseDeclSyntax:
       return self.underScope { _ in
-        let pattern = self.scopeCheckPattern(syntax.basicExprList, plicity,
+        let pattern = self.scopeCheckPattern(syntax,
+                                             reparse.lhs.exprs,
+                                             plicity,
                                              expectAbsurd: true)
         return DeclaredClause(patterns: pattern, body: .empty)
       }
@@ -741,10 +785,11 @@ extension NameBinding {
 
 extension NameBinding {
   func reparseDecls(_ ds: DeclListSyntax,
-                    allowOmittingSignatures: Bool = false) -> DeclListSyntax {
-    var decls = [DeclSyntax]()
+                    allowOmittingSignatures: Bool = false) -> [Decl] {
+    var decls = [Decl]()
     var funcMap = [Name: FunctionDeclSyntax]()
-    var clauseMap = [Name: [FunctionClauseDeclSyntax]]()
+    var clauseMap = [Name: [(FunctionClauseDeclSyntax,
+                             ReparsedFunctionClause)]]()
     var nameList = [Name]()
     for decl in ds {
       switch decl {
@@ -756,7 +801,7 @@ extension NameBinding {
             // recover by ignoring it.
             self.engine.diagnose(.nameShadows(name),
                                  node: funcDecl.ascription) {
-              $0.note(.shadowsOriginal(name), node: funcMap[name])
+              $0.note(.shadowsOriginal(name), node: funcMap[name]!)
             }
             continue
           }
@@ -765,59 +810,53 @@ extension NameBinding {
           nameList.append(name)
         }
       case let funcDecl as NormalFunctionClauseDeclSyntax:
-        let (name, lhs) = self.reparseLHS(funcDecl.basicExprList)
-        let reparsedDecl = funcDecl.withBasicExprList(lhs)
-        if clauseMap[name] == nil {
+        let reparsedLHS = self.reparseLHS(funcDecl.basicExprList)
+        let reparsedDecl = ReparsedFunctionClause(lhs: reparsedLHS)
+        if clauseMap[reparsedLHS.name] == nil {
           if allowOmittingSignatures {
-            let bindingDecl =
-              LetBindingDeclSyntax(
-                head: NamedBasicExprSyntax(identifier: name.syntax),
-                basicExprList: lhs,
-                equalsToken: funcDecl.equalsToken,
-                boundExpr: funcDecl.rhsExpr,
-                trailingSemicolon: funcDecl.trailingSemicolon)
-            decls.append(bindingDecl)
+            decls.append(contentsOf:
+              self.scopeCheckReparsedFunctionClauseDecl(reparsedDecl,
+                                                        funcDecl.rhsExpr))
             continue
           } else {
-            self.engine.diagnose(.bodyBeforeSignature(name), node: funcDecl)
+            self.engine.diagnose(.bodyBeforeSignature(reparsedLHS.name),
+                                 node: funcDecl)
             continue
           }
         }
-        clauseMap[name]!.append(reparsedDecl)
+        clauseMap[reparsedLHS.name]!.append((funcDecl, reparsedDecl))
       case let funcDecl as AbsurdFunctionClauseDeclSyntax:
-        let (name, lhs) = self.reparseLHS(funcDecl.basicExprList)
-        let reparsedDecl = funcDecl.withBasicExprList(lhs)
-        guard clauseMap[name] != nil else {
-          self.engine.diagnose(.bodyBeforeSignature(name), node: funcDecl)
+        let reparsedLHS = self.reparseLHS(funcDecl.basicExprList)
+        let reparsedDecl = ReparsedFunctionClause(lhs: reparsedLHS)
+        guard clauseMap[reparsedLHS.name] != nil else {
+          self.engine.diagnose(.bodyBeforeSignature(reparsedLHS.name),
+                               node: funcDecl)
           continue
         }
-        clauseMap[name]!.append(reparsedDecl)
+        clauseMap[reparsedLHS.name]!.append((funcDecl, reparsedDecl))
       case let fieldDecl as FieldDeclSyntax:
         for synName in fieldDecl.ascription.boundNames {
           let singleAscript = fieldDecl.ascription
-                .withBoundNames(IdentifierListSyntax(elements: [synName]))
-          let newField = FieldDeclSyntax(
-            fieldToken: fieldDecl.fieldToken,
-            ascription: singleAscript,
-            trailingSemicolon: fieldDecl.trailingSemicolon)
-          decls.append(newField)
+              .withBoundNames(SyntaxFactory.makeIdentifierListSyntax([synName]))
+          let newField = fieldDecl.withAscription(singleAscript)
+          decls.append(contentsOf: self.scopeCheckDecl(newField))
         }
       default:
-        decls.append(decl)
+        decls.append(contentsOf: self.scopeCheckDecl(decl))
       }
     }
 
     for k in nameList {
       let function = funcMap[k]!
       let clauses = clauseMap[k]!
-      let singleton = IdentifierListSyntax(elements: [ k.syntax ])
-      decls.append(ReparsedFunctionDeclSyntax(
-        ascription: function.ascription.withBoundNames(singleton),
+      decls.append(contentsOf: self.scopeCheckFunctionDecl(ReparsedFunctionDecl(
+        name: k.syntax,
+        ascription: function.ascription,
         trailingSemicolon: function.trailingSemicolon,
-        clauseList: FunctionClauseListSyntax(elements: clauses)))
+        clauseList: clauses)))
     }
 
-    return DeclListSyntax(elements: decls)
+    return decls
   }
 
   private func scopeCheckFixityDecl(_ syntax: FixityDeclSyntax) -> [Decl] {
@@ -938,17 +977,31 @@ extension NameBinding {
   }
 }
 
-extension NamedBasicExprSyntax {
-  init(identifier: TokenSyntax) {
-    guard case .identifier(_) = identifier.tokenKind else {
-      fatalError("""
-                 cannot create named basic expr syntax with \
-                 non-identifier token
-                 """)
-    }
-    let qualName = QualifiedNameSyntax(elements: [
-      QualifiedNamePieceSyntax(name: identifier, trailingPeriod: nil)
-    ])
-    self.init(name: qualName)
+private struct ReparsedFunctionDecl {
+  let name: TokenSyntax
+  let ascription: AscriptionSyntax
+  let trailingSemicolon: TokenSyntax
+  let clauseList: [(FunctionClauseDeclSyntax, ReparsedFunctionClause)]
+
+  init(
+    name: TokenSyntax,
+    ascription: AscriptionSyntax,
+    trailingSemicolon: TokenSyntax,
+    clauseList: [(FunctionClauseDeclSyntax, ReparsedFunctionClause)]
+  ) {
+    self.name = name
+    self.ascription = ascription
+    self.trailingSemicolon = trailingSemicolon
+    self.clauseList = clauseList
+  }
+}
+
+private struct ReparsedFunctionClause {
+  let lhs: ReparsedBasicExprList
+
+  init(
+    lhs: ReparsedBasicExprList
+  ) {
+    self.lhs = lhs
   }
 }

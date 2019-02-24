@@ -22,7 +22,8 @@ public struct DeclRef: Hashable {
     return lhs.name == rhs.name && lhs.kind == rhs.kind
   }
 
-  public var hashValue: Int {
-    return 0x9e3779b9 &* self.name.hashValue &+ self.kind.rawValue
+  public func hash(into hasher: inout Hasher) {
+    self.name.hash(into: &hasher)
+    self.kind.hash(into: &hasher)
   }
 }

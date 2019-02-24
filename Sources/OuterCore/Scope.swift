@@ -94,8 +94,8 @@ public final class Scope: Hashable {
     return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
   }
 
-  public var hashValue: Int {
-    return ObjectIdentifier(self).hashValue
+  public func hash(into hasher: inout Hasher) {
+    ObjectIdentifier(self).hash(into: &hasher)
   }
 }
 

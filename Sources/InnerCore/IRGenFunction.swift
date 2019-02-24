@@ -202,7 +202,7 @@ final class IRGenFunction: PrimOpVisitor {
           return igt.initialize(tag: idx)
         }
         let irType = igt.emit(payloadType)
-        var payloadValue = irType.null()
+        var payloadValue = irType.null() as IRValue
         for (i, operand) in operands.enumerated() {
           payloadValue = IGM.B.buildInsertValue(
             aggregate: payloadValue,

@@ -1,4 +1,4 @@
--- RUN: %silt --verify typecheck %s
+-- RUN-XFAIL: %silt --verify typecheck %s
 
 module absurd where
 

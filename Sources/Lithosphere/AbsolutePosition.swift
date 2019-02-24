@@ -1,4 +1,4 @@
-//===---------- DiagnosticConsumer.swift - Diagnostic Consumer ------------===//
+//===--------------- AbsolutePosition.swift - Source Positions ------------===//
 //
 // This source file is part of the Swift.org open source project
 //
@@ -9,8 +9,6 @@
 // See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
-// This file provides the DiagnosticConsumer protocol.
-//===----------------------------------------------------------------------===//
 //
 // This file contains modifications from the Silt Langauge project. These
 // modifications are released under the MIT license, a copy of which is
@@ -18,13 +16,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-/// An object that intends to receive notifications when diagnostics are
-/// emitted.
-public protocol DiagnosticConsumer {
-  /// Handle the provided diagnostic which has just been registered with the
-  /// DiagnosticEngine.
-  func handle(_ diagnostic: Diagnostic)
+/// An absolute position in a source file as text - the absolute utf8Offset from
+/// the start of the file.
+public struct AbsolutePosition: Comparable {
+  public let utf8Offset: Int
 
-  /// Finalize the consumption of diagnostics, flushing to disk if necessary.
-  func finalize()
+  static let startOfFile = AbsolutePosition(utf8Offset: 0)
+
+  public init(utf8Offset: Int) {
+    self.utf8Offset = utf8Offset
+  }
+
+  public static func < (lhs: AbsolutePosition, rhs: AbsolutePosition) -> Bool {
+    return lhs.utf8Offset < rhs.utf8Offset
+  }
 }

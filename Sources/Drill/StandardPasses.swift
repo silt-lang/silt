@@ -23,7 +23,8 @@ private func processImportedFile(_ modPath: URL) -> LocalNames? {
                         inputURLs: [modPath],
                         typeCheckerDebugOptions: [])
   let context = PassContext(options: options)
-  let result = Passes.scopeCheckAsImport.run(modPath, in: context)
+  let pipeline = (Passes.parseFile |> Passes.scopeCheckImport)
+  let result = pipeline.run(modPath, in: context)
   guard let (declModule, locals) = result else {
     return nil
   }
@@ -49,9 +50,21 @@ enum Passes {
   /// The Lex pass reads a URL from the file system and tokenizes it into a
   /// stream of TokenSyntax nodes.
   static let lex =
-    Pass<(String, URL), [TokenSyntax]>(name: "Lex") { file, _ in
+    Pass<(String, URL), [TokenSyntax]>(name: "Lex") { file, ctx in
       let lexer = Lexer(input: file.0, filePath: file.1.path)
-      return lexer.tokenize()
+      let tokens = lexer.tokenize()
+
+      let tree = SyntaxFactory.makeSourceFileSyntax(tokens)
+      let converter = SourceLocationConverter(file: file.1.path,
+                                              tree: tree)
+      ctx.currentConverter = converter
+
+      ctx.engine.forEachConsumer { consumer in
+        if let printingConsumer = consumer as? DelayedDiagnosticConsumer {
+          printingConsumer.attachAndDrain(converter)
+        }
+      }
+      return tokens
     }
 
   /// The Shine pass takes a token stream and adds additional implicit tokens
@@ -65,13 +78,15 @@ enum Passes {
   /// full-fledged Syntax tree.
   static let parse =
     Pass<[TokenSyntax], ModuleDeclSyntax>(name: "Parse") { tokens, ctx in
-      let parser = Parser(diagnosticEngine: ctx.engine, tokens: tokens)
+      let parser = Parser(diagnosticEngine: ctx.engine, tokens: tokens,
+                          converter: ctx.currentConverter!)
       return parser.parseTopLevelModule()
     }
 
   static let parseGIR =
     Pass<[TokenSyntax], GIRModule>(name: "Parse GIR") { tokens, ctx in
-      let parser = Parser(diagnosticEngine: ctx.engine, tokens: tokens)
+      let parser = Parser(diagnosticEngine: ctx.engine, tokens: tokens,
+                          converter: ctx.currentConverter!)
       let girparser = GIRParser(parser)
       return girparser.parseTopLevelModule()
     }
@@ -82,6 +97,7 @@ enum Passes {
     DiagnosticGatePass(
       Pass<ModuleDeclSyntax, DeclaredModule>(name: "Scope Check") { mod, ctx in
         let binder = NameBinding(topLevel: mod, engine: ctx.engine,
+                                 converter: ctx.currentConverter!,
                                  fileURL: ctx.options.inputURLs[0],
                                  processImportedFile: processImportedFile)
         return binder.performScopeCheck(topLevel: mod)
@@ -94,6 +110,7 @@ enum Passes {
       Pass<ModuleDeclSyntax, (DeclaredModule, LocalNames)>(
         name: "Scope Check Import") { mod, ctx in
         let binder = NameBinding(topLevel: mod, engine: ctx.engine,
+                                 converter: ctx.currentConverter!,
                                  fileURL: ctx.options.inputURLs[0],
                                  processImportedFile: processImportedFile)
         let module = binder.performScopeCheck(topLevel: mod)

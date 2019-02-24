@@ -29,6 +29,9 @@ let baseNodes = [
 ]
 
 let syntaxNodes = [
+  // MARK: Source
+  Node("SourceFile", element: "Token"),
+
   // MARK: Identifiers
 
   Node("IdentifierList", element: "IdentifierToken"),
@@ -385,12 +388,6 @@ let syntaxNodes = [
   // MARK: Reparsing
 
   Node("FunctionClauseList", element: "FunctionClauseDecl"),
-
-  Node("ReparsedFunctionDecl", kind: "Decl", children: [
-    Child("ascription", kind: "Ascription"),
-    Child("trailingSemicolon", kind: "SemicolonToken"),
-    Child("clauseList", kind: "FunctionClauseList")
-  ]),
 
   Node("ReparsedApplicationExpr", kind: "BasicExpr", children: [
     Child("head", kind: "NamedBasicExpr"),

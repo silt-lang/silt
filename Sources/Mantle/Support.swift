@@ -44,8 +44,8 @@ public struct Named<I: Hashable>: Equatable, Hashable, CustomStringConvertible {
     return l.index == r.index
   }
 
-  public var hashValue: Int {
-    return self.index.hashValue
+  public func hash(into hasher: inout Hasher) {
+    self.index.hash(into: &hasher)
   }
 
   public var description: String {
@@ -102,8 +102,8 @@ extension Opened: Equatable where K: Equatable, T: Equatable {
 }
 
 extension Opened: Hashable where K: Hashable, T: Equatable {
-  public var hashValue: Int {
-    return self.key.hashValue
+  public func hash(into hasher: inout Hasher) {
+    self.key.hash(into: &hasher)
   }
 }
 
@@ -490,8 +490,8 @@ public struct Meta: Comparable, Hashable, CustomStringConvertible {
     return l.id < r.id
   }
 
-  public var hashValue: Int {
-    return self.id
+  public func hash(into hasher: inout Hasher) {
+    self.id.hash(into: &hasher)
   }
 
   public var description: String {
@@ -600,10 +600,10 @@ public enum Instantiability {
         }
       }
 
-      public var hashValue: Int {
+      public func hash(into hasher: inout Hasher) {
         switch self {
-        case .pi: return "".hashValue
-        case let .definition(n): return n.hashValue
+        case .pi: return "".hash(into: &hasher)
+        case let .definition(n): return n.hash(into: &hasher)
         }
       }
     }

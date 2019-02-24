@@ -16,8 +16,8 @@ struct Unowned<T: AnyObject & Hashable>: Hashable {
     return lhs.value == rhs.value
   }
 
-  var hashValue: Int {
-    return value.hashValue
+  func hash(into hasher: inout Hasher) {
+    self.value.hash(into: &hasher)
   }
 }
 
@@ -88,8 +88,11 @@ public struct UnownedDictionary<
     return lhs.storage == rhs.storage
   }
 
-  public var hashValue: Int {
-    return storage.reduce(0) { $0 ^ $1.key.hashValue ^ $1.value.hashValue }
+  public func hash(into hasher: inout Hasher) {
+    for (key, value) in self.storage {
+      key.hash(into: &hasher)
+      value.hash(into: &hasher)
+    }
   }
 }
 
@@ -137,8 +140,10 @@ public struct UnownedArray<
     return lhs.storage == rhs.storage
   }
 
-  public var hashValue: Int {
-    return storage.reduce(0) { $0 ^ $1.hashValue }
+  public func hash(into hasher: inout Hasher) {
+    for value in self.storage {
+      value.hash(into: &hasher)
+    }
   }
 }
 

@@ -21,6 +21,8 @@ final class PassContext {
   /// The command-line options used to invoke the compiler.
   let options: Options
 
+  var currentConverter: SourceLocationConverter?
+
   init(options: Options) {
     self.options = options
   }

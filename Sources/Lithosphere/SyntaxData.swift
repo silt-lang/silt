@@ -2,21 +2,21 @@
 //
 // This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2018 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://swift.org/LICENSE.txt for license information
 // See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
+//
+// This file contains modifications from the Silt Langauge project. These
+// modifications are released under the MIT license, a copy of which is
+// available in the repository.
+//
+//===----------------------------------------------------------------------===//
 
 import Foundation
-
-/// A unique identifier for a node in the tree.
-/// Currently, this is an index path from the current node to the root of the
-/// tree. It's an implementation detail and shouldn't be
-/// exposed to clients.
-typealias NodeIdentifier = [Int]
 
 /// SyntaxData is the underlying storage for each Syntax node.
 /// It's modelled as an array that stores and caches a SyntaxData for each raw
@@ -36,7 +36,49 @@ final class SyntaxData: Equatable {
   let indexInParent: Int
   weak var parent: SyntaxData?
 
-  let childCaches: [AtomicCache<SyntaxData>]
+  let childCaches: [LazyNonThreadSafeCache<SyntaxData>]
+
+  private let positionCache: LazyNonThreadSafeCache<Box<AbsolutePosition>>
+
+  fileprivate func calculatePosition() -> AbsolutePosition {
+    guard let parent = parent else {
+      // If this node is SourceFileSyntax, its location is the start of the file.
+      return AbsolutePosition.startOfFile
+    }
+
+    // If the node is the first child of its parent, the location is same with
+    // the parent's location.
+    guard indexInParent != 0 else { return parent.position }
+
+    // Otherwise, the location is same with the previous sibling's location
+    // adding the stride of the sibling.
+    for idx in (0..<indexInParent).reversed() {
+      if let sibling = parent.cachedChild(at: idx) {
+        return sibling.position + sibling.raw.totalLength
+      }
+    }
+    return parent.position
+  }
+
+  /// The position of the start of this node's leading trivia
+  var position: AbsolutePosition {
+    return positionCache.value({ return Box(calculatePosition()) }).value
+  }
+
+  /// The position of the start of this node's content, skipping its trivia
+  var positionAfterSkippingLeadingTrivia: AbsolutePosition {
+    return position + raw.leadingTriviaLength
+  }
+
+  /// The end position of this node's content, excluding its trivia
+  var endPosition: AbsolutePosition {
+    return positionAfterSkippingLeadingTrivia + raw.contentLength
+  }
+
+  /// The end position of this node's trivia
+  var endPositionAfterTrailingTrivia: AbsolutePosition {
+    return endPosition + raw.trailingTriviaLength
+  }
 
   /// Creates a SyntaxData with the provided raw syntax, pointing to the
   /// provided index, in the provided parent.
@@ -45,25 +87,14 @@ final class SyntaxData: Equatable {
   ///   - indexInParent: The index in the parent's layout where this node will
   ///                    reside.
   ///   - parent: The parent of this node, or `nil` if this node is the root.
-  required init(raw: RawSyntax, indexInParent: Int = 0,
+  required init(raw: RawSyntax, indexInParent: Int = 0, 
                 parent: SyntaxData? = nil) {
     self.raw = raw
     self.indexInParent = indexInParent
     self.parent = parent
-    self.childCaches = raw.layout.map { _ in AtomicCache<SyntaxData>() }
+    self.childCaches = raw.layout.map { _ in LazyNonThreadSafeCache<SyntaxData>() }
+    self.positionCache = LazyNonThreadSafeCache<Box<AbsolutePosition>>()
   }
-
-  /// The index path from this node to the root. This can be used to uniquely
-  /// identify this node in the tree.
-  lazy private(set) var pathToRoot: NodeIdentifier = {
-    var path = [Int]()
-    var node = self
-    while let parent = node.parent {
-      path.append(node.indexInParent)
-      node = parent
-    }
-    return path
-  }()
 
   /// Returns the child data at the provided index in this data's layout.
   /// This child is cached and will be used in subsequent accesses.
@@ -72,7 +103,8 @@ final class SyntaxData: Equatable {
   ///
   /// - Parameter index: The index to create and cache.
   /// - Returns: The child's data at the provided index.
-  func cachedChild(at index: Int) -> SyntaxData {
+  func cachedChild(at index: Int) -> SyntaxData? {
+    if raw.layout[index] == nil { return nil }
     return childCaches[index].value { realizeChild(index) }
   }
 
@@ -84,7 +116,7 @@ final class SyntaxData: Equatable {
   /// - Parameter cursor: The cursor to create and cache.
   /// - Returns: The child's data at the provided cursor.
   func cachedChild<CursorType: RawRepresentable>(
-    at cursor: CursorType) -> SyntaxData
+    at cursor: CursorType) -> SyntaxData?
     where CursorType.RawValue == Int {
     return cachedChild(at: cursor.rawValue)
   }
@@ -123,7 +155,7 @@ final class SyntaxData: Equatable {
     // recursively up to the root.
     if let parent = parent {
       let (root, newParent) = parent.replacingChild(newRaw, at: indexInParent)
-      let newMe = newParent.cachedChild(at: indexInParent)
+      let newMe = newParent.cachedChild(at: indexInParent)!
       return (root: root, newValue: newMe)
     } else {
       // Otherwise, we're already the root, so return the new data as both the
@@ -144,7 +176,7 @@ final class SyntaxData: Equatable {
   /// - Returns: The new root node created by this operation, and the new child
   ///            syntax data.
   /// - SeeAlso: replacingSelf(_:)
-  func replacingChild(_ child: RawSyntax,
+  func replacingChild(_ child: RawSyntax?,
     at index: Int) -> (root: SyntaxData, newValue: SyntaxData) {
     let newRaw = raw.replacingChild(index, with: child)
     return replacingSelf(newRaw)
@@ -160,7 +192,7 @@ final class SyntaxData: Equatable {
   /// - Returns: The new root node created by this operation, and the new child
   ///            syntax data.
   /// - SeeAlso: replacingSelf(_:)
-  func replacingChild<CursorType: RawRepresentable>(_ child: RawSyntax, 
+  func replacingChild<CursorType: RawRepresentable>(_ child: RawSyntax?,
     at cursor: CursorType) -> (root: SyntaxData, newValue: SyntaxData)
     where CursorType.RawValue == Int {
     return replacingChild(child, at: cursor.rawValue)
@@ -185,7 +217,7 @@ final class SyntaxData: Equatable {
   /// - Returns: A new SyntaxData for the specific child you're
   ///            creating, whose parent is pointing to self.
   func realizeChild(_ index: Int) -> SyntaxData {
-    return SyntaxData(raw: raw.layout[index],
+    return SyntaxData(raw: raw.layout[index]!,
                       indexInParent: index,
                       parent: self)
   }

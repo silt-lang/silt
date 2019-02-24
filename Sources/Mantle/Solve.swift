@@ -175,8 +175,8 @@ struct SolverConstraint: CustomDebugStringConvertible, Hashable {
     return self.raw.simplify.map(SolverConstraint.init)
   }
 
-  var hashValue: Int {
-    return self.id
+  public func hash(into hasher: inout Hasher) {
+    self.id.hash(into: &hasher)
   }
 
   static func == (lhs: SolverConstraint, rhs: SolverConstraint) -> Bool {
@@ -361,7 +361,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
     }
 
     let prunedTerm = self.pruneTerm(Set(inv.substitution.map {$0.0}), term)
-    let inv0: Validation<Collect<Var, Set<Meta>>, Meta.Binding> = self.applyInversion(inv, to: prunedTerm, in: ctx)
+    let inv0 = self.applyInversion(inv, to: prunedTerm, in: ctx)
     switch inv0 {
     case let .success(mvb):
       guard !freeMetas(mvb.body).contains(meta) else {
