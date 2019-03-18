@@ -9,6 +9,8 @@ import Lithosphere
 import Moho
 import Mantle
 
+public typealias GIRType = Value
+
 public struct NameAndType: Hashable {
   public let name: QualifiedName
   public unowned let type: GIRType
@@ -114,7 +116,7 @@ public final class TypeType: GIRType {
   public override func hash(into hasher: inout Hasher) {}
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
-    fatalError("TODO: mangle me!")
+    mangler.append("T")
   }
 }
 
@@ -136,7 +138,7 @@ public final class ArchetypeType: Value {
   }
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
-    fatalError("TODO: mangle me!")
+    // fatalError("TODO: mangle me!")
   }
 }
 
@@ -177,7 +179,7 @@ public class ParameterizedType: NominalValue {
   }
 
   public func substituted(
-    _ substitutions: [GIRType: GIRType]) -> SubstitutedType {
+    _ substitutions: [(GIRType, GIRType)]) -> SubstitutedType {
     let subst = SubstitutedType(substitutee: self, substitutions: substitutions)
     return self.substitutions.getOrInsert(subst)
   }
@@ -217,29 +219,26 @@ public final class TupleType: Value {
   }
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
-    fatalError("TODO: mangle me!")
+    self.elements.mangle(into: &mangler)
   }
 }
 
 public final class DataType: ParameterizedType {
-  public typealias Constructor = (name: String, payload: TupleType?)
+  public typealias Constructor = (name: String, payload: GIRType?)
   public private(set) var constructors = [Constructor]()
   public private(set) weak var module: GIRModule?
 
-  public init(name: QualifiedName, module: GIRModule?,
-              indices: GIRType, category: Value.Category) {
+  init(name: QualifiedName, module: GIRModule?,
+       indices: GIRType, constructors: [Constructor],
+       category: Value.Category) {
     self.module = module
+    self.constructors = constructors
     super.init(name: name, indices: indices, category: category)
-  }
-
-  public func addConstructors(_ array: [Constructor]) {
-    constructors.append(contentsOf: array)
   }
 
   public override func equals(_ other: Value) -> Bool {
     guard let other = other as? DataType else { return false }
-    return name == other.name &&
-           parameters == other.parameters
+    return self === other
   }
 
   public override func hash(into hasher: inout Hasher) {
@@ -252,6 +251,9 @@ public final class DataType: ParameterizedType {
     }
   }
 
+  public func addConstructors(_ cs: [Constructor]) {
+    self.constructors.append(contentsOf: cs)
+  }
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
     self.module?.mangle(into: &mangler)
@@ -259,8 +261,6 @@ public final class DataType: ParameterizedType {
     mangler.append("D")
   }
 }
-
-public typealias GIRType = Value
 
 public final class RecordType: ParameterizedType {
   public typealias Field = NameAndType
@@ -279,6 +279,7 @@ public final class RecordType: ParameterizedType {
 
   public override func hash(into hasher: inout Hasher) {
     name.hash(into: &hasher)
+
     for field in fields {
       field.hash(into: &hasher)
     }
@@ -294,6 +295,7 @@ public final class RecordType: ParameterizedType {
 
 public final class FunctionType: GIRType {
   public let arguments: UnownedArray<GIRType>
+  // FIXME: This is always a function type for continuations.
   public unowned let returnType: GIRType
 
   init(arguments: [GIRType], returnType: GIRType) {
@@ -320,80 +322,52 @@ public final class FunctionType: GIRType {
 
 public final class SubstitutedType: GIRType {
   public unowned let substitutee: ParameterizedType
-  public let substitutions: UnownedDictionary<GIRType, GIRType>
+  public let substitutions: [(GIRType, GIRType)]
 
-  init(substitutee: ParameterizedType, substitutions: [GIRType: GIRType]) {
+  init(substitutee: ParameterizedType, substitutions: [(GIRType, GIRType)]) {
     self.substitutee = substitutee
-    self.substitutions = UnownedDictionary(substitutions)
+    self.substitutions = substitutions
     super.init(type: TypeType.shared, category: substitutee.category)
   }
 
   public override func equals(_ other: Value) -> Bool {
     guard let other = other as? SubstitutedType else { return false }
     return substitutee == other.substitutee &&
-           substitutions == other.substitutions
+           zip(substitutions, other.substitutions).reduce(true, {
+            $0 && $1.0.0 == $1.1.0 && $1.1.0 == $1.1.1
+           })
   }
 
   public override func hash(into hasher: inout Hasher) {
     substitutee.hash(into: &hasher)
-    substitutions.hash(into: &hasher)
+    for (val1, val2) in substitutions {
+      val1.hash(into: &hasher)
+      val2.hash(into: &hasher)
+    }
   }
 
   public override func mangle<M: Mangler>(into mangler: inout M) {
-    fatalError("TODO: mangle me!")
+    self.substitutions.map({ $1 }).mangle(into: &mangler)
+    self.substitutee.mangle(into: &mangler)
+    mangler.append("G")
   }
 }
 
 public final class BoxType: GIRType {
-  private let payload: Either<QualifiedName, GIRType>
-
-  init(_ name: QualifiedName) {
-    self.payload = .left(name)
-    super.init(type: TypeType.shared, category: .object)
-  }
+  public let underlyingType: GIRType
 
   init(_ type: GIRType) {
-    self.payload = .right(type)
+    self.underlyingType = type
     super.init(type: TypeType.shared, category: .object)
-  }
-
-  public var unresolvedTypeName: QualifiedName? {
-    switch self.payload {
-    case let .left(name):
-      return name
-    case .right(_):
-      return nil
-    }
-  }
-
-  public var underlyingType: GIRType? {
-    switch self.payload {
-    case .left(_):
-      return nil
-    case let .right(ty):
-      return ty
-    }
   }
 
   public override func equals(_ other: Value) -> Bool {
     guard let other = other as? BoxType else { return false }
-    switch (self.payload, other.payload) {
-    case let (.left(ln), .left(rn)):
-      return ln == rn
-    case let (.right(lt), .right(rt)):
-      return lt.equals(rt)
-    default:
-      return false
-    }
+    return self.underlyingType.equals(other.underlyingType)
   }
 
   public override func hash(into hasher: inout Hasher) {
-    switch self.payload {
-    case let .left(name):
-      return name.hash(into: &hasher)
-    case let .right(type):
-      return type.hash(into: &hasher)
-    }
+    return self.underlyingType.hash(into: &hasher)
   }
 
   public override func mangle<M: Mangler>(into mangler: inout M) {

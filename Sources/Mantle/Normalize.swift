@@ -302,7 +302,7 @@ extension TypeChecker {
   /// Apply a list of eliminations to a term.
   ///
   /// Performs reduction to WHNF before applying each elimination.
-  func eliminate(_ t: TT, _ elims: [Elim<TT>]) -> TT {
+  public func eliminate(_ t: TT, _ elims: [Elim<TT>]) -> TT {
     var term = t
     for e in elims {
       switch (self.toWeakHeadNormalForm(term).ignoreBlocking, e) {

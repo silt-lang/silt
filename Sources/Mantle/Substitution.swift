@@ -34,7 +34,7 @@ public struct Substitution {
   let raw: Internal
 
   /// Create the identity substitution.
-  init() {
+  public init() {
     self.raw = .id
   }
 
@@ -42,14 +42,16 @@ public struct Substitution {
     self.raw = raw
   }
 
-  var isIdentity: Bool {
+  public var isIdentity: Bool {
     switch self.raw {
     case .id: return true
     default: return false
     }
   }
 
-  static func weaken(_ i: Int, _ s: Substitution = .init()) -> Substitution {
+  public static func weaken(
+    _ i: Int, _ s: Substitution = .init()
+  ) -> Substitution {
     switch (i, s.raw) {
     case (0, _): return s
     case let (n, .weaken(m, rho)):
@@ -68,7 +70,7 @@ public struct Substitution {
     }
   }
 
-  static func strengthen(
+  public static func strengthen(
     _ i: Int, _ s: Substitution = .init()) -> Substitution {
     switch (i, s.raw) {
     case (0, _): return s
@@ -88,7 +90,7 @@ public struct Substitution {
     }
   }
 
-  static func instantiate(
+  public static func instantiate(
     _ tt: TT, _ sub: Substitution = .init()) -> Substitution {
     switch (tt, sub.raw) {
     case let (.apply(.variable(v), es), .weaken(m, sigma)):
@@ -101,7 +103,7 @@ public struct Substitution {
     }
   }
 
-  static func lift(_ i: Int, _ sub: Substitution) -> Substitution {
+  public static func lift(_ i: Int, _ sub: Substitution) -> Substitution {
     assert(i >= 0, "Cannot lift by a negative amount")
 
     switch (i, sub.raw) {

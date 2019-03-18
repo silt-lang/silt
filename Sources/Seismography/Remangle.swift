@@ -111,6 +111,9 @@ extension Demangler.Node: ManglingEntity {
     case .type:
       self.children[0].mangle(into: &mangler)
 
+    case .typeType:
+      mangler.append("T")
+
     case .functionType:
       for child in self.children.reversed() {
         child.mangle(into: &mangler)
@@ -118,6 +121,22 @@ extension Demangler.Node: ManglingEntity {
       mangler.append("f")
     case .bottomType:
       mangler.append("B")
+
+    case .substitutedType:
+      let ty = self.children[0]
+      assert(ty.kind == .data)
+      var isFirstListItem = true
+      for child in self.children[1].children {
+        child.mangle(into: &mangler)
+        if isFirstListItem {
+          isFirstListItem = false
+        }
+      }
+      if isFirstListItem {
+        mangler.append("y")
+      }
+      ty.mangle(into: &mangler)
+      mangler.append("G")
 
     case .tuple:
       var isFirstListItem = true
