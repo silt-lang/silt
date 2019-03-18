@@ -4,178 +4,226 @@
 ///
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
-#if canImport(Darwin)
-import Darwin
-#elseif canImport(Glibc)
-import Glibc
-#endif
 
 import Seismography
 import LLVM
 import PrettyStackTrace
 
-struct LoweredStructure {
-  let typeName: String
-  let fields: [LoweredDataType]
-}
+final class TypeConverter {
+  let IGM: IRGenModule
+  private let cache: TypeCache
 
-struct TaggedUnionType {
-  /// The type of the tag bits of this struct.
-  /// If this is `nil`, this struct doesn't need tags because it only
-  /// has one constructor.
-  var tagType: IntType?
-  var payloadTypes: [Int: LoweredStructure]
+  final class TypeCache {
+    enum Entry {
+      case typeInfo(TypeInfo)
+      case llvmType(IRType)
+    }
+    fileprivate var cache: [GIRType: Entry] = [:]
+    fileprivate var paramConventionCache: [GIRType: NativeConvention] = [:]
+    fileprivate var returnConventionCache: [GIRType: NativeConvention] = [:]
+  }
 
-  var payloadIndex: Int32 {
-    return tagType == nil ? 0 : 1
+  init(_ IGM: IRGenModule) {
+    self.cache = TypeCache()
+    self.IGM = IGM
+  }
+
+  func parameterConvention(for T: GIRType) -> NativeConvention {
+    if let cacheHit = self.cache.paramConventionCache[T] {
+      return cacheHit
+    }
+
+    let ti = self.getCompleteTypeInfo(T)
+    let conv = NativeConvention(self.IGM, ti, false)
+    self.cache.paramConventionCache[T] = conv
+    return conv
+  }
+
+  func returnConvention(for T: GIRType) -> NativeConvention {
+    if let cacheHit = self.cache.returnConventionCache[T] {
+      return cacheHit
+    }
+
+    let ti = self.getCompleteTypeInfo(T)
+    let conv = NativeConvention(self.IGM, ti, true)
+    self.cache.paramConventionCache[T] = conv
+    return conv
+  }
+
+  func getCompleteTypeInfo(_ T: GIRType) -> TypeInfo {
+    guard case let .typeInfo(entry) = getTypeEntry(T) else {
+      fatalError("getting TypeInfo recursively!")
+    }
+    return entry
+  }
+
+  private func convertType(_ T: GIRType) -> TypeCache.Entry {
+    switch T {
+    case let type as DataType:
+      return self.convertDataType(type)
+//    case let type as RecordType:
+//      return self.visitRecordType(type)
+    case let type as ArchetypeType:
+      return self.convertArchetypeType(type)
+    case let type as SubstitutedType:
+      return self.convertSubstitutedType(type)
+    case let type as Seismography.FunctionType:
+      return self.convertFunctionType(type)
+//    case let type as TypeMetadataType:
+//      return self.visitTypeMetadataType(type)
+    case let type as TypeType:
+      return self.convertTypeToMetadata(type)
+    case let type as BottomType:
+      return self.convertBottomType(type)
+//    case let type as GIRExprType:
+//      return self.visitGIRExprType(type)
+    case let type as TupleType:
+      return self.convertTupleType(type)
+    case let type as BoxType:
+      return self.convertBoxType(type)
+    default:
+      fatalError("attempt to convert unknown type \(T)")
+    }
+  }
+
+  private func getTypeEntry(_ T: GIRType) -> TypeCache.Entry {
+    if let cacheHit = self.cache.cache[T] {
+      return cacheHit
+    }
+
+    // Convert the type.
+    let convertedEntry = convertType(T)
+    guard case .typeInfo(_) = convertedEntry else {
+      // If that gives us a forward declaration (which can happen with
+      // bound generic types), don't propagate that into the cache here,
+      // because we won't know how to clear it later.
+      return convertedEntry
+    }
+
+    // Cache the entry under the original type and the exemplar type, so that
+    // we can avoid relowering equivalent types.
+    if let existing = self.cache.cache[T], case .typeInfo(_) = existing {
+      fatalError("")
+    }
+    self.cache.cache[T] = convertedEntry
+
+    return convertedEntry
   }
 }
 
-enum LoweredDataType {
-  /// A type with no constructors, e.g. ⏊
-  case void
-
-  /// A simple tagged type with no parameterized values.
-  case tagged(String, IntType)
-
-  /// A tagged union which contains a type-erased container of bits equal to
-  /// the size of the largest payload.
-  case taggedUnion(String, TaggedUnionType)
+extension TypeConverter {
+  func convertArchetypeType(_ type: ArchetypeType) -> TypeCache.Entry {
+    return .typeInfo(OpaqueArchetypeTypeInfo(self.IGM.opaquePtrTy.pointee))
+  }
 }
 
-struct IRGenType {
-  weak var igm: IRGenModule!
+extension TypeConverter {
+  func convertBottomType(_ type: BottomType) -> TypeCache.Entry {
+    return .typeInfo(EmptyTypeInfo(IntType.int8))
+  }
+}
 
-  let type: GIRType
-  init(type: GIRType, irGenModule: IRGenModule) {
-    self.type = type
-    self.igm = irGenModule
+extension TypeConverter {
+  func convertTypeToMetadata(_ type: TypeType) -> TypeCache.Entry {
+    return .typeInfo(EmptyTypeInfo(IntType.int8))
+  }
+}
+
+extension TypeConverter {
+  func convertSubstitutedType(_ type: SubstitutedType) -> TypeCache.Entry {
+    return self.convertType(type.substitutee)
+  }
+}
+
+extension TypeConverter {
+  func convertDataType(_ type: DataType) -> TypeCache.Entry {
+    let storageType = self.createNominalType(IGM, type)
+
+    // Create a forward declaration for that type.
+    self.addForwardDecl(type, storageType)
+
+    // Determine the implementation strategy.
+    let strategy = self.IGM.strategize(self, type, storageType)
+
+    return .typeInfo(strategy.typeInfo())
   }
 
-  func lower() -> LoweredDataType {
-    guard let data = type as? DataType else {
-      fatalError("only know how to emit data types")
-    }
-    let name = igm.mangler.mangle(data)
+  private func addForwardDecl(_ key: GIRType, _ type: IRType) {
+    self.cache.cache[key] = .llvmType(type)
+  }
 
-    let largestValueNeeded = data.constructors.count - 1
-    let numBitsRequired =
-      largestValueNeeded.bitWidth - largestValueNeeded.leadingZeroBitCount
+  private func createNominalType(_ IGM: IRGenModule,
+                                 _ type: DataType) -> StructType {
+    var mangler = GIRMangler()
+    mangler.append("T")
+    type.mangle(into: &mangler)
+    return IGM.B.createStruct(name: mangler.finalize())
+  }
+}
 
-    let tagType = numBitsRequired == 0 ? nil : IntType(width: numBitsRequired)
+extension TypeConverter {
+  func convertTupleType(_ type: TupleType) -> TypeCache.Entry {
+    var fieldTypesForLayout = [TypeInfo]()
+    fieldTypesForLayout.reserveCapacity(type.elements.count)
 
-    let hasParameterizedConstructors =
-      data.constructors.contains { $0.payload != nil }
+    var loadable = true
 
-    // Simple case: No payloads, all constructors are simple.
-    if data.parameters.isEmpty && !hasParameterizedConstructors {
-      guard let tagType = tagType else { return .void }
-      return .tagged(name, tagType)
-    }
+    var explosionSize = 0
+    for astField in type.elements {
+      // Compute the field's type info.
+      let fieldTI = IGM.getTypeInfo(astField)
+      fieldTypesForLayout.append(fieldTI)
 
-    // Otherwise, build a registry of payload types.
-    // This maps tag bits to the corresponding struct type in the union.
-    var tags = [Int: LoweredStructure]()
-    for (idx, constructor) in data.constructors.enumerated() {
-      guard let payloadType = constructor.payload else {
+      guard let loadableFieldTI = fieldTI as? LoadableTypeInfo else {
+        loadable = false
         continue
       }
-      // FIXME: Constructors oughta be a nominal type
-      igm.mangler.beginMangling()
-      constructor.name.mangle(into: &igm.mangler)
-      constructor.payload?.mangle(into: &igm.mangler)
-      let typeName = igm.mangler.finalize()
 
-      // Turn the function constructors into a flattened list of members.
-      let fields = payloadType.elements.map { type in
-        return IRGenType(type: type, irGenModule: igm).lower()
-      }
-
-      tags[idx] = LoweredStructure(typeName: typeName, fields: fields)
+      explosionSize += loadableFieldTI.explosionSize()
     }
-    return .taggedUnion(
-      name,
-      TaggedUnionType(tagType: tagType, payloadTypes: tags))
-  }
 
-  func emit(_ structure: LoweredStructure) -> StructType {
-    if let ty = igm.module.type(named: structure.typeName) {
-      // swiftlint:disable force_cast
-      return ty as! StructType
-    }
-    return igm.B.createStruct(
-      name: structure.typeName,
-      types: structure.fields.map(emit),
-      isPacked: true
-    )
-  }
-
-  func emit(_ lowered: LoweredDataType) -> IRType {
-    return trace("emitting LLVM IR for GIR type") {
-      switch lowered {
-      case let .tagged(_, type): return type
-      case .void:
-        return VoidType()
-      case let .taggedUnion(name, union):
-        if let type = igm.module.type(named: name) { return type }
-        let layout = self.igm.module.dataLayout
-        let fieldTys = union.payloadTypes.values.map(emit)
-        let maxPayloadSize = (fieldTys.map(layout.abiSize) as [Size]).max()!
-        let byteVector = ArrayType(
-          elementType: IntType.int8,
-          count: Int(maxPayloadSize.rawValue)
-        )
-
-        var types: [IRType] = [byteVector]
-        if let tag = union.tagType {
-          types.insert(tag, at: 0)
-        }
-        return igm.B.createStruct(
-          name: name,
-          types: types,
-          isPacked: true
-        )
-      }
+    // Perform layout and fill in the fields.
+    let layout = RecordLayout(.nonHeapObject, self.IGM,
+                              type.elements, fieldTypesForLayout)
+    let fields = layout.fieldLayouts.map { RecordField(layout: $0) }
+    if loadable {
+      return .typeInfo(LoadableTupleTypeInfo(fields, explosionSize,
+                                             layout.llvmType,
+                                             layout.minimumSize,
+                                             layout.minimumAlignment))
+    } else if layout.wantsFixedLayout {
+      return .typeInfo(FixedTupleTypeInfo(fields, layout.llvmType,
+                                          layout.minimumSize,
+                                          layout.minimumAlignment))
+    } else {
+      return .typeInfo(NonFixedTupleTypeInfo(fields, layout.llvmType,
+                                             layout.minimumAlignment))
     }
   }
+}
 
-  func extractAddressOfPayload(atTag tag: Int, from value: IRValue) -> IRValue {
-    let lowered = lower()
-    guard case let .taggedUnion(_, unionTy) = lowered else {
-      fatalError("cannot extract value from type \(lowered) with no payload")
+extension TypeConverter {
+  func convertBoxType(_ T: BoxType) -> TypeCache.Entry {
+    // We can share a type info for all dynamic-sized heap metadata.
+    let UT = T.underlyingType
+    let eltTI = self.IGM.getTypeInfo(UT)
+    guard let fixedTI = eltTI as? FixedTypeInfo else {
+      return .typeInfo(NonFixedBoxTypeInfo(IGM))
     }
-    guard let payloadType = unionTy.payloadTypes[tag] else {
-      fatalError("no payload on constructor \(tag)")
+
+    // For fixed-sized types, we can emit concrete box metadata.
+    if fixedTI.isKnownEmpty {
+      return .typeInfo(EmptyBoxTypeInfo(IGM))
     }
-    let irType = emit(payloadType)
-    let gep = igm.B.buildGEP(value, indices: [0, unionTy.payloadIndex])
-    return igm.B.buildBitCast(gep, type: PointerType(pointee: irType))
-  }
 
-  func extractPayload(atTag tag: Int, from value: IRValue) -> IRValue {
-    return igm.B.buildLoad(extractAddressOfPayload(atTag: tag, from: value))
+    return .typeInfo(FixedBoxTypeInfo(IGM, T.underlyingType))
   }
+}
 
-  func initialize(tag: Int) -> IRValue {
-    let type = lower()
-    switch type {
-    case let .tagged(_, intType):
-      return intType.constant(tag)
-    case .void:
-      return VoidType().null()
-    case let .taggedUnion(_, unionTy):
-      // swiftlint:disable force_cast
-      let structTy = emit(type) as! StructType
-      var value = structTy.null() as IRValue
-      if let tagType = unionTy.tagType {
-        value = igm.B.buildInsertValue(
-          aggregate: value,
-          element: tagType.constant(tag),
-          index: 0
-        )
-      }
-      return value
-    }
+extension TypeConverter {
+  func convertFunctionType(_ T: Seismography.FunctionType) -> TypeCache.Entry {
+    return .typeInfo(FunctionTypeInfo(self.IGM, T, PointerType.toVoid,
+                                      self.IGM.getPointerSize(),
+                                      self.IGM.getPointerAlignment()))
   }
-
 }
