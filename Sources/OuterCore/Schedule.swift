@@ -19,8 +19,8 @@ public final class Schedule {
   /// A 'block' abstraction that 
   public final class Block: Equatable, Hashable {
     public internal(set) var parent: Continuation
-    public internal(set)var primops: [PrimOp]
-    public internal(set)var index: Int
+    public internal(set) var primops: [PrimOp]
+    public internal(set) var index: Int
 
     init(_ parent: Continuation, _ primops: [PrimOp], _ idx: Int) {
       self.parent = parent
@@ -99,7 +99,6 @@ private final class Scheduler {
     queue.append(term)
 
     while let op = queue.popLast() {
-      guard visited.insert(op).inserted else { continue }
       schedule.append(op)
 
       for operand in op.operands {
@@ -109,6 +108,9 @@ private final class Scheduler {
     }
     let activeBlock = self.schedule.block(cont)
     for s in schedule.reversed().dropLast() {
+      guard visited.insert(s).inserted else {
+        continue
+      }
       activeBlock.primops.append(s)
     }
     for cleanup in cont.cleanups {
