@@ -61,6 +61,8 @@ gir-value-id ::= '%' <id>
 gir-value-id-list ::= <gir-value-id> | <gir-value-id-list>
 
 operand ::= <gir-value-id> ':' <gir-type>
+
+ownership-qualifier ::= 'take' | 'copy'
 ```
 
 GIR values are introduced by the `%` sigil and a unique alphanumeric identifier.
@@ -194,12 +196,12 @@ Deallocates a heap box.
 
 ## Accessing Memory
 
-### load_box
+### load
 
 ```
-gir-primop ::= 'load_box' <operand> : <gir-type>
+gir-primop ::= 'load' '['<ownership-qualifier>']' <operand> : <gir-type>
 
-%1 = load_box %0 : @box T
+%1 = load [take] %0 : *T
 -- %1 has type T
 ```
 
@@ -343,9 +345,10 @@ bb0(%0 : Example.Nat; %1 : Example.Nat; %2 : (Example.Nat) -> _):
   
 bb1(%6 : @box Example.Nat):
   %7 = function_ref @bb0
-  %8 = load_box %6 : @box Example.Nat
-  %9 = function_ref @bb3
-  apply %7(%8 ; %1 ; %9) : (Example.Nat ; Example.Nat) -> (Example.Nat) -> _
+  %8 = project_box %6 : @box Example.Nat
+  %9 = load [copy] %8 : *Example.Nat
+  %10 = function_ref @bb3
+  apply %7(%9 ; %1 ; %10) : (Example.Nat ; Example.Nat) -> (Example.Nat) -> _
   
 bb2:
   %11 = copy_value %1

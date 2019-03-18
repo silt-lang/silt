@@ -235,6 +235,14 @@ extension GIRParser {
 
     var resultValue: Value?
     switch opcode {
+    case .forceEffects:
+      fatalError("unimplemented")
+    case .tuple:
+      fatalError("unimplemented")
+    case .tupleElementAddress:
+      fatalError("unimplemented")
+    case .thicken:
+      fatalError("unimplemented")
     case .noop:
       fatalError("noop cannot be spelled")
     case .alloca:
@@ -379,7 +387,7 @@ extension GIRParser {
         args.append(argVal)
       }
 
-      resultValue = B.createDataInit(ident.render, type, args)
+      resultValue = B.createDataInit(ident.render, type, nil)
     case .projectBox:
       guard let valueName = tryParseGIRValueToken() else {
         return false
@@ -388,14 +396,14 @@ extension GIRParser {
       let typeRepr = try self.parser.parseGIRTypeExpr()
       resultValue = B.createProjectBox(self.getLocalValue(valueName),
                                        type: GIRExprType(typeRepr))
-    case .loadBox:
+    case .load:
       guard let valueName = tryParseGIRValueToken() else {
         return false
       }
       _ = try self.parser.consumeIf(.colon)
       _ = try self.parser.parseGIRTypeExpr()
-      resultValue = B.createLoadBox(self.getLocalValue(valueName))
-    case .storeBox:
+      resultValue = B.createLoad(self.getLocalValue(valueName), .copy)
+    case .store:
       guard let valueName = tryParseGIRValueToken() else {
         return false
       }
@@ -405,8 +413,8 @@ extension GIRParser {
       }
       _ = try self.parser.consumeIf(.colon)
       _ = try self.parser.parseGIRTypeExpr()
-      _ = B.createStoreBox(self.getLocalValue(valueName),
-                           to: self.getLocalValue(addressName))
+      _ = B.createStore(self.getLocalValue(valueName),
+                        to: self.getLocalValue(addressName))
     case .unreachable:
       resultValue = B.createUnreachable(cont)
     }
