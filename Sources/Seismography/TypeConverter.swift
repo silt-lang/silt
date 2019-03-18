@@ -5,6 +5,7 @@
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 
+import Lithosphere
 import Moho
 import Mantle
 
@@ -17,29 +18,108 @@ public final class TypeConverter {
   public weak var module: GIRModule?
   private let tc: TypeChecker<CheckPhaseState>
 
+  var wildcardName: Name {
+    return Name(name: SyntaxFactory.makeUnderscore(presence: .implicit))
+  }
+
   /// A `Lowering` describes extended type information used by GIRGen when
   /// interacting with lowered values.
   public class Lowering {
+    enum Status {
+      case incomplete(name: QualifiedName)
+      case complete(type: GIRType, trivial: Bool, addressOnly: Bool)
+    }
+
+    public var isComplete: Bool {
+      switch self.status {
+      case .complete(type: _, trivial: _, addressOnly: _):
+        return true
+      default:
+        return false
+      }
+    }
+
+    public var name: QualifiedName {
+      switch self.status {
+      case let .incomplete(name: name):
+        return name
+      default:
+        fatalError()
+      }
+    }
+
     /// The canonicalized lowered type.
-    public let type: GIRType
+    public var type: GIRType {
+      switch self.status {
+      case let .complete(type: ty, trivial: _, addressOnly: _):
+        return ty
+      default:
+        fatalError("Incomplete lowering!")
+      }
+    }
     /// A trivial type is a loadable type with trivial value semantics - they
     /// may be loaded and stored without semantic copy or destroy operations.
-    public let trivial: Bool
+    public var trivial: Bool {
+      switch self.status {
+      case let .complete(type: _, trivial: tr, addressOnly: _):
+        return tr
+      default:
+        fatalError("Incomplete lowering!")
+      }
+    }
     /// An address-only type is a non-loadable value whose underlying
     /// representation is opaque.  It does not make sense to load from the
     /// address carried by values of this type, hence it is "Address Only".
-    public let addressOnly: Bool
+    public var addressOnly: Bool {
+      switch self.status {
+      case let .complete(type: _, trivial: _, addressOnly: ao):
+        return ao
+      default:
+        fatalError("Incomplete lowering!")
+      }
+    }
+
+    private var status: Status
+
+    init(name: QualifiedName) {
+      self.status = .incomplete(name: name)
+    }
 
     init(type: GIRType, isTrivial: Bool, isAddressOnly: Bool) {
-      self.type = type
-      self.trivial = isTrivial
-      self.addressOnly = isAddressOnly
+      self.status = .complete(type: type, trivial: isTrivial,
+                              addressOnly: isAddressOnly)
+    }
+
+    private func complete(type: GIRType, isTrivial: Bool, isAddressOnly: Bool) {
+      self.status = .complete(type: type, trivial: isTrivial,
+                              addressOnly: isAddressOnly)
+    }
+
+    func completeTrivial(type: GIRType) -> Lowering {
+      self.complete(type: type, isTrivial: true, isAddressOnly: false)
+      return self
+    }
+
+    func completeNonTrivial(type: GIRType) -> Lowering {
+      self.complete(type: type, isTrivial: false, isAddressOnly: false)
+      return self
+    }
+
+    func completeTrivialAddressOnly(type: GIRType) -> Lowering {
+      self.complete(type: type, isTrivial: true, isAddressOnly: true)
+      return self
+    }
+
+    func completeAddressOnly(type: GIRType) -> Lowering {
+      self.complete(type: type, isTrivial: false, isAddressOnly: true)
+      return self
     }
   }
 
   private struct CacheKey: Hashable {
     fileprivate enum Constant {
       case star
+      case archetype
     }
 
     private enum Details: Hashable {
@@ -83,7 +163,6 @@ public final class TypeConverter {
   /// Defines an area where types are registered as they are being lowered.
   /// This is necessary so recursive types can hit a base case and use their
   /// existing, incomplete GIR definition.
-  private var inProgressLowerings = Set<QualifiedName>()
   private var loweringCache = [CacheKey: Lowering]()
   private var nominalKeyCache = [QualifiedName: CacheKey]()
 
@@ -95,21 +174,27 @@ public final class TypeConverter {
   /// Retrieves the type lowering for a TT-type.
   public func lowerType(_ type: Type<TT>) -> Lowering {
     let key = self.getTypeKey(type)
-
     if let existing = self.loweringCache[key] {
       return existing
     }
 
-    let resolvedKey = self.getTypeKey(self.resolveMetaIfNeeded(type))
+    let resolvedType = self.resolveMetaIfNeeded(type)
+    let resolvedKey = self.getTypeKey(resolvedType)
     if let existing = self.loweringCache[resolvedKey] {
       return existing
     }
 
-    let info = self.lower(type)
-    self.loweringCache[key] = info
-    self.loweringCache[resolvedKey] = info
-    self.loweringCache[CacheKey(loweredType: info.type)] = info
-    return info
+    if case .pi(_, _) = resolvedType {
+      let (env, end) = self.tc.unrollPi(resolvedType)
+      let info = self.lower(end, in: .init(env))
+      return info
+    } else {
+      let info = self.lower(type, in: .init([]))
+      self.loweringCache[key] = info
+      self.loweringCache[resolvedKey] = info
+      self.loweringCache[CacheKey(loweredType: info.type)] = info
+      return info
+    }
   }
 
   /// Retrieves the lowering information for a previously-lowered type.
@@ -117,28 +202,12 @@ public final class TypeConverter {
   /// This resolves outer boxed types to their underlying lowering.
   public func lowerType(_ type: GIRType) -> Lowering {
     if let arch = type as? ArchetypeType {
-      return AddressOnlyLowering(arch)
+      return Lowering(name: QualifiedName()).completeAddressOnly(type: arch)
     }
 
-    guard let boxType = type as? BoxType else {
-      let cacheKey = CacheKey(loweredType: type)
-      guard let existing = self.loweringCache[cacheKey] else {
-        fatalError("Lowering referencing uncached type? \(type)")
-      }
-      return existing
-    }
-
-    guard let recursiveTypeName = boxType.unresolvedTypeName else {
-      let cacheKey = CacheKey(loweredType: boxType)
-      guard let existing = self.loweringCache[cacheKey] else {
-        fatalError("Formed box referencing uncached type? \(boxType)")
-      }
-      return existing
-    }
-
-    let cacheKey = CacheKey(name: recursiveTypeName.string)
+    let cacheKey = CacheKey(loweredType: type)
     guard let existing = self.loweringCache[cacheKey] else {
-      fatalError("Formed box referencing uncached type? \(boxType)")
+      fatalError("Lowering referencing uncached type? \(type)")
     }
     return existing
   }
@@ -147,14 +216,14 @@ public final class TypeConverter {
     _ con: Opened<QualifiedName, TT>
   ) -> GIRType {
     let cacheKey = CacheKey(payloadOf: con.key.string)
-    if let existing = self.loweringCache[cacheKey] {
-      return existing.type
-    }
     let conType = self.getASTTypeOfConstructor(con)
     guard case .pi(_, _) = conType else {
       return TupleType(elements: [], category: .object)
     }
-    return self.lowerDataConstructorPayloadType(con.key, conType).1
+    return self.withCachedKey(cacheKey, { _, lowering in
+      self.completeDataConstructorPayloadType(con.key, conType,
+                                              .init([]), lowering)
+    }).type
   }
 
   private func getTypeKey(_ type: Type<TT>) -> CacheKey {
@@ -175,7 +244,8 @@ public final class TypeConverter {
         return newKey
       case let .meta(mv):
         return CacheKey(meta: mv)
-      case .variable(_): fatalError()
+      case let .variable(v):
+        return CacheKey(name: v.name.description)
       }
     case .equal(_, _, _): fatalError()
     case .lambda(_): fatalError()
@@ -201,29 +271,34 @@ public final class TypeConverter {
   }
 
   private func prepopulateCache() {
-    let starLowering = TrivialAddressOnlyLowering(TypeType.shared)
+    let starLowering = Lowering(name: QualifiedName())
+      .completeTrivialAddressOnly(type: TypeType.shared)
     self.loweringCache[CacheKey(loweredType: TypeType.shared)] = starLowering
     self.loweringCache[CacheKey(constant: .star)] = starLowering
   }
 }
 
 extension TypeConverter {
-  private func lower(_ type: Type<TT>) -> Lowering {
+  private func lower(_ type: Type<TT>, in env: Environment) -> Lowering {
     switch type {
     case .refl: fatalError("FIXME: Emit metadata here")
-    case .type: fatalError("FIXME: Emit metadata here")
+    case .type:
+      return self.loweringCache[CacheKey(constant: .star)]!
     case .constructor(_, _):
       fatalError("Constructor forms should not appear here")
-    case let .apply(head, _):
+    case let .apply(head, elims):
       switch head {
       case let .definition(dd):
         let (_, openTypeDef) = self.tc.getOpenedDefinition(dd.key)
+        let defTy = self.tc.getTypeOfOpenedDefinition(openTypeDef)
+        let origType = self.resolveMetaIfNeeded(defTy)
         switch openTypeDef {
         case let .constant(_, const):
           switch const {
           case let .data(cons):
-            return self.withCachedKey(dd.key) { dataTypeName in
-              return self.visitDataType(dataTypeName, type, type, cons)
+            return self.withCachedKey(dd.key) { dataTypeName, lowering in
+              self.completeDataType(dataTypeName, origType, type, elims,
+                                    cons, lowering)
             }
           case .function(_):
             fatalError("FIXME: Lower function applies")
@@ -243,8 +318,9 @@ extension TypeConverter {
         guard let bind = tc.signature.lookupMetaBinding(mv) else {
           fatalError("Unbound meta!?")
         }
-        return self.lower(bind.body)
-      case .variable(_): fatalError()
+        return self.lower(bind.body, in: env)
+      case .variable(_):
+        fatalError()
       }
     case .equal(_, _, _):
       fatalError("FIXME: Emit metadata here")
@@ -255,17 +331,26 @@ extension TypeConverter {
     }
   }
 
-  private func visitDataType(
+  // swiftlint:disable function_parameter_count
+  private func completeDataType(
     _ name: QualifiedName,
-    _ origType: Type<TT>, _ substType: Type<TT>,
-    _ constructors: [Opened<QualifiedName, TT>]
-  ) -> Lowering {
-    if let asNat = dataTypeAsTrivialNat(name, origType, constructors) {
-      return asNat
+    _ origType: Type<TT>, _ substType: Type<TT>, _ elims: [Elim<TT>],
+    _ constructors: [Opened<QualifiedName, TT>],
+    _ lowering: Lowering
+  ) {
+    if completeDataTypeAsTrivialNat(name, substType, constructors, lowering) {
+      return
     }
 
+    var indices = Context()
+    var curTy = origType
+    while case let .pi(indexTy, next) = curTy {
+      indices.append((wildcardName, indexTy))
+      curTy = next
+    }
+    let environment = Environment(indices)
+
     var hasOnlyTrivialCons = true
-    var forceAddressOnly = false
     var loweredConstructors = [DataType.Constructor]()
     loweredConstructors.reserveCapacity(constructors.count)
     for constructor in constructors {
@@ -273,82 +358,106 @@ extension TypeConverter {
       let conType = self.getASTTypeOfConstructor(constructor)
       switch conType {
       case .pi(_, _):
-        let (payloadLowering, loweredTy)
-          = self.lowerDataConstructorPayloadType(constructor.key, conType)
+        let payloadLowering = Lowering(name: constructor.key)
+        self.completeDataConstructorPayloadType(constructor.key, conType,
+                                                environment, payloadLowering)
         hasOnlyTrivialCons = hasOnlyTrivialCons && payloadLowering.trivial
-        forceAddressOnly = forceAddressOnly || payloadLowering.addressOnly
-        loweredConstructors.append((conName, loweredTy))
+        loweredConstructors.append((conName, payloadLowering.type))
       default:
         loweredConstructors.append((conName, nil))
       }
     }
-    if forceAddressOnly {
-      let loweredType = self.module!.dataType(name: name,
+
+    let loweredIndices: GIRType
+    switch origType {
+    case .pi(_, _):
+      let payloadLowering = Lowering(name: QualifiedName())
+      self.completeDataConstructorPayloadType(name, origType,
+                                              .init([]), payloadLowering)
+      loweredIndices = payloadLowering.type
+    default:
+      loweredIndices = TypeType.shared
+    }
+
+    if hasOnlyTrivialCons {
+      let lowType = self.module!.dataType(name: name,
                                               module: self.module,
-                                              category: .address)
-      loweredType.addConstructors(loweredConstructors)
-      return AddressOnlyLowering(loweredType)
-    } else if hasOnlyTrivialCons {
-      let loweredType = self.module!.dataType(name: name,
-                                              module: self.module,
+                                              indices: loweredIndices,
                                               category: .object)
-      loweredType.addConstructors(loweredConstructors)
-      return TrivialLowering(loweredType)
+      let lowerKey = CacheKey(loweredType: lowType)
+      lowType.addConstructors(loweredConstructors)
+      self.loweringCache[lowerKey] = lowering.completeTrivial(type: lowType)
+      return
     } else {
-      let loweredType = self.module!.dataType(name: name,
+      let lowType = self.module!.dataType(name: name,
                                               module: self.module,
+                                              indices: loweredIndices,
                                               category: .object)
-      loweredType.addConstructors(loweredConstructors)
-      return NonTrivialLowering(loweredType)
+      let lowerKey = CacheKey(loweredType: lowType)
+      lowType.addConstructors(loweredConstructors)
+      self.loweringCache[lowerKey] = lowering.completeNonTrivial(type: lowType)
+      return
     }
   }
 
-  fileprivate func lowerDataConstructorPayloadType(
+  fileprivate func completeDataConstructorPayloadType(
     _ name: QualifiedName,
-    _ ty: Type<TT>
-  ) -> (Lowering, TupleType) {
+    _ ty: Type<TT>,
+    _ env: Environment,
+    _ completing: Lowering
+  ) {
     guard case .pi(_, _) = ty else {
       fatalError("Must lower an arrow type")
     }
     let (tel, _) = self.tc.unrollPi(ty)
     var hasOnlyTrivialElements = true
-    var forceAddressOnly = false
+    var forceBox = false
     var eltTypes = [GIRType]()
     eltTypes.reserveCapacity(tel.count)
-    for (_, type) in tel {
-      let eltLowering = self.lower(type)
-      hasOnlyTrivialElements = hasOnlyTrivialElements && eltLowering.trivial
-      forceAddressOnly = forceAddressOnly || eltLowering.addressOnly
+    for (idx, (_, type)) in tel.enumerated() {
+      // swiftlint:disable force_try
+      let substTy = try! type.applySubstitution(.strengthen(idx),
+                                                tc.eliminate(_:_:))
+      let eltLowering = self.lower(substTy, in: env)
+      hasOnlyTrivialElements = hasOnlyTrivialElements
+        && eltLowering.isComplete && eltLowering.trivial
+      forceBox = forceBox || !eltLowering.isComplete
+      guard eltLowering.isComplete else {
+        let seedType = self.module!.dataType(name: eltLowering.name,
+                                             module: self.module,
+                                             indices: nil,
+                                             category: .object)
+        eltTypes.append(seedType)
+        continue
+      }
       eltTypes.append(eltLowering.type)
     }
     let payloadKey = name.string
-    if forceAddressOnly {
-      let ty = TupleType(elements: eltTypes, category: .address)
-      let lowering = AddressOnlyLowering(ty)
+    if forceBox {
+      let ty = BoxType(TupleType(elements: eltTypes, category: .object))
+      let lowering = completing.completeNonTrivial(type: ty)
       self.loweringCache[CacheKey(loweredType: ty)] = lowering
       self.loweringCache[CacheKey(payloadOf: payloadKey)] = lowering
-      return (lowering, ty)
     } else if hasOnlyTrivialElements {
       let ty = TupleType(elements: eltTypes, category: .object)
-      let lowering = TrivialLowering(ty)
+      let lowering = completing.completeTrivial(type: ty)
       self.loweringCache[CacheKey(loweredType: ty)] = lowering
       self.loweringCache[CacheKey(payloadOf: payloadKey)] = lowering
-      return (lowering, ty)
     } else {
       let ty = TupleType(elements: eltTypes, category: .object)
-      let lowering = NonTrivialLowering(ty)
+      let lowering = completing.completeNonTrivial(type: ty)
       self.loweringCache[CacheKey(loweredType: ty)] = lowering
       self.loweringCache[CacheKey(payloadOf: payloadKey)] = lowering
-      return (lowering, ty)
     }
   }
 
-  private func dataTypeAsTrivialNat(
+  private func completeDataTypeAsTrivialNat(
     _ name: QualifiedName, _ origType: Type<TT>,
-    _ constructors: [Opened<QualifiedName, TT>]
-    ) -> Lowering? {
+    _ constructors: [Opened<QualifiedName, TT>],
+    _ completing: Lowering
+    ) -> Bool {
     guard constructors.count == 2 else {
-      return nil
+      return false
     }
 
     let oneCon = constructors[0]
@@ -356,28 +465,27 @@ extension TypeConverter {
     let twoCon = constructors[1]
     let twoConTy = self.getASTTypeOfConstructor(twoCon)
 
-    let lowerNat = { (_ succ: String, _ zero: String) -> Lowering in
-      let loweredType = self.module!.dataType(name: name,
-                                              module: self.module,
-                                              category: .object)
+    func lowerNat(_ succ: String, _ zero: String, _ into: Lowering) -> Bool {
+      let loweredType = self.module!.natType(name: name,
+                                             zero: zero,
+                                             succ: succ,
+                                             module: self.module,
+                                             category: .object)
       let payloadTy = TupleType(elements: [ loweredType ], category: .object)
-      loweredType.addConstructors([
-        (name: zero, payload: nil),
-        (name: succ, payload: payloadTy),
-      ])
-      let lowering = TrivialLowering(loweredType)
+      let lowering = into.completeTrivial(type: loweredType)
+      let loweredPayload = Lowering(name: name).completeTrivial(type: payloadTy)
       self.loweringCache[CacheKey(loweredType: loweredType)] = lowering
-      self.loweringCache[CacheKey(payloadOf: succ)] = TrivialLowering(payloadTy)
-      return lowering
+      self.loweringCache[CacheKey(payloadOf: succ)] = loweredPayload
+      return true
     }
 
     switch (oneConTy, twoConTy) {
     case (.pi(origType, _), origType):
-      return lowerNat(oneCon.key.string, twoCon.key.string)
+      return lowerNat(oneCon.key.string, twoCon.key.string, completing)
     case (origType, .pi(origType, _)):
-      return lowerNat(twoCon.key.string, oneCon.key.string)
+      return lowerNat(twoCon.key.string, oneCon.key.string, completing)
     default:
-      return nil
+      return false
     }
   }
 
@@ -394,45 +502,27 @@ extension TypeConverter {
   }
 
   private func withCachedKey(
-    _ key: QualifiedName, _ f: (QualifiedName) -> Lowering) -> Lowering {
-    guard !self.inProgressLowerings.contains(key) else {
-      return RecursiveLowering(key)
+    _ name: QualifiedName, _ f: (QualifiedName, Lowering) -> Void) -> Lowering {
+    let key = CacheKey(name: name.string)
+    if let existing = self.loweringCache[key] {
+      return existing
     }
 
-    self.inProgressLowerings.insert(key)
-    let result = f(key)
-    self.inProgressLowerings.remove(key)
-    return result
+    let low = Lowering(name: name)
+    self.loweringCache[key] = low
+    _ = f(name, low)
+    return low
   }
-}
 
-private class RecursiveLowering: TypeConverter.Lowering {
-  init(_ name: QualifiedName) {
-    super.init(type: BoxType(name),
-               isTrivial: false, isAddressOnly: false)
-  }
-}
+  private func withCachedKey(
+    _ key: CacheKey, _ f: (CacheKey, Lowering) -> Void) -> Lowering {
+    if let existing = self.loweringCache[key] {
+      return existing
+    }
 
-private class TrivialLowering: TypeConverter.Lowering {
-  init(_ type: GIRType) {
-    super.init(type: type, isTrivial: true, isAddressOnly: false)
-  }
-}
-
-private class NonTrivialLowering: TypeConverter.Lowering {
-  init(_ type: GIRType) {
-    super.init(type: type, isTrivial: false, isAddressOnly: false)
-  }
-}
-
-private class TrivialAddressOnlyLowering: TypeConverter.Lowering {
-  init(_ type: GIRType) {
-    super.init(type: type, isTrivial: true, isAddressOnly: true)
-  }
-}
-
-private class AddressOnlyLowering: TypeConverter.Lowering {
-  init(_ type: GIRType) {
-    super.init(type: type, isTrivial: false, isAddressOnly: true)
+    let low = Lowering(name: QualifiedName())
+    self.loweringCache[key] = low
+    _ = f(key, low)
+    return low
   }
 }
