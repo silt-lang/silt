@@ -77,7 +77,7 @@ public struct SipHasher {
   }
 }
 
-extension SipHasher: Hasher {
+extension SipHasher: StableHasher {
   public mutating func append(bits: UnsafeRawBufferPointer) {
     assert(bits.count <= 8)
 

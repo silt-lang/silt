@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol Hasher {
+public protocol StableHasher {
   associatedtype HashValueType
 
   /// Initialize a new hasher from the default seed value.
@@ -65,10 +65,10 @@ public protocol Hasher {
   mutating func finalize() -> HashValueType
 }
 
-extension Hasher {
+extension StableHasher {
   /// Append `value` to this hasher.
   mutating func append<H: HashableByHasher>(_ value: H) {
-    value.hash(into: &self)
+    value.stableHash(into: &self)
   }
 }
 
@@ -78,57 +78,57 @@ public protocol HashableByHasher: Hashable {
   ///
   /// Essential components are precisely those that are compared in the type's
   /// implementation of `Equatable`.
-  func hash<H: Hasher>(into hasher: inout H)
+  func stableHash<H: StableHasher>(into hasher: inout H)
 }
 
 extension Int8: HashableByHasher {
-  public func hash<H: Hasher>(into hasher: inout H) {
+  public func stableHash<H: StableHasher>(into hasher: inout H) {
     hasher.append(bits: self)
   }
 }
 extension Int16: HashableByHasher {
-  public func hash<H: Hasher>(into hasher: inout H) {
+  public func stableHash<H: StableHasher>(into hasher: inout H) {
     hasher.append(bits: self)
   }
 }
 extension Int32: HashableByHasher {
-  public func hash<H: Hasher>(into hasher: inout H) {
+  public func stableHash<H: StableHasher>(into hasher: inout H) {
     hasher.append(bits: self)
   }
 }
 extension Int64: HashableByHasher {
-  public func hash<H: Hasher>(into hasher: inout H) {
+  public func stableHash<H: StableHasher>(into hasher: inout H) {
     hasher.append(bits: self)
   }
 }
 extension Int: HashableByHasher {
-  public func hash<H: Hasher>(into hasher: inout H) {
+  public func stableHash<H: StableHasher>(into hasher: inout H) {
     hasher.append(bits: self)
   }
 }
 
 extension UInt8: HashableByHasher {
-  public func hash<H: Hasher>(into hasher: inout H) {
+  public func stableHash<H: StableHasher>(into hasher: inout H) {
     hasher.append(bits: self)
   }
 }
 extension UInt16: HashableByHasher {
-  public func hash<H: Hasher>(into hasher: inout H) {
+  public func stableHash<H: StableHasher>(into hasher: inout H) {
     hasher.append(bits: self)
   }
 }
 extension UInt32: HashableByHasher {
-  public func hash<H: Hasher>(into hasher: inout H) {
+  public func stableHash<H: StableHasher>(into hasher: inout H) {
     hasher.append(bits: self)
   }
 }
 extension UInt64: HashableByHasher {
-  public func hash<H: Hasher>(into hasher: inout H) {
+  public func stableHash<H: StableHasher>(into hasher: inout H) {
     hasher.append(bits: self)
   }
 }
 extension UInt: HashableByHasher {
-  public func hash<H: Hasher>(into hasher: inout H) {
+  public func stableHash<H: StableHasher>(into hasher: inout H) {
     hasher.append(bits: self)
   }
 }
