@@ -22,6 +22,17 @@ public class Value: Hashable, ManglingEntity {
     self.category = category
   }
 
+  /// Query the type information of a GIR type to determine whether it is
+  /// "trivial".
+  ///
+  /// Values of trivial type requires no further work to copy, move, or destroy.
+  ///
+  /// - Parameter module: The module in which the type resides.
+  /// - Returns: `true` if the lowered type is trivial, else `false`.
+  public func isTrivial(_ module: GIRModule) -> Bool {
+    return module.typeConverter.lowerType(self).trivial
+  }
+
   /// All values are equatable and hashable using reference equality and
   /// the hash of their ObjectIdentifiers.
 
