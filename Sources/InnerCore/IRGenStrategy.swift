@@ -581,9 +581,10 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
           ArrayType(elementType: IntType.int8, count: (payloadBitCount+7)/8),
           ArrayType(elementType: IntType.int8, count: numTagBits),
         ], isPacked: true)
-
+        let tagSize = Size((numTagBits+7)/8)
         return FixedDataTypeTypeInfo(self, planner.llvmType,
-                                    payloadTI.fixedSize, payloadTI.alignment)
+                                    payloadTI.fixedSize + tagSize,
+                                    payloadTI.alignment)
       }
     case .loadable:
       self.planner.fulfill { (planner) -> TypeInfo in
@@ -595,9 +596,9 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
           ArrayType(elementType: IntType.int8, count: (payloadBitCount+7)/8),
           ArrayType(elementType: IntType.int8, count: numTagBits),
         ], isPacked: true)
-
+        let tagSize = Size((numTagBits+7)/8)
         return LoadableDataTypeTypeInfo(self, planner.llvmType,
-                                        payloadTI.fixedSize,
+                                        payloadTI.fixedSize + tagSize,
                                         payloadTI.alignment)
       }
     case .dynamic:

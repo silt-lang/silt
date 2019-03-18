@@ -1,4 +1,4 @@
--- RUN-XFAIL: %silt --dump irgen %s 2>&1 | %FileCheck %s
+-- RUN: %silt --dump irgen %s 2>&1 | %FileCheck %s
 
 -- CHECK: ; ModuleID = 'bool'
 module bool where
@@ -7,71 +7,99 @@ data Bool : Type where
   false : Bool
   true : Bool
 
--- CHECK: define i1 @"_S4bool4_&&_4bool4BoolD4bool4BoolD_4bool4BoolDtfF"(i1, i1) {
+-- CHECk: define i1 @"_S4bool4_&&_4bool4BoolD4bool4BoolD_4bool4BoolDtfF"(i1, i1) {
 _&&_ : Bool -> Bool -> Bool
--- CHECK:   "_S4bool4_&&_4bool4BoolD4bool4BoolD_4bool4BoolDtfF":
--- CHECK:   switch i1 %0, label %trap [
--- CHECK:       i1 true, label %"_S4bool13_&&_#col0row0ByfF"
--- CHECK:       i1 false, label %"_S4bool13_&&_#col0row1ByfF"
--- CHECK:   ]
--- CHECK-DAG:   "_S4bool13_&&_#col0row0ByfF":
--- CHECK-DAG:     ret i1 %1
+
+-- CHECK: entry:
+-- CHECK:   br label %"_S4bool4_&&_4bool4BoolD4bool4BoolD_4bool4BoolDtfF"
+-- CHECK: "_S4bool4_&&_4bool4BoolD4bool4BoolD_4bool4BoolDtfF": ; preds = %entry
+-- CHECK:   %2 = phi i1 [ %0, %entry ]
+-- CHECK:   %3 = phi i1 [ %1, %entry ]
+-- CHECK:   %4 = icmp ne i1 %2, true
+-- CHECK:   br i1 %4, label %"_S4bool13_&&__col0row1ByfF", label %"_S4bool13_&&__col0row0ByfF"
+
+-- CHECK: "_S4bool13_&&__col0row1ByfF":
+-- CHECK:   br label %"_S4bool11_&&__epilogByfF"
 true && x = x
--- CHECK-DAG:   "_S4bool13_&&_#col0row1ByfF":
--- CHECK-DAG:     ret i1 false
+
+-- CHECK: "_S4bool13_&&__col0row0ByfF":
+-- CHECK:   br label %"_S4bool11_&&__epilogByfF"
 false && _ = false
--- CHECK:   trap:
--- CHECK:     unreachable
--- CHECK:   }
+
+-- CHECK: "_S4bool11_&&__epilogByfF":
+-- CHECK:   %5 = phi i1 [ 0, %"_S4bool13_&&__col0row1ByfF" ], [ %3, %"_S4bool13_&&__col0row0ByfF" ]
+-- CHECK:   ret i1 %5
+-- CHECK: }
 
 -- CHECK: define i1 @"_S4bool4_||_4bool4BoolD4bool4BoolD_4bool4BoolDtfF"(i1, i1) {
 _||_ : Bool -> Bool -> Bool
 
--- CHECK: "_S4bool4_||_4bool4BoolD4bool4BoolD_4bool4BoolDtfF":
--- CHECK:   switch i1 %0, label %trap [
--- CHECK:     i1 true, label %"_S4bool13_||_#col0row0ByfF"
--- CHECK:     i1 false, label %"_S4bool13_||_#col0row1ByfF"
--- CHECK:   ]
--- CHECK-DAG: "_S4bool13_||_#col0row0ByfF":
--- CHECK-DAG:   ret i1 true
+-- CHECK: entry:
+-- CHECK:  br label %"_S4bool4_||_4bool4BoolD4bool4BoolD_4bool4BoolDtfF"
+
+-- CHECK: "_S4bool4_||_4bool4BoolD4bool4BoolD_4bool4BoolDtfF": ; preds = %entry
+-- CHECK:   %2 = phi i1 [ %0, %entry ]
+-- CHECK:   %3 = phi i1 [ %1, %entry ]
+-- CHECK:   %4 = icmp ne i1 %2, true
+-- CHECK:   br i1 %4, label %"_S4bool13_||__col0row1ByfF", label %"_S4bool13_||__col0row0ByfF"
+
+-- CHECK: "_S4bool13_||__col0row1ByfF":
+-- CHECK:   br label %"_S4bool11_||__epilogByfF"
 true || _ = true
--- CHECK-DAG: "_S4bool13_||_#col0row1ByfF":
--- CHECK-DAG:   ret i1 %1
+
+-- CHECK: "_S4bool13_||__col0row0ByfF":
+-- CHECK:   br label %"_S4bool11_||__epilogByfF"
 false || x = x
--- CHECK: trap:
--- CHECK:   unreachable
+
+-- CHECK: "_S4bool11_||__epilogByfF":
+-- CHECK:   %5 = phi i1 [ %3, %"_S4bool13_||__col0row1ByfF" ], [ 1, %"_S4bool13_||__col0row0ByfF" ]
+-- CHECK:   ret i1 %5
 -- CHECK: }
 
 -- CHECK: define i1 @"_S4bool2!_4bool4BoolD4bool4BoolDfF"(i1) {
 !_ : Bool -> Bool
+-- CHECK: entry:
+-- CHECK:   br label %"_S4bool2!_4bool4BoolD4bool4BoolDfF"
+
 -- CHECK: "_S4bool2!_4bool4BoolD4bool4BoolDfF":
--- CHECK:   switch i1 %0, label %trap [
--- CHECK:     i1 true, label %"_S4bool11!_#col0row0ByfF"
--- CHECK:     i1 false, label %"_S4bool11!_#col0row1ByfF"
--- CHECK:   ]
--- CHECK-DAG: "_S4bool11!_#col0row0ByfF":
--- CHECK-DAG:   ret i1 false
+-- CHECK:   %1 = phi i1 [ %0, %entry ]
+-- CHECK:   %2 = icmp ne i1 %1, true
+-- CHECK:   br i1 %2, label %"_S4bool11!__col0row1ByfF", label %"_S4bool11!__col0row0ByfF"
+
+-- CHECK: "_S4bool11!__col0row1ByfF":
+-- CHECK:   br label %"_S4bool9!__epilogByfF"
 ! true = false
--- CHECK-DAG: "_S4bool11!_#col0row1ByfF":
--- CHECK-DAG:   ret i1 true
+
+-- CHECK: "_S4bool11!__col0row0ByfF":
+-- CHECK:   br label %"_S4bool9!__epilogByfF"
 ! false = true
--- CHECK: trap:
--- CHECK:   unreachable
+
+-- CHECK: "_S4bool9!__epilogByfF":
+-- CHECK:   %3 = phi i1 [ 1, %"_S4bool11!__col0row1ByfF" ], [ 0, %"_S4bool11!__col0row0ByfF" ]
+-- CHECK:   ret i1 %3
 -- CHECK: }
 
 -- CHECK: define i1 @_S4bool13if_then_else_4bool4BoolD4bool4BoolD_4bool4BoolD4bool4BoolDtfF(i1, i1, i1) {
 if_then_else_ : Bool -> Bool -> Bool -> Bool
+-- CHECK: entry:
+-- CHECK:   br label %_S4bool13if_then_else_4bool4BoolD4bool4BoolD_4bool4BoolD4bool4BoolDtfF
+
 -- CHECK: _S4bool13if_then_else_4bool4BoolD4bool4BoolD_4bool4BoolD4bool4BoolDtfF:
--- CHECK:   switch i1 %0, label %trap [
--- CHECK:     i1 true, label %"_S4bool22if_then_else_#col0row0ByfF"
--- CHECK:     i1 false, label %"_S4bool22if_then_else_#col0row1ByfF"
--- CHECK:   ]
--- CHECK-DAG: "_S4bool22if_then_else_#col0row0ByfF": 
--- CHECK-DAG:   ret i1 %1
+-- CHECK:   %3 = phi i1 [ %0, %entry ]
+-- CHECK:   %4 = phi i1 [ %1, %entry ]
+-- CHECK:   %5 = phi i1 [ %2, %entry ]
+-- CHECK:   %6 = icmp ne i1 %3, true
+-- CHECK:   br i1 %6, label %_S4bool22if_then_else__col0row1ByfF, label %_S4bool22if_then_else__col0row0ByfF
+
+-- CHECK: _S4bool22if_then_else__col0row1ByfF:
+-- CHECK:   br label %_S4bool20if_then_else__epilogByfF
 if true then x else _ = x
--- CHECK-DAG: "_S4bool22if_then_else_#col0row1ByfF":
--- CHECK-DAG:   ret i1 %2
+
+-- CHECK: _S4bool22if_then_else__col0row0ByfF:
+-- CHECK:   br label %_S4bool20if_then_else__epilogByfF
 if false then _ else x = x
--- CHECK: trap:
--- CHECK:   unreachable
+
+-- CHECK: _S4bool20if_then_else__epilogByfF:
+-- CHECK:   %7 = phi i1 [ %5, %_S4bool22if_then_else__col0row1ByfF ], [ %4, %_S4bool22if_then_else__col0row0ByfF ]
+-- CHECK:   ret i1 %7
 -- CHECK: }

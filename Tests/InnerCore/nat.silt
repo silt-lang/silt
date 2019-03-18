@@ -1,0 +1,29 @@
+-- RUN: %silt --dump irgen %s 2>&1 | %FileCheck %s
+
+-- CHECK: ; ModuleID = 'nat'
+module nat where
+
+data Nat : Type where
+  zero : Nat
+  succ : Nat -> Nat
+
+z : Nat
+z = zero
+
+one : Nat
+one = succ z
+
+two : Nat
+two = succ (succ zero)
+
+up : Nat -> Nat
+up x = succ x
+
+down : Nat -> Nat
+down zero = zero
+down (succ n) = n
+
+add : Nat -> Nat -> Nat
+add x zero = x
+add x (succ n) = add (succ x) n 
+

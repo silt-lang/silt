@@ -1,0 +1,15 @@
+-- RUN-XFAIL: %silt --dump irgen %s 2>&1 | %FileCheck %s
+
+-- CHECK: ; ModuleID = 'list'
+module natlist where
+
+data Nat : Type where
+  zero : Nat
+  succ : Nat -> Nat
+
+data List (A : Type) : Type where
+  []   : List A
+  _::_ : A -> List A -> List A
+
+z : {A : Type} -> List A
+z = []

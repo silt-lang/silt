@@ -58,6 +58,7 @@ void *silt_copyValue(void *value);
 /// Destroys the underlying ManagedObject pointed to by `value`.
 void silt_destroyValue(void *value);
 
+OpaqueMetadata *silt_allocEmptyBox();
 }
 
 } /* end namespace silt */

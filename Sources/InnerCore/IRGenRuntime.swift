@@ -234,7 +234,7 @@ struct RecordLayout {
     _ fieldTypes: [GIRType],
     _ fieldTIs: [TypeInfo], _ typeToFill: StructType? = nil
   ) {
-    assert(typeToFill?.isOpaque ?? false)
+    assert(typeToFill?.isOpaque ?? true)
 
     let builder = Builder(IGM)
 
@@ -266,7 +266,7 @@ struct RecordLayout {
       }
     }
     self.fieldTypes = fieldTypes
-    self.fieldLayouts = []
+    self.fieldLayouts = builder.fieldLayouts
   }
 
   func emitCastTo(_ IGF: IRGenFunction,
@@ -299,11 +299,16 @@ struct RecordLayout {
     }
 
     typealias AddedStorage = Bool
-    func addFields(_ elts: [TypeInfo]) -> AddedStorage {
-      self.fieldLayouts.reserveCapacity(elts.capacity)
+    func addFields(_ typeInfos: [TypeInfo]) -> AddedStorage {
+      self.fieldLayouts.reserveCapacity(typeInfos.capacity)
 
       // Track whether we've added any storage to our layout.
-      return elts.reduce(false, { $0 || self.addField($1) })
+      var addedStorage = false
+      for typeInfo in typeInfos {
+        let added = self.addField(typeInfo)
+        addedStorage = addedStorage || added
+      }
+      return addedStorage
     }
 
     func addField(_ eltTI: TypeInfo) -> Bool {
@@ -409,7 +414,7 @@ struct RecordLayout {
       } else {
         self.addElementAtNonFixedOffset(eltTI)
       }
-      size += eltTI.fixedSize
+      self.size += eltTI.fixedSize
     }
 
     func addElementAtFixedOffset(_ eltTI: FixedTypeInfo) {
@@ -442,7 +447,7 @@ struct RecordLayout {
     }
 
     func asAnonymousStruct() -> StructType {
-      let ty = StructType(elementTypes: structFields, isPacked: true,
+      let ty = StructType(elementTypes: self.structFields, isPacked: true,
                           in: self.IGM.module.context)
       assert(!self.wantsFixedLayout
         || self.IGM.dataLayout.layout(of: ty).size == self.size,
