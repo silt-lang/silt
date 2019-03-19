@@ -21,6 +21,9 @@ internal enum ManglingScalars {
   static let UPPERCASE_F = UInt8(ascii: "F")
   static let LOWERCASE_F = UInt8(ascii: "f")
 
+  static let UPPERCASE_G = UInt8(ascii: "G")
+
+  static let UPPERCASE_T = UInt8(ascii: "T")
   static let LOWERCASE_T = UInt8(ascii: "t")
 
   static let LOWERCASE_Y = UInt8(ascii: "y")

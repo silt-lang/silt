@@ -58,12 +58,14 @@ extension GIRBuilder {
     return insert(ProjectBoxOp(value, type: type))
   }
 
-  public func createLoadBox(_ value: Value) -> LoadBoxOp {
-    return insert(LoadBoxOp(value))
+  public func createLoad(
+    _ value: Value, _ ownership: LoadOp.Ownership
+  ) -> LoadOp {
+    return insert(LoadOp(value, ownership))
   }
 
-  public func createStoreBox(_ value: Value, to address: Value) -> StoreBoxOp {
-    return insert(StoreBoxOp(value, to: address))
+  public func createStore(_ value: Value, to address: Value) -> StoreOp {
+    return insert(StoreOp(value, to: address))
   }
 
   public func createAlloca(_ type: GIRType) -> AllocaOp {
@@ -95,10 +97,24 @@ extension GIRBuilder {
     return insert(FunctionRefOp(continuation: cont))
   }
 
+  public func createTuple(_ argVals: [Value]) -> TupleOp {
+    return insert(TupleOp(arguments: argVals))
+  }
+
+  public func createTupleElementAddress(
+    _ tuple: Value, _ index: Int
+  ) -> TupleElementAddressOp {
+    return insert(TupleElementAddressOp(tuple: tuple, index: index))
+  }
+
+  public func createThicken(_ f: FunctionRefOp) -> ThickenOp {
+    return insert(ThickenOp(f))
+  }
+
   public func createDataInit(
-    _ constr: String, _ type: Value, _ args: [Value]
+    _ constr: String, _ type: Value, _ arg: Value?
   ) -> DataInitOp {
-    return insert(DataInitOp(constructor: constr, type: type, arguments: args))
+    return insert(DataInitOp(constructor: constr, type: type, argument: arg))
   }
 
   public func createSwitchConstr(
@@ -107,6 +123,12 @@ extension GIRBuilder {
   ) -> SwitchConstrOp {
     return insert(SwitchConstrOp(parent, matching: src, patterns: caseVals,
                                  default: `default`))
+  }
+
+  public func createForceEffects(
+    _ retVal: Value, _ effects: [Value]
+  ) -> ForceEffectsOp {
+    return insert(ForceEffectsOp.init(retVal, effects))
   }
 
   public func createUnreachable(_ parent: Continuation) -> UnreachableOp {

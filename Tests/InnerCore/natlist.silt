@@ -1,0 +1,15 @@
+-- RUN: %silt --dump irgen %s 2>&1 | %FileCheck %s
+
+-- CHECK: ; ModuleID = 'natlist'
+module natlist where
+
+data Nat : Type where
+  zero : Nat
+  succ : Nat -> Nat
+
+data NatList : Type where
+  [] : NatList
+  _::_ : Nat -> NatList -> NatList
+
+z : NatList
+z = (zero :: [])

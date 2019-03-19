@@ -164,6 +164,25 @@ extension UnownedArray: ManglingEntity where Element: ManglingEntity {
       }
       mangler.append("t")
     }
-    mangler.append("f")
+  }
+}
+
+extension Array: ManglingEntity where Element: ManglingEntity {
+  public func mangle<M: Mangler>(into mangler: inout M) {
+    if self.isEmpty {
+      mangler.append("y")
+    } else if self.count == 1 {
+      self[0].mangle(into: &mangler)
+    } else {
+      var isFirst = true
+      for argument in self {
+        argument.mangle(into: &mangler)
+        if isFirst {
+          mangler.append("_")
+          isFirst = false
+        }
+      }
+      mangler.append("t")
+    }
   }
 }

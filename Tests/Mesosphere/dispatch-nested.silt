@@ -57,9 +57,11 @@ doThing (ascii b) = b
 -- CHECK-GIR:   %14 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
 -- CHECK-GIR:   %15 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
 -- CHECK-GIR:   %16 = data_init dispatch-nested.Bool ; dispatch-nested.Bool.false
--- CHECK-GIR:   %17 = data_init dispatch-nested.Byte ; dispatch-nested.Byte.byte ; %9 ; %10 ; %11 ; %12 ; %13 ; %14 ; %15 ; %16
--- CHECK-GIR:   apply %8(%17) : dispatch-nested.Byte
--- CHECK-GIR: bb3(%19 : dispatch-nested.Byte):
--- CHECK-GIR:   apply %1(%19) : (dispatch-nested.Byte) -> _
+-- CHECK-GIR:   %17 = tuple (%9 ; %10 ; %11 ; %12 ; %13 ; %14 ; %15 ; %16)
+-- CHECK-GIR:   %18 = force_effects %17
+-- CHECK-GIR:   %19 = data_init dispatch-nested.Byte ; dispatch-nested.Byte.byte ; %18
+-- CHECK-GIR:   apply %8(%19) : dispatch-nested.Byte
+-- CHECK-GIR: bb3(%21 : dispatch-nested.Byte):
+-- CHECK-GIR:   apply %1(%21) : (dispatch-nested.Byte) -> _
 -- CHECK-GIR: } -- end gir function dispatch-nested.doThing
 

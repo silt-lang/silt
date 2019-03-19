@@ -5,6 +5,8 @@
 /// This project is released under the MIT license, a copy of which is
 /// available in the repository.
 
+import LLVM
+
 /// A `BitVector` is an ordered collection of bits.
 public struct BitVector: Equatable, Collection {
   public typealias BitWord = UInt64
@@ -189,7 +191,7 @@ public struct BitVector: Equatable, Collection {
     }
 
     self.reserveCapacity(self.bitCount + numBits)
-    appendConstantBits(numBits, false)
+    appendConstantBitsReserved(numBits, false)
   }
 
   /// Append a given number of set bits to this vector.
@@ -199,71 +201,7 @@ public struct BitVector: Equatable, Collection {
     }
 
     self.reserveCapacity(self.bitCount + numBits)
-    appendConstantBits(numBits, true)
-  }
-
-  public static func == (_ lhs: BitVector, _ rhs: BitVector) -> Bool {
-    let lhsWords = numBitWords(lhs.bitCount)
-    let rhsWords  = numBitWords(rhs.bitCount)
-    var i = 0
-    while i < Swift.min(lhsWords, rhsWords) {
-      defer { i += 1 }
-      if lhs.bitBuffer[i] != rhs.bitBuffer[i] {
-        return false
-      }
-    }
-
-    // Verify that any extra words are all zeros.
-    if i != lhsWords {
-      while i != lhsWords {
-        defer { i += 1 }
-        if lhs.bitBuffer[i] != 0 {
-          return false
-        }
-      }
-    } else if i != rhsWords {
-      while i != rhsWords {
-        defer { i += 1 }
-        if rhs.bitBuffer[i] != 0 {
-          return false
-        }
-      }
-    }
-    return true
-  }
-
-  /// Computes the intersection of two bit vectors.
-  public static func &= (lhs: inout BitVector, rhs: BitVector) {
-    let lhsWords = numBitWords(lhs.bitCount)
-    let rhsWords  = numBitWords(rhs.bitCount)
-    let end = Swift.min(lhsWords, rhsWords)
-    for i in 0..<end {
-      lhs.bitBuffer[i] &= rhs.bitBuffer[i]
-    }
-    // Clear out now-unused bits if the lhs was the longer of the two.
-    for i in end..<lhsWords {
-      lhs.bitBuffer[i] = 0
-    }
-  }
-
-  /// Computes the union of two bit vectors.
-  public static func |= (lhs: inout BitVector, rhs: BitVector) {
-    if lhs.bitCount < rhs.bitCount {
-      lhs.grow(to: rhs.bitCount)
-    }
-    for i in 0..<numBitWords(rhs.bitCount) {
-      lhs.bitBuffer[i] |= rhs.bitBuffer[i]
-    }
-  }
-
-  /// Computes the disjoint union of two bit vectors.
-  public static func ^= (lhs: inout BitVector, rhs: BitVector) {
-    if lhs.bitCount < rhs.bitCount {
-      lhs.grow(to: rhs.bitCount)
-    }
-    for i in 0..<numBitWords(rhs.bitCount) {
-      lhs.bitBuffer[i] ^= rhs.bitBuffer[i]
-    }
+    appendConstantBitsReserved(numBits, true)
   }
 
   private mutating func grow(to newSize: Int) {
@@ -292,11 +230,13 @@ public struct BitVector: Equatable, Collection {
     }
   }
 
-  private mutating func appendConstantBits(_ numBits: Int, _ val: Bool) {
+  private mutating func appendConstantBitsReserved(
+    _ numBits: Int, _ addOnes: Bool
+  ) {
     assert(self.bitCount + numBits <= self.capacity)
     assert(numBits > 0)
 
-    let pattern = val ? ~BitWord(0) : BitWord(0)
+    let pattern = addOnes ? ~BitWord(0) : BitWord(0)
     appendGeneratedChunks(numBits) { (numBitsWanted) -> BitWord in
       return pattern >> (chunkSizeInBits - numBitsWanted)
     }
@@ -371,6 +311,73 @@ public struct BitVector: Equatable, Collection {
       numBits -= claimedBits
     }
   }
+}
+
+extension BitVector {
+  public static func == (_ lhs: BitVector, _ rhs: BitVector) -> Bool {
+    let lhsWords = numBitWords(lhs.bitCount)
+    let rhsWords  = numBitWords(rhs.bitCount)
+    var i = 0
+    while i < Swift.min(lhsWords, rhsWords) {
+      defer { i += 1 }
+      if lhs.bitBuffer[i] != rhs.bitBuffer[i] {
+        return false
+      }
+    }
+
+    // Verify that any extra words are all zeros.
+    if i != lhsWords {
+      while i != lhsWords {
+        defer { i += 1 }
+        if lhs.bitBuffer[i] != 0 {
+          return false
+        }
+      }
+    } else if i != rhsWords {
+      while i != rhsWords {
+        defer { i += 1 }
+        if rhs.bitBuffer[i] != 0 {
+          return false
+        }
+      }
+    }
+    return true
+  }
+
+  /// Computes the intersection of two bit vectors.
+  public static func &= (lhs: inout BitVector, rhs: BitVector) {
+    let lhsWords = numBitWords(lhs.bitCount)
+    let rhsWords  = numBitWords(rhs.bitCount)
+    let end = Swift.min(lhsWords, rhsWords)
+    for i in 0..<end {
+      lhs.bitBuffer[i] &= rhs.bitBuffer[i]
+    }
+    // Clear out now-unused bits if the lhs was the longer of the two.
+    for i in end..<lhsWords {
+      lhs.bitBuffer[i] = 0
+    }
+  }
+
+  /// Computes the union of two bit vectors.
+  public static func |= (lhs: inout BitVector, rhs: BitVector) {
+    if lhs.bitCount < rhs.bitCount {
+      lhs.grow(to: rhs.bitCount)
+    }
+    for i in 0..<numBitWords(rhs.bitCount) {
+      lhs.bitBuffer[i] |= rhs.bitBuffer[i]
+    }
+  }
+
+  /// Computes the disjoint union of two bit vectors.
+  public static func ^= (lhs: inout BitVector, rhs: BitVector) {
+    if lhs.bitCount < rhs.bitCount {
+      lhs.grow(to: rhs.bitCount)
+    }
+    for i in 0..<numBitWords(rhs.bitCount) {
+      lhs.bitBuffer[i] ^= rhs.bitBuffer[i]
+    }
+  }
+
 }
 
 private func numBitWords(_ blockCount: Int) -> Int {

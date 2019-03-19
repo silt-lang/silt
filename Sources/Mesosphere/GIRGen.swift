@@ -111,8 +111,11 @@ extension GIRGenModule {
 }
 
 final class GIRGenFunction {
-  var f: Continuation
+  let f: Continuation
+  let GGM: GIRGenModule
   let B: GIRBuilder
+  let astType: Type<TT>
+//  let loweredType: GIRType
   let params: [(Name, Type<TT>)]
   let returnTy: Type<TT>
   let telescope: Telescope<TT>
@@ -125,9 +128,12 @@ final class GIRGenFunction {
   init(_ GGM: GIRGenModule, _ f: Continuation,
        _ ty: Type<TT>, _ tel: Telescope<TT>) {
     self.f = f
+    self.GGM = GGM
     self.B = GIRBuilder(module: GGM.M)
     self.telescope = tel
     self.tc = GGM.tc
+    self.astType = ty
+//    self.loweredType = self.B.module.typeConverter.lowerType(ty).type
     let environment = unrollPiIntoEnvironment(tc, ty)
     self.genericEnvironment = environment.genericEnvironment
     self.params = environment.paramTelescope
@@ -142,11 +148,25 @@ final class GIRGenFunction {
     self.emitEpilog(returnCont)
   }
 
-  func prepareEpilog(_ retCont: Parameter) {
-    guard let retTy = retCont.type as? FunctionType else {
-      fatalError()
+  func emitClosure(_ body: Term<TT>) {
+    let (paramVals, returnCont) = self.buildParameterList()
+    for val in paramVals {
+      let name = Name(name: SyntaxFactory.makeUnderscore())
+      self.varLocs[name] = val.value
     }
-    self.epilog.appendParameter(type: retTy.arguments[0])
+    self.prepareEpilog(returnCont)
+    self.emitFinalColumnBody(self.f, body)
+    self.emitEpilog(returnCont)
+  }
+
+  func prepareEpilog(_ retCont: Parameter) {
+    if let param = self.f.indirectReturnParameter {
+      self.epilog.appendParameter(type: param.type)
+    } else {
+      // swiftlint:disable force_cast
+      let retTy = retCont.type as! FunctionType
+      self.epilog.appendParameter(type: retTy.arguments[0])
+    }
     self.B.module.addContinuation(self.epilog)
   }
 
@@ -170,12 +190,21 @@ final class GIRGenFunction {
     return self.B.module.typeConverter.lowerType(type).type
   }
 
-  func getPayloadTypeOfConstructor(
+  func getPayloadTypeOfConstructors(
+    _ con: Opened<QualifiedName, TT>
+  ) -> GIRType {
+    return self.B.module.typeConverter.getPayloadTypeOfConstructor(con)
+  }
+
+  func getPayloadTypeOfConstructorsIgnoringBoxing(
     _ con: Opened<QualifiedName, TT>
   ) -> [GIRType] {
     switch self.B.module.typeConverter.getPayloadTypeOfConstructor(con) {
     case let ty as TupleType:
       return ty.elements
+    case let ty as BoxType:
+      // swiftlint:disable force_cast
+      return (ty.underlyingType as! TupleType).elements
     default:
       fatalError()
     }
@@ -192,16 +221,11 @@ final class GIRGenFunction {
 
   private func buildParameterList() -> ([ManagedValue], Parameter) {
     var params = [ManagedValue]()
-    for (idx, t) in self.params.enumerated() {
+    for t in self.params {
       let (_, paramTy) = t
-      if let arch = self.tryFormArchetype(paramTy, idx) {
-        let p = self.appendManagedParameter(type: arch)
-        params.append(p)
-      } else {
-        let ty = self.getLoweredType(paramTy)
-        let p = self.appendManagedParameter(type: ty)
-        params.append(p)
-      }
+      let ty = self.getLoweredType(paramTy)
+      let p = self.appendManagedParameter(type: ty)
+      params.append(p)
     }
     if let arch = self.tryFormArchetype(self.returnTy, self.params.count) {
       self.f.appendIndirectReturnParameter(type: arch)
@@ -209,6 +233,12 @@ final class GIRGenFunction {
       return (params, ret)
     } else {
       let returnContTy = self.getLoweredType(self.returnTy)
+      switch returnContTy.category {
+      case .address:
+        self.f.appendIndirectReturnParameter(type: returnContTy)
+      case .object:
+        break
+      }
       let ret = self.f.setReturnParameter(type: returnContTy)
       return (params, ret)
     }

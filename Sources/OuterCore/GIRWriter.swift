@@ -281,13 +281,19 @@ public final class GIRWriter<StreamType: TextOutputStream>: Writer<StreamType> {
 }
 
 extension GIRWriter: PrimOpVisitor {
-  public func visitStoreBoxOp(_ op: StoreBoxOp) {
+  public func visitStoreOp(_ op: StoreOp) {
     self.write(self.getID(of: op.value).description)
     self.write(" to ")
     self.write(self.getID(of: op.address).description)
   }
 
-  public func visitLoadBoxOp(_ op: LoadBoxOp) {
+  public func visitLoadOp(_ op: LoadOp) {
+    switch op.ownership {
+    case .copy:
+      self.write(" [copy] ")
+    case .take:
+      self.write(" [take] ")
+    }
     self.write(self.getID(of: op.addressee).description)
     self.write(" : ")
     self.visitType(op.addressee.type)
@@ -403,6 +409,32 @@ extension GIRWriter: PrimOpVisitor {
                     { self.write(" ; ") })
   }
 
+  public func visitTupleOp(_ op: TupleOp) {
+    self.write("(")
+    self.interleave(op.operands,
+                    { self.write(self.getID(of: $0.value).description) },
+                    { self.write(" ; ") })
+    self.write(")")
+  }
+
+  public func visitTupleElementAddress(_ op: TupleElementAddressOp) {
+    self.write(self.getID(of: op.tuple).description)
+    self.write(" : ")
+    self.visitType(op.tuple.type)
+    self.write(" ; ")
+    self.write("\(op.index)")
+  }
+
+  public func visitThickenOp(_ op: ThickenOp) {
+    self.write(self.getID(of: op.function).description)
+  }
+
+  public func visitForceEffectsOp(_ op: ForceEffectsOp) {
+    self.interleave(op.operands,
+                    { self.write(self.getID(of: $0.value).description) },
+                    { self.write(" ; ") })
+  }
+
   public func visitUnreachableOp(_ op: UnreachableOp) {}
 }
 
@@ -439,11 +471,7 @@ extension GIRWriter: TypeVisitor {
   public func visitBoxType(_ type: BoxType) {
     self.visitTypeCommon(type)
     self.write("@box ")
-    guard let underlyingType = type.underlyingType else {
-      self.write(type.unresolvedTypeName!.string)
-      return
-    }
-    self.visitType(underlyingType)
+    self.visitType(type.underlyingType)
   }
   public func visitRecordType(_ type: RecordType) {
     self.visitTypeCommon(type)
@@ -470,7 +498,11 @@ extension GIRWriter: TypeVisitor {
     self.write(")")
   }
   public func visitSubstitutedType(_ type: SubstitutedType) {
-    self.visitTypeCommon(type)
+    self.visitType(type.substitutee)
+    self.write(" ")
+    self.interleave(type.substitutions,
+                    { self.visitType($1) },
+                    { self.write(" ") })
   }
   public func visitBottomType(_ type: BottomType) {
     self.visitTypeCommon(type)

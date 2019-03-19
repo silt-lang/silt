@@ -176,6 +176,7 @@ Types
 ====
 
 ```
+type ::= 'T' // Type type
 type ::= 'B' // bottom type
 type ::= type-list
 

@@ -138,6 +138,7 @@ public final class Continuation: NominalValue, GraphNode {
     }
     self.returnValueType.mangle(into: &mangler)
     contTy.arguments.mangle(into: &mangler)
+    mangler.append("f")
     mangler.append("F")
   }
 }

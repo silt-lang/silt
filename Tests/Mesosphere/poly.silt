@@ -1,4 +1,4 @@
--- RUN: %silt %s --dump girgen 2>&1 | %FileCheck %s --prefixes CHECK-GIR
+-- RUN-XFAIL: %silt %s --dump girgen 2>&1 | %FileCheck %s --prefixes CHECK-GIR
 
 -- CHECK-GIR: module poly where
 module poly where

@@ -67,15 +67,20 @@ public class PrimOp: Value {
     /// Retrieve the address of the value inside a box.
     case projectBox = "project_box"
 
-    /// Load the value stored inside the box.
-    ///
-    /// This operation is forbidden on boxes containing values of address-only
-    /// type.  Use `project_box` instead.
-    case loadBox = "load_box"
+    /// Load the value stored at an address.
+    case load = "load"
 
     /// Store a given value to memory allocated by a given box and returns the
     /// newly-updated box value.
-    case storeBox = "store_box"
+    case store = "store"
+
+    case tuple
+
+    case tupleElementAddress = "tuple_element_address"
+
+    case thicken
+
+    case forceEffects = "force_effects"
 
     /// An instruction that is considered 'unreachable' that will trap at
     /// runtime.
@@ -326,11 +331,53 @@ public final class SwitchConstrOp: TerminalOp {
 public final class DataInitOp: PrimOp {
   public let constructor: String
   public let dataType: Value
-  public init(constructor: String, type: Value, arguments: [Value]) {
+  public init(constructor: String, type: Value, argument: Value?) {
     self.constructor = constructor
     self.dataType = type
-    super.init(opcode: .dataInit, type: type, category: type.category)
+    super.init(opcode: .dataInit, type: type, category: .object)
+    if let argVal = argument {
+      self.addOperands([Operand(owner: self, value: argVal)])
+    }
+  }
+
+  public var argumentTuple: Value? {
+    guard !self.operands.isEmpty else {
+      return nil
+    }
+    return operands[0].value
+  }
+
+  public override var result: Value? {
+    return self
+  }
+}
+
+public final class TupleOp: PrimOp {
+  init(arguments: [Value]) {
+    let ty = TupleType(elements: arguments.map({$0.type}), category: .object)
+    super.init(opcode: .tuple, type: ty, category: .object)
     self.addOperands(arguments.map { Operand(owner: self, value: $0) })
+  }
+
+  public override var result: Value? {
+    return self
+  }
+}
+
+public final class TupleElementAddressOp: PrimOp {
+  public let index: Int
+  init(tuple: Value, index: Int) {
+    guard let tupleTy = tuple.type as? TupleType else {
+      fatalError()
+    }
+    self.index = index
+    super.init(opcode: .tupleElementAddress,
+               type: tupleTy.elements[index], category: .address)
+    self.addOperands([ Operand(owner: self, value: tuple) ])
+  }
+
+  public var tuple: Value {
+    return self.operands[0].value
   }
 
   public override var result: Value? {
@@ -368,9 +415,17 @@ public final class ProjectBoxOp: PrimOp {
   }
 }
 
-public final class LoadBoxOp: PrimOp {
-  public init(_ value: Value) {
-    super.init(opcode: .loadBox, type: value.type, category: .object)
+public final class LoadOp: PrimOp {
+  public enum Ownership {
+    case take
+    case copy
+  }
+
+  public let ownership: Ownership
+
+  public init(_ value: Value, _ ownership: Ownership) {
+    self.ownership = ownership
+    super.init(opcode: .load, type: value.type, category: .object)
     self.addOperands([ Operand(owner: self, value: value) ])
   }
 
@@ -383,9 +438,9 @@ public final class LoadBoxOp: PrimOp {
   }
 }
 
-public final class StoreBoxOp: PrimOp {
+public final class StoreOp: PrimOp {
   public init(_ value: Value, to address: Value) {
-    super.init(opcode: .storeBox, type: value.type, category: .object)
+    super.init(opcode: .store, type: value.type, category: .address)
     self.addOperands([
       Operand(owner: self, value: value),
       Operand(owner: self, value: address),
@@ -416,6 +471,38 @@ public final class DeallocBoxOp: PrimOp {
   }
 }
 
+public final class ThickenOp: PrimOp {
+  public init(_ funcRef: FunctionRefOp) {
+    super.init(opcode: .thicken, type: funcRef.type, category: .object)
+    self.addOperands([ Operand(owner: self, value: funcRef) ])
+  }
+
+  public override var result: Value? {
+    return self
+  }
+
+  public var function: Value {
+    return operands[0].value
+  }
+}
+
+public final class ForceEffectsOp: PrimOp {
+  public init(_ retVal: Value, _ effects: [Value]) {
+    super.init(opcode: .forceEffects,
+               type: retVal.type, category: retVal.category)
+    self.addOperands([ Operand(owner: self, value: retVal) ])
+    self.addOperands(effects.map { Operand(owner: self, value: $0) })
+  }
+
+  public var subject: Value {
+    return operands[0].value
+  }
+
+  public override var result: Value? {
+    return self
+  }
+}
+
 public final class UnreachableOp: TerminalOp {
   public init(parent: Continuation) {
     super.init(opcode: .unreachable, parent: parent)
@@ -434,12 +521,16 @@ public protocol PrimOpVisitor {
   func visitFunctionRefOp(_ op: FunctionRefOp) -> Ret
   func visitSwitchConstrOp(_ op: SwitchConstrOp) -> Ret
   func visitDataInitOp(_ op: DataInitOp) -> Ret
-  func visitLoadBoxOp(_ op: LoadBoxOp) -> Ret
-  func visitStoreBoxOp(_ op: StoreBoxOp) -> Ret
+  func visitTupleOp(_ op: TupleOp) -> Ret
+  func visitTupleElementAddress(_ op: TupleElementAddressOp) -> Ret
+  func visitLoadOp(_ op: LoadOp) -> Ret
+  func visitStoreOp(_ op: StoreOp) -> Ret
   func visitAllocBoxOp(_ op: AllocBoxOp) -> Ret
   func visitProjectBoxOp(_ op: ProjectBoxOp) -> Ret
   func visitDeallocBoxOp(_ op: DeallocBoxOp) -> Ret
+  func visitThickenOp(_ op: ThickenOp) -> Ret
   func visitUnreachableOp(_ op: UnreachableOp) -> Ret
+  func visitForceEffectsOp(_ op: ForceEffectsOp) -> Ret
 }
 
 extension PrimOpVisitor {
@@ -469,17 +560,25 @@ extension PrimOpVisitor {
     // swiftlint:disable force_cast
     case .dataInit: return self.visitDataInitOp(code as! DataInitOp)
     // swiftlint:disable force_cast
+    case .tuple: return self.visitTupleOp(code as! TupleOp)
+      // swiftlint:disable force_cast line_length
+    case .tupleElementAddress: return self.visitTupleElementAddress(code as! TupleElementAddressOp)
+    // swiftlint:disable force_cast
     case .unreachable: return self.visitUnreachableOp(code as! UnreachableOp)
     // swiftlint:disable force_cast
-    case .loadBox: return self.visitLoadBoxOp(code as! LoadBoxOp)
+    case .load: return self.visitLoadOp(code as! LoadOp)
     // swiftlint:disable force_cast
-    case .storeBox: return self.visitStoreBoxOp(code as! StoreBoxOp)
+    case .store: return self.visitStoreOp(code as! StoreOp)
     // swiftlint:disable force_cast
     case .allocBox: return self.visitAllocBoxOp(code as! AllocBoxOp)
     // swiftlint:disable force_cast
     case .projectBox: return self.visitProjectBoxOp(code as! ProjectBoxOp)
     // swiftlint:disable force_cast
     case .deallocBox: return self.visitDeallocBoxOp(code as! DeallocBoxOp)
+    // swiftlint:disable force_cast
+    case .thicken: return self.visitThickenOp(code as! ThickenOp)
+    // swiftlint:disable force_cast
+    case .forceEffects: return self.visitForceEffectsOp(code as! ForceEffectsOp)
     }
   }
 }

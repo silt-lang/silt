@@ -68,7 +68,9 @@ public struct GIRMangler: Mangler {
     }
 
     #if DEBUG
-    verify(result)
+    if result.starts(with: MANGLING_PREFIX) {
+      verify(result)
+    }
     #endif
 
     return result

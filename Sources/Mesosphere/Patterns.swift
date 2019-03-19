@@ -96,7 +96,8 @@ extension GIRGenFunction {
         _ = self.B.createUnreachable(self.f)
         return
       }
-      let (newParent, RV) = self.emitRValue(self.f, body)
+      let vals = self.applyBodyToParams(body, firstRow.patterns, params)
+      let (newParent, RV) = self.emitRValue(self.f, vals)
       self.emitFinalReturn(newParent, RV.forward(self))
       return
     }
@@ -104,6 +105,18 @@ extension GIRGenFunction {
     // We're in business, start specializing.
     var unspecialized = Set<Int>(0..<params.count)
     self.stepSpecialization(self.f, matrix, params, &unspecialized)
+  }
+
+  private func applyBodyToParams(
+    _ body: Term<TT>, _ patterns: [Pattern], _ params: [ManagedValue]
+  ) -> Term<TT> {
+    let startIdx = params.count - patterns.count
+    assert(startIdx >= 0)
+    let term = body
+//    for param in params.dropFirst(startIdx).reversed() {
+//      term = TT.apply(Head., <#T##[Elim<TypeTheory<T>>]#>)
+//    }
+    return term
   }
 
   /// Specialize a pattern matrix into a particular continuation.
@@ -174,7 +187,7 @@ extension GIRGenFunction {
           // `function_ref` pointing at it in the switch nest.
           destMap.append((specKey, destBB))
           switchNest.append((specKey, ref))
-          let pTys = self.getPayloadTypeOfConstructor(name)
+          let pTys = self.getPayloadTypeOfConstructorsIgnoringBoxing(name)
           for (ty, argPat) in zip(pTys, args) {
             if case let .variable(vn) = argPat {
               let param = destBB.appendParameter(type: ty)
@@ -280,7 +293,7 @@ extension GIRGenFunction {
         let destBB = self.B.buildBBLikeContinuation(
           base: parent.name, tag: "_col\(colIdx)row\(idx)")
         let destRef = self.B.createFunctionRef(destBB)
-        let pTys = self.getPayloadTypeOfConstructor(name)
+        let pTys = self.getPayloadTypeOfConstructorsIgnoringBoxing(name)
         for (ty, argPat) in zip(pTys, pats) {
           if case let .variable(vn) = argPat {
             let param = destBB.appendParameter(type: ty)
@@ -296,7 +309,7 @@ extension GIRGenFunction {
     _ = self.B.createSwitchConstr(parent, param.value, dests)
   }
 
-  private func emitFinalColumnBody(_ bb: Continuation, _ body: Term<TT>) {
+  func emitFinalColumnBody(_ bb: Continuation, _ body: Term<TT>) {
     switch body {
     case .constructor(_, _):
       let (bb, bodyVal) = self.emitRValue(bb, body)
@@ -331,6 +344,7 @@ extension GIRGenFunction {
         }
       }
     default:
+      print(body)
       fatalError()
     }
   }
@@ -346,13 +360,17 @@ extension GIRGenFunction {
 
     // If we have an indirect buffer, we have to copy the RValue into it and
     // apply that result buffer.
-    guard value.type == indirectRet.type else {
-      fatalError("FIXME: Store into the result buffer")
+    assert(value.type == indirectRet.type)
+    let retAddr: Value
+    switch value.category {
+    case .object:
+      retAddr = self.B.createStore(value, to: indirectRet)
+    case .address:
+      let indirectAddr = self.B.createProjectBox(value, type: value.type)
+      retAddr = self.B.createCopyAddress(value, to: indirectAddr)
     }
-
-    let copyAddr = self.B.createCopyAddress(value, to: indirectRet)
     self.cleanupStack.emitCleanups(self, in: bb)
-    _ = self.B.createApply(bb, epilogRef, [copyAddr])
+    _ = self.B.createApply(bb, epilogRef, [retAddr])
   }
 
   private struct Necessity {

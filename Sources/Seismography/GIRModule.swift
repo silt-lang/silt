@@ -11,6 +11,7 @@ import Moho
 public final class GIRModule {
   public let name: String
 
+  public let context: GIRContext = GIRContext()
   public private(set) var continuations = [Continuation]()
   public private(set) var continuationTable = [DeclRef: Continuation]()
   public private(set) var primops = [PrimOp]()
@@ -58,12 +59,55 @@ public final class GIRModule {
 
   public func dataType(name: QualifiedName,
                        module: GIRModule? = nil,
-                       indices: GIRType? = nil,
+                       indices: GIRType?,
                        category: Value.Category) -> DataType {
-    let data = DataType(name: name,
-                        module: module,
-                        indices: indices ?? TypeType.shared, category: category)
-    return knownDataTypes.getOrInsert(data)
+    var hasher = Hasher()
+    name.hash(into: &hasher)
+    if let module = module {
+      Unmanaged.passUnretained(module).toOpaque().hash(into: &hasher)
+    }
+    let id = hasher.finalize()
+    guard let existing = self.context.dataTypes[id] else {
+      let data = DataType(name: name,
+                          module: module,
+                          indices: indices ?? TypeType.shared,
+                          constructors: [],
+                          category: category)
+      self.context.dataTypes[id] = .init(data)
+      _ = self.knownDataTypes.getOrInsert(data)
+      return data
+    }
+    return existing.value
+  }
+
+  public func natType(name: QualifiedName,
+                      zero: String,
+                      succ: String,
+                      module: GIRModule? = nil,
+                      category: Value.Category) -> DataType {
+    var hasher = Hasher()
+    name.hash(into: &hasher)
+    if let module = module {
+      Unmanaged.passUnretained(module).toOpaque().hash(into: &hasher)
+    }
+    2.hash(into: &hasher)
+    let id = hasher.finalize()
+    guard let existing = self.context.dataTypes[id] else {
+      let data = DataType(name: name,
+                          module: module,
+                          indices: TypeType.shared,
+                          constructors: [],
+                          category: category)
+      let payloadTy = TupleType(elements: [ data ], category: .object)
+      data.addConstructors([
+        (name: zero, payload: nil),
+        (name: succ, payload: payloadTy),
+      ])
+      self.context.dataTypes[id] = .init(data)
+      _ = self.knownDataTypes.getOrInsert(data)
+      return data
+    }
+    return existing.value
   }
 }
 

@@ -25,8 +25,10 @@ public final class Demangler {
       case tupleElement
       case type
       case bottomType
+      case typeType
       case functionType
       case argumentTuple
+      case substitutedType
     }
 
     let kind: Kind
@@ -140,6 +142,10 @@ fileprivate extension Demangler {
       return self.demangleFunction()
     case ManglingScalars.LOWERCASE_F:
       return self.demangleFunctionType()
+    case ManglingScalars.UPPERCASE_G:
+      return self.demangleBoundGenericType()
+    case ManglingScalars.UPPERCASE_T:
+      return self.createNode(.type, [createNode(.typeType)])
     case ManglingScalars.LOWERCASE_T:
       return self.popTuple()
     case ManglingScalars.LOWERCASE_Y:
@@ -434,6 +440,32 @@ fileprivate extension Demangler {
 
     return createNode(kind, [type])
   }
+
+  func demangleBoundGenericType() -> Node? {
+    guard let nominal = popNode(.type)?.children[0] else {
+      return nil
+    }
+    var typeList = [Node]()
+    if popNode(.emptyTuple) == nil {
+      let type = popNode(.type)!
+      if type.children[0].kind == .tuple {
+        typeList.append(contentsOf: type.children[0].children)
+      } else {
+        typeList.append(type.children[0])
+      }
+    }
+    let args = createNode(.argumentTuple, typeList)
+    switch nominal.kind {
+    case .data:
+      let boundNode = createNode(.substitutedType, [nominal, args])
+      let nty = createNode(.type, [boundNode])
+      self.addSubstitution(nty)
+      return nty
+    default:
+      fatalError()
+    }
+  }
+
 }
 
 // MARK: Parsing
@@ -548,6 +580,8 @@ fileprivate extension Demangler.Node.Kind {
       return true
     case .module(_):
       return true
+    case .substitutedType:
+      return true
 
     case .global:
       return false
@@ -564,6 +598,8 @@ fileprivate extension Demangler.Node.Kind {
     case .type:
       return false
     case .bottomType:
+      return false
+    case .typeType:
       return false
     case .functionType:
       return false

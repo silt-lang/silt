@@ -12,7 +12,7 @@ import Seismography
 
 extension GIRGenFunction {
   func emitRValue(
-    _ parent: Continuation, _ body: Term<TT>
+    _ parent: Continuation, _ body: Term<TT>, _ type: Type<TT>? = nil
   ) -> (Continuation, ManagedValue) {
     switch body {
     case let .apply(head, args):
@@ -62,15 +62,20 @@ extension GIRGenFunction {
         guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
           fatalError()
         }
-        return self.emitRValue(parent, bind.body)
+        guard let bindTy = self.tc.signature.lookupMetaType(mv) else {
+          fatalError()
+        }
+        return self.emitRValue(parent, bind.internalize, bindTy)
       case let .variable(v):
         guard let varLocVal = self.varLocs[v.name] else {
           fatalError()
         }
         if varLocVal.type is BoxType {
           let lowering = self.lowerType(varLocVal.type)
+          let projected = self.B.createProjectBox(varLocVal,
+                                                  type: lowering.type)
           if !lowering.addressOnly {
-            let loadVal = self.B.createLoadBox(varLocVal)
+            let loadVal = self.B.createLoad(projected, .copy)
             return (parent, ManagedValue.unmanaged(loadVal))
           } else {
             let projected = self.B.createProjectBox(varLocVal,
@@ -81,54 +86,129 @@ extension GIRGenFunction {
         return (parent, ManagedValue.unmanaged(varLocVal))
       }
     case let .constructor(tag, args):
-      var lastParent = parent
-      var argVals = [Value]()
-      let payloadType = self.getPayloadTypeOfConstructor(tag)
-      assert(payloadType.count == args.count)
-      argVals.reserveCapacity(args.count)
-      for (ty, arg) in zip(payloadType, args) {
-        let (newParent, originalValue) = self.emitRValue(lastParent, arg)
-        if ty is BoxType {
-          let underlyingTyLowering = self.lowerType(ty)
-          if underlyingTyLowering.addressOnly {
+      return self.emitConstructorAsRValue(parent, body, type, tag, args)
+    case let .lambda(cloBody):
+      guard let cloTy = type else {
+        fatalError()
+      }
+      // Emit the closure body.
+      var mangler = GIRMangler()
+      self.f.mangle(into: &mangler)
+//      self.lowerType(cloTy).type.mangle(into: &mangler)
+      mangler.append("fU")
+      let ident = SyntaxFactory.makeIdentifier(mangler.finalize())
+      let cloF = Continuation(name: QualifiedName(name: Name(name: ident)))
+      self.B.module.addContinuation(cloF)
+
+      GIRGenFunction(self.GGM, cloF, cloTy, self.telescope).emitClosure(cloBody)
+
+      // Generate the closure value (if any) for the closure expr's function
+      // reference.
+      let cloRef = self.B.createFunctionRef(cloF)
+      let result = self.B.createThicken(cloRef)
+      return (parent, ManagedValue.unmanaged(result))
+    default:
+      print(body.description)
+      fatalError()
+    }
+  }
+
+  private func emitConstructorAsRValue(
+    _ parent: Continuation, _ body: Term<TT>, _ type: Type<TT>? = nil,
+    _ tag: Opened<QualifiedName, TT>, _ args: [Term<TT>]
+  ) -> (Continuation, ManagedValue) {
+    var lastParent = parent
+    var argVals = [Value]()
+    argVals.reserveCapacity(args.count)
+    let payloadTypes = self.getPayloadTypeOfConstructorsIgnoringBoxing(tag)
+    assert(payloadTypes.count == args.count)
+
+    var inits = [TupleElementAddressOp?]()
+    if let payloadBoxTy = self.getPayloadTypeOfConstructors(tag) as? BoxType {
+      let box = B.createAllocBox(payloadBoxTy.underlyingType)
+      let addr = B.createProjectBox(box, type: payloadBoxTy.underlyingType)
+      for idx in 0..<payloadTypes.count {
+        inits.append(B.createTupleElementAddress(addr, idx))
+      }
+      argVals.append(box)
+    } else {
+      for _ in 0..<payloadTypes.count {
+        inits.append(nil)
+      }
+    }
+
+    var storesToForce = [Value]()
+    for ((ty, arg), dest) in zip(zip(payloadTypes, args), inits) {
+      let (newParent, originalValue) = self.emitRValue(lastParent, arg)
+      if ty is BoxType {
+        let underlyingTyLowering = self.lowerType(ty)
+        if underlyingTyLowering.addressOnly {
+          let addr: Value = dest ?? { () -> Value in
             let box = B.createAllocBox(underlyingTyLowering.type)
-            let addr = B.createProjectBox(box, type: underlyingTyLowering.type)
-            let storedBox = B.createCopyAddress(
-              originalValue.forward(self), to: addr)
-            let finalValue = self.pairValueWithCleanup(storedBox)
-            argVals.append(finalValue.forward(self))
+            return B.createProjectBox(box, type: underlyingTyLowering.type)
+          }()
+          let storedBox = B.createStore(
+            originalValue.forward(self), to: addr)
+          let finalValue = self.pairValueWithCleanup(storedBox)
+          argVals.append(finalValue.forward(self))
+        } else {
+          let addr: Value = dest ?? { () -> Value in
+            let box = B.createAllocBox(underlyingTyLowering.type)
+            return B.createProjectBox(box, type: underlyingTyLowering.type)
+            }()
+          let storedBox = B.createStore(
+            originalValue.copy(self).forward(self), to: addr)
+          let finalValue = self.pairValueWithCleanup(storedBox)
+          argVals.append(finalValue.forward(self))
+        }
+      } else {
+        if originalValue.value is Parameter {
+          if let dest = dest {
+            let store =
+              B.createStore(originalValue.copy(self).forward(self), to: dest)
+            storesToForce.append(store)
           } else {
-            let box = B.createAllocBox(underlyingTyLowering.type)
-            let storedBox = B.createStoreBox(
-              originalValue.copy(self).forward(self), to: box)
-            let finalValue = self.pairValueWithCleanup(storedBox)
-            argVals.append(finalValue.forward(self))
+            argVals.append(originalValue.copy(self).forward(self))
           }
         } else {
-          if originalValue.value is Parameter {
-            argVals.append(originalValue.copy(self).forward(self))
+          if let dest = dest {
+            let store = B.createStore(originalValue.forward(self), to: dest)
+            storesToForce.append(store)
           } else {
             argVals.append(originalValue.forward(self))
           }
         }
+      }
 
-        lastParent = newParent
-      }
-      guard let def = self.tc.signature.lookupDefinition(tag.key) else {
-        fatalError()
-      }
-      guard
-        case let .dataConstructor(_, _, ty) = def.inside
-      else {
-          fatalError()
-      }
-      let (_, endType) = tc.unrollPi(ty.inside)
-      let type = self.getLoweredType(endType)
-      let dataVal = self.B.createDataInit(tag.key.string, type, argVals)
-      return (lastParent, self.pairValueWithCleanup(dataVal))
-    default:
-      print(body.description)
+      lastParent = newParent
+    }
+    guard let def = self.tc.signature.lookupDefinition(tag.key) else {
       fatalError()
+    }
+    guard
+      case let .dataConstructor(_, _, ty) = def.inside
+      else {
+        fatalError()
+    }
+    let (_, endType) = tc.unrollPi(ty.inside)
+    let type = self.getLoweredType(endType)
+    let argValue: Value? = self.formEnumArgumentValue(argVals)
+    let dataVal = self.B.createDataInit(tag.key.string, type, argValue.map {
+      B.createForceEffects($0, storesToForce)
+    })
+    return (lastParent, self.pairValueWithCleanup(dataVal))
+  }
+}
+
+extension GIRGenFunction {
+  func formEnumArgumentValue(_ payload: [Value]) -> Value? {
+    guard let first = payload.first else {
+      return nil
+    }
+    if payload.count == 1 {
+      return first
+    } else {
+      return self.B.createTuple(payload)
     }
   }
 
