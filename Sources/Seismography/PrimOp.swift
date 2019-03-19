@@ -74,12 +74,18 @@ public class PrimOp: Value {
     /// newly-updated box value.
     case store = "store"
 
+    /// Creates a tuple value from zero or more multiple field values.
     case tuple
 
+    /// Projects the address of a tuple element.
     case tupleElementAddress = "tuple_element_address"
 
+    /// Converts a "thin" function value pointer to a "thick" function by
+    /// appending a closure context.
     case thicken
 
+    /// Express a data dependency of a value on multiple other the evaluation of
+    /// other values.
     case forceEffects = "force_effects"
 
     /// An instruction that is considered 'unreachable' that will trap at

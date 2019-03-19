@@ -245,6 +245,45 @@ gir-primop ::= 'data_init' <gir-type> ';' <qualified-name> ';' (';' <operand>)?
 
 Creates a loadable value of the given datatype by instantiating the given data constructor.
 
+## Tuples
+
+### tuple
+
+```
+gir-primop ::= 'tuple' '(' (<operand> (',' <operand>)*)? ')'
+
+%1 = tuple (%a : A, %b : B, ...)
+`````
+
+Creates a tuple value by aggregating multiple values.
+
+### tuple_element_address
+
+```
+gir-primop ::= 'tuple_element_address' <operand> ',' <int-literal>
+
+%1 = tuple_element_address %0 : *(T...), 123
+```
+
+Given the address of a tuple in memory, derives the address of an element within that value.
+
+## Control Flow
+
+These instructions impose control flow structure on GraphIR by expressing data 
+dependencies.  They otherwise do not affect the semantics of the program.
+
+### force_effects
+
+```
+gir-primop ::= 'force_effects' <operand> '(' (<operand> (',' <operand>)*)? ')'
+
+%1 = force_effects %retVal (%a : A, %b : B, ...)
+```
+
+Construct a "happens-before" relation between multiple nodes in GraphIR by expressing a
+data dependency of a result value on the other parameter values.  The result of this operation
+is the return value itself.
+
 ## Ownership
 
 These instructions implement the core operations of the Silt ownership conventions.
