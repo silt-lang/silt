@@ -182,7 +182,7 @@ Lite is our clone of the [LLVM Integrated Tester](https://llvm.org/docs/CommandG
 rewritten in Swift. Lite is written as [a Swift package](https://github.com/llvm-swift/Lite) to 
 enable custom tooling to be written on top of the executor. 
 
-To run all the ingration tests with lite, change to the root directory of this repository and
+To run all the integration tests with Lite, change to the root directory of this repository and
 invoke
 
 ```swift
