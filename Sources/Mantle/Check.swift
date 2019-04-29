@@ -537,14 +537,14 @@ extension TypeChecker where PhaseState == CheckPhaseState {
         switch clause.body {
         case .empty:
           func hasAnyEmptyPatterns(_ pats: [Pattern]) -> Bool {
-            return pats.reduce(false) { acc, next in
+            return pats.contains { next in
               switch next {
               case .absurd:
                 return true
               case .variable(_):
-                return acc
+                return false
               case let .constructor(_, args):
-                return acc || hasAnyEmptyPatterns(args)
+                return hasAnyEmptyPatterns(args)
               }
             }
           }

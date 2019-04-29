@@ -52,8 +52,7 @@ public protocol DelayedDiagnosticConsumer: DiagnosticConsumer {
   func attachAndDrain(_ converter: SourceLocationConverter)
 }
 
-public final class DelayedPrintingDiagnosticConsumer<Target: TextOutputStream>
-  : DelayedDiagnosticConsumer {
+public final class DelayedPrintingDiagnosticConsumer<Target: TextOutputStream> {
   private var output: Target
   public private(set) var converter: SourceLocationConverter?
   private var delayedDiagnostics = [Diagnostic]()
@@ -71,6 +70,22 @@ public final class DelayedPrintingDiagnosticConsumer<Target: TextOutputStream>
     self.attachAndDrain(converter)
   }
 
+  func printLoc(_ loc: SourceLocation) {
+    let url = URL(fileURLWithPath: loc.file)
+    output.write("\(url.lastPathComponent):\(loc.line):\(loc.column): ".bold)
+  }
+
+  func printMessage(_ message: Diagnostic.Message) {
+    output.write(message.severity.coloring("\(message.severity): "))
+    output.write("\(message.text.bold)\n")
+  }
+
+  public func finalize() {
+
+  }
+}
+
+extension DelayedPrintingDiagnosticConsumer: DelayedDiagnosticConsumer {
   public func attachAndDrain(_ converter: SourceLocationConverter) {
     self.converter = converter
     for diagnostic in self.delayedDiagnostics {
@@ -86,20 +101,6 @@ public final class DelayedPrintingDiagnosticConsumer<Target: TextOutputStream>
       }
     }
     self.delayedDiagnostics.removeAll()
-  }
-
-  func printLoc(_ loc: SourceLocation) {
-    let url = URL(fileURLWithPath: loc.file)
-    output.write("\(url.lastPathComponent):\(loc.line):\(loc.column): ".bold)
-  }
-
-  func printMessage(_ message: Diagnostic.Message) {
-    output.write(message.severity.coloring("\(message.severity): "))
-    output.write("\(message.text.bold)\n")
-  }
-
-  public func finalize() {
-
   }
 }
 

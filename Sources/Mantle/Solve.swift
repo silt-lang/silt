@@ -216,7 +216,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
       /// Attempt to pull out any bindings that may have occured in downstream
       /// metas while we were working on other constraints.
       let mvsBindings = mvs.map(self.signature.lookupMetaBinding)
-      let anyNewBindings = mvsBindings.reduce(false) { $0 || ($1 != nil) }
+      let anyNewBindings = mvsBindings.contains { $0 != nil }
       if mvsBindings.isEmpty || anyNewBindings {
         // If we may make forward progress on this constraint, solve it
         // and return any fresh constraints it generates to the queue.

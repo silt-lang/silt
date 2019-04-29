@@ -424,7 +424,7 @@ extension NameBinding {
         }
         return false
       case let .constructor(_, pats):
-        return pats.reduce(true, { $0 && openPatternVarsIntoScope($1) })
+        return pats.allSatisfy { openPatternVarsIntoScope($0) }
       }
     }
     var validPatterns = [DeclaredPattern]()
