@@ -42,7 +42,7 @@ matrix:
         - git clone https://github.com/llvm-swift/LLVMSwift.git
         - sudo ./swift-5.1-DEVELOPMENT-SNAPSHOT-2019-04-25-a-ubuntu14.04/usr/bin/swift LLVMSwift/utils/make-pkgconfig.swift
       script:
-        - swift build
-        - swift run lite
-        - swift test
+        - sudo ./swift-5.1-DEVELOPMENT-SNAPSHOT-2019-04-25-a-ubuntu14.04/usr/bin/swift build
+        - sudo ./swift-5.1-DEVELOPMENT-SNAPSHOT-2019-04-25-a-ubuntu14.04/usr/bin/swift run lite
+        - sudo ./swift-5.1-DEVELOPMENT-SNAPSHOT-2019-04-25-a-ubuntu14.04/usr/bin/swift test
 
