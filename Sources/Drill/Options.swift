@@ -71,6 +71,7 @@ public class Options {
   public var colorsEnabled: Bool = false
   public var shouldPrintTiming: Bool = false
   public var inputURLs: [URL] = []
+  public var target: String?
   public var typeCheckerDebugOptions: TypeCheckerDebugOptions = []
 
   // FIXME: There is duplication here between the layers.
@@ -79,12 +80,14 @@ public class Options {
     colorsEnabled: Bool = false,
     shouldPrintTiming: Bool = false,
     inputURLs: [URL],
+    target: String?,
     typeCheckerDebugOptions: TypeCheckerDebugOptions
   ) {
     self.mode = mode
     self.colorsEnabled = colorsEnabled
     self.shouldPrintTiming = shouldPrintTiming
     self.inputURLs = inputURLs
+    self.target = target
     self.typeCheckerDebugOptions = typeCheckerDebugOptions
   }
 }
