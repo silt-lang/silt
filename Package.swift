@@ -1,5 +1,4 @@
-// swift-tools-version:4.2
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+// swift-tools-version:5.0
 
 import PackageDescription
 
@@ -11,7 +10,7 @@ let package = Package(
     .package(url: "https://github.com/llvm-swift/Symbolic.git", from: "0.0.1"),
     .package(url: "https://github.com/onevcat/Rainbow.git", from: "3.0.0"),
     .package(url: "https://github.com/llvm-swift/LLVMSwift.git", .branch("master")),
-    .package(url: "https://github.com/llvm-swift/Lite.git", .branch("build-experiment2")),
+    .package(url: "https://github.com/llvm-swift/Lite.git", from: "0.1.0"),
     .package(url: "https://github.com/llvm-swift/PrettyStackTrace.git", from: "0.0.1"),
   ],
   targets: [
@@ -32,7 +31,10 @@ let package = Package(
     ]),
     .target(
       name: "silt",
-      dependencies: ["Boring", "Utility"]),
+      dependencies: ["Boring", "Utility"],
+      swiftSettings: [
+        .unsafeFlags([ "-Xlinker", "-w" ], .when(platforms: [.macOS]))
+      ]),
     .target(
       name: "SyntaxGen",
       dependencies: ["Utility", "Lithosphere"]),
@@ -59,13 +61,15 @@ let package = Package(
       dependencies: ["Moho", "Mantle", "Crust"]),
     .target(
       name: "InnerCore",
-      dependencies: ["Crust", "Seismography", "Mesosphere", "OuterCore", "LLVM"]),
+      dependencies: ["Crust", "Seismography", "Mesosphere", "OuterCore", "LLVM"],
+      swiftSettings: [
+        .unsafeFlags([ "-Xlinker", "-w" ], .when(platforms: [.macOS]))
+      ]),
     .target(
       name: "Ferrite",
       dependencies: []),
     .testTarget(
       name: "InnerCoreSupportTests",
       dependencies: ["InnerCore"]),
-  ],
-  cxxLanguageStandard: .cxx14
+  ]
 )

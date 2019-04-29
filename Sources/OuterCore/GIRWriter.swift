@@ -30,7 +30,13 @@ extension PrimOp {
 extension Continuation {
   public func dump() {
     print("\(self.name)(", terminator: "")
+    var isFirst = true
     self.parameters.forEach { param in
+      if isFirst {
+        isFirst = false
+      } else {
+        print(", ", terminator: "")
+      }
       param.dump()
     }
     print("):")

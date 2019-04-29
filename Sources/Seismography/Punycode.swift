@@ -95,7 +95,7 @@ public final class Punycode {
     var bias = initialBias
 
     var pos = 0
-    if let dpos = utf32String.index(of: delimiterCodeUnit) {
+    if let dpos = utf32String.firstIndex(of: delimiterCodeUnit) {
       for c in utf32String[0..<dpos] {
         guard c <= 0x7f else {
           return true

@@ -165,7 +165,7 @@ public final class DiagnosticVerifier {
 
       // If any of the as-of-yet unmatched expectations fit this diagnostic,
       // remove it.
-      if let idx = unmatched.index(where: { exp in
+      if let idx = unmatched.firstIndex(where: { exp in
         return matches(message: message, location: loc, expectation: exp)
       }) {
         unmatched.remove(at: idx)

@@ -1,9 +1,9 @@
-//
-//  IRVerifier.swift
-//  OuterCore
-//
-//  Created by Harlan Haskins on 1/28/18.
-//
+/// IRVerifier.swift
+///
+/// Copyright 2017-2018, The Silt Language Project.
+///
+/// This project is released under the MIT license, a copy of which is
+/// available in the repository.
 
 import Foundation
 import Lithosphere
