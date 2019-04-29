@@ -134,6 +134,14 @@ enum Passes {
       return girGenModule.emitTopLevelModule()
     }
 
+  static let optimize =
+    Pass<GIRModule, GIRModule>(name: "Optimize GraphIR") { module, _ in
+      let pipeliner = PassPipeliner(module: module)
+      // FIXME: Schedule mandatory optimization passes here.
+      pipeliner.execute()
+      return module
+    }
+
   static let irGen =
     Pass<GIRModule, LLVM.Module>(name: "Generate LLVM IR") { module, ctx in
       return IRGen.emit(module, ctx.options.target)

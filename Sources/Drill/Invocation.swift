@@ -31,7 +31,8 @@ extension Passes {
   static let typeCheckFile = scopeCheckFile |> Passes.typeCheck
   static let parseGIRFile = Passes.lexFile |> Passes.parseGIR
   static let girGenModule = typeCheckFile |> Passes.girGen
-  static let irGenModule = girGenModule |> Passes.irGen
+  static let girOptimize = girGenModule |> Passes.optimize
+  static let irGenModule = girOptimize |> Passes.irGen
 }
 
 public struct Invocation {
