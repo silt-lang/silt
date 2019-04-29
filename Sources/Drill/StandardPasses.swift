@@ -17,10 +17,13 @@ import OuterCore
 import InnerCore
 
 private func processImportedFile(_ modPath: URL) -> LocalNames? {
+  // N.B. It doesn't much matter what these options are as long as we emit
+  // an interface file.
   let options = Options(mode: .dump(.typecheck),
                         colorsEnabled: false,
                         shouldPrintTiming: false,
                         inputURLs: [modPath],
+                        target: nil,
                         typeCheckerDebugOptions: [])
   let context = PassContext(options: options)
   let pipeline = (Passes.parseFile |> Passes.scopeCheckImport)

@@ -333,8 +333,8 @@ public final class SubstitutedType: GIRType {
   public override func equals(_ other: Value) -> Bool {
     guard let other = other as? SubstitutedType else { return false }
     return substitutee == other.substitutee &&
-           zip(substitutions, other.substitutions).reduce(true, {
-            $0 && $1.0.0 == $1.1.0 && $1.1.0 == $1.1.1
+           zip(substitutions, other.substitutions).allSatisfy({
+            $0.0.0 == $0.1.0 && $0.1.0 == $0.1.1
            })
   }
 

@@ -94,10 +94,7 @@ extension Opened: Equatable where K: Equatable, T: Equatable {
     guard lhs.key == rhs.key else {
       return false
     }
-    return zip(lhs.args, rhs.args).reduce(true, { (acc, next) in
-      let (l, r) = next
-      return acc && (l == r)
-    })
+    return lhs.args == rhs.args
   }
 }
 
@@ -208,14 +205,13 @@ public indirect enum TypeTheory<T>: Equatable, CustomStringConvertible {
     case let (.apply(lhsHead, lhsElims), .apply(rhsHead, rhsElims)):
       return lhsHead == rhsHead && lhsElims == rhsElims
     case let (.constructor(lhsName, lhsArgs), .constructor(rhsName, rhsArgs)):
-      return (lhsName.key == rhsName.key)
-         && zip(lhsName.args, rhsName.args).reduce(true, { acc, t in
-        let (l, r) = t
-        return acc && (l == r)
-      }) && zip(lhsArgs, rhsArgs).reduce(true, { acc, t in
-        let (l, r) = t
-        return acc && (l == r)
-      })
+      guard lhsName.key == rhsName.key else {
+        return false
+      }
+      guard lhsName.args == rhsName.args else {
+        return false
+      }
+      return lhsArgs == rhsArgs
     case (.type, .type):
       return true
     case (.refl, .refl):
@@ -287,10 +283,7 @@ public enum Head<T: Equatable>: Equatable {
     case let (.variable(n), .variable(m)):
       return n == m
     case let (.definition(e), .definition(f)):
-      return e.key == f.key && zip(e.args, f.args).reduce(true) { (acc, t) in
-        let (etm, ftm) = t
-        return acc && (etm == ftm)
-      }
+      return e.key == f.key && e.args == f.args
     case let (.meta(e), .meta(f)):
       return e == f
     default:
@@ -311,10 +304,7 @@ public enum Elim<T: Equatable>: Equatable, CustomStringConvertible {
     case let (.apply(e), .apply(f)):
       return e == f
     case let (.project(n), .project(m)):
-      return n.key == m.key && zip(n.args, m.args).reduce(true) { (acc, t) in
-        let (lhs, rhs) = t
-        return acc && (lhs == rhs)
-      }
+      return n.key == m.key && n.args == m.args
     default:
       return false
     }

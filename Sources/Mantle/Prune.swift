@@ -31,7 +31,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
       return nil
     }
 
-    guard prunes.reduce(false, { $0 || $1 }) else {
+    guard prunes.contains(where: { $0 }) else {
       return nil
     }
     guard let oldMvType = self.signature.lookupMetaType(oldMeta) else {
@@ -39,7 +39,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
     }
 
     let (pruneMetaTy, piPrunes) = self.rerollPrunedPi(oldMvType, prunes)
-    guard piPrunes.reduce(false, { $0 || $1.index }) else {
+    guard piPrunes.contains(where: { $0.index }) else {
       return nil
     }
 
@@ -117,7 +117,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
       guard let prunes = args.mapM({ self.shouldPrune(vs, $0) }) else {
         return nil
       }
-      return prunes.reduce(false, { $0 || $1})
+      return prunes.contains { $0 }
     case let .apply(.definition(f), _):
       guard self.isNeutral(f) else {
         return nil

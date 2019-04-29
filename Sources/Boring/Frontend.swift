@@ -16,6 +16,7 @@ public final class FrontendToolOptions: SiltToolOptions {
   public var colorsEnabled: Bool = false
   public var shouldPrintTiming: Bool = false
   public var inputURLs: [Foundation.URL] = []
+  public var target: String?
   public var typeCheckerDebugOptions: TypeCheckerDebugOptions = []
 }
 
@@ -41,6 +42,12 @@ extension Mode.DumpLayer: StringEnumArgument {
        "Dump the result of shining the input file(s)"),
       (Mode.DumpLayer.scopes.rawValue,
        "Dump the result of scope checking the input file(s)"),
+      (Mode.DumpLayer.typecheck.rawValue,
+       "Dump the result of type checking the input file(s)"),
+      (Mode.DumpLayer.girGen.rawValue,
+       "Dump the result of emitting graph IR for the input file(s)"),
+      (Mode.DumpLayer.irGen.rawValue,
+       "Dump the result of emitting LLVM IR the input file(s)"),
     ])
   }
 }
@@ -70,6 +77,7 @@ public class SiltFrontendTool: SiltTool<FrontendToolOptions> {
       colorsEnabled: self.options.colorsEnabled,
       shouldPrintTiming: self.options.shouldPrintTiming,
       inputURLs: self.options.inputURLs,
+      target: self.options.target,
       typeCheckerDebugOptions: self.options.typeCheckerDebugOptions)
   }
 
@@ -116,6 +124,10 @@ public class SiltFrontendTool: SiltTool<FrontendToolOptions> {
           opt.typeCheckerDebugOptions.insert(.debugNormalizedMetas)
         }
     })
+    binder.bind(
+      option: parser.add(option: "--target", kind: String.self),
+      to: { opt, r in opt.target = r }
+    )
     binder.bindArray(
       positional: parser.add(
         positional: "",

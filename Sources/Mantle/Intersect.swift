@@ -25,7 +25,7 @@ extension TypeChecker where PhaseState == SolvePhaseState {
     let (pruneMetaTy, piPrunes) = self.rerollPrunedPi(mvType,
                                                       prunes.map {$0.index})
     // If we've nothing to intersect, fail.
-    guard piPrunes.reduce(false, { $0 || $1.index }) else {
+    guard piPrunes.contains(where: { $0.index }) else {
       return false
     }
     let metaTy = self.rollPi(in: self.environment.asContext, final: pruneMetaTy)
