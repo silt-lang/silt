@@ -104,7 +104,7 @@ the layers above into a cohesive compilation pipeline.
 
 ### Seismography
 
-Semismography is where the GraphIR AST and utilities for manipulating that AST live.  It
+Seismography is where the GraphIR AST and utilities for manipulating that AST live.  It
 includes the core data definitions for GIR declarations such as Continuations and 
 PrimOps, but also utilities like the name manglers and the initial type lowering algorithm.
 
