@@ -155,20 +155,6 @@ internal func mangleIdentifierImpl(
                               &buffer, &substitutionWordRanges)
 }
 
-// FIXME: Remove for 4.2
-// swiftlint:disable syntactic_sugar
-private func firstIndexOfMatch(
-  _ arr: [Range<Data.Index>], _ pred: (Range<Data.Index>) -> Bool
-) -> Array<Range<Data.Index>>.Index? {
-  for i in arr.startIndex..<arr.endIndex {
-    if pred(arr[i]) {
-      return i
-    }
-  }
-  return nil
-}
-// swiftlint:enable syntactic_sugar
-
 private func searchForSubstitutions(
   _ buf: Data, _ buffer: Data,
   _ substitutionWordRanges: inout [Range<Data.Index>]
@@ -184,7 +170,7 @@ private func searchForSubstitutions(
         let word = buf.subdata(in: startPos..<startPos + wordLen)
 
         // Is the word already present in the in-flight mangled string?
-        let existingIdx = firstIndexOfMatch(substitutionWordRanges) { range in
+        let existingIdx = substitutionWordRanges.firstIndex { range in
           return word == buffer[range]
         }
 
