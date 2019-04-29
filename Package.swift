@@ -71,5 +71,6 @@ let package = Package(
     .testTarget(
       name: "InnerCoreSupportTests",
       dependencies: ["InnerCore"]),
-  ]
+  ],
+  cxxLanguageStandard: .cxx14
 )

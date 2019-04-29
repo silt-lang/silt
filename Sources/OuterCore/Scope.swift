@@ -18,7 +18,11 @@ public final class Scope: Hashable {
     return self.defs
   }
 
-  init(_ module: GIRModule, _ entry: Continuation, _ blacklist: Set<Continuation>) {
+  init(
+    _ module: GIRModule,
+    _ entry: Continuation,
+    _ blacklist: Set<Continuation>
+  ) {
     self.module = module
     self.entry = entry
     var queue = [Value]()

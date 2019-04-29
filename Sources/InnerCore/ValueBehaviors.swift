@@ -238,7 +238,8 @@ extension Cohabitable where Self: FixedTypeInfo {
   }
 
   var cohabitantBitMask: APInt {
-    return APInt(width: Int(self.fixedSize.valueInBits()), value: .max, signed: true)
+    return APInt(width: Int(self.fixedSize.valueInBits()), value: .max,
+                 signed: true)
   }
 }*/
 

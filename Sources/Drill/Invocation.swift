@@ -94,8 +94,8 @@ public struct Invocation {
           return pass.run(url, in: context)
       }
 
-      run(Passes.girGenModule |> Pass(name: "Transform Generated GIR") { mod, _ in
-        f(mod)
+      run(Passes.girGenModule |> Pass(name: "Transform Generated GIR") { m, _ in
+        f(m)
       })
     }
     return context.engine.hasErrors()

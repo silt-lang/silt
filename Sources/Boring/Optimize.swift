@@ -39,7 +39,7 @@ public class SiltOptimizeTool: SiltTool<OptimizeToolOptions> {
 
   override func runImpl() throws {
     let invocation = Invocation(options: translateOptions())
-    let hadErrors = invocation.runToGIRGen() { mod in
+    let hadErrors = invocation.runToGIRGen { mod in
       let pipeliner = PassPipeliner(module: mod)
       pipeliner.addStage("User-Selected Passes") { p in
         for name in self.options.passes {

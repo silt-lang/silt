@@ -117,7 +117,8 @@ extension GIRGenFunction {
     let argTerms = (patterns.count..<params.count).map {
       return TT.apply(.variable(Var(wildcardName, UInt($0))), [])
     }
-    let anonHead = self.tc.openDefinition(QualifiedName(name: wildcardName), argTerms)
+    let anonHead = self.tc.openDefinition(QualifiedName(name: wildcardName),
+                                          argTerms)
     let head = Head<TT>.definition(anonHead)
     let term = TT.apply(head, argTerms.map { Elim<TT>.apply($0) })
     return term

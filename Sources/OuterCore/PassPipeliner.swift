@@ -11,7 +11,6 @@ public final class PassPipeliner {
   public let module: GIRModule
   public private(set) var stages: [String]
   public private(set) var passes: [String: [OptimizerPass.Type]]
-  
 
   public final class Builder {
     fileprivate var passes: [OptimizerPass.Type] = []

@@ -29,6 +29,7 @@ final class SimplifyCFG: ScopePass {
 
       switch terminalOp.opcode {
       case .apply:
+        // swiftlint:disable force_cast
         let op = terminalOp as! ApplyOp
         switch op.callee {
         case let funcRef as FunctionRefOp:
@@ -57,7 +58,10 @@ final class SimplifyCFG: ScopePass {
     scope.module.removeContinuation(cont)
   }
 
-  func removeDeadContinuationIfNecessary(_ scope: Scope, _ cont: Continuation) -> Bool {
+  func removeDeadContinuationIfNecessary(
+    _ scope: Scope,
+    _ cont: Continuation
+  ) -> Bool {
     guard scope.entry !== cont else {
       return false
     }

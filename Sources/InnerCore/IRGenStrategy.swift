@@ -45,7 +45,8 @@ extension IRGenModule {
         continue
       }
 
-      if let constrTI = TC.getCompleteTypeInfo(origArgType) as? FixedTypeInfo & Cohabitable {
+      let TI = TC.getCompleteTypeInfo(origArgType)
+      if let constrTI = TI as? FixedTypeInfo & Cohabitable {
         elementsWithPayload.append(.fixed(constr.name, constrTI))
         if !(constrTI is LoadableTypeInfo) && tik == .loadable {
           tik = .fixed
@@ -516,7 +517,7 @@ final class NoPayloadDataTypeStrategy: NoPayloadStrategy {
     }
 
     let bits = fixedTI.fixedSize.valueInBits()
-    assert(bits < 32, "freakishly huge no-payload enum");
+    assert(bits < 32, "freakishly huge no-payload enum")
 
     let rawCount = (1 << bits) - UInt64(self.planner.noPayloadElements.count)
     return min(rawCount, .max)
@@ -527,7 +528,8 @@ final class NoPayloadDataTypeStrategy: NoPayloadStrategy {
     guard let fixedTI = ti as? FixedTypeInfo else {
       fatalError()
     }
-    return APInt(width: Int(fixedTI.fixedSize.valueInBits()), value: .max, signed: true)
+    return APInt(width: Int(fixedTI.fixedSize.valueInBits()),
+                 value: .max, signed: true)
   }
 
   func buildExplosionSchema(_ schema: Explosion.Schema.Builder) {
@@ -631,13 +633,32 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
   var usedCohabitantCount: UInt64 = 0
   var spareBits: BitVector = BitVector()
 
+  fileprivate func computeExtraTagBits(
+    _ numTags: UInt64,
+    _ payloadTI: Cohabitable & FixedTypeInfo
+  ) -> (UInt32, UInt32) {
+    let withoutCohabitants = numTags - self.usedCohabitantCount
+    guard withoutCohabitants != 0 else {
+      return (0, 0)
+    }
+
+    // 2^32 discriminators oughta be enough for anybody.
+    if payloadTI.fixedSize.valueInBits() >= MemoryLayout<UInt32>.size {
+      return (1, 2)
+    } else {
+      let tagsPerTagBit: UInt64 =
+        1 << payloadTI.fixedSize.valueInBits()
+      let extraTagValueCount
+        = UInt32((withoutCohabitants + (tagsPerTagBit-1)) / tagsPerTagBit + 1)
+      let extraTagBitCount = log2(extraTagValueCount - 1) + 1
+      return (extraTagBitCount, extraTagValueCount)
+    }
+  }
+
   init(_ planner: DataTypeLayoutPlanner) {
     self.planner = planner
 
     var payloadBitCount = 0
-    var extraTagBitCount: UInt32 = ~0
-    var extraTagValueCount: UInt32 = ~0
-
     switch planner.payloadElements[0] {
     case let .fixed(_, fixedTI):
       self.payloadSchema = .bits(fixedTI.fixedSize.valueInBits())
@@ -667,21 +688,7 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
         // Determine how many cohabitant bitpatterns we need.
         self.usedCohabitantCount = min(numTags, payloadTI.cohabitantCount)
 
-        let tagsWithoutCohabitants = numTags - self.usedCohabitantCount
-        if tagsWithoutCohabitants == 0 {
-          extraTagBitCount = 0
-          extraTagValueCount = 0
-          // 2^32 discriminators oughta be enough for anybody.
-        } else if payloadTI.fixedSize.valueInBits() >= MemoryLayout<UInt32>.size {
-          extraTagBitCount = 1
-          extraTagValueCount = 2
-        } else {
-          let tagsPerTagBitValue: UInt64 =
-            1 << payloadTI.fixedSize.valueInBits()
-          extraTagValueCount
-            = UInt32((tagsWithoutCohabitants + (tagsPerTagBitValue-1)) / tagsPerTagBitValue + 1);
-          extraTagBitCount = log2(extraTagValueCount - 1) + 1;
-        }
+        let (extraTagBitCount, _) = computeExtraTagBits(numTags, payloadTI)
 
         assert(payloadBitCount > 0)
         planner.llvmType.setBody([
@@ -690,13 +697,14 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
         ], isPacked: true)
 
         var sizeWithTag = UInt32(payloadTI.fixedSize.rawValue)
-        let extraTagByteCount = (extraTagBitCount+7)/8;
-        sizeWithTag += extraTagByteCount;
+        let extraTagByteCount = (extraTagBitCount+7)/8
+        sizeWithTag += extraTagByteCount
 
         self.spareBits.appendClearBits(Int(payloadTI.fixedSize.valueInBits()))
         if extraTagBitCount > 0 {
           self.spareBits.appendClearBits(Int(extraTagBitCount))
-          self.spareBits.appendSetBits(Int(extraTagByteCount * 8 - extraTagBitCount))
+          self.spareBits.appendSetBits(Int(extraTagByteCount * 8
+                                            - extraTagBitCount))
         }
 
         let tagSize = Size((numTagBits+7)/8)
@@ -715,21 +723,7 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
         // Determine how many cohabitant bitpatterns we need.
         self.usedCohabitantCount = min(numTags, payloadTI.cohabitantCount)
 
-        let tagsWithoutCohabitants = numTags - self.usedCohabitantCount
-        if tagsWithoutCohabitants == 0 {
-          extraTagBitCount = 0
-          extraTagValueCount = 0
-          // 2^32 discriminators oughta be enough for anybody.
-        } else if payloadTI.fixedSize.valueInBits() >= MemoryLayout<UInt32>.size {
-          extraTagBitCount = 1
-          extraTagValueCount = 2
-        } else {
-          let tagsPerTagBitValue: UInt64 =
-            1 << payloadTI.fixedSize.valueInBits()
-          extraTagValueCount
-            = UInt32((tagsWithoutCohabitants + (tagsPerTagBitValue-1)) / tagsPerTagBitValue + 1);
-          extraTagBitCount = log2(extraTagValueCount - 1) + 1;
-        }
+        let (extraTagBitCount, _) = computeExtraTagBits(numTags, payloadTI)
 
         assert(payloadBitCount > 0)
         planner.llvmType.setBody([
@@ -738,13 +732,14 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
         ], isPacked: true)
 
         var sizeWithTag = UInt32(payloadTI.fixedSize.rawValue)
-        let extraTagByteCount = (extraTagBitCount+7)/8;
-        sizeWithTag += extraTagByteCount;
+        let extraTagByteCount = (extraTagBitCount+7)/8
+        sizeWithTag += extraTagByteCount
 
         self.spareBits.appendClearBits(Int(payloadTI.fixedSize.valueInBits()))
         if extraTagBitCount > 0 {
           self.spareBits.appendClearBits(Int(extraTagBitCount))
-          self.spareBits.appendSetBits(Int(extraTagByteCount * 8 - extraTagBitCount))
+          self.spareBits.appendSetBits(Int(extraTagByteCount * 8
+                                            - extraTagBitCount))
         }
 
         let tagSize = Size((numTagBits+7)/8)
@@ -768,12 +763,17 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
   }
 
   var cohabitantCount: UInt64 {
-    return self.getFixedPayloadTypeInfo().cohabitantCount - self.usedCohabitantCount
+    let payloadCohabitantCount = self.getFixedPayloadTypeInfo().cohabitantCount
+    return payloadCohabitantCount - self.usedCohabitantCount
   }
 
   var cohabitantBitMask: APInt {
     let payloadTI = self.getFixedPayloadTypeInfo()
-    let totalSize = (self.planner.completeTypeLayout(for: self) as! FixedTypeInfo).fixedSize.valueInBits()
+    let TI = self.planner.completeTypeLayout(for: self)
+    guard let totalSize = (TI as? FixedTypeInfo)?.fixedSize.valueInBits() else {
+      fatalError()
+    }
+
     if payloadTI.isKnownEmpty {
       return APInt(width: Int(totalSize), value: .max, signed: true)
     }
@@ -786,7 +786,7 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
       baseMask = baseMask.zeroExtend(to: Int(totalSize)) | hi
     }
 
-    return baseMask;
+    return baseMask
   }
 
   func emitSwitch(_ IGF: IRGenFunction, _ value: Explosion,
