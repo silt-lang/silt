@@ -10,8 +10,8 @@ import OuterCore
 import Seismography
 
 public enum IRGen {
-  public static func emit(_ module: GIRModule) -> Module {
-    let igm = IRGenModule(module: module)
+  public static func emit(_ module: GIRModule, _ target: String?) -> Module {
+    let igm = IRGenModule(module: module, target: target)
     igm.emit()
     igm.emitMain()
     return igm.module

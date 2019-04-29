@@ -15,6 +15,7 @@ final class IRGenModule {
   let B: IRBuilder
   let girModule: GIRModule
   let module: Module
+  let triple: Triple
   var mangler = GIRMangler()
   lazy var typeConverter: TypeConverter = TypeConverter(self)
   let dataLayout: TargetData
@@ -34,7 +35,7 @@ final class IRGenModule {
 
   private(set) var scopeMap = [OuterCore.Scope: IRGenFunction]()
 
-  init(module: GIRModule) {
+  init(module: GIRModule, target: String?) {
     initializeLLVM()
 
     LLVMInstallFatalErrorHandler { msg in
@@ -44,6 +45,12 @@ final class IRGenModule {
     }
     self.girModule = module
     self.module = Module(name: girModule.name)
+    if let strTarget = target {
+      self.triple = Triple(Triple.normalize(strTarget))
+    } else {
+      self.triple = Triple.default
+    }
+    self.module.targetTriple = self.triple
 
     self.B = IRBuilder(module: self.module)
     self.dataLayout = self.module.dataLayout
@@ -119,6 +126,10 @@ extension IRGenModule {
   func getPointerAlignment() -> Alignment {
     // We always use the pointer's width as its swift ABI alignment.
     return Alignment(UInt32(self.getPointerSize().rawValue))
+  }
+
+  func getPointerSpareBits() -> BitVector {
+    return self.module.targetTriple.pointerSpareBits()
   }
 
   func getSize(_ size: Size) -> IRValue {

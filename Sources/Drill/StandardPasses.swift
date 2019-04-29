@@ -21,6 +21,7 @@ private func processImportedFile(_ modPath: URL) -> LocalNames? {
                         colorsEnabled: false,
                         shouldPrintTiming: false,
                         inputURLs: [modPath],
+                        target: nil,
                         typeCheckerDebugOptions: [])
   let context = PassContext(options: options)
   let pipeline = (Passes.parseFile |> Passes.scopeCheckImport)
@@ -134,7 +135,7 @@ enum Passes {
     }
 
   static let irGen =
-    Pass<GIRModule, LLVM.Module>(name: "Generate LLVM IR") { module, _ in
-      return IRGen.emit(module)
+    Pass<GIRModule, LLVM.Module>(name: "Generate LLVM IR") { module, ctx in
+      return IRGen.emit(module, ctx.options.target)
     }
 }
