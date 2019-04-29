@@ -113,7 +113,7 @@ public final class GIRModule {
 
 extension Set {
   mutating func getOrInsert(_ value: Element) -> Element {
-    if let idx = index(of: value) {
+    if let idx = firstIndex(of: value) {
       return self[idx]
     }
     insert(value)
