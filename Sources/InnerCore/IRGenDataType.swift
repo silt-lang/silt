@@ -27,7 +27,7 @@ import Mantle
 /// `DataTypeStrategy` should generally not be implemented directly.  Prefer to
 /// implement `NoPayloadStrategy` or `PayloadStrategy`.
 protocol DataTypeStrategy: Assignable, Loadable, Aggregable,
-                           Explodable, Destroyable {
+                           Explodable, Destroyable, Cohabitable {
   /// The layout planner for this data type.
   var planner: DataTypeLayoutPlanner { get }
 
@@ -228,7 +228,7 @@ extension PayloadStrategy {
     return self.payloadElementCount
   }
 
-  func getFixedPayloadTypeInfo() -> FixedTypeInfo {
+  func getFixedPayloadTypeInfo() -> FixedTypeInfo & Cohabitable {
     switch self.planner.payloadElements[0] {
     case let .fixed(_, ti):
       return ti
@@ -284,7 +284,7 @@ final class DataTypeLayoutPlanner {
 
   enum Element {
     case dynamic(String)
-    case fixed(String, FixedTypeInfo)
+    case fixed(String, FixedTypeInfo & Cohabitable)
 
     var selector: String {
       switch self {
@@ -317,7 +317,7 @@ final class DataTypeLayoutPlanner {
     self.noPayloadElements = withoutPayload
   }
 
-  fileprivate func completeTypeLayout(
+  func completeTypeLayout(
     for strategy: DataTypeStrategy
   ) -> TypeInfo {
     return self.layout!

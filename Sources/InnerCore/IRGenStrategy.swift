@@ -38,13 +38,14 @@ extension IRGenModule {
 
       if origArgType is BoxType {
         let managedTI = ManagedObjectTypeInfo(self.refCountedPtrTy,
+                                              self.getPointerSpareBits(),
                                               self.getPointerSize(),
                                               self.getPointerAlignment())
         elementsWithPayload.append(.fixed(constr.name, managedTI))
         continue
       }
 
-      if let constrTI = TC.getCompleteTypeInfo(origArgType) as? FixedTypeInfo {
+      if let constrTI = TC.getCompleteTypeInfo(origArgType) as? FixedTypeInfo & Cohabitable {
         elementsWithPayload.append(.fixed(constr.name, constrTI))
         if !(constrTI is LoadableTypeInfo) && tik == .loadable {
           tik = .fixed
@@ -162,7 +163,8 @@ final class NewTypeDataTypeStrategy: DataTypeStrategy {
     self.planner.fulfill { (planner) -> TypeInfo in
       guard !planner.payloadElements.isEmpty else {
         planner.llvmType.setBody([], isPacked: true)
-        return LoadableDataTypeTypeInfo(self, planner.llvmType, .zero, .one)
+        return LoadableDataTypeTypeInfo(self, planner.llvmType,
+                                        BitVector(), .zero, .one)
       }
 
       guard
@@ -180,17 +182,49 @@ final class NewTypeDataTypeStrategy: DataTypeStrategy {
         let alignment = eltTI.alignment
         planner.llvmType.setBody([ eltTI.llvmType ], isPacked: true)
         return LoadableDataTypeTypeInfo(self, planner.llvmType,
+                                        BitVector(),
                                         eltTI.fixedSize, alignment)
       case .fixed:
         let alignment = eltTI.alignment
         planner.llvmType.setBody([ eltTI.llvmType ], isPacked: true)
         return FixedDataTypeTypeInfo(self, planner.llvmType,
+                                     eltTI.spareBits,
                                      eltTI.fixedSize, alignment)
       }
     }
   }
 
+  var spareBits: BitVector {
+    guard let singleton = getFixedSingleton() else {
+      return BitVector()
+    }
+    return singleton.spareBits
+  }
+
+  var cohabitantCount: UInt64 {
+    guard let singleton = getFixedSingleton() else {
+      return 0
+    }
+    return singleton.cohabitantCount
+  }
+
+  var cohabitantBitMask: APInt {
+    guard let singleton = getFixedSingleton() else {
+      return 0
+    }
+    return singleton.cohabitantBitMask
+  }
+
   private func getSingleton() -> TypeInfo? {
+    switch self.planner.payloadElements[0] {
+    case .dynamic(_):
+      return nil
+    case let .fixed(_, ti):
+      return ti
+    }
+  }
+
+  private func getFixedSingleton() -> (FixedTypeInfo & Cohabitable)? {
     switch self.planner.payloadElements[0] {
     case .dynamic(_):
       return nil
@@ -204,7 +238,7 @@ final class NewTypeDataTypeStrategy: DataTypeStrategy {
     case .dynamic(_):
       return nil
     case let .fixed(_, ti):
-      return ti as? LoadableTypeInfo
+      return ti as? LoadableTypeInfo & Cohabitable
     }
   }
 
@@ -331,8 +365,21 @@ final class SingleBitDataTypeStrategy: NoPayloadStrategy {
         planner.llvmType.setBody([], isPacked: true)
       }
       let size = Size(planner.noPayloadElements.count == 2 ? 1 : 0)
-      return LoadableDataTypeTypeInfo(self, planner.llvmType, size, .one)
+      return LoadableDataTypeTypeInfo(self, planner.llvmType,
+                                      BitVector(), size, .one)
     }
+  }
+
+  var spareBits: BitVector {
+    return BitVector()
+  }
+
+  var cohabitantBitMask: APInt {
+    return .zero
+  }
+
+  var cohabitantCount: UInt64 {
+    return 0
   }
 
   func buildExplosionSchema(_ schema: Explosion.Schema.Builder) {
@@ -439,10 +486,48 @@ final class NoPayloadDataTypeStrategy: NoPayloadStrategy {
       let (tagSize, tagTy) = computeTagLayout(planner.IGM, usedTagBits)
       planner.llvmType.setBody([ tagTy ], isPacked: true)
 
+      // Unused tag bits in the physical size can be used as spare bits.
+      // FIXME: We can use all values greater than the largest discriminator as
+      // extra inhabitants, not just those made available by spare bits.
+      var spareBits = BitVector()
+      spareBits.appendClearBits(Int(usedTagBits))
+      spareBits.appendSetBits(Int(tagSize.valueInBits() - usedTagBits))
+
       let alignment = Alignment(UInt32(tagSize.rawValue))
       return LoadableDataTypeTypeInfo(self, planner.llvmType,
+                                      spareBits,
                                       tagSize, alignment)
     }
+  }
+
+
+  var spareBits: BitVector {
+    let ti = self.planner.completeTypeLayout(for: self)
+    guard let cohabitableTI = ti as? Cohabitable else {
+      fatalError()
+    }
+    return cohabitableTI.spareBits
+  }
+
+  var cohabitantCount: UInt64 {
+    let ti = self.planner.completeTypeLayout(for: self)
+    guard let fixedTI = ti as? FixedTypeInfo else {
+      fatalError()
+    }
+
+    let bits = fixedTI.fixedSize.valueInBits()
+    assert(bits < 32, "freakishly huge no-payload enum");
+
+    let rawCount = (1 << bits) - UInt64(self.planner.noPayloadElements.count)
+    return min(rawCount, .max)
+  }
+
+  var cohabitantBitMask: APInt {
+    let ti = self.planner.completeTypeLayout(for: self)
+    guard let fixedTI = ti as? FixedTypeInfo else {
+      fatalError()
+    }
+    return APInt(width: Int(fixedTI.fixedSize.valueInBits()), value: .max, signed: true)
   }
 
   func buildExplosionSchema(_ schema: Explosion.Schema.Builder) {
@@ -535,10 +620,6 @@ final class NoPayloadDataTypeStrategy: NoPayloadStrategy {
 ///     |        |        |        |        |        |        |        |
 ///     •----------------------------------------------------------------------
 ///
-/// In the future, we will attempt to compute the spare bits available in the
-/// layout of the payload and use the unused bitpatterns to reduce the size of
-/// the discriminator bit region.
-///
 /// The payload and discriminator regions are laid out as packed multiples of
 /// 8-bit arrays rather than as arbitrary-precision integers to avoid computing
 /// bizarre integral types as these can cause FastISel to have some indigestion.
@@ -547,11 +628,16 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
 
   let payloadSchema: Payload.Schema
   let payloadElementCount: Int
+  var usedCohabitantCount: UInt64 = 0
+  var spareBits: BitVector = BitVector()
 
   init(_ planner: DataTypeLayoutPlanner) {
     self.planner = planner
 
     var payloadBitCount = 0
+    var extraTagBitCount: UInt32 = ~0
+    var extraTagValueCount: UInt32 = ~0
+
     switch planner.payloadElements[0] {
     case let .fixed(_, fixedTI):
       self.payloadSchema = .bits(fixedTI.fixedSize.valueInBits())
@@ -576,28 +662,94 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
         guard case let .fixed(_, payloadTI) = planner.payloadElements[0] else {
           fatalError()
         }
+        let numTags = UInt64(planner.noPayloadElements.count)
+
+        // Determine how many cohabitant bitpatterns we need.
+        self.usedCohabitantCount = min(numTags, payloadTI.cohabitantCount)
+
+        let tagsWithoutCohabitants = numTags - self.usedCohabitantCount
+        if tagsWithoutCohabitants == 0 {
+          extraTagBitCount = 0
+          extraTagValueCount = 0
+          // 2^32 discriminators oughta be enough for anybody.
+        } else if payloadTI.fixedSize.valueInBits() >= MemoryLayout<UInt32>.size {
+          extraTagBitCount = 1
+          extraTagValueCount = 2
+        } else {
+          let tagsPerTagBitValue: UInt64 =
+            1 << payloadTI.fixedSize.valueInBits()
+          extraTagValueCount
+            = UInt32((tagsWithoutCohabitants + (tagsPerTagBitValue-1)) / tagsPerTagBitValue + 1);
+          extraTagBitCount = log2(extraTagValueCount - 1) + 1;
+        }
+
         assert(payloadBitCount > 0)
         planner.llvmType.setBody([
           ArrayType(elementType: IntType.int8, count: (payloadBitCount+7)/8),
           ArrayType(elementType: IntType.int8, count: numTagBits),
         ], isPacked: true)
+
+        var sizeWithTag = UInt32(payloadTI.fixedSize.rawValue)
+        let extraTagByteCount = (extraTagBitCount+7)/8;
+        sizeWithTag += extraTagByteCount;
+
+        self.spareBits.appendClearBits(Int(payloadTI.fixedSize.valueInBits()))
+        if extraTagBitCount > 0 {
+          self.spareBits.appendClearBits(Int(extraTagBitCount))
+          self.spareBits.appendSetBits(Int(extraTagByteCount * 8 - extraTagBitCount))
+        }
+
         let tagSize = Size((numTagBits+7)/8)
         return FixedDataTypeTypeInfo(self, planner.llvmType,
-                                    payloadTI.fixedSize + tagSize,
-                                    payloadTI.alignment)
+                                     self.spareBits,
+                                     payloadTI.fixedSize + tagSize,
+                                     payloadTI.alignment)
       }
     case .loadable:
       self.planner.fulfill { (planner) -> TypeInfo in
         guard case let .fixed(_, payloadTI) = planner.payloadElements[0] else {
           fatalError()
         }
+        let numTags = UInt64(planner.noPayloadElements.count)
+
+        // Determine how many cohabitant bitpatterns we need.
+        self.usedCohabitantCount = min(numTags, payloadTI.cohabitantCount)
+
+        let tagsWithoutCohabitants = numTags - self.usedCohabitantCount
+        if tagsWithoutCohabitants == 0 {
+          extraTagBitCount = 0
+          extraTagValueCount = 0
+          // 2^32 discriminators oughta be enough for anybody.
+        } else if payloadTI.fixedSize.valueInBits() >= MemoryLayout<UInt32>.size {
+          extraTagBitCount = 1
+          extraTagValueCount = 2
+        } else {
+          let tagsPerTagBitValue: UInt64 =
+            1 << payloadTI.fixedSize.valueInBits()
+          extraTagValueCount
+            = UInt32((tagsWithoutCohabitants + (tagsPerTagBitValue-1)) / tagsPerTagBitValue + 1);
+          extraTagBitCount = log2(extraTagValueCount - 1) + 1;
+        }
+
         assert(payloadBitCount > 0)
         planner.llvmType.setBody([
           ArrayType(elementType: IntType.int8, count: (payloadBitCount+7)/8),
           ArrayType(elementType: IntType.int8, count: numTagBits),
         ], isPacked: true)
+
+        var sizeWithTag = UInt32(payloadTI.fixedSize.rawValue)
+        let extraTagByteCount = (extraTagBitCount+7)/8;
+        sizeWithTag += extraTagByteCount;
+
+        self.spareBits.appendClearBits(Int(payloadTI.fixedSize.valueInBits()))
+        if extraTagBitCount > 0 {
+          self.spareBits.appendClearBits(Int(extraTagBitCount))
+          self.spareBits.appendSetBits(Int(extraTagByteCount * 8 - extraTagBitCount))
+        }
+
         let tagSize = Size((numTagBits+7)/8)
         return LoadableDataTypeTypeInfo(self, planner.llvmType,
+                                        self.spareBits,
                                         payloadTI.fixedSize + tagSize,
                                         payloadTI.alignment)
       }
@@ -613,6 +765,28 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
         return DynamicDataTypeTypeInfo(self, planner.llvmType, ti.alignment)
       }
     }
+  }
+
+  var cohabitantCount: UInt64 {
+    return self.getFixedPayloadTypeInfo().cohabitantCount - self.usedCohabitantCount
+  }
+
+  var cohabitantBitMask: APInt {
+    let payloadTI = self.getFixedPayloadTypeInfo()
+    let totalSize = (self.planner.completeTypeLayout(for: self) as! FixedTypeInfo).fixedSize.valueInBits()
+    if payloadTI.isKnownEmpty {
+      return APInt(width: Int(totalSize), value: .max, signed: true)
+    }
+    var baseMask = self.getFixedPayloadTypeInfo().cohabitantBitMask
+
+    if baseMask.bitWidth < Int(totalSize) {
+      var hi = APInt(width: Int(totalSize), value: 0)
+      let diff = Int(totalSize) - baseMask.bitWidth
+      hi.setBits((hi.bitWidth - diff)...)
+      baseMask = baseMask.zeroExtend(to: Int(totalSize)) | hi
+    }
+
+    return baseMask;
   }
 
   func emitSwitch(_ IGF: IRGenFunction, _ value: Explosion,
@@ -718,8 +892,21 @@ final class NaturalDataTypeStrategy: NoPayloadStrategy {
       let tagSize = Size(bits: UInt64(intTy.width))
       let alignment: Alignment = planner.IGM.dataLayout.abiAlignment(of: intTy)
       return LoadableDataTypeTypeInfo(self, planner.llvmType,
+                                      BitVector(),
                                       tagSize, alignment)
     }
+  }
+
+  var spareBits: BitVector {
+    return BitVector()
+  }
+
+  var cohabitantCount: UInt64 {
+    return 0
+  }
+
+  var cohabitantBitMask: APInt {
+    return .zero
   }
 
   func scalarType() -> IntType {
@@ -868,6 +1055,10 @@ private func nextPowerOfTwo(_ v: UInt64) -> UInt64 {
 
 private func log2(_ val: UInt64) -> UInt64 {
   return 63 - UInt64(val.leadingZeroBitCount)
+}
+
+private func log2(_ val: UInt32) -> UInt32 {
+  return 31 - UInt32(val.leadingZeroBitCount)
 }
 
 // Use the best fitting "normal" integer size for the enum. Though LLVM

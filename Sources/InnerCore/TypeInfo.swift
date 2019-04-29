@@ -193,21 +193,33 @@ extension WitnessSizedTypeInfo {
 
 /// The concrete implementation of type information for a fixed-layout data
 /// type.
-final class FixedDataTypeTypeInfo: Strategizable, FixedTypeInfo {
+final class FixedDataTypeTypeInfo: Strategizable, FixedTypeInfo, Cohabitable {
   let llvmType: IRType
   let strategy: DataTypeStrategy
   let fixedSize: Size
   let fixedAlignment: Alignment
+  let spareBits: BitVector
 
   var isKnownEmpty: Bool {
     return self.fixedSize == .zero
   }
 
-  init(_ strategy: DataTypeStrategy, _ llvmType: StructType,
+  var cohabitantCount: UInt64 {
+    return self.strategy.cohabitantCount
+  }
+
+  var cohabitantBitMask: APInt {
+    return self.strategy.cohabitantBitMask
+  }
+
+  init(_ strategy: DataTypeStrategy,
+       _ llvmType: StructType,
+       _ spareBits: BitVector,
        _ size: Size, _ align: Alignment) {
     self.strategy = strategy
-    self.fixedSize = size
     self.llvmType = llvmType
+    self.spareBits = spareBits
+    self.fixedSize = size
     self.fixedAlignment = align
   }
 
@@ -223,22 +235,35 @@ final class FixedDataTypeTypeInfo: Strategizable, FixedTypeInfo {
 
 /// The concrete implementation of type information for a loadable data
 /// type.
-final class LoadableDataTypeTypeInfo: Strategizable, LoadableTypeInfo {
+final class LoadableDataTypeTypeInfo: Strategizable, LoadableTypeInfo, Cohabitable {
   let strategy: DataTypeStrategy
   let fixedSize: Size
   let llvmType: IRType
   let fixedAlignment: Alignment
+  let spareBits: BitVector
 
-  init(_ strategy: DataTypeStrategy, _ llvmType: StructType,
-       _ size: Size, _ align: Alignment) {
-    self.strategy = strategy
-    self.fixedSize = size
-    self.llvmType = llvmType
-    self.fixedAlignment = align
-  }
 
   var isKnownEmpty: Bool {
     return self.fixedSize == .zero
+  }
+
+  var cohabitantCount: UInt64 {
+    return self.strategy.cohabitantCount
+  }
+
+  var cohabitantBitMask: APInt {
+    return self.strategy.cohabitantBitMask
+  }
+
+  init(_ strategy: DataTypeStrategy,
+       _ llvmType: StructType,
+       _ spareBits: BitVector,
+       _ size: Size, _ align: Alignment) {
+    self.strategy = strategy
+    self.llvmType = llvmType
+    self.spareBits = spareBits
+    self.fixedSize = size
+    self.fixedAlignment = align
   }
 
   func buildAggregateLowering(_ IGM: IRGenModule,
@@ -356,21 +381,33 @@ extension HeapTypeInfo {
 
 /// The concrete implementation of type information for an object value managed
 /// by the Silt runtime.
-final class ManagedObjectTypeInfo: HeapTypeInfo {
+final class ManagedObjectTypeInfo: HeapTypeInfo, Cohabitable {
   static let isPOD: Bool = false
 
+  let llvmType: IRType
   let fixedSize: Size
   let fixedAlignment: Alignment
+  let spareBits: BitVector
+  var cohabitantCount: UInt64 {
+    return min(.max, 4096)
+  }
+
+  var cohabitantBitMask: APInt {
+    return APInt(width: Int(self.fixedSize.valueInBits()), value: .max, signed: true)
+  }
+
   var isKnownEmpty: Bool {
     return false
   }
   var isPOD: Bool {
     return false
   }
-  let llvmType: IRType
 
-  init(_ storage: PointerType, _ size: Size, _ align: Alignment) {
+  init(_ storage: PointerType,
+       _ spareBits: BitVector,
+       _ size: Size, _ align: Alignment) {
     self.llvmType = storage
+    self.spareBits = spareBits
     self.fixedSize = size
     self.fixedAlignment = align
   }

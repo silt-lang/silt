@@ -36,7 +36,10 @@ extension IRGenGIRFunction {
       switch op.callee {
       case let param as Seismography.Parameter:
         // If we're getting a parameter as the callee of an `apply`, this is
-        // a return continuation we're calling. If that's the case,
+        // a return continuation we're calling.
+        //
+        // FIXME: This is only correct becausd we don't do closure
+        // lowering yet.
         guard param == param.parent.parameters.last else {
           fatalError("call parameter directly without function_ref?")
         }

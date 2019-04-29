@@ -205,6 +205,43 @@ extension PODable {
   }
 }
 
+protocol Cohabitable {
+  /// Returns the fixed number of "extra inhabitants" (that is, bit
+  /// patterns that don't represent valid values of the type) in the type
+  /// representation.
+  var cohabitantCount: UInt64 { get }
+
+  /// Get the spare bit mask for the type.
+  var spareBits: BitVector { get }
+
+  /// Get the bit mask that must be applied before testing an extra inhabitant.
+  var cohabitantBitMask: APInt { get }
+}
+
+/*
+extension Cohabitable where Self: FixedTypeInfo {
+  var cohabitantCount: UInt64 {
+    guard !self.spareBits.none() else {
+      return 0
+    }
+
+    // Make sure the arithmetic below doesn't overflow.
+    guard self.fixedSize.rawValue >= 4 else {
+      return UInt64.max
+    }
+
+    let spareBitCount = UInt64(self.spareBits.nonzeroBitCount())
+    assert(spareBitCount <= self.fixedSize.valueInBits())
+    let inhabitedBitCount = self.fixedSize.valueInBits() - UInt64(spareBitCount)
+    let rawCount: UInt64 = ((1 << spareBitCount) - 1) << inhabitedBitCount;
+    return min(rawCount, UInt64.max)
+  }
+
+  var cohabitantBitMask: APInt {
+    return APInt(width: Int(self.fixedSize.valueInBits()), value: .max, signed: true)
+  }
+}*/
+
 /// A type that provides access to an underlying data type strategy describing
 /// its concrete implementation.
 ///
