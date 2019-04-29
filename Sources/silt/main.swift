@@ -12,6 +12,8 @@ let potentialSubtool = args.first ?? ""
 switch potentialSubtool {
 case "demangle":
   SiltDemangleTool(Array(args.dropFirst())).run()
+case "optimize":
+  SiltOptimizeTool(Array(args.dropFirst())).run()
 default:
   SiltFrontendTool(args: args).run()
 }

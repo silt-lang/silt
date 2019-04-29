@@ -12,6 +12,7 @@ import Lithosphere
 import Crust
 import Moho
 import Mantle
+import Seismography
 import OuterCore
 import InnerCore
 
@@ -64,6 +65,39 @@ public struct Invocation {
       verifier.verify()
       return verifier.engine.hasErrors()
     }
+  }
+
+  public func runToGIRGen(_ f: @escaping (GIRModule) -> Void) -> HadErrors {
+    let context = PassContext(options: options)
+    Rainbow.enabled = options.colorsEnabled
+
+    // Force Rainbow to use ANSI colors even when not in a TTY.
+    if Rainbow.outputTarget == .unknown {
+      Rainbow.outputTarget = .console
+    }
+
+    if options.inputURLs.isEmpty {
+      context.engine.diagnose(.noInputFiles)
+      return true
+    }
+
+    defer {
+      if options.shouldPrintTiming {
+        context.timer.dump(to: &stdoutStreamHandle)
+      }
+    }
+
+    for url in options.inputURLs {
+      func run<PassTy: PassProtocol>(_ pass: PassTy) -> PassTy.Output?
+        where PassTy.Input == URL {
+          return pass.run(url, in: context)
+      }
+
+      run(Passes.girGenModule |> Pass(name: "Transform Generated GIR") { mod, _ in
+        f(mod)
+      })
+    }
+    return context.engine.hasErrors()
   }
 
   public func run() -> HadErrors {

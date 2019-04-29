@@ -38,6 +38,10 @@ public final class Continuation: NominalValue, GraphNode {
   var predecessorList: Successor
   public weak var terminalOp: TerminalOp?
 
+  public var hasPredecessors: Bool {
+    return self.predecessorList.next != nil
+  }
+
   public var predecessors: AnySequence<Continuation> {
     return AnySequence { () in
       return PredecessorIterator(self.predecessorList)

@@ -110,12 +110,16 @@ extension GIRGenFunction {
   private func applyBodyToParams(
     _ body: Term<TT>, _ patterns: [Pattern], _ params: [ManagedValue]
   ) -> Term<TT> {
-    let startIdx = params.count - patterns.count
-    assert(startIdx >= 0)
-    let term = body
-//    for param in params.dropFirst(startIdx).reversed() {
-//      term = TT.apply(Head., <#T##[Elim<TypeTheory<T>>]#>)
-//    }
+    guard patterns.count < params.count else {
+      return body
+    }
+
+    let argTerms = (patterns.count..<params.count).map {
+      return TT.apply(.variable(Var(wildcardName, UInt($0))), [])
+    }
+    let anonHead = self.tc.openDefinition(QualifiedName(name: wildcardName), argTerms)
+    let head = Head<TT>.definition(anonHead)
+    let term = TT.apply(head, argTerms.map { Elim<TT>.apply($0) })
     return term
   }
 
