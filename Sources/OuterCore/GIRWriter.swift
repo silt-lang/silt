@@ -409,6 +409,14 @@ extension GIRWriter: PrimOpVisitor {
                     { self.write(" ; ") })
   }
 
+  public func visitDataExtractOp(_ op: DataExtractOp) {
+    self.write(self.getID(of: op.dataValue).description)
+    self.write(" ; ")
+    self.write(op.constructor)
+    self.write(" : ")
+    self.visitType(op.type)
+  }
+
   public func visitTupleOp(_ op: TupleOp) {
     self.write("(")
     self.interleave(op.operands,

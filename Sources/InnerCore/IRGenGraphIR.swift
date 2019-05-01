@@ -173,11 +173,7 @@ extension IRGenGIRFunction {
 
     var dests = [(String, BasicBlock)]()
     dests.reserveCapacity(op.patterns.count)
-    for (pat, apply) in op.patterns {
-      guard let funcRef = apply as? FunctionRefOp else {
-        fatalError()
-      }
-
+    for (pat, funcRef) in op.patterns {
       // If the destination BB accepts the case argument, set up a waypoint BB
       // so we can feed the values into the argument's PHI node(s).
       if !funcRef.function.parameters.isEmpty {
@@ -192,8 +188,7 @@ extension IRGenGIRFunction {
       }
     }
     let defaultDest = op.default.flatMap { defaultOp in
-      // swiftlint:disable force_cast
-      return self.blockMap[(defaultOp as! FunctionRefOp).function]?.bb
+      return self.blockMap[defaultOp.function]?.bb
     }
 
     // Emit the dispatch.
@@ -201,11 +196,8 @@ extension IRGenGIRFunction {
     eis.emitSwitch(self, inExplosion, dests, defaultDest)
 
     // Bind arguments for cases that want them.
-    for (i, (pattern: selector, apply: apply)) in op.patterns.enumerated() {
-      guard let funcRef = apply as? FunctionRefOp else {
-        fatalError()
-      }
-
+    for (i, pat) in op.patterns.enumerated() {
+      let (selector, funcRef) = pat
       guard !funcRef.function.parameters.isEmpty else {
         continue
       }
@@ -240,6 +232,14 @@ extension IRGenGIRFunction {
     self.datatypeStrategy(for: op.dataType)
         .emitDataInjection(self, op.constructor, data, out)
     self.loweredValues[op] = .explosion([IRValue](out.claim()))
+  }
+
+  func visitDataExtractOp(_ op: DataExtractOp) {
+    let dataVal = self.getLoweredExplosion(op.dataValue)
+    let data = Explosion()
+    self.datatypeStrategy(for: op.dataValue.type)
+      .emitDataProjection(self, op.constructor, dataVal, data)
+    self.loweredValues[op] = .explosion([IRValue](data.claim()))
   }
 }
 

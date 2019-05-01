@@ -58,6 +58,9 @@ public class PrimOp: Value {
     /// A data constructor call with all parameters provided at +1.
     case dataInit = "data_init"
 
+    /// Extracts the payload data from a data constructor.
+    case dataExtract = "data_extract"
+
     /// Heap-allocate a box large enough to hold a given type.
     case allocBox = "alloc_box"
 
@@ -357,6 +360,25 @@ public final class DataInitOp: PrimOp {
   }
 }
 
+public final class DataExtractOp: PrimOp {
+  public let constructor: String
+  public let dataValue: Value
+
+  public init(constructor: String, value: Value, payloadType: Value) {
+    self.constructor = constructor
+    self.dataValue = value
+    super.init(opcode: .dataExtract, type: payloadType,
+               category: payloadType.category)
+    self.addOperands([
+      Operand(owner: self, value: value),
+    ])
+  }
+
+  public override var result: Value? {
+    return self
+  }
+}
+
 public final class TupleOp: PrimOp {
   init(arguments: [Value]) {
     let ty = TupleType(elements: arguments.map({$0.type}), category: .object)
@@ -526,6 +548,7 @@ public protocol PrimOpVisitor {
   func visitFunctionRefOp(_ op: FunctionRefOp) -> Ret
   func visitSwitchConstrOp(_ op: SwitchConstrOp) -> Ret
   func visitDataInitOp(_ op: DataInitOp) -> Ret
+  func visitDataExtractOp(_ op: DataExtractOp) -> Ret
   func visitTupleOp(_ op: TupleOp) -> Ret
   func visitTupleElementAddress(_ op: TupleElementAddressOp) -> Ret
   func visitLoadOp(_ op: LoadOp) -> Ret
@@ -564,6 +587,8 @@ extension PrimOpVisitor {
     case .switchConstr: return self.visitSwitchConstrOp(code as! SwitchConstrOp)
     // swiftlint:disable force_cast
     case .dataInit: return self.visitDataInitOp(code as! DataInitOp)
+    // swiftlint:disable force_cast
+    case .dataExtract: return self.visitDataExtractOp(code as! DataExtractOp)
     // swiftlint:disable force_cast
     case .tuple: return self.visitTupleOp(code as! TupleOp)
       // swiftlint:disable force_cast line_length

@@ -1,9 +1,9 @@
-//
-//  ParseGIR.swift
-//  siltPackageDescription
-//
-//  Created by Robert Widmann on 2/18/18.
-//
+/// ParseGIR.swift
+///
+/// Copyright 2017-2018, The Silt Language Project.
+///
+/// This project is released under the MIT license, a copy of which is
+/// available in the repository.
 
 import Lithosphere
 import Crust
@@ -235,6 +235,8 @@ extension GIRParser {
 
     var resultValue: Value?
     switch opcode {
+    case .dataExtract:
+      fatalError("unimplemented")
     case .forceEffects:
       fatalError("unimplemented")
     case .tuple:
@@ -338,7 +340,7 @@ extension GIRParser {
       _ = try self.parser.consume(.colon)
       _ = try self.parser.parseGIRTypeExpr()
 
-      var caseConts = [(String, Value)]()
+      var caseConts = [(String, FunctionRefOp)]()
       while case .semicolon = self.parser.peek() {
         _ = try self.parser.consume(.semicolon)
 
@@ -354,7 +356,7 @@ extension GIRParser {
         guard let arg = self.tryParseGIRValueToken() else {
           return false
         }
-        let fnVal = self.getLocalValue(arg)
+        let fnVal = self.getLocalValue(arg) as! FunctionRefOp
         caseConts.append((caseName.render, fnVal))
       }
 
