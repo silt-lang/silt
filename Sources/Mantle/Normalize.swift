@@ -92,8 +92,15 @@ extension TypeChecker {
     }
   }
 
-  /// Reduces a TT term to head normal form, and produces a representation of
-  /// any new problems encountered during the reduction.
+  /// Reduces a TT term to weak head normal form.
+  ///
+  /// This function ignores any problems encountered during the reduction.
+  public func forceWHNF(_ t: TT) -> TT {
+    return self.toWeakHeadNormalForm(t).ignoreBlocking
+  }
+
+  /// Reduces a TT term to weak head normal form, and produces a representation
+  /// of any new problems encountered during the reduction.
   ///
   /// A term is in weak head-normal form when it is
   ///   - An unapplied lambda
