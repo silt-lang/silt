@@ -120,7 +120,7 @@ final class GIRGenFunction {
   let returnTy: Type<TT>
   let telescope: Telescope<TT>
   let tc: TypeChecker<CheckPhaseState>
-  var varLocs: [Name: Value] = [:]
+  var varLocs: [Var: Value] = [:]
   let cleanupStack: CleanupStack = CleanupStack()
   let genericEnvironment: GenericEnvironment
   let epilog: Continuation
@@ -150,9 +150,9 @@ final class GIRGenFunction {
 
   func emitClosure(_ body: Term<TT>) {
     let (paramVals, returnCont) = self.buildParameterList()
-    for val in paramVals {
+    for (idx, val) in paramVals.enumerated() {
       let name = Name(name: SyntaxFactory.makeUnderscore())
-      self.varLocs[name] = val.value
+      self.bindVariable(Var(name, UInt(idx)), to: val.value)
     }
     self.prepareEpilog(returnCont)
     self.emitFinalColumnBody(self.f, body)
@@ -249,6 +249,39 @@ final class GIRGenFunction {
     let val = self.f.appendParameter(type: type)
     return self.pairValueWithCleanup(val)
   }
+}
+
+// MARK: Variable Binding
+
+extension GIRGenFunction {
+  func lookupVariable(_ v: Var) -> Value? {
+    return self.varLocs[v]
+  }
+
+  // FIXME: The Mantle typechecks patterns forward, so it assigns de-Bruijn
+  // indices in reverse.  We probably want to not rely on the `Var` in a
+  // var pattern eventually, but for now we can just un-reverse the index
+  // when we bind patterns.
+  func bindPatternVariable(_ v: Var, to value: Value, count: Int) {
+    let newName: Var
+    if count <= 1 {
+      newName = Var(v.name, 0)
+    } else {
+      newName = Var(v.name, UInt(count) - v.index - 1)
+    }
+    self.varLocs[newName] = value
+  }
+
+  func bindVariable(_ v: Var, to value: Value) {
+    self.varLocs[v] = value
+  }
+
+  func withBoundVariable<T>(_ v: Var, to value: Value, _ f: () -> T) -> T {
+    self.varLocs[v] = value
+    defer { self.varLocs[v] = nil }
+    return f()
+  }
+
 }
 
 private struct FunctionEnvironment {

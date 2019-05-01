@@ -49,7 +49,7 @@ public struct Named<I: Hashable>: Equatable, Hashable, CustomStringConvertible {
   }
 
   public var description: String {
-    return self.name.description + "\(self.index.hashValue)"
+    return self.name.description + "\(self.index)"
   }
 }
 
@@ -555,6 +555,7 @@ public struct Clause {
       return self
     }
     var pats = self.patterns
+    pats.remove(at: column)
     pats.append(contentsOf: patterns)
     return Clause(patterns: pats, body: self.body)
   }

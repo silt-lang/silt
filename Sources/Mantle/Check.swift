@@ -425,13 +425,13 @@ extension TypeChecker where PhaseState == CheckPhaseState {
       switch synPat {
       case let .variable(name):
         // FIXME: These indices are backwards.  We can undo this mistake in
-        // GIRGen, but that's lesss than ideal.
+        // GIRGen, but that's less than ideal.
         let ttVar = Var(name, UInt(self.environment.asContext.count))
         self.extendEnvironment([(name, patType)])
         return (.variable(ttVar), type)
       case .wild:
         // FIXME: These indices are backwards.  We can undo this mistake in
-        // GIRGen, but that's lesss than ideal.
+        // GIRGen, but that's less than ideal.
         let ttVar = Var(wildcardName, UInt(self.environment.asContext.count))
         self.extendEnvironment([(wildcardName, patType)])
         return (.variable(ttVar), type)
@@ -520,6 +520,14 @@ extension TypeChecker where PhaseState == CheckPhaseState {
           let innerPatType = self.rollPi(in: telescope, final: substType)
           // And check the inner patterns against it.
           let (pats, retTy) = self.checkPatterns(synPats, innerPatType)
+          if pats.isEmpty {
+            // If there are no patterns, bind a dummy into scope to keep
+            // the indices consistent.
+            //
+            // FIXME: These indices are backwards.  We can undo this mistake in
+            // GIRGen, but that's less than ideal.
+            self.extendEnvironment([(wildcardName, retTy)])
+          }
           return (.constructor(openDataCon, pats), retTy)
         case .apply(.definition(_), _):
           // FIXME: Should be a diagnostic.
