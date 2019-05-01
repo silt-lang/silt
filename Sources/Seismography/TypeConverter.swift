@@ -173,28 +173,32 @@ public final class TypeConverter {
 
   /// Retrieves the type lowering for a TT-type.
   public func lowerType(_ type: Type<TT>) -> Lowering {
-    let key = self.getTypeKey(type)
-    if let existing = self.loweringCache[key] {
+    if let key = self.getTypeKey(type), let existing = self.loweringCache[key] {
       return existing
     }
 
     let resolvedType = self.resolveMetaIfNeeded(type)
-    let resolvedKey = self.getTypeKey(resolvedType)
+    guard let resolvedKey = self.getTypeKey(resolvedType) else {
+      if case .pi(_, _) = resolvedType {
+        let (env, end) = self.tc.unrollPi(resolvedType)
+        let info = self.lowerPi(env, end, in: .init(env))
+        self.loweringCache[CacheKey(loweredType: info.type)] = info
+        return info
+      } else {
+        let info = self.lower(type, in: .init([]))
+        self.loweringCache[CacheKey(loweredType: info.type)] = info
+        return info
+      }
+    }
+
     if let existing = self.loweringCache[resolvedKey] {
       return existing
     }
 
-    if case .pi(_, _) = resolvedType {
-      let (env, end) = self.tc.unrollPi(resolvedType)
-      let info = self.lower(end, in: .init(env))
-      return info
-    } else {
-      let info = self.lower(type, in: .init([]))
-      self.loweringCache[key] = info
-      self.loweringCache[resolvedKey] = info
-      self.loweringCache[CacheKey(loweredType: info.type)] = info
-      return info
-    }
+    let info = self.lower(type, in: .init([]))
+    self.loweringCache[resolvedKey] = info
+    self.loweringCache[CacheKey(loweredType: info.type)] = info
+    return info
   }
 
   /// Retrieves the lowering information for a previously-lowered type.
@@ -226,7 +230,7 @@ public final class TypeConverter {
     }).type
   }
 
-  private func getTypeKey(_ type: Type<TT>) -> CacheKey {
+  private func getTypeKey(_ type: Type<TT>) -> CacheKey? {
     switch type {
     case .refl: fatalError()
     case .type:
@@ -249,7 +253,8 @@ public final class TypeConverter {
       }
     case .equal(_, _, _): fatalError()
     case .lambda(_): fatalError()
-    case .pi(_, _): fatalError()
+    case .pi(_, _):
+      return nil
     }
   }
 
@@ -279,6 +284,23 @@ public final class TypeConverter {
 }
 
 extension TypeConverter {
+  private func lowerPi(
+    _ params: Telescope<Type<TT>>,
+    _ result: Type<TT>,
+    in env: Environment
+  ) -> Lowering {
+    var paramLowerings = [GIRType]()
+    var context = Context()
+    for param in params {
+      paramLowerings.append(self.lower(param.1, in: .init(context)).type)
+      context.append(param)
+    }
+    let loweredResult = self.lower(result, in: env).type
+    let fnType = FunctionType(arguments: paramLowerings,
+                              returnType: loweredResult)
+    return Lowering(type: fnType, isTrivial: false, isAddressOnly: false)
+  }
+
   private func lower(_ type: Type<TT>, in env: Environment) -> Lowering {
     switch type {
     case .refl: fatalError("FIXME: Emit metadata here")

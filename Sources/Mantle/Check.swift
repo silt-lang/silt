@@ -424,11 +424,14 @@ extension TypeChecker where PhaseState == CheckPhaseState {
     return trace("checking pattern \(synPat)") {
       switch synPat {
       case let .variable(name):
-        // The type is already scoped over a single variable, so we're fine.
+        // FIXME: These indices are backwards.  We can undo this mistake in
+        // GIRGen, but that's less than ideal.
         let ttVar = Var(name, UInt(self.environment.asContext.count))
         self.extendEnvironment([(name, patType)])
         return (.variable(ttVar), type)
       case .wild:
+        // FIXME: These indices are backwards.  We can undo this mistake in
+        // GIRGen, but that's less than ideal.
         let ttVar = Var(wildcardName, UInt(self.environment.asContext.count))
         self.extendEnvironment([(wildcardName, patType)])
         return (.variable(ttVar), type)
@@ -517,6 +520,14 @@ extension TypeChecker where PhaseState == CheckPhaseState {
           let innerPatType = self.rollPi(in: telescope, final: substType)
           // And check the inner patterns against it.
           let (pats, retTy) = self.checkPatterns(synPats, innerPatType)
+          if pats.isEmpty {
+            // If there are no patterns, bind a dummy into scope to keep
+            // the indices consistent.
+            //
+            // FIXME: These indices are backwards.  We can undo this mistake in
+            // GIRGen, but that's less than ideal.
+            self.extendEnvironment([(wildcardName, retTy)])
+          }
           return (.constructor(openDataCon, pats), retTy)
         case .apply(.definition(_), _):
           // FIXME: Should be a diagnostic.
@@ -532,8 +543,8 @@ extension TypeChecker where PhaseState == CheckPhaseState {
 
   func checkClause(_ ty: Type<TT>, _ clause: DeclaredClause) -> Clause {
     return trace("checking clause \(clause) has type \(ty)") {
-      let (pats, type) = self.checkPatterns(clause.patterns, ty)
       return self.underNewScope {
+        let (pats, type) = self.checkPatterns(clause.patterns, ty)
         switch clause.body {
         case .empty:
           func hasAnyEmptyPatterns(_ pats: [Pattern]) -> Bool {
@@ -553,9 +564,11 @@ extension TypeChecker where PhaseState == CheckPhaseState {
           }
           return Clause(patterns: pats, body: nil)
         case let .body(body, whereDecls):
-          _ = whereDecls.map(self.checkDecl)
-          let body = self.checkExpr(body, type)
-          return Clause(patterns: pats, body: body)
+          return self.underNewScope {
+            _ = whereDecls.map(self.checkDecl)
+            let body = self.checkExpr(body, type)
+            return Clause(patterns: pats, body: body)
+          }
         }
       }
     }

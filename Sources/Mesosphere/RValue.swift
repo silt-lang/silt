@@ -21,43 +21,13 @@ extension GIRGenFunction {
         let constant = DeclRef(defName.key.string, .function)
         let callee = self.B.module.lookupContinuation(constant)!
         let calleeRef = self.B.createFunctionRef(callee)
-        let applyDest = self.B.buildBBLikeContinuation(
-                        base: self.f.name, tag: "_apply_\(defName.key.string)")
-        let applyDestRef: Value
-        // Special Case: Recursive calls have a known return point.
-        if self.f == callee {
-          applyDestRef = self.f.parameters.last!
-        } else {
-          applyDestRef = self.B.createFunctionRef(applyDest)
-        }
-        let param = applyDest.appendParameter(type: callee.returnValueType)
-        var lastParent = parent
-        var argVals = [Value]()
-        argVals.reserveCapacity(args.count)
-        for arg in args {
-          let (newParent, value) = self.emitElimAsRValue(lastParent, arg)
-          argVals.append(value.forward(self))
-          lastParent = newParent
-        }
-        // Account for the indirect return convention's buffer parameter.
-        if let indirect = callee.indirectReturnParameter {
-          // Alloca in our frame.
-          let alloca = B.createAlloca(indirect.type)
-          argVals.append(alloca)
-          // Dealloca on the return edge.
-          //
-          // FIXME: Can we do this with the cleanup stack somehow?
-          applyDest.appendCleanupOp(self.B.createDealloca(alloca))
-        }
-        argVals.append(applyDestRef)
-        _ = self.B.createApply(lastParent, calleeRef, argVals)
-        // Special Case: Recursive calls have a known destination block, namely
-        // bb0.  We can just stop chuzzling and erase the block we would have
-        // continued with.
-        if self.f == callee {
-          self.B.module.removeContinuation(applyDest)
-        }
-        return (applyDest, ManagedValue.unmanaged(param))
+        return self.completeApply(defName.key.string,
+                                  parent,
+                                  ManagedValue.unmanaged(calleeRef),
+                                  args,
+                                  callee.returnValueType,
+                                  self.f == callee,
+                                  callee.indirectReturnParameter)
       case let .meta(mv):
         guard let bind = self.tc.signature.lookupMetaBinding(mv) else {
           fatalError()
@@ -67,10 +37,16 @@ extension GIRGenFunction {
         }
         return self.emitRValue(parent, bind.internalize, bindTy)
       case let .variable(v):
-        guard let varLocVal = self.varLocs[v.name] else {
+        guard let varLocVal = self.lookupVariable(v) else {
           fatalError()
         }
-        if varLocVal.type is BoxType {
+        if let fnType = varLocVal.type as? FunctionType {
+          return self.completeApply(v.name.description,
+                                    parent,
+                                    ManagedValue.unmanaged(varLocVal),
+                                    args,
+                                    fnType.returnType)
+        } else if varLocVal.type is BoxType {
           let lowering = self.lowerType(varLocVal.type)
           let projected = self.B.createProjectBox(varLocVal,
                                                   type: lowering.type)
@@ -82,8 +58,10 @@ extension GIRGenFunction {
                                                     type: lowering.type)
             return (parent, ManagedValue.unmanaged(projected))
           }
+        } else {
+          assert(args.isEmpty)
+          return (parent, ManagedValue.unmanaged(varLocVal))
         }
-        return (parent, ManagedValue.unmanaged(varLocVal))
       }
     case let .constructor(tag, args):
       return self.emitConstructorAsRValue(parent, body, type, tag, args)
@@ -111,6 +89,54 @@ extension GIRGenFunction {
       print(body.description)
       fatalError()
     }
+  }
+
+  private func completeApply(
+    _ name: String,
+    _ parent: Continuation,
+    _ calleeRef: ManagedValue,
+    _ args: [Elim<TT>],
+    _ returnValueType: GIRType,
+    _ recursive: Bool = false,
+    _ indirectReturnParameter: Parameter? = nil
+  ) -> (Continuation, ManagedValue) {
+    let applyDest = self.B.buildBBLikeContinuation(
+      base: self.f.name, tag: "_apply_\(name)")
+    let applyDestRef: Value
+    // Special Case: Recursive calls have a known return point.
+    if recursive {
+      applyDestRef = self.f.parameters.last!
+    } else {
+      applyDestRef = self.B.createFunctionRef(applyDest)
+    }
+    let param = applyDest.appendParameter(type: returnValueType)
+    var lastParent = parent
+    var argVals = [Value]()
+    argVals.reserveCapacity(args.count)
+    for arg in args {
+      let (newParent, value) = self.emitElimAsRValue(lastParent, arg)
+      argVals.append(value.forward(self))
+      lastParent = newParent
+    }
+    // Account for the indirect return convention's buffer parameter.
+    if let indirect = indirectReturnParameter {
+      // Alloca in our frame.
+      let alloca = B.createAlloca(indirect.type)
+      argVals.append(alloca)
+      // Dealloca on the return edge.
+      //
+      // FIXME: Can we do this with the cleanup stack somehow?
+      applyDest.appendCleanupOp(self.B.createDealloca(alloca))
+    }
+    argVals.append(applyDestRef)
+    _ = self.B.createApply(lastParent, calleeRef.forward(self), argVals)
+    // Special Case: Recursive calls have a known destination block, namely
+    // bb0.  We can just stop chuzzling and erase the block we would have
+    // continued with.
+    if recursive {
+      self.B.module.removeContinuation(applyDest)
+    }
+    return (applyDest, ManagedValue.unmanaged(param))
   }
 
   private func emitConstructorAsRValue(

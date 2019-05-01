@@ -172,13 +172,17 @@ extension TypeChecker where PhaseState == ElaboratePhaseState {
         appliedConTy = self.toWeakHeadNormalForm(instCodomain).ignoreBlocking
         conArgs.append(elabArg)
       }
+      // FIXME: This isn't right for partially-applied constructors.
+      // Need to either elaborate these as functions or roll a pi type.
       let conTy = TT.apply(.definition(tyCon), dataConArgs.map(Elim<TT>.apply))
       return self.expect(exType, conTy,
                          TT.constructor(openedCon, conArgs), from: syntax)
 
     case let .let(decls, rhsExpr):
-      _ = decls.map(bindLocal)
-      return elaborate(rhsExpr, expecting: exType, bindLocal: bindLocal)
+      return self.underNewScope {
+        _ = decls.map(bindLocal)
+        return elaborate(rhsExpr, expecting: exType, bindLocal: bindLocal)
+      }
 
     case let .apply(h, elims):
       return self.elaborateApp(exType, h, elims.reversed(), syntax,

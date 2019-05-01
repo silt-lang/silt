@@ -92,12 +92,13 @@ extension GIRGenFunction {
     guard !firstRow.patterns.isEmpty && !params.isEmpty else {
       // If there are no patterns and no parameters we have a matrix of zero
       // width - a constant.  Emit the body and bail.
-      guard let body = firstRow.body else {
+      guard let term = firstRow.body else {
         _ = self.B.createUnreachable(self.f)
         return
       }
-      let vals = self.applyBodyToParams(body, firstRow.patterns, params)
-      let (newParent, RV) = self.emitRValue(self.f, vals)
+      let normalBody = self.tc.forceWHNF(term)
+      let body = self.stripOuterLambdas(normalBody, firstRow.patterns, params)
+      let (newParent, RV) = self.emitRValue(self.f, body)
       self.emitFinalReturn(newParent, RV.forward(self))
       return
     }
@@ -107,15 +108,19 @@ extension GIRGenFunction {
     self.stepSpecialization(self.f, matrix, params, &unspecialized)
   }
 
-  private func applyBodyToParams(
+  private func stripOuterLambdas(
     _ body: Term<TT>, _ patterns: [Pattern], _ params: [ManagedValue]
   ) -> Term<TT> {
-    let startIdx = params.count - patterns.count
-    assert(startIdx >= 0)
-    let term = body
-//    for param in params.dropFirst(startIdx).reversed() {
-//      term = TT.apply(Head., <#T##[Elim<TypeTheory<T>>]#>)
-//    }
+    var unscoped = params.count - patterns.count
+    assert(unscoped >= 0)
+    var term = body
+    var elims = [Elim<TT>]()
+    while case let .lambda(body) = term, unscoped != 0 {
+      defer { unscoped -= 1 }
+      let index = Var(wildcardName, UInt(unscoped - 1))
+      self.bindVariable(index, to: params[unscoped - 1].value)
+      term = body
+    }
     return term
   }
 
@@ -132,7 +137,7 @@ extension GIRGenFunction {
       // corresponding (R)Values.
       for (idx, v) in vars.enumerated() {
         guard unspecialized.contains(idx) else { continue }
-        self.varLocs[v.name] = params[idx].value
+        self.bindPatternVariable(v, to: params[idx].value, count: vars.count)
       }
       // Emit the clause's body.
       guard let body = matrix[0].body else {
@@ -191,7 +196,14 @@ extension GIRGenFunction {
           for (ty, argPat) in zip(pTys, args) {
             if case let .variable(vn) = argPat {
               let param = destBB.appendParameter(type: ty)
-              self.varLocs[vn.name] = param
+              // Number of patterns post specialization =
+              //   Number of patterns before specialization
+              //    +
+              //   Number of argument patterns to flatten
+              //    -
+              //   One specialized constructor pattern
+              let specialPatCount = clause.patterns.count + args.count - 1
+              self.bindPatternVariable(vn, to: param, count: specialPatCount)
             } else {
               _ = destBB.appendParameter(type: ty)
             }
@@ -245,6 +257,9 @@ extension GIRGenFunction {
 
       var parameters = params
       if !dest.parameters.isEmpty {
+        // Flatten away the constructor parameter and backfill the destination
+        // block's parameters.
+        parameters.remove(at: colIdx)
         for (i, param) in dest.parameters.enumerated() {
           unspecialized.insert(parameters.count + i)
           parameters.append(ManagedValue.unmanaged(param))
@@ -285,10 +300,9 @@ extension GIRGenFunction {
         fatalError()
       case let .variable(v):
         assert(matrix.count == 1)
-        self.varLocs[v.name] = param.value
-        self.emitFinalColumnBody(parent, body)
-        self.varLocs[v.name] = nil
-        return
+        return self.withBoundVariable(v, to: param.value) {
+          self.emitFinalColumnBody(parent, body)
+        }
       case let .constructor(name, pats):
         let destBB = self.B.buildBBLikeContinuation(
           base: parent.name, tag: "_col\(colIdx)row\(idx)")
@@ -297,7 +311,7 @@ extension GIRGenFunction {
         for (ty, argPat) in zip(pTys, pats) {
           if case let .variable(vn) = argPat {
             let param = destBB.appendParameter(type: ty)
-            self.varLocs[vn.name] = param
+            self.bindVariable(vn, to: param)
           } else {
             _ = destBB.appendParameter(type: ty)
           }
@@ -328,20 +342,28 @@ extension GIRGenFunction {
         }
         self.emitFinalColumnBody(bb, self.tc.toNormalForm(bind.body))
       case let .variable(v):
-        guard let varLoc = self.varLocs[v.name] else {
+        guard let varLoc = self.lookupVariable(v) else {
           fatalError()
         }
 
-        switch self.f.callingConvention {
-        case .indirectResult:
-          // Special case: If we're going out by indirect return we shouldn't
-          // copy.  The 'store' on the value will do that for us.
-          let varValue = ManagedValue.unmanaged(varLoc).forward(self)
-          self.emitFinalReturn(bb, varValue)
-        case .default:
-          let varValue = ManagedValue.unmanaged(varLoc).copy(self).forward(self)
-          self.emitFinalReturn(bb, varValue)
+        // Peephole naked variable references as applies of the return
+        // parameter.
+        guard !args.isEmpty else {
+          switch self.f.callingConvention {
+          case .indirectResult:
+            // Special case: If we're going out by indirect return we shouldn't
+            // copy.  The 'store' on the value will do that for us.
+            let varValue = ManagedValue.unmanaged(varLoc).forward(self)
+            self.emitFinalReturn(bb, varValue)
+          case .default:
+            let varValue = ManagedValue.unmanaged(varLoc).copy(self).forward(self)
+            self.emitFinalReturn(bb, varValue)
+          }
+          return
         }
+
+        let (newParent, value) = self.emitRValue(bb, body)
+        self.emitFinalReturn(newParent, value.forward(self))
       }
     default:
       print(body)

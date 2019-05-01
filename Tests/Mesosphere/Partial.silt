@@ -1,0 +1,14 @@
+module Partial where
+
+data Nat : Type where
+  z : Nat
+  s : Nat -> Nat
+
+up : Nat -> Nat
+up = \ x -> s x
+
+ap : (Nat -> Nat) -> Nat
+ap f = f z
+
+ap2 : (Nat -> Nat) -> (Nat -> Nat) -> Nat
+ap2 f g = f (g z)
