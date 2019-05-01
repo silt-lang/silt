@@ -159,11 +159,11 @@ extension GIRGenFunction {
     }
 
     var specializationTable = [String: [Clause]]()
-    var switchNest = [(String, Value)]()
+    var switchNest = [(String, FunctionRefOp)]()
     var destMap = [(String, Continuation)]()
     var headsUnderDefaultsMatrix = [Clause]()
     var defaultsMatrix = [Clause]()
-    var defaultInfo: (cont: Continuation, ref: Value)?
+    var defaultInfo: (cont: Continuation, ref: FunctionRefOp)?
     for (idx, clause) in matrix.enumerated() {
       // Grab the pattern at the neessary column, substituting a wildcard if
       // necessary.
@@ -286,7 +286,7 @@ extension GIRGenFunction {
     _ parent: Continuation, _ colIdx: Int,
     _ param: ManagedValue, _ matrix: [Clause]
   ) {
-    var dests = [(String, Value)]()
+    var dests = [(String, FunctionRefOp)]()
     for (idx, clause) in matrix.enumerated() {
       guard let body = clause.body else {
         fatalError()

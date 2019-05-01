@@ -296,8 +296,12 @@ public final class SwitchConstrOp: TerminalOp {
   /// - Parameters:
   ///   - value: The value you're pattern matching.
   ///   - patterns: A list of pattern/apply pairs.
-  public init(_ parent: Continuation, matching value: Value,
-              patterns: [(pattern: String, apply: Value)], default: Value?) {
+  public init(
+    _ parent: Continuation,
+    matching value: Value,
+    patterns: [(pattern: String, destination: FunctionRefOp)],
+    default: FunctionRefOp?
+  ) {
     self.patterns = patterns
     self.`default` = `default`
     super.init(opcode: .switchConstr, parent: parent)
@@ -306,16 +310,11 @@ public final class SwitchConstrOp: TerminalOp {
     var ops = [Operand]()
     for (_, dest) in patterns {
       ops.append(Operand(owner: self, value: dest))
-      guard let destCont = (dest as? FunctionRefOp)?.function else {
-        continue
-      }
-      successors_.append(Successor(parent, self, destCont))
+      successors_.append(Successor(parent, self, dest.function))
     }
     if let defaultDest = `default` {
       ops.append(Operand(owner: self, value: defaultDest))
-      if let destCont = (defaultDest as? FunctionRefOp)?.function {
-        successors_.append(Successor(parent, self, destCont))
-      }
+      successors_.append(Successor(parent, self, defaultDest.function))
     }
     self.addOperands(ops)
   }
@@ -330,8 +329,8 @@ public final class SwitchConstrOp: TerminalOp {
     return operands[0].value
   }
 
-  public let patterns: [(pattern: String, apply: Value)]
-  public let `default`: Value?
+  public let patterns: [(pattern: String, destination: FunctionRefOp)]
+  public let `default`: FunctionRefOp?
 }
 
 public final class DataInitOp: PrimOp {

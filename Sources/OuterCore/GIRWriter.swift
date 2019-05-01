@@ -366,7 +366,7 @@ extension GIRWriter: PrimOpVisitor {
                     { arg in
                       self.write(arg.pattern)
                       self.write(" : ")
-                      self.write(self.getID(of: arg.apply).description)
+                      self.write(self.getID(of: arg.destination).description)
                     },
                     { self.write(" ; ") })
     guard let defaultDest = op.`default` else {
@@ -509,52 +509,3 @@ extension GIRWriter: TypeVisitor {
     self.write("_")
   }
 }
-
-/*
-
-func name(for value: Value) -> String {
-  switch value {
-  case let type as DataType:
-    return escape(type.name)
-  case let type as RecordType:
-    return escape(type.name)
-  case let type as ArchetypeType:
-    let p = type.parent
-    return "\(name(for: p)).\(escape(p.parameter(at: type.index).name))"
-  case let type as SubstitutedType:
-    var s = "\(name(for: type.substitutee))["
-    var substs = [String]()
-    for param in type.substitutee.parameters {
-      if let subst = type.substitutions[param.archetype] {
-        substs.append(name(for: subst))
-      } else {
-        substs.append("_")
-      }
-    }
-    s += substs.joined(separator: ", ") + "]"
-    return s
-  case let type as FunctionType:
-    guard !type.arguments.isEmpty else {
-      return name(for: type.returnType)
-    }
-    let args = type.arguments
-                   .map(name(for:))
-                   .joined(separator: ", ")
-    return "(\(args)) -> \(name(for: type.returnType))"
-  case is TypeMetadataType:
-    return "TypeMetadata"
-  case is TypeType:
-    return "Type"
-  case is BottomType:
-    return "_"
-  case is Continuation:
-    return "@\(escape(value.name))"
-  case is Parameter:
-    return "%\(escape(value.name))"
-  case is GIRExprType:
-    return "TYPE"
-  default:
-    fatalError("attempt to serialize unknown value \(value)")
-  }
-}
- */
