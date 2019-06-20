@@ -356,6 +356,7 @@ extension GIRParser {
         guard let arg = self.tryParseGIRValueToken() else {
           return false
         }
+        // swiftlint:disable force_cast
         let fnVal = self.getLocalValue(arg) as! FunctionRefOp
         caseConts.append((caseName.render, fnVal))
       }

@@ -102,7 +102,8 @@ public class SiltDemangleTool: SiltTool<DemangleToolOptions> {
 
       // Print any remaining text
       if lastIndex != inputContents.endIndex {
-        stdoutStream.write(String(inputContents[lastIndex..<inputContents.endIndex]))
+        let bounds = lastIndex..<inputContents.endIndex
+        stdoutStream.write(String(inputContents[bounds]))
       }
       stdoutStream.write("\n")
       stdoutStream.flush()

@@ -68,11 +68,16 @@ extension IRBuilder {
 }
 
 extension IRBuilder {
-  func createLoad(_ ptr: Address, ordering: AtomicOrdering = .notAtomic, volatile: Bool = false, alignment: Alignment = .zero, name: String = "") -> IRValue {
-    return self.buildLoad(ptr.address, type: ptr.pointeeType, ordering: ordering, volatile: volatile, alignment: alignment, name: name)
+  func createLoad(
+    _ ptr: Address, ordering: AtomicOrdering = .notAtomic,
+    volatile: Bool = false, alignment: Alignment = .zero,
+    name: String = ""
+  ) -> IRValue {
+    return self.buildLoad(ptr.address, type: ptr.pointeeType,
+                          ordering: ordering, volatile: volatile,
+                          alignment: alignment, name: name)
   }
 
-  
   func createAlloca(
     _ type: IRType, count: IRValue? = nil,
     alignment: Alignment, name: String = ""
@@ -111,7 +116,8 @@ extension IRBuilder {
     let addr = self.buildStructGEP(address.address, type: address.pointeeType,
                                    index: index,
                                    name: address.address.name + name)
-    return Address(addr, address.alignment.alignment(at: offset), str.elementTypes[index])
+    return Address(addr, address.alignment.alignment(at: offset),
+                   str.elementTypes[index])
   }
 
   func createStructGEP(_ address: Address, _ index: Int,
@@ -122,7 +128,8 @@ extension IRBuilder {
     let addr = self.buildStructGEP(address.address, type: address.pointeeType,
                                    index: index,
                                    name: address.address.name + name)
-    return Address(addr, address.alignment.alignment(at: offset), str.elementTypes[index])
+    return Address(addr, address.alignment.alignment(at: offset),
+                   str.elementTypes[index])
   }
 
   func createBitOrPointerCast(_ value: IRValue, to destTy: IRType,

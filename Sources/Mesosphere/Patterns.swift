@@ -356,7 +356,9 @@ extension GIRGenFunction {
             let varValue = ManagedValue.unmanaged(varLoc).forward(self)
             self.emitFinalReturn(bb, varValue)
           case .default:
-            let varValue = ManagedValue.unmanaged(varLoc).copy(self).forward(self)
+            let varValue = ManagedValue.unmanaged(varLoc)
+              .copy(self)
+              .forward(self)
             self.emitFinalReturn(bb, varValue)
           }
           return

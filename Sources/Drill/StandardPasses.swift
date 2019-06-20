@@ -143,7 +143,7 @@ enum Passes {
       pipeliner.execute()
       return module
     }
-  
+
   static let irGen =
     Pass<GIRModule, LLVM.Module>(name: "Generate LLVM IR") { module, _ in
       return IRGen.emit(module)

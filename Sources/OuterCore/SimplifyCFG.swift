@@ -88,10 +88,12 @@ extension SimplifyCFG {
       // If there are any BB arguments in the destination, replace them with the
       // branch operands, since they must dominate the dest block.
       for i in 0..<apply.arguments.count {
-        if destCont.parameters[i] !== apply.arguments[i].value {
-          let val = apply.arguments[i].value
-          destCont.parameters[i].replaceAllUsesWith(val)
+        guard destCont.parameters[i] === apply.arguments[i].value else {
+          continue
         }
+
+        let val = apply.arguments[i].value
+        destCont.parameters[i].replaceAllUsesWith(val)
       }
     }
 

@@ -54,7 +54,7 @@ import Seismography
 ///
 /// The corresponding invocation of silt-optimize looks like
 ///
-///     $ silt optimize --pass SimplifyCFG --pass LoopInvariantCodeMotion <Inputs>
+///     $ silt optimize --pass SimplifyCFG --pass LoopInvariantCodeMotion <File>
 public protocol OptimizerPass: class {
   /// Create and return a value of this type.
   init()

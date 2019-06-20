@@ -347,7 +347,8 @@ extension IRGenFunction {
     _ base: IRValue, _ offset: IRValue, _ type: TypeInfo, _ name: String
   ) -> Address {
     let castBase = self.B.buildBitCast(base, type: PointerType.toVoid)
-    let gep = self.B.buildInBoundsGEP(castBase, type: PointerType.toVoid, indices: [ offset ])
+    let gep = self.B.buildInBoundsGEP(castBase, type: PointerType.toVoid,
+                                      indices: [ offset ])
     let addr = self.B.buildBitCast(gep,
                                    type: PointerType(pointee: type.llvmType),
                                    name: name)

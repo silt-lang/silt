@@ -79,7 +79,8 @@ final class IRGenModule {
       self.typeMetadataPtrTy,      // Metadata *Type
       self.sizeTy                  // size_t Offset
     ])
-    self.tupleTypeMetadataTy = self.B.createStruct(name: "silt.tuple_type", types: [
+    self.tupleTypeMetadataTy = self.B.createStruct(name: "silt.tuple_type",
+                                                   types: [
       self.typeMetadataStructTy,                        // (base)
       self.sizeTy,                                      // size_t NumElements
       PointerType.toVoid,                               // const char *Labels
