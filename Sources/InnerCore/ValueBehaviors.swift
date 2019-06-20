@@ -270,7 +270,7 @@ extension SingleScalarizable {
     // Grab the old value if we need to.
     var oldValue: IRValue?
     if !type(of: self).isPOD {
-      oldValue = IGF.B.buildLoad(dest.address, name: "oldValue")
+      oldValue = IGF.B.createLoad(dest, name: "oldValue")
     }
 
     // Store.

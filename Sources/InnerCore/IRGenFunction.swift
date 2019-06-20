@@ -334,7 +334,7 @@ extension IRGenFunction {
     self.B.buildStore(value, to: orig.address)
     let coerced = self.B.createPointerBitCast(of: address,
                                               to: PointerType(pointee: toTy))
-    let loaded = self.B.buildLoad(coerced.address)
+    let loaded = self.B.createLoad(coerced)
     _ = self.B.createLifetimeEnd(address, size)
     return loaded
   }
@@ -347,7 +347,7 @@ extension IRGenFunction {
     _ base: IRValue, _ offset: IRValue, _ type: TypeInfo, _ name: String
   ) -> Address {
     let castBase = self.B.buildBitCast(base, type: PointerType.toVoid)
-    let gep = self.B.buildInBoundsGEP(castBase, indices: [ offset ])
+    let gep = self.B.buildInBoundsGEP(castBase, type: PointerType.toVoid, indices: [ offset ])
     let addr = self.B.buildBitCast(gep,
                                    type: PointerType(pointee: type.llvmType),
                                    name: name)
@@ -367,7 +367,8 @@ extension IRGenFunction {
     call.callingConvention = CallingConvention.c
     let box = self.B.buildExtractValue(call, index: 0)
     let addr = Address(self.B.buildExtractValue(call, index: 1),
-                       self.IGM.getPointerAlignment())
+                       self.IGM.getPointerAlignment(),
+                       self.IGM.refCountedPtrTy)
     return (box, addr)
   }
 
@@ -386,7 +387,7 @@ extension IRGenFunction {
 extension IRGenModule {
   func getAllocEmptyBoxFn() -> Function {
     guard let fn = self.module.function(named: "silt_allocEmptyBox") else {
-      let fnTy = FunctionType(argTypes: [], returnType: self.refCountedPtrTy)
+      let fnTy = FunctionType([], self.refCountedPtrTy)
       return self.B.addFunction("silt_allocEmptyBox", type: fnTy)
     }
     return fn
@@ -398,8 +399,7 @@ extension IRGenModule {
         self.refCountedPtrTy, // Addr
         self.opaquePtrTy,     // Metadata
       ])
-      let fnTy = FunctionType(argTypes: [ self.typeMetadataPtrTy ],
-                              returnType: retTy)
+      let fnTy = FunctionType([ self.typeMetadataPtrTy ], retTy)
       return self.B.addFunction("silt_allocBox", type: fnTy)
     }
     return fn
@@ -407,8 +407,7 @@ extension IRGenModule {
 
   func getDeallocBoxFn() -> Function {
     guard let fn = self.module.function(named: "silt_deallocBox") else {
-      let fnTy = FunctionType(argTypes: [ self.refCountedPtrTy ],
-                              returnType: VoidType())
+      let fnTy = FunctionType([ self.refCountedPtrTy ], VoidType())
       return self.B.addFunction("silt_deallocBox", type: fnTy)
     }
     return fn
@@ -416,8 +415,7 @@ extension IRGenModule {
 
   func getProjectBoxFn() -> Function {
     guard let fn = self.module.function(named: "silt_deallocBox") else {
-      let fnTy = FunctionType(argTypes: [ self.refCountedPtrTy ],
-                              returnType: self.refCountedPtrTy)
+      let fnTy = FunctionType([ self.refCountedPtrTy ], self.refCountedPtrTy)
       return self.B.addFunction("silt_deallocBox", type: fnTy)
     }
     return fn

@@ -249,13 +249,15 @@ final class NonFixedTupleTypeInfo: TupleTypeInfo, WitnessSizedTypeInfo {
         let asTuple = IGF.B.buildBitCast(metadata,
                                          type: IGF.IGM.tupleTypeMetadataPtrTy)
 
-        let slot = IGF.B.buildInBoundsGEP(asTuple, indices: [
+        let slot = IGF.B.buildInBoundsGEP(asTuple, type: IGF.IGM.tupleTypeMetadataTy, indices: [
           IGF.IGM.getSize(.zero),       // (*tupleType)
           IntType.int32.constant(3),    //   .Elements
           IGF.IGM.getSize(Size(index)), //     [index]
           IntType.int32.constant(1),    //       .Offset
         ])
-        return IGF.B.buildLoad(slot, alignment: IGF.IGM.getPointerAlignment(),
+        return IGF.B.buildLoad(slot,
+                               type: IGF.IGM.tupleTypeMetadataTy,
+                               alignment: IGF.IGM.getPointerAlignment(),
                                name: metadata.name + ".\(index).offset")
       }
     }

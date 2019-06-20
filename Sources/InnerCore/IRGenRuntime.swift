@@ -32,35 +32,31 @@ enum RuntimeIntrinsic: String {
   var type: LLVM.FunctionType {
     switch self {
     case .copyValue:
-      return LLVM.FunctionType(argTypes: [PointerType.toVoid],
-                               returnType: PointerType.toVoid)
+      return LLVM.FunctionType([PointerType.toVoid], PointerType.toVoid)
     case .destroyValue:
-      return LLVM.FunctionType(argTypes: [PointerType.toVoid],
-                               returnType: VoidType())
+      return LLVM.FunctionType([PointerType.toVoid], VoidType())
     case .alloc:
-      return LLVM.FunctionType(argTypes: [
+      return LLVM.FunctionType([
         PointerType.toVoid,
         IntType.int64,
         IntType.int64
-      ], returnType: PointerType.toVoid)
+      ], PointerType.toVoid)
     case .dealloc:
-      return LLVM.FunctionType(argTypes: [
+      return LLVM.FunctionType([
         PointerType.toVoid,
         IntType.int64,
         IntType.int64
-      ], returnType: VoidType())
+      ], VoidType())
     case .deallocUninitialized:
-      return LLVM.FunctionType(argTypes: [
+      return LLVM.FunctionType([
         PointerType.toVoid,
         IntType.int64,
         IntType.int64
-      ], returnType: VoidType())
+      ], VoidType())
     case .retain:
-      return LLVM.FunctionType(argTypes: [PointerType.toVoid],
-                               returnType: PointerType.toVoid)
+      return LLVM.FunctionType([PointerType.toVoid], PointerType.toVoid)
     case .release:
-      return LLVM.FunctionType(argTypes: [PointerType.toVoid],
-                               returnType: VoidType())
+      return LLVM.FunctionType([PointerType.toVoid], VoidType())
     }
   }
 }
@@ -150,7 +146,7 @@ extension IRGenRuntime {
                           self.IGF.function.firstBlock?.asLLVM())
     let stackRestorePoint: IRValue?
     if !isInEntryBlock {
-      let sig = LLVM.FunctionType(argTypes: [], returnType: PointerType.toVoid)
+      let sig = LLVM.FunctionType([], PointerType.toVoid)
       let stackSaveFn = self.IGF.B.getOrCreateIntrinsic("llvm.stacksave", sig)
 
       stackRestorePoint = self.IGF.B.buildCall(stackSaveFn,
@@ -174,8 +170,7 @@ extension IRGenRuntime {
       return
     }
 
-    let sig = LLVM.FunctionType(argTypes: [PointerType.toVoid],
-                                returnType: VoidType())
+    let sig = LLVM.FunctionType([PointerType.toVoid], VoidType())
     let stackRestoreFn = self.IGF.B.getOrCreateIntrinsic("llvm.stackrestore",
                                                          sig)
     _ = self.IGF.B.buildCall(stackRestoreFn, args: [ savedSP ])
@@ -273,7 +268,7 @@ struct RecordLayout {
                   _ ptr: IRValue, _ name: String) -> Address {
     let ptrTy = PointerType(pointee: self.llvmType)
     let addr = IGF.B.buildBitCast(ptr, type: ptrTy, name: name)
-    return Address(addr, self.minimumAlignment)
+    return Address(addr, self.minimumAlignment, self.llvmType)
   }
 
   func emitSize(_ IGM: IRGenModule) -> IRValue {
@@ -466,9 +461,9 @@ extension RecordLayout {
     let kindIdx = MetadataKind.heapLocalVariable.rawValue
 
     // Build the fields of the private metadata.
-    let fty = FunctionType(argTypes: [
+    let fty = FunctionType([
       PointerType.toVoid
-    ], returnType: VoidType())
+    ], VoidType())
     let type = StructType(elementTypes: [
       PointerType(pointee: fty),
       PointerType(pointee: PointerType.toVoid),
@@ -513,9 +508,9 @@ extension RecordLayout {
   /// Create the destructor function for a layout.
   /// TODO: give this some reasonable name and possibly linkage.
   func createDtorFn(_ IGM: IRGenModule, _ layout: RecordLayout) -> Function {
-    let fty = FunctionType(argTypes: [
+    let fty = FunctionType([
       PointerType.toVoid
-    ], returnType: VoidType())
+    ], VoidType())
     var fn = IGM.B.addFunction("objectdestroy", type: fty)
     fn.linkage = .private
     fn.callingConvention = .c

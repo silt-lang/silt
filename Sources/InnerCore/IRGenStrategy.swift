@@ -380,13 +380,13 @@ final class SingleBitDataTypeStrategy: NoPayloadStrategy {
   func loadAsCopy(_ IGF: IRGenFunction,
                   _ addr: Address, _ explosion: Explosion) {
     let addr = IGF.B.createStructGEP(addr, 0, .zero, "")
-    explosion.append(IGF.B.buildLoad(addr.address))
+    explosion.append(IGF.B.createLoad(addr))
   }
 
   func loadAsTake(_ IGF: IRGenFunction,
                   _ addr: Address, _ explosion: Explosion) {
     let addr = IGF.B.createStructGEP(addr, 0, .zero, "")
-    explosion.append(IGF.B.buildLoad(addr.address))
+    explosion.append(IGF.B.createLoad(addr))
   }
 
   func emitDataProjection(_ IGF: IRGenFunction, _ : String,
@@ -474,12 +474,12 @@ final class NoPayloadDataTypeStrategy: NoPayloadStrategy {
 
   func loadAsTake(_ IGF: IRGenFunction,
                   _ addr: Address, _ explosion: Explosion) {
-    explosion.append(IGF.B.buildLoad(addr.address))
+    explosion.append(IGF.B.createLoad(addr))
   }
 
   func loadAsCopy(_ IGF: IRGenFunction,
                   _ addr: Address, _ explosion: Explosion) {
-    let value = IGF.B.buildLoad(addr.address)
+    let value = IGF.B.createLoad(addr)
     self.emitScalarRelease(IGF, value)
     explosion.append(value)
   }
@@ -513,7 +513,7 @@ final class NoPayloadDataTypeStrategy: NoPayloadStrategy {
   func assignWithCopy(_ IGF: IRGenFunction,
                       _ dest: Address, _ source: Address, _ : GIRType) {
     let addr = IGF.B.createStructGEP(source, 0, .zero, "")
-    let value = IGF.B.buildLoad(addr.address)
+    let value = IGF.B.createLoad(addr)
     IGF.B.buildStore(value, to: dest.address)
   }
 }
@@ -647,7 +647,7 @@ final class SinglePayloadDataTypeStrategy: PayloadStrategy {
   func destroy(_ IGF: IRGenFunction, _ addr: Address, _ type: GIRType) {
     let ptrTy = PointerType(pointee: IGF.IGM.refCountedPtrTy)
     let addr = IGF.B.createPointerBitCast(of: addr, to: ptrTy)
-    let ptr = IGF.B.buildLoad(addr.address)
+    let ptr = IGF.B.createLoad(addr)
     IGF.GR.emitRelease(ptr)
   }
 
@@ -809,12 +809,12 @@ final class NaturalDataTypeStrategy: NoPayloadStrategy {
 
   func loadAsTake(_ IGF: IRGenFunction,
                   _ addr: Address, _ explosion: Explosion) {
-    explosion.append(IGF.B.buildLoad(addr.address))
+    explosion.append(IGF.B.createLoad(addr))
   }
 
   func loadAsCopy(_ IGF: IRGenFunction,
                   _ addr: Address, _ explosion: Explosion) {
-    explosion.append(IGF.B.buildLoad(addr.address))
+    explosion.append(IGF.B.createLoad(addr))
   }
 
   func copy(_ IGF: IRGenFunction, _ src: Explosion, _ dest: Explosion) {

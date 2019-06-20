@@ -11,10 +11,12 @@ import LLVM
 struct Address {
   let address: IRValue
   let alignment: Alignment
+  let pointeeType: IRType
 
-  init(_ addr: IRValue, _ align: Alignment) {
+  init(_ addr: IRValue, _ align: Alignment, _ pointeeType: IRType) {
     self.address = addr
     self.alignment = align
+    self.pointeeType = pointeeType
   }
 }
 

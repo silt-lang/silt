@@ -93,6 +93,8 @@ struct SolverConstraint: CustomDebugStringConvertible, Hashable {
           .union(freeMetas(t2))
       case let .unifySpines(_, t1, .some(head), _, _):
         return freeMetas(t1).union(freeMetas(head))
+      case let .unifySpines(_, t1, .none, _, _):
+        return freeMetas(t1)
       case let .conjoin(cs):
         let metas = Set<Meta>()
         return cs.reduce(into: metas) { acc, next in

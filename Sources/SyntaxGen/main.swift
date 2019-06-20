@@ -6,7 +6,7 @@
 /// available in the repository.
 
 import Basic
-import Utility
+import SPMUtility
 import Foundation
 
 extension OutputStream: TextOutputStream {

@@ -8,7 +8,7 @@
 import Foundation
 import Drill
 import Basic
-import Utility
+import SPMUtility
 import LiteSupport
 import Lithosphere
 import Rainbow

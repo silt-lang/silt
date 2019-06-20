@@ -142,7 +142,7 @@ extension Payload {
     let address = IGF.B.createPointerBitCast(of: address, to: ptrTy)
 
     if result.payloadValues.count == 1 {
-      let val = IGF.B.buildLoad(address.address, alignment: address.alignment)
+      let val = IGF.B.createLoad(address, alignment: address.alignment)
       result.payloadValues[0] = .left(val)
     } else {
       var offset = Size.zero
@@ -150,8 +150,8 @@ extension Payload {
       loadedPayloads.reserveCapacity(result.payloadValues.count)
       for i in result.payloadValues.indices {
         let member = IGF.B.createStructGEP(address, i, offset, "")
-        let loadedValue =  IGF.B.buildLoad(member.address,
-                                           alignment: member.alignment)
+        let loadedValue =  IGF.B.createLoad(member,
+                                            alignment: member.alignment)
         loadedPayloads.append(.left(loadedValue))
         offset += Size(IGF.IGM.dataLayout.allocationSize(of: loadedValue.type))
       }

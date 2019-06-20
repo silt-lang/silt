@@ -1,6 +1,6 @@
 import Foundation
 import Basic
-import Utility
+import SPMUtility
 import Drill
 import FileCheck
 import Lithosphere

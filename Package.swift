@@ -4,6 +4,9 @@ import PackageDescription
 
 let package = Package(
   name: "silt",
+  platforms: [
+    .macOS(.v10_14)
+  ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-package-manager.git", from: "0.1.0"),
     .package(url: "https://github.com/llvm-swift/FileCheck.git", from: "0.0.4"),
@@ -22,37 +25,37 @@ let package = Package(
       dependencies: ["Lithosphere"]),
     .target(
       name: "Boring",
-      dependencies: ["Drill", "Utility", "Mantle", "Seismography"]),
+      dependencies: ["Drill", "SPMUtility", "Mantle", "Seismography"]),
     .target(
       name: "Drill",
       dependencies: [
         "Lithosphere", "Crust", "Moho", "Mantle", "Seismography",
-        "Mesosphere", "OuterCore", "InnerCore", "Utility"
+        "Mesosphere", "OuterCore", "InnerCore", "SPMUtility"
     ]),
     .target(
       name: "silt",
-      dependencies: ["Boring", "Utility"]),
+      dependencies: ["Boring", "SPMUtility"]),
     .target(
       name: "SyntaxGen",
-      dependencies: ["Utility", "Lithosphere"]),
+      dependencies: ["SPMUtility", "Lithosphere"]),
     .target(
       name: "lite",
-      dependencies: ["Symbolic", "LiteSupport", "silt", "Utility"]),
+      dependencies: ["Symbolic", "LiteSupport", "silt", "SPMUtility"]),
     .target(
       name: "file-check",
-      dependencies: ["Drill", "FileCheck", "Utility"]),
+      dependencies: ["Drill", "FileCheck", "SPMUtility"]),
     .target(
       name: "Moho",
-      dependencies: ["Lithosphere", "Crust", "Utility"]),
+      dependencies: ["Lithosphere", "Crust", "SPMUtility"]),
     .target(
       name: "Mantle",
-      dependencies: ["Lithosphere", "Moho", "Utility", "PrettyStackTrace"]),
+      dependencies: ["Lithosphere", "Moho", "SPMUtility", "PrettyStackTrace"]),
     .target(
       name: "Mesosphere",
       dependencies: ["Mantle", "Seismography"]),
     .target(
       name: "OuterCore",
-      dependencies: ["Crust", "Seismography", "Utility"]),
+      dependencies: ["Crust", "Seismography", "SPMUtility"]),
     .target(
       name: "Seismography",
       dependencies: ["Moho", "Mantle", "Crust"]),
