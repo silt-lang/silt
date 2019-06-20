@@ -7,7 +7,7 @@
 
 import Foundation
 import Basic
-import Utility
+import SPMUtility
 import Drill
 import Seismography
 
@@ -34,7 +34,7 @@ public class SiltDemangleTool: SiltTool<DemangleToolOptions> {
         positional: "",
         kind: [String].self,
         usage: "One or more input strings",
-        completion: .none),
+        completion: nil),
       to: { opt, names in opt.inputNames = names })
   }
 
@@ -87,7 +87,7 @@ public class SiltDemangleTool: SiltTool<DemangleToolOptions> {
                                              offsetBy: NSMaxRange(r))
 
           // Print the text before the match
-          stdoutStream.write(inputContents[lastIndex..<matchStart])
+          stdoutStream.write(String(inputContents[lastIndex..<matchStart]))
 
           // Demangle and print the match
           let substr = String(inputContents[
@@ -102,7 +102,8 @@ public class SiltDemangleTool: SiltTool<DemangleToolOptions> {
 
       // Print any remaining text
       if lastIndex != inputContents.endIndex {
-        stdoutStream.write(inputContents[lastIndex..<inputContents.endIndex])
+        let bounds = lastIndex..<inputContents.endIndex
+        stdoutStream.write(String(inputContents[bounds]))
       }
       stdoutStream.write("\n")
       stdoutStream.flush()

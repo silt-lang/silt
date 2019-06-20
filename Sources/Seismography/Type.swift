@@ -96,7 +96,7 @@ public final class TypeMetadataType: GIRType {
 }
 
 public final class TypeType: GIRType {
-  static let shared = TypeType()
+  public static let shared = TypeType()
 
   init() {
     let typeType =

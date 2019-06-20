@@ -181,10 +181,12 @@ extension NameBinding {
   }
 
   /// Under an existing scope, execute a function returning a result.
-  func withScope<T>(_ s : Scope, _ f : (Scope) throws -> T) rethrows -> T {
+  func withScope<T>(
+    _ scope: Scope, _ transform: (Scope) throws -> T
+  ) rethrows -> T {
     let oldScope = self.activeScope
-    self.activeScope = s
-    let result = try f(self.activeScope)
+    self.activeScope = scope
+    let result = try transform(self.activeScope)
     self.activeScope = oldScope
     return result
   }

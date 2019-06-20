@@ -29,6 +29,7 @@ final class IRGenModule {
   let opaquePtrTy: PointerType
   let fullTypeMetadataStructTy: StructType
   let fullTypeMetadataPtrTy: PointerType
+  let tupleTypeMetadataTy: StructType
   let tupleTypeMetadataPtrTy: PointerType
   let witnessTablePtrTy: PointerType
 
@@ -78,13 +79,14 @@ final class IRGenModule {
       self.typeMetadataPtrTy,      // Metadata *Type
       self.sizeTy                  // size_t Offset
     ])
-    self.tupleTypeMetadataPtrTy =
-      PointerType(pointee: self.B.createStruct(name: "silt.tuple_type", types: [
+    self.tupleTypeMetadataTy = self.B.createStruct(name: "silt.tuple_type",
+                                                   types: [
       self.typeMetadataStructTy,                        // (base)
       self.sizeTy,                                      // size_t NumElements
       PointerType.toVoid,                               // const char *Labels
       ArrayType(elementType: tupleElementTy, count: 0), // Element Elements[]
-    ]))
+    ])
+    self.tupleTypeMetadataPtrTy = PointerType(pointee: self.tupleTypeMetadataTy)
   }
 
   func getTypeInfo(_ ty: GIRType) -> TypeInfo {
@@ -101,10 +103,7 @@ final class IRGenModule {
   }
 
   func emitMain() {
-    let fn = B.addFunction("main", type: FunctionType(
-      argTypes: [],
-      returnType: IntType.int32
-    ))
+    let fn = B.addFunction("main", type: FunctionType([], IntType.int32))
     let entry = fn.appendBasicBlock(named: "entry")
     B.positionAtEnd(of: entry)
     B.buildRet(0 as Int32)

@@ -245,6 +245,16 @@ gir-primop ::= 'data_init' <gir-type> ';' <qualified-name> ';' (';' <operand>)?
 
 Creates a loadable value of the given datatype by instantiating the given data constructor.
 
+### data_extract
+
+```
+gir-primop ::= 'data_extract' <operand> ';' <qualified-name> ':' <gir-type>
+
+%n = data_extract %0 ; T.constructor : (U, V, W, ...)
+```
+
+Forcibly extracts the payload value from a given datatype.
+
 ## Tuples
 
 ### tuple

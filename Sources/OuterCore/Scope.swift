@@ -9,6 +9,7 @@ import Foundation
 import Seismography
 
 public final class Scope: Hashable {
+  public let module: GIRModule
   private var defs = Set<Value>()
   public let entry: Continuation
   public private(set) var continuations: [Continuation] = []
@@ -17,7 +18,12 @@ public final class Scope: Hashable {
     return self.defs
   }
 
-  init(_ entry: Continuation, _ blacklist: Set<Continuation>) {
+  init(
+    _ module: GIRModule,
+    _ entry: Continuation,
+    _ blacklist: Set<Continuation>
+  ) {
+    self.module = module
     self.entry = entry
     var queue = [Value]()
 
@@ -99,13 +105,20 @@ public final class Scope: Hashable {
   }
 }
 
+extension Scope {
+  // FIXME: This is O(n). Can we do better?  Should we do better?
+  public func remove(_ cont: Continuation) {
+    self.continuations.removeAll(where: { $0 === cont })
+  }
+}
+
 extension GIRModule {
   public var topLevelScopes: [Scope] {
     var scopes = [Scope]()
     var visited = Set<Continuation>()
     for cont in self.continuations {
       guard !visited.contains(cont) else { continue }
-      let scope = Scope(cont, visited)
+      let scope = Scope(self, cont, visited)
       scopes.append(scope)
       visited.formUnion(scope.continuations)
     }

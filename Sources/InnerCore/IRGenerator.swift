@@ -33,7 +33,7 @@ extension IRBuilder {
     _ buf: Address, _ size: Size = Size(bits: UInt64.max)
   ) -> Call {
     let argTys: [IRType] = [IntType.int64, PointerType.toVoid]
-    let sig = LLVM.FunctionType(argTypes: argTys, returnType: VoidType())
+    let sig = LLVM.FunctionType(argTys, VoidType())
     let fn = self.getOrCreateIntrinsic("llvm.lifetime.start.p0i8", sig)
     let addr: Address
     if buf.address.type.asLLVM() == PointerType.toVoid.asLLVM() {
@@ -52,7 +52,7 @@ extension IRBuilder {
     _ buf: Address, _ size: Size = Size(bits: UInt64.max)
   ) -> Call {
     let argTys: [IRType] = [IntType.int64, PointerType.toVoid]
-    let sig = LLVM.FunctionType(argTypes: argTys, returnType: VoidType())
+    let sig = LLVM.FunctionType(argTys, VoidType())
     let fn = self.getOrCreateIntrinsic("llvm.lifetime.end.p0i8", sig)
     let addr: Address
     if buf.address.type.asLLVM() == PointerType.toVoid.asLLVM() {
@@ -68,20 +68,30 @@ extension IRBuilder {
 }
 
 extension IRBuilder {
+  func createLoad(
+    _ ptr: Address, ordering: AtomicOrdering = .notAtomic,
+    volatile: Bool = false, alignment: Alignment = .zero,
+    name: String = ""
+  ) -> IRValue {
+    return self.buildLoad(ptr.address, type: ptr.pointeeType,
+                          ordering: ordering, volatile: volatile,
+                          alignment: alignment, name: name)
+  }
+
   func createAlloca(
     _ type: IRType, count: IRValue? = nil,
     alignment: Alignment, name: String = ""
   ) -> Address {
     let alloca = self.buildAlloca(type: type, count: count,
                                   alignment: alignment, name: name)
-    return Address(alloca, alignment)
+    return Address(alloca, alignment, type)
   }
 
   func createPointerBitCast(
     of address: Address, to type: PointerType
   ) -> Address {
     let addr = self.buildBitCast(address.address, type: type)
-    return Address(addr, address.alignment)
+    return Address(addr, address.alignment, address.pointeeType)
   }
 
   func createElementBitCast(
@@ -99,17 +109,27 @@ extension IRBuilder {
 
   func createStructGEP(_ address: Address, _ index: Int,
                        _ layout: LLVM.StructLayout, _ name: String) -> Address {
+    guard let str = address.pointeeType as? StructType else {
+      fatalError()
+    }
     let offset = layout.memberOffsets[index]
-    let addr = self.buildStructGEP(address.address, index: index,
+    let addr = self.buildStructGEP(address.address, type: address.pointeeType,
+                                   index: index,
                                    name: address.address.name + name)
-    return Address(addr, address.alignment.alignment(at: offset))
+    return Address(addr, address.alignment.alignment(at: offset),
+                   str.elementTypes[index])
   }
 
   func createStructGEP(_ address: Address, _ index: Int,
                        _ offset: Size, _ name: String) -> Address {
-    let addr = self.buildStructGEP(address.address, index: index,
+    guard let str = address.pointeeType as? StructType else {
+      fatalError()
+    }
+    let addr = self.buildStructGEP(address.address, type: address.pointeeType,
+                                   index: index,
                                    name: address.address.name + name)
-    return Address(addr, address.alignment.alignment(at: offset))
+    return Address(addr, address.alignment.alignment(at: offset),
+                   str.elementTypes[index])
   }
 
   func createBitOrPointerCast(_ value: IRValue, to destTy: IRType,

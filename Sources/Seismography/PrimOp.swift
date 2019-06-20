@@ -58,6 +58,9 @@ public class PrimOp: Value {
     /// A data constructor call with all parameters provided at +1.
     case dataInit = "data_init"
 
+    /// Extracts the payload data from a data constructor.
+    case dataExtract = "data_extract"
+
     /// Heap-allocate a box large enough to hold a given type.
     case allocBox = "alloc_box"
 
@@ -296,8 +299,12 @@ public final class SwitchConstrOp: TerminalOp {
   /// - Parameters:
   ///   - value: The value you're pattern matching.
   ///   - patterns: A list of pattern/apply pairs.
-  public init(_ parent: Continuation, matching value: Value,
-              patterns: [(pattern: String, apply: Value)], default: Value?) {
+  public init(
+    _ parent: Continuation,
+    matching value: Value,
+    patterns: [(pattern: String, destination: FunctionRefOp)],
+    default: FunctionRefOp?
+  ) {
     self.patterns = patterns
     self.`default` = `default`
     super.init(opcode: .switchConstr, parent: parent)
@@ -306,16 +313,11 @@ public final class SwitchConstrOp: TerminalOp {
     var ops = [Operand]()
     for (_, dest) in patterns {
       ops.append(Operand(owner: self, value: dest))
-      guard let destCont = (dest as? FunctionRefOp)?.function else {
-        continue
-      }
-      successors_.append(Successor(parent, self, destCont))
+      successors_.append(Successor(parent, self, dest.function))
     }
     if let defaultDest = `default` {
       ops.append(Operand(owner: self, value: defaultDest))
-      if let destCont = (defaultDest as? FunctionRefOp)?.function {
-        successors_.append(Successor(parent, self, destCont))
-      }
+      successors_.append(Successor(parent, self, defaultDest.function))
     }
     self.addOperands(ops)
   }
@@ -330,8 +332,8 @@ public final class SwitchConstrOp: TerminalOp {
     return operands[0].value
   }
 
-  public let patterns: [(pattern: String, apply: Value)]
-  public let `default`: Value?
+  public let patterns: [(pattern: String, destination: FunctionRefOp)]
+  public let `default`: FunctionRefOp?
 }
 
 public final class DataInitOp: PrimOp {
@@ -351,6 +353,25 @@ public final class DataInitOp: PrimOp {
       return nil
     }
     return operands[0].value
+  }
+
+  public override var result: Value? {
+    return self
+  }
+}
+
+public final class DataExtractOp: PrimOp {
+  public let constructor: String
+  public let dataValue: Value
+
+  public init(constructor: String, value: Value, payloadType: Value) {
+    self.constructor = constructor
+    self.dataValue = value
+    super.init(opcode: .dataExtract, type: payloadType,
+               category: payloadType.category)
+    self.addOperands([
+      Operand(owner: self, value: value),
+    ])
   }
 
   public override var result: Value? {
@@ -527,6 +548,7 @@ public protocol PrimOpVisitor {
   func visitFunctionRefOp(_ op: FunctionRefOp) -> Ret
   func visitSwitchConstrOp(_ op: SwitchConstrOp) -> Ret
   func visitDataInitOp(_ op: DataInitOp) -> Ret
+  func visitDataExtractOp(_ op: DataExtractOp) -> Ret
   func visitTupleOp(_ op: TupleOp) -> Ret
   func visitTupleElementAddress(_ op: TupleElementAddressOp) -> Ret
   func visitLoadOp(_ op: LoadOp) -> Ret
@@ -565,6 +587,8 @@ extension PrimOpVisitor {
     case .switchConstr: return self.visitSwitchConstrOp(code as! SwitchConstrOp)
     // swiftlint:disable force_cast
     case .dataInit: return self.visitDataInitOp(code as! DataInitOp)
+    // swiftlint:disable force_cast
+    case .dataExtract: return self.visitDataExtractOp(code as! DataExtractOp)
     // swiftlint:disable force_cast
     case .tuple: return self.visitTupleOp(code as! TupleOp)
       // swiftlint:disable force_cast line_length

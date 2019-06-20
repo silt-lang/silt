@@ -117,9 +117,16 @@ extension GIRBuilder {
     return insert(DataInitOp(constructor: constr, type: type, argument: arg))
   }
 
+  public func createDataExtract(
+    _ constr: String, _ value: Value, _ payloadType: Value
+  ) -> DataExtractOp {
+    return insert(DataExtractOp(constructor: constr, value: value,
+                                payloadType: payloadType))
+  }
+
   public func createSwitchConstr(
-    _ parent: Continuation, _ src: Value, _ caseVals: [(String, Value)],
-    _ default: Value? = nil
+    _ parent: Continuation, _ src: Value, _ caseVals: [(String, FunctionRefOp)],
+    _ default: FunctionRefOp? = nil
   ) -> SwitchConstrOp {
     return insert(SwitchConstrOp(parent, matching: src, patterns: caseVals,
                                  default: `default`))

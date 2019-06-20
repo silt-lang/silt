@@ -12,6 +12,7 @@ import Lithosphere
 import Crust
 import Moho
 import Mantle
+import Seismography
 import OuterCore
 import InnerCore
 
@@ -30,7 +31,8 @@ extension Passes {
   static let typeCheckFile = scopeCheckFile |> Passes.typeCheck
   static let parseGIRFile = Passes.lexFile |> Passes.parseGIR
   static let girGenModule = typeCheckFile |> Passes.girGen
-  static let irGenModule = girGenModule |> Passes.irGen
+  static let girOptimize = girGenModule |> Passes.optimize
+  static let irGenModule = girOptimize |> Passes.irGen
 }
 
 public struct Invocation {
@@ -159,6 +161,41 @@ public struct Invocation {
                                     converter: { consumer.converter! }))!
         }
       }
+    }
+    return context.engine.hasErrors()
+  }
+}
+
+extension Invocation {
+  public func runToGIRGen(_ f: @escaping (GIRModule) -> Void) -> HadErrors {
+    let context = PassContext(options: options)
+    Rainbow.enabled = options.colorsEnabled
+
+    // Force Rainbow to use ANSI colors even when not in a TTY.
+    if Rainbow.outputTarget == .unknown {
+      Rainbow.outputTarget = .console
+    }
+
+    if options.inputURLs.isEmpty {
+      context.engine.diagnose(.noInputFiles)
+      return true
+    }
+
+    defer {
+      if options.shouldPrintTiming {
+        context.timer.dump(to: &stdoutStreamHandle)
+      }
+    }
+
+    for url in options.inputURLs {
+      func run<PassTy: PassProtocol>(_ pass: PassTy) -> PassTy.Output?
+        where PassTy.Input == URL {
+          return pass.run(url, in: context)
+      }
+
+      run(Passes.girGenModule |> Pass(name: "Transform Generated GIR") { m, _ in
+        f(m)
+      })
     }
     return context.engine.hasErrors()
   }

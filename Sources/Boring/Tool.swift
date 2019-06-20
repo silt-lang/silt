@@ -7,7 +7,7 @@
 
 import SPMLibc
 import Basic
-import Utility
+import SPMUtility
 import POSIX
 
 public class SiltToolOptions {

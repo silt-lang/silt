@@ -32,9 +32,7 @@ struct LoweredSignature {
     func expandFunctionType() -> LLVM.FunctionType {
       let resultType = self.expandResult()
       self.expandParameters()
-      return .init(argTypes: self.parameterTypes,
-                   returnType: resultType,
-                   isVarArg: false)
+      return .init(self.parameterTypes, resultType)
     }
 
     private func expandResult() -> IRType {

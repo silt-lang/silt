@@ -45,7 +45,7 @@ extension TypeInfo {
       fatalError()
     }
     precondition(ptrTy.pointee.asLLVM() == self.llvmType.asLLVM())
-    return Address(v, self.alignment)
+    return Address(v, self.alignment, self.llvmType)
   }
 
   /// Computes an address value for an `undef` pointer value to the underlying
@@ -53,7 +53,7 @@ extension TypeInfo {
   ///
   /// - Returns: The address value of an `undef` pointer.
   func undefAddress() -> Address {
-    return Address(PointerType(pointee: self.llvmType).undef(), self.alignment)
+    return Address(PointerType(pointee: self.llvmType).undef(), self.alignment, self.llvmType)
   }
 }
 
@@ -385,14 +385,14 @@ final class ManagedObjectTypeInfo: HeapTypeInfo {
 
   func loadAsCopy(_ IGF: IRGenFunction,
                   _ addr: Address, _ explosion: Explosion) {
-    let value = IGF.B.buildLoad(addr.address)
+    let value = IGF.B.createLoad(addr)
     self.emitScalarRetain(IGF, value)
     explosion.append(value)
   }
 
   func loadAsTake(_ IGF: IRGenFunction,
                   _ addr: Address, _ explosion: Explosion) {
-    explosion.append(IGF.B.buildLoad(addr.address))
+    explosion.append(IGF.B.createLoad(addr))
   }
 
   func copy(_ IGF: IRGenFunction, _ src: Explosion, _ dest: Explosion) {
@@ -434,8 +434,8 @@ final class ManagedObjectTypeInfo: HeapTypeInfo {
 
   func destroy(_ IGF: IRGenFunction,
                _ addr: Address, _ type: GIRType) {
-    let value = IGF.B.buildLoad(addr.address,
-                                alignment: addr.alignment, name: "toDestroy")
+    let value = IGF.B.createLoad(addr,
+                                 alignment: addr.alignment, name: "toDestroy")
     self.emitScalarRelease(IGF, value)
   }
 
@@ -500,14 +500,14 @@ extension BoxTypeInfo {
 
   func loadAsCopy(_ IGF: IRGenFunction,
                   _ addr: Address, _ explosion: Explosion) {
-    let value = IGF.B.buildLoad(addr.address)
+    let value = IGF.B.createLoad(addr)
     self.emitScalarRetain(IGF, value)
     explosion.append(value)
   }
 
   func loadAsTake(_ IGF: IRGenFunction,
                   _ addr: Address, _ explosion: Explosion) {
-    explosion.append(IGF.B.buildLoad(addr.address))
+    explosion.append(IGF.B.createLoad(addr))
   }
 
   func copy(_ IGF: IRGenFunction, _ src: Explosion, _ dest: Explosion) {
@@ -548,8 +548,8 @@ extension BoxTypeInfo {
   }
 
   func destroy(_ IGF: IRGenFunction, _ addr: Address, _ type: GIRType) {
-    let value = IGF.B.buildLoad(addr.address,
-                                alignment: addr.alignment, name: "toDestroy")
+    let value = IGF.B.createLoad(addr,
+                                 alignment: addr.alignment, name: "toDestroy")
     self.emitScalarRelease(IGF, value)
   }
 
@@ -720,11 +720,11 @@ final class FunctionTypeInfo: LoadableTypeInfo {
   func loadAsCopy(_ IGF: IRGenFunction,
                   _ addr: Address, _ explosion: Explosion) {
     let fnAddr = self.projectFunction(IGF, addr)
-    let first = IGF.B.buildLoad(fnAddr.address)
+    let first = IGF.B.createLoad(fnAddr)
     explosion.append(first)
 
     let envAddr = self.projectEnvironment(IGF, addr)
-    let second = IGF.B.buildLoad(envAddr.address)
+    let second = IGF.B.createLoad(envAddr)
     explosion.append(second)
   }
 
@@ -732,11 +732,11 @@ final class FunctionTypeInfo: LoadableTypeInfo {
                   _ addr: Address, _ explosion: Explosion) {
     // Load the function.
     let fnAddr = self.projectFunction(IGF, addr)
-    explosion.append(IGF.B.buildLoad(fnAddr.address))
+    explosion.append(IGF.B.createLoad(fnAddr))
 
     // Load the environment pointer.
     let dataAddr = self.projectEnvironment(IGF, addr)
-    explosion.append(IGF.B.buildLoad(dataAddr.address))
+    explosion.append(IGF.B.createLoad(dataAddr))
   }
 
   func copy(_ IGF: IRGenFunction, _ src: Explosion, _ dest: Explosion) {
@@ -769,7 +769,7 @@ final class FunctionTypeInfo: LoadableTypeInfo {
   }
 
   func destroy(_ IGF: IRGenFunction, _ addr: Address, _ type: GIRType) {
-    _ = IGF.B.buildLoad(self.projectEnvironment(IGF, addr).address)
+    _ = IGF.B.createLoad(self.projectEnvironment(IGF, addr))
     fatalError("Release the data pointer box!")
   }
 

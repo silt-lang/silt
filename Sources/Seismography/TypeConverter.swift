@@ -216,6 +216,14 @@ public final class TypeConverter {
     return existing
   }
 
+  public func getPayloadTypeOfConstructors(
+    rawName: String
+  ) -> GIRType {
+    let name = Name(name: SyntaxFactory.makeIdentifier(rawName))
+    let opened = self.tc.openDefinition(QualifiedName(name: name), [])
+    return self.getPayloadTypeOfConstructor(opened)
+  }
+
   public func getPayloadTypeOfConstructor(
     _ con: Opened<QualifiedName, TT>
   ) -> GIRType {
